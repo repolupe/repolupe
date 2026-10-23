@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE repositories\n           SET sync_status     = CASE\n                                     WHEN last_error IS NOT NULL THEN 'FAILED'\n                                     WHEN head_commit_sha IS NULL THEN 'PENDING'\n                                     ELSE 'READY'\n                                 END,\n               sync_started_at = NULL,\n               next_sync_at    = $1\n           WHERE sync_status = 'SYNCING'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "ab4d612ab54b0914732d9931ba3d90881cb8a7a5b7f86d1acd74b97f8316b72e"
+}

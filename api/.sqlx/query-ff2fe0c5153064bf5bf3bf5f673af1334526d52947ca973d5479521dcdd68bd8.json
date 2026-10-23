@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE document_extractions SET extractor = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "ff2fe0c5153064bf5bf3bf5f673af1334526d52947ca973d5479521dcdd68bd8"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO document_extractions (blob_oid, status, markdown, ocr, error, extractor, extracted_at)\n           SELECT $2, status, markdown, ocr, error, extractor, $4\n           FROM document_extractions\n           WHERE blob_oid = $1 AND extractor = $3\n           ON CONFLICT (blob_oid) DO UPDATE\n               SET status       = excluded.status,\n                   markdown     = excluded.markdown,\n                   ocr          = excluded.ocr,\n                   error        = excluded.error,\n                   extractor    = excluded.extractor,\n                   extracted_at = excluded.extracted_at",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "7200885d1bb25b20ef5dda23b66a4d37de5479f421296ae4413b35eb7e31e521"
+}

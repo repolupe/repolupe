@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT u.role AS \"role: UserRole\"\n           FROM repositories r\n           JOIN users u ON u.id = r.user_id\n           WHERE r.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "name": "role: UserRole",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "06f7f00d9e634fa2f82ff7972eec9204fb929774bad321992fbe7a6a587d0f4e"
+}

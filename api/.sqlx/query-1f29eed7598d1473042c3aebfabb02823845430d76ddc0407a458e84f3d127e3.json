@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE llm_providers\n           SET name              = $3,\n               api_format        = $4,\n               base_url          = $5,\n               api_key_encrypted = CASE WHEN $6 THEN $7 ELSE api_key_encrypted END,\n               api_key_hint      = CASE WHEN $6 THEN $8 ELSE api_key_hint END,\n               currency          = $9,\n               updated_at        = $10\n           WHERE id = $1 AND base_url = $2\n             AND ($9 IS NOT NULL\n               OR NOT EXISTS (SELECT 1 FROM llm_models WHERE provider_id = $1 AND input_price IS NOT NULL))\n           RETURNING id AS \"id: Uuid\", name, api_format AS \"api_format: LlmApiFormat\", base_url,\n                     api_key_encrypted, api_key_hint, currency, created_at AS \"created_at: DateTime<Utc>\",\n                     updated_at AS \"updated_at: DateTime<Utc>\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "api_format: LlmApiFormat",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "base_url",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "api_key_encrypted",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "api_key_hint",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "currency",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 7,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "updated_at: DateTime<Utc>",
+        "ordinal": 8,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 10
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "1f29eed7598d1473042c3aebfabb02823845430d76ddc0407a458e84f3d127e3"
+}

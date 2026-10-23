@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO chat_repositories (chat_id, repository_id)\n           SELECT $1, r.id\n           FROM repositories r\n           WHERE r.id IN (SELECT unhex(value, '-') FROM json_each($3))\n             AND (r.user_id = $2\n                  OR EXISTS (SELECT 1 FROM repository_users ru WHERE ru.repository_id = r.id AND ru.user_id = $2))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "ac6c3587d341b32f7adccf4c31bfeeffc483eafb538b21f27fa0cb44967089c0"
+}

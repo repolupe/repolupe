@@ -1,0 +1,83 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:app/gen/strings.g.dart';
+import 'package:app/model/account.dart';
+import 'package:app/pages/settings_page.dart';
+import 'package:app/service/api_service.dart';
+import 'package:app/service/me_service.dart';
+import 'package:app/service/persistence_service.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:refena_flutter/addons.dart';
+import 'package:refena_flutter/refena_flutter.dart';
+
+import 'support/fake_user.dart';
+import 'support/persistence.dart';
+import 'support/rust.dart';
+
+const _adminId = '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12';
+
+/// Opens the settings for the admin of a server answering `GET /api/v1/me`. With [local], the active account is the
+/// local instance's, while the requests still go to the server.
+Future<void> _pumpPage(WidgetTester tester, {required bool local}) async {
+  // Bound and listened to in the real async zone, so that it also answers the requests sent outside the pumps.
+  final server = (await tester.runAsync(() => HttpServer.bind(InternetAddress.loopbackIPv4, 0)))!;
+  addTearDown(() => server.close(force: true));
+  await tester.runAsync(() async {
+    server.listen((request) async {
+      final response = request.response;
+      response.headers.contentType = ContentType.json;
+      if (request.uri.path == '/api/v1/me') {
+        response.write(jsonEncode(fakeUser(id: _adminId, userName: 'admin', role: 'ADMIN')));
+      } else {
+        response.statusCode = 404;
+        response.write(jsonEncode(fakeError('NOT_FOUND', 'Not found')));
+      }
+      await response.close();
+    });
+  });
+
+  final account = Account(
+    apiUrl: 'http://127.0.0.1:${server.port}',
+    token: 'session-token',
+    user: AccountUser(id: _adminId, userName: 'admin'),
+  );
+  final stored = local ? account.copyWith(apiUrl: null) : account;
+  final persistence = (await tester.runAsync(() => mockPersistence(account: stored)))!;
+  final container = RefenaContainer(overrides: [persistenceProvider.overrideWithValue(persistence)]);
+  container.redux(apiProvider).dispatch(ApiSetAccountAction(account));
+  await tester.runAsync(() => container.redux(meProvider).dispatchAsync(RefreshMeAction()));
+
+  await tester.pumpWidget(
+    RefenaScope.withContainer(
+      container: container,
+      child: TranslationProvider(
+        child: MaterialApp(
+          navigatorKey: container.read(navigationProvider).key,
+          home: const SettingsPage(),
+        ),
+      ),
+    ),
+  );
+}
+
+void main() {
+  setUpAll(() async {
+    await initRustLib();
+  });
+
+  testWidgets('the settings of an admin offer the users', (tester) async {
+    await _pumpPage(tester, local: false);
+    expect(find.text('Admin'), findsOneWidget);
+    expect(find.byKey(const ValueKey('settings.admin.users')), findsOneWidget);
+    expect(find.byKey(const ValueKey('settings.admin.llm')), findsOneWidget);
+  });
+
+  testWidgets('the settings of the local instance offer no users, its admin is its only user', (tester) async {
+    await _pumpPage(tester, local: true);
+    expect(find.text('Admin'), findsOneWidget);
+    expect(find.byKey(const ValueKey('settings.admin.users')), findsNothing);
+    expect(find.byKey(const ValueKey('settings.admin.llm')), findsOneWidget);
+  });
+}

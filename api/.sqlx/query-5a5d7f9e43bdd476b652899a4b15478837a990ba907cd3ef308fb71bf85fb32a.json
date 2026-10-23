@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO document_extractions (blob_oid, status, markdown, ocr, extractor, extracted_at)\n           VALUES ($1, 'COMPLETED', $2, false, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "5a5d7f9e43bdd476b652899a4b15478837a990ba907cd3ef308fb71bf85fb32a"
+}

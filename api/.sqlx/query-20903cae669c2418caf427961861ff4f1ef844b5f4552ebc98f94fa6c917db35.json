@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT role AS \"role: MessageRole\", status AS \"status: MessageStatus\",\n                  NOT EXISTS (SELECT 1 FROM messages later\n                              WHERE later.chat_id = m.chat_id\n                                AND (later.created_at, later.id) > (m.created_at, m.id)) AS \"is_last!: bool\"\n           FROM messages m\n           WHERE m.id = $1 AND m.chat_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "name": "role: MessageRole",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "status: MessageStatus",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_last!: bool",
+        "ordinal": 2,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "20903cae669c2418caf427961861ff4f1ef844b5f4552ebc98f94fa6c917db35"
+}

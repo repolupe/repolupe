@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO proposed_commits (tool_call_id, path, moves, proposed_commit, status) VALUES ($1, $2, $3, $4, 'PROPOSED')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "af9f3f1c8df1a784e3eea7e8476b36f9f96ef70c0a80f81405e2636c4540e134"
+}

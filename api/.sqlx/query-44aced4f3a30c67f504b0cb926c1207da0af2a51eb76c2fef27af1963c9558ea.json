@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE repositories\n           SET sync_status     = 'SYNCING',\n               sync_started_at = $3\n           WHERE id IN (SELECT id\n                        FROM repositories\n                        WHERE next_sync_at <= $3\n                          AND id NOT IN (SELECT unhex(value, '-') FROM json_each($1))\n                        ORDER BY next_sync_at\n                        LIMIT $2)\n           RETURNING id AS \"id: Uuid\", remote_url, branch, poll_interval_seconds, token_encrypted, head_commit_sha,\n                     (SELECT role FROM users u WHERE u.id = user_id) AS \"owner_role!: UserRole\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "remote_url",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "branch",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "poll_interval_seconds",
+        "ordinal": 3,
+        "type_info": "Int4"
+      },
+      {
+        "name": "token_encrypted",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "head_commit_sha",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "owner_role!: UserRole",
+        "ordinal": 6,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "44aced4f3a30c67f504b0cb926c1207da0af2a51eb76c2fef27af1963c9558ea"
+}

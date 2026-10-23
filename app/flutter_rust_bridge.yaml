@@ -1,0 +1,7 @@
+rust_input: crate::api,repolupe::dto
+rust_root: rust/
+dart_output: lib/src/rust
+dart_format_line_length: 150
+# Its build_runner run (with output filters) deletes the other generated files, e.g. the
+# dart_mappable mappers. Run `dart run build_runner build` after the codegen instead.
+build_runner: false

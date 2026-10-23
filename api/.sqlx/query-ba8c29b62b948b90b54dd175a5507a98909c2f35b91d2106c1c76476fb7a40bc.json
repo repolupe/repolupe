@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT status AS \"status: DocumentExtractionStatus\", markdown, ocr, error\n           FROM document_extractions\n           WHERE blob_oid = $1",
+  "describe": {
+    "columns": [
+      {
+        "name": "status: DocumentExtractionStatus",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "markdown",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "ocr",
+        "ordinal": 2,
+        "type_info": "Bool"
+      },
+      {
+        "name": "error",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "ba8c29b62b948b90b54dd175a5507a98909c2f35b91d2106c1c76476fb7a40bc"
+}

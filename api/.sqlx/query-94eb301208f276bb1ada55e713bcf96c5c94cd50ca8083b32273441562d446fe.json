@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE tool_calls SET output = $1, is_error = true\n           WHERE output IS NULL\n             AND message_id IN (SELECT id FROM messages WHERE status = 'GENERATING')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "94eb301208f276bb1ada55e713bcf96c5c94cd50ca8083b32273441562d446fe"
+}

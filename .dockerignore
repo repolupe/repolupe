@@ -1,0 +1,15 @@
+.git
+.idea
+.env
+**/.DS_Store
+
+api/target
+api/repos
+
+web/node_modules
+web/.nuxt
+web/.output
+web/.data
+web/.nitro
+web/.cache
+web/dist

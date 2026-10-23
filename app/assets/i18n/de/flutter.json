@@ -1,0 +1,202 @@
+{
+  "common": {
+    "unsavedChanges": {
+      "title": "Änderungen verwerfen?",
+      "text": "Deine Änderungen wurden nicht gespeichert.",
+      "keepEditing": "Weiter bearbeiten",
+      "discard": "Verwerfen"
+    }
+  },
+  "setup": {
+    "addAccount": "Konto hinzufügen",
+    "intro": "Melde dich bei deinem Repolupe-Server an oder führe Repolupe auf diesem Gerät aus.",
+    "introRemote": "Melde dich bei deinem Repolupe-Server an.",
+    "server": "Server",
+    "remoteDescription": "Melde dich bei einem Repolupe-Server an und nutze seine Repositories und Modelle.",
+    "localDescription": "Führe Repolupe in der App aus. Chats und Repositories bleiben auf diesem Gerät."
+  },
+  "account": {
+    "thisDevice": "Dieses Gerät",
+    "invalidApiUrl": "Ungültige Serveradresse.",
+    "localStartFailed": "Die lokale Instanz konnte nicht gestartet werden: {message}",
+    "sessionExpired": "Deine Sitzung auf {server} ist abgelaufen. Bitte melde dich erneut an."
+  },
+  "chat": {
+    "page": {
+      "temporaryOff": "Temporären Chat ausschalten"
+    },
+    "markdownContent": {
+      "openLinkFailed": "{link} konnte nicht geöffnet werden"
+    },
+    "repositorySheet": {
+      "fixedHint": "Ein Chat behält die Repositories, mit denen er gestartet wurde.",
+      "unavailable": "Nicht verfügbares Repository"
+    },
+    "toolCallPage": {
+      "commit": "Commit {sha}"
+    },
+    "presentedFilePage": {
+      "cannotShow": "Diese Datei kann in der App nicht angezeigt werden."
+    },
+    "proposedCommitPage": {
+      "notApplied": "Noch nicht übernommen."
+    }
+  },
+  "settings": {
+    "changePasswordPage": {
+      "intro": "Du musst dein Passwort ändern, bevor du fortfahren kannst."
+    },
+    "accountSheet": {
+      "accounts": "Konten",
+      "addAccount": "Konto hinzufügen"
+    },
+    "preferences": {
+      "deviceDefault": "Standard des Geräts",
+      "deviceDefaultWithLocale": "Standard des Geräts ({locale})",
+      "modelSheet": {
+        "noneConfigured": "Keines konfiguriert"
+      }
+    }
+  },
+  "validation": {
+    "invalidCurrency": "Ungültige Währung, erwartet wird ein Code wie USD oder EUR"
+  },
+  "themeMode": {
+    "title": "Design",
+    "system": "System",
+    "light": "Hell",
+    "dark": "Dunkel"
+  },
+  "repositories": {
+    "statusUnknown": "Unbekannt",
+    "listPage": {
+      "addedLocal": "Repository hinzugefügt."
+    },
+    "page": {
+      "tokenSetWithHint": "Gesetzt (•••• {hint})"
+    },
+    "form": {
+      "showToken": "Token anzeigen",
+      "hideToken": "Token ausblenden"
+    },
+    "usersCard": {
+      "sharedRelative": "Geteilt {relative}",
+      "canCommitOn": "Darf die vom Modell vorgeschlagenen Änderungen übernehmen"
+    }
+  },
+  "documents": {
+    "notSynced": "Noch nicht synchronisiert",
+    "noDocuments": "Keine Dokumente",
+    "showMore": "Mehr anzeigen ({remaining} weitere)",
+    "details": {
+      "path": "Pfad",
+      "started": "Gestartet",
+      "reason": "Grund",
+      "triedAgain": "Neuer Versuch",
+      "settingsChanged": "Geänderte Einstellungen: Das Dokument wird mit den aktuellen Einstellungen erneut umgewandelt.",
+      "newDocument": "Neu: Das Dokument wurde noch nicht umgewandelt.",
+      "convertedEarlier": "Umgewandelt (frühere Einstellungen)",
+      "failedRelative": "Fehlgeschlagen {relative}",
+      "ocrUsed": "Seiten wurden per OCR erkannt, der Text kann also Fehler enthalten.",
+      "ocrNotUsed": "Nein"
+    }
+  },
+  "format": {
+    "relative": {
+      "justNow": "gerade eben",
+      "minutesAgo": {
+        "one": "vor 1 Minute",
+        "other": "vor {count} Minuten"
+      },
+      "inMinutes": {
+        "one": "in 1 Minute",
+        "other": "in {count} Minuten"
+      },
+      "hoursAgo": {
+        "one": "vor 1 Stunde",
+        "other": "vor {count} Stunden"
+      },
+      "inHours": {
+        "one": "in 1 Stunde",
+        "other": "in {count} Stunden"
+      },
+      "daysAgo": {
+        "one": "vor 1 Tag",
+        "other": "vor {count} Tagen"
+      },
+      "inDays": {
+        "one": "in 1 Tag",
+        "other": "in {count} Tagen"
+      }
+    }
+  },
+  "admin": {
+    "users": {
+      "showPassword": "Passwort anzeigen",
+      "hidePassword": "Passwort verbergen",
+      "page": {
+        "localOnly": "Repolupe auf diesem Gerät hat nur einen Benutzer, daher können keine Benutzer hinzugefügt werden. Um Chats und Repositories mit anderen zu teilen, verwende einen Repolupe-Server.",
+        "noMatch": "Keine Benutzer passen zu deiner Suche."
+      },
+      "userPage": {
+        "login": "Anmeldung",
+        "loginAllowed": "Erlaubt",
+        "loginDisabled": "Deaktiviert (überall abgemeldet)",
+        "repositoriesManage": "Kann eigene verwalten und teilen",
+        "repositoriesReadOnly": "Nur lesen (kann nur Fragen zu Repositories stellen, die mit ihm geteilt wurden)",
+        "identity": "Benutzername und E-Mail",
+        "identityEditable": "Der Benutzer kann sie ändern",
+        "identityFixed": "Fest (nur Admins können sie ändern)",
+        "passwordMustChange": "Muss bei der nächsten Anmeldung geändert werden"
+      },
+      "form": {
+        "adminNote": "Admins können umbenannt, aber nie eingeschränkt werden."
+      },
+      "flags": {
+        "repositoriesReadOnly": "Repositories nur lesen",
+        "identityFixed": "Benutzername und E-Mail fest"
+      }
+    },
+    "llm": {
+      "page": {
+        "apiKeyNone": "Keiner",
+        "currencyNone": "Keine (seine Modelle haben keine Preise)",
+        "models": "Modelle"
+      },
+      "providerForm": {
+        "openAiTitle": "OpenAI-kompatibel",
+        "openAiDescription": "Die OpenAI-Chat-Completions-API, die auch OpenRouter, Ollama, vLLM, LM Studio usw. anbieten.",
+        "anthropicDescription": "Die Anthropic-Messages-API.",
+        "baseUrlHint": "Leer lassen für die offizielle API des Formats.",
+        "currencyHint": "ISO-4217-Code der Modellpreise, z. B. USD oder EUR. Leer lassen, wenn seine Modelle keine Preise haben.",
+        "apiKeyOptional": "API-Schlüssel (optional)",
+        "apiKeyHint": "Leer lassen für Server ohne Authentifizierung.",
+        "showKey": "Schlüssel anzeigen",
+        "hideKey": "Schlüssel verbergen"
+      },
+      "modelForm": {
+        "apiNameHint": "Die Modell-ID, die an die API gesendet wird. Höchstens {max} Zeichen.",
+        "displayNameOptional": "Anzeigename (optional)",
+        "displayNameHint": "Wird Benutzern statt des API-Namens angezeigt. Höchstens {max} Zeichen.",
+        "maxOutputTokensOptional": "Max. Ausgabe-Tokens (optional)",
+        "maxOutputTokensHint": "Leer lassen für den Standardwert des API-Formats."
+      }
+    },
+    "config": {
+      "page": {
+        "runtimeOnly": "Nur Laufzeiteinstellungen können überschrieben werden, die anderen erfordern einen Neustart.",
+        "runtime": "Laufzeit",
+        "overrideValue": "Überschreibung: {value}"
+      },
+      "overrideDialog": {
+        "choiceHint": "Wähle den Wert der Umgebungsvariable, um die Überschreibung zu entfernen",
+        "remove": "Überschreibung entfernen"
+      }
+    },
+    "extraction": {
+      "page": {
+        "loadMore": "Mehr laden (noch {remaining})"
+      }
+    }
+  }
+}

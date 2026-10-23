@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE attachments\n           SET chat_id = $3, message_id = $4,\n               number = (SELECT COALESCE(MAX(a.number), 0) + 1 FROM attachments a WHERE a.chat_id = $3)\n           WHERE id = $1 AND user_id = $2 AND message_id IS NULL\n           RETURNING id AS \"id: Uuid\", message_id AS \"message_id: Uuid\", number, file_name, content_type,\n                     size, blob_oid, created_at AS \"created_at: DateTime<Utc>\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "message_id: Uuid",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "number",
+        "ordinal": 2,
+        "type_info": "Int4"
+      },
+      {
+        "name": "file_name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "content_type",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "size",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "blob_oid",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 7,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e4584a1baec4a27213966bd42e2fc5fc1a60f1f30e9219a64459415ad294db98"
+}

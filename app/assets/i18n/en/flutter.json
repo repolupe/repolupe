@@ -1,0 +1,202 @@
+{
+  "common": {
+    "unsavedChanges": {
+      "title": "Discard changes?",
+      "text": "Your changes have not been saved.",
+      "keepEditing": "Keep editing",
+      "discard": "Discard"
+    }
+  },
+  "setup": {
+    "addAccount": "Add account",
+    "intro": "Log in to your Repolupe server, or run Repolupe on this device.",
+    "introRemote": "Log in to your Repolupe server.",
+    "server": "Server",
+    "remoteDescription": "Log in to a Repolupe server, and use its repositories and models.",
+    "localDescription": "Run Repolupe in the app. Chats and repositories stay on this device."
+  },
+  "account": {
+    "thisDevice": "This device",
+    "invalidApiUrl": "Invalid server address.",
+    "localStartFailed": "Could not start the local instance: {message}",
+    "sessionExpired": "Your session on {server} has ended. Please log in again."
+  },
+  "chat": {
+    "page": {
+      "temporaryOff": "Turn off temporary chat"
+    },
+    "markdownContent": {
+      "openLinkFailed": "Could not open {link}"
+    },
+    "repositorySheet": {
+      "fixedHint": "A chat keeps the repositories it was started with.",
+      "unavailable": "Unavailable repository"
+    },
+    "toolCallPage": {
+      "commit": "Commit {sha}"
+    },
+    "presentedFilePage": {
+      "cannotShow": "This file cannot be shown in the app."
+    },
+    "proposedCommitPage": {
+      "notApplied": "Not applied yet."
+    }
+  },
+  "settings": {
+    "changePasswordPage": {
+      "intro": "You must change your password before you can continue."
+    },
+    "accountSheet": {
+      "accounts": "Accounts",
+      "addAccount": "Add account"
+    },
+    "preferences": {
+      "deviceDefault": "Device default",
+      "deviceDefaultWithLocale": "Device default ({locale})",
+      "modelSheet": {
+        "noneConfigured": "None configured"
+      }
+    }
+  },
+  "validation": {
+    "invalidCurrency": "Invalid currency, expected a code like USD or EUR"
+  },
+  "themeMode": {
+    "title": "Theme",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "repositories": {
+    "statusUnknown": "Unknown",
+    "listPage": {
+      "addedLocal": "Repository added."
+    },
+    "page": {
+      "tokenSetWithHint": "Set (•••• {hint})"
+    },
+    "form": {
+      "showToken": "Show token",
+      "hideToken": "Hide token"
+    },
+    "usersCard": {
+      "sharedRelative": "Shared {relative}",
+      "canCommitOn": "Applies the changes the model proposes to them"
+    }
+  },
+  "documents": {
+    "notSynced": "Not synced yet",
+    "noDocuments": "No documents",
+    "showMore": "Show more ({remaining} remaining)",
+    "details": {
+      "path": "Path",
+      "started": "Started",
+      "reason": "Reason",
+      "triedAgain": "Tried again",
+      "settingsChanged": "Settings change: the document is converted again with the current settings.",
+      "newDocument": "New: the document has not been converted yet.",
+      "convertedEarlier": "Converted (earlier settings)",
+      "failedRelative": "Failed {relative}",
+      "ocrUsed": "Pages were recognized with OCR, so the text may contain errors.",
+      "ocrNotUsed": "No"
+    }
+  },
+  "format": {
+    "relative": {
+      "justNow": "just now",
+      "minutesAgo": {
+        "one": "1 minute ago",
+        "other": "{count} minutes ago"
+      },
+      "inMinutes": {
+        "one": "in 1 minute",
+        "other": "in {count} minutes"
+      },
+      "hoursAgo": {
+        "one": "1 hour ago",
+        "other": "{count} hours ago"
+      },
+      "inHours": {
+        "one": "in 1 hour",
+        "other": "in {count} hours"
+      },
+      "daysAgo": {
+        "one": "1 day ago",
+        "other": "{count} days ago"
+      },
+      "inDays": {
+        "one": "in 1 day",
+        "other": "in {count} days"
+      }
+    }
+  },
+  "admin": {
+    "users": {
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "page": {
+        "localOnly": "Repolupe on this device has only one user, so no users can be added. To share chats and repositories with others, use a Repolupe server.",
+        "noMatch": "No users match your search."
+      },
+      "userPage": {
+        "login": "Login",
+        "loginAllowed": "Allowed",
+        "loginDisabled": "Disabled (signed out everywhere)",
+        "repositoriesManage": "Can manage their own and share them",
+        "repositoriesReadOnly": "Read only (can only ask about repositories shared with them)",
+        "identity": "User name and email",
+        "identityEditable": "The user can change them",
+        "identityFixed": "Fixed (only admins can change them)",
+        "passwordMustChange": "Must be changed at the next login"
+      },
+      "form": {
+        "adminNote": "Admins can be renamed, but never restricted."
+      },
+      "flags": {
+        "repositoriesReadOnly": "Repositories read only",
+        "identityFixed": "Fixed user name and email"
+      }
+    },
+    "llm": {
+      "page": {
+        "apiKeyNone": "None",
+        "currencyNone": "None (its models have no prices)",
+        "models": "Models"
+      },
+      "providerForm": {
+        "openAiTitle": "OpenAI-compatible",
+        "openAiDescription": "The OpenAI Chat Completions API, also offered by OpenRouter, Ollama, vLLM, LM Studio, etc.",
+        "anthropicDescription": "The Anthropic Messages API.",
+        "baseUrlHint": "Leave empty for the official API of the format.",
+        "currencyHint": "ISO 4217 code of the model prices, e.g. USD or EUR. Leave empty if its models have no prices.",
+        "apiKeyOptional": "API key (optional)",
+        "apiKeyHint": "Leave empty for servers without authentication.",
+        "showKey": "Show key",
+        "hideKey": "Hide key"
+      },
+      "modelForm": {
+        "apiNameHint": "The model id sent to the API. At most {max} characters.",
+        "displayNameOptional": "Display name (optional)",
+        "displayNameHint": "Shown to users instead of the API name. At most {max} characters.",
+        "maxOutputTokensOptional": "Max output tokens (optional)",
+        "maxOutputTokensHint": "Leave empty for the default of the API format."
+      }
+    },
+    "config": {
+      "page": {
+        "runtimeOnly": "Only runtime settings can be overridden; the others need a restart.",
+        "runtime": "Runtime",
+        "overrideValue": "Override: {value}"
+      },
+      "overrideDialog": {
+        "choiceHint": "Use the env value to remove the override",
+        "remove": "Remove override"
+      }
+    },
+    "extraction": {
+      "page": {
+        "loadMore": "Load more ({remaining} remaining)"
+      }
+    }
+  }
+}

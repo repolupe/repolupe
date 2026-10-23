@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT blob_oid FROM document_extractions ORDER BY blob_oid",
+  "describe": {
+    "columns": [
+      {
+        "name": "blob_oid",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3ecfdccb8fd1c90219a658b35072bfbfd3450e3da89b8081b74e44f0228ed63a"
+}

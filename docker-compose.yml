@@ -1,0 +1,21 @@
+# Runs the API, which also serves the frontend. The SQLite database is in the `data` volume.
+#
+#   docker compose up -d
+#
+# Pulls the latest release from ghcr.io (`docker compose pull` to update). To run the current
+# source instead, build it with `docker build -t ghcr.io/repolupe/repolupe:latest .` first.
+
+services:
+  repolupe:
+    image: ghcr.io/repolupe/repolupe:latest
+    environment:
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY}
+    ports:
+      - "${API_PORT:-3000}:3000"
+    volumes:
+      # The database, mirrored repositories and xberg's cache
+      - data:/data
+    restart: unless-stopped
+
+volumes:
+  data:

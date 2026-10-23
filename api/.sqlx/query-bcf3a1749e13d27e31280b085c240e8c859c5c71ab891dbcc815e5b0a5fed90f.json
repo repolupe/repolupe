@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO document_extractions (blob_oid, status, markdown, ocr, error, extractor, extracted_at)\n               VALUES ($1, CASE WHEN $2 IS NULL THEN 'FAILED' ELSE 'COMPLETED' END, $2, $3, $4, 'seeded', $5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "bcf3a1749e13d27e31280b085c240e8c859c5c71ab891dbcc815e5b0a5fed90f"
+}

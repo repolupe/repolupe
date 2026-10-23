@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id: Uuid\", message_id AS \"message_id: Uuid\", name,\n                  input AS \"input: serde_json::Value\", repository_id AS \"repository_id: Uuid\",\n                  commit_sha, output IS NOT NULL AS \"finished!: bool\", is_error,\n                  created_at AS \"created_at: DateTime<Utc>\"\n           FROM tool_calls\n           WHERE message_id = $1\n           ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "message_id: Uuid",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "input: serde_json::Value",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "repository_id: Uuid",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "commit_sha",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "finished!: bool",
+        "ordinal": 6,
+        "type_info": "Null"
+      },
+      {
+        "name": "is_error",
+        "ordinal": 7,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 8,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "f2b7c7dd4ee8d323b73e909f0fff79f1808945144424ea53435d60509c2755c9"
+}

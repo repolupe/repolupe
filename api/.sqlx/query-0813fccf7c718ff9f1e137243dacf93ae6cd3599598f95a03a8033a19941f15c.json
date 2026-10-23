@@ -1,0 +1,80 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT r.id AS \"repository_id: Uuid\",\n                  r.name AS repository_name,\n                  u.user_name AS owner_name,\n                  (r.user_id = $3 OR EXISTS (SELECT 1\n                                             FROM repository_users ru\n                                             WHERE ru.repository_id = r.id AND ru.user_id = $3)) AS \"readable!: bool\",\n                  d.path,\n                  d.blob_oid,\n                  e.status       AS \"status?: DocumentExtractionStatus\",\n                  e.ocr          AS \"ocr?\",\n                  e.error        AS \"error?\",\n                  e.extractor    AS \"extractor?\",\n                  e.extracted_at AS \"extracted_at?: DateTime<Utc>\"\n           FROM repository_documents d\n                    JOIN repositories r ON r.id = d.repository_id\n                    JOIN users u ON u.id = r.user_id\n                    LEFT JOIN document_extractions e ON e.blob_oid = d.blob_oid\n           WHERE CASE $2\n                     WHEN 'CONVERTED' THEN e.extractor = $1 AND e.status = 'COMPLETED'\n                     WHEN 'FAILED' THEN e.extractor = $1 AND e.status = 'FAILED'\n                     WHEN 'PENDING' THEN e.extractor IS DISTINCT FROM $1\n                     ELSE TRUE\n                     END\n           ORDER BY r.name, r.id, d.path\n           LIMIT $5 OFFSET $4",
+  "describe": {
+    "columns": [
+      {
+        "name": "repository_id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "repository_name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "owner_name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "readable!: bool",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "path",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "blob_oid",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "status?: DocumentExtractionStatus",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "ocr?",
+        "ordinal": 7,
+        "type_info": "Bool"
+      },
+      {
+        "name": "error?",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "extractor?",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "extracted_at?: DateTime<Utc>",
+        "ordinal": 10,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "0813fccf7c718ff9f1e137243dacf93ae6cd3599598f95a03a8033a19941f15c"
+}

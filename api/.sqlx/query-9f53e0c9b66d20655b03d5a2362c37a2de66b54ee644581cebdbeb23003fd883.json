@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO config (key, value) VALUES ('OCR_ENGINE', 'mistral'), ('REPOS_DIR', '/tmp')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "9f53e0c9b66d20655b03d5a2362c37a2de66b54ee644581cebdbeb23003fd883"
+}

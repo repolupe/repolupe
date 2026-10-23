@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM document_extractions\n           WHERE extracted_at < $1\n             AND NOT EXISTS (SELECT 1 FROM repository_documents r WHERE r.blob_oid = document_extractions.blob_oid)\n             AND NOT EXISTS (SELECT 1 FROM attachments a WHERE a.blob_oid = document_extractions.blob_oid)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "7742b9603b9c39b3d5b4672f131186f048f39f223667bd51a69b2b85c2b785fe"
+}

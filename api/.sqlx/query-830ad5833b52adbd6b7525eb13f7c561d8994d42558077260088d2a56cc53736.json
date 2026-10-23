@@ -1,0 +1,140 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id: Uuid\", user_id AS \"user_id: Uuid\", name, description, remote_url, branch, poll_interval_seconds,\n                  token_encrypted, token_hint, allow_commits,\n                  allow_commits AND (user_id = $2 OR EXISTS (SELECT 1\n                                                             FROM repository_users ru\n                                                             WHERE ru.repository_id = r.id AND ru.user_id = $2 AND ru.can_commit)) AS \"viewer_can_commit!: bool\",\n                  sync_status AS \"sync_status: RepositorySyncStatus\", sync_started_at AS \"sync_started_at: DateTime<Utc>\",\n                  head_commit_sha, last_synced_at AS \"last_synced_at: DateTime<Utc>\", git_size, lfs_size, last_error,\n                  next_sync_at AS \"next_sync_at: DateTime<Utc>\", created_at AS \"created_at: DateTime<Utc>\", updated_at AS \"updated_at: DateTime<Utc>\"\n           FROM repositories r\n           WHERE r.id = $1\n             AND (r.user_id = $2\n                  OR EXISTS (SELECT 1 FROM repository_users ru WHERE ru.repository_id = r.id AND ru.user_id = $2))",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "user_id: Uuid",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "remote_url",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "branch",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "poll_interval_seconds",
+        "ordinal": 6,
+        "type_info": "Int4"
+      },
+      {
+        "name": "token_encrypted",
+        "ordinal": 7,
+        "type_info": "Blob"
+      },
+      {
+        "name": "token_hint",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "allow_commits",
+        "ordinal": 9,
+        "type_info": "Bool"
+      },
+      {
+        "name": "viewer_can_commit!: bool",
+        "ordinal": 10,
+        "type_info": "Null"
+      },
+      {
+        "name": "sync_status: RepositorySyncStatus",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "sync_started_at: DateTime<Utc>",
+        "ordinal": 12,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "head_commit_sha",
+        "ordinal": 13,
+        "type_info": "Text"
+      },
+      {
+        "name": "last_synced_at: DateTime<Utc>",
+        "ordinal": 14,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "git_size",
+        "ordinal": 15,
+        "type_info": "Integer"
+      },
+      {
+        "name": "lfs_size",
+        "ordinal": 16,
+        "type_info": "Integer"
+      },
+      {
+        "name": "last_error",
+        "ordinal": 17,
+        "type_info": "Text"
+      },
+      {
+        "name": "next_sync_at: DateTime<Utc>",
+        "ordinal": 18,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 19,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "updated_at: DateTime<Utc>",
+        "ordinal": 20,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      false,
+      null,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "830ad5833b52adbd6b7525eb13f7c561d8994d42558077260088d2a56cc53736"
+}

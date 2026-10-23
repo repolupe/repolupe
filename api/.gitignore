@@ -1,0 +1,6 @@
+/target
+/attachments
+/repos
+/*.db
+/*.db-shm
+/*.db-wal

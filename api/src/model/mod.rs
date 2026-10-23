@@ -1,0 +1,12 @@
+pub(crate) mod attachment;
+pub(crate) mod chat;
+pub(crate) mod document_extraction;
+pub(crate) mod llm_model;
+pub(crate) mod llm_provider;
+pub(crate) mod message;
+pub(crate) mod remote_access;
+pub(crate) mod repository;
+pub(crate) mod repository_document;
+pub(crate) mod session;
+pub(crate) mod tool_call;
+pub(crate) mod user;

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM repository_users WHERE repository_id = $1 AND user_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "c957477592b3eb0c223b4ed6e7e24cf01dec7bd3ef5820ff6915c7a788f0173a"
+}

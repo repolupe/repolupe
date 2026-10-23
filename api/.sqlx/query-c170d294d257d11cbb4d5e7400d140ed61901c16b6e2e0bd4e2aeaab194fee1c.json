@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE messages SET status = 'FAILED', error = $1 WHERE status = 'GENERATING'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "c170d294d257d11cbb4d5e7400d140ed61901c16b6e2e0bd4e2aeaab194fee1c"
+}

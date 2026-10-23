@@ -1,0 +1,72 @@
+[package]
+name = "repolupe"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+aes-gcm = "0.10"
+argon2 = "0.6"
+axum = { version = "0.8", features = ["macros"] }
+axum-extra = { version = "0.12", features = ["cookie", "typed-header"] }
+base64 = "0.22"
+chrono = { version = "0.4", features = ["serde"] }
+futures-util = "0.3"
+hex = "0.4"
+rand = "0.9"
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "http2", "json", "query", "stream"] }
+# The LLM client, see `service::llm`. Pinned, since every minor release breaks the API. Without
+# rig's TLS features, which only configure its own shared client: requests go through ours,
+# wrapped by rig-reqwest.
+rig-core = { version = "=0.45.0", default-features = false }
+rig-reqwest = { version = "=0.45.0", default-features = false }
+rust_decimal = "1.43.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.11"
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "migrate", "chrono", "uuid", "json"] }
+thiserror = "2"
+tokio = { version = "1", features = ["full"] }
+tokio-util = "0.7"
+tower-http = { version = "0.7.1", features = ["fs", "trace"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+url = "2"
+uuid = { version = "1", features = ["serde", "v7"] }
+xberg = { version = "1.3.9", default-features = false, features = ["pdf", "tokio-runtime"] }
+# Not used directly. xberg-paddle-ocr 1.3.9 accepts newer releases but does not compile with rc.14.
+ort = { version = "=2.0.0-rc.13", default-features = false, optional = true }
+gix = { version = "0.89", default-features = false, features = ["blocking-network-client", "sha1", "max-performance-safe"] }
+gix-transport = { version = "0.61", features = ["http-client"] }
+fancy-regex = "0.19.2"
+bytes = "1"
+gix-pack = { version = "0.76", default-features = false, features = ["generate"] }
+similar = "3"
+
+[target.'cfg(target_os = "android")'.dependencies]
+# The roots for HTTPS on Android, see `util::http::client_builder`.
+webpki-root-certs = "1"
+
+[features]
+default = ["local-ocr"]
+# The OCR engines tesseract and paddle, which need Tesseract and ONNX Runtime to build.
+# Without it, only mistral is available, e.g. on mobile.
+local-ocr = ["xberg/ocr", "xberg/tesseract-dynamic", "xberg/paddle-ocr", "dep:ort"]
+
+[dev-dependencies]
+tempfile = "3"
+tower = { version = "0.5", features = ["util"] }
+
+# Argon2 takes seconds unoptimized, which the integration tests hit on every login.
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3
+
+# Debug info is most of the size of the build. Line tables keep the line numbers of backtraces,
+# and dependencies are rarely stepped into.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false

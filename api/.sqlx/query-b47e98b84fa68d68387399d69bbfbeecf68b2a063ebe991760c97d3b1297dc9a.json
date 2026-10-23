@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE repository_users SET can_commit = $3 WHERE repository_id = $1 AND user_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "b47e98b84fa68d68387399d69bbfbeecf68b2a063ebe991760c97d3b1297dc9a"
+}

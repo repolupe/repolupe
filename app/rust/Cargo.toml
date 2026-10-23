@@ -1,0 +1,66 @@
+[package]
+name = "repolupe_ffi"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+# `lib` for the integration tests in tests/.
+crate-type = ["cdylib", "staticlib", "lib"]
+
+[dependencies]
+# Same versions as the repolupe crate, so both share one copy.
+axum = { version = "0.8", default-features = false }
+bytes = "1"
+# Named by the generated code, which maps `DateTime<Utc>` and `Uuid` of the DTOs to Dart.
+chrono = "0.4"
+flutter_rust_bridge = { version = "=2.13.0", features = ["chrono", "uuid"] }
+futures-util = "0.3"
+# Decodes the file name of `Content-Disposition`.
+percent-encoding = "2"
+# Generates the secrets of a local instance.
+rand = "0.9"
+repolupe = { path = "../../api", default-features = false }
+# rustls, no OpenSSL (the certificates are in `transport::client_builder`).
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "http2", "stream"] }
+serde = "1"
+serde_json = "1"
+serde_urlencoded = "0.7"
+# Names the pool of a local instance, which is closed on shutdown.
+sqlx = { version = "0.8", default-features = false, features = ["sqlite"] }
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "macros", "time"] }
+# Cancels message streams.
+tokio-util = "0.7"
+tower = { version = "0.5", features = ["util"] }
+uuid = "1"
+
+[target.'cfg(target_os = "android")'.dependencies]
+# The roots for HTTPS on Android, see `transport::client_builder`.
+webpki-root-certs = "1"
+
+[dev-dependencies]
+# axum::serve and the TCP listener for the remote transport tests.
+axum = { version = "0.8", default-features = false, features = ["tokio", "http1"] }
+futures-executor = "0.3"
+tempfile = "3"
+tokio = { version = "1", features = ["net"] }
+
+# Like in the repolupe crate, so logging in stays fast in the tests against a local instance.
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3
+
+# Like in the repolupe crate: line tables only, and no debug info for the dependencies except the repolupe crate.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+[profile.dev.package.repolupe]
+debug = "line-tables-only"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }

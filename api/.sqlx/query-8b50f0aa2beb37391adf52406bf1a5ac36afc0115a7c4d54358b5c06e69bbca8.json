@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id: Uuid\", provider_id AS \"provider_id: Uuid\", api_name, display_name, max_output_tokens,\n                  input_price AS \"input_price: Text<Decimal>\", output_price AS \"output_price: Text<Decimal>\",\n                  cache_read_price AS \"cache_read_price: Text<Decimal>\", cache_write_price AS \"cache_write_price: Text<Decimal>\",\n                  is_default, created_at AS \"created_at: DateTime<Utc>\", updated_at AS \"updated_at: DateTime<Utc>\"\n           FROM llm_models\n           ORDER BY lower(COALESCE(display_name, api_name)), id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "provider_id: Uuid",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "api_name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "display_name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "max_output_tokens",
+        "ordinal": 4,
+        "type_info": "Int4"
+      },
+      {
+        "name": "input_price: Text<Decimal>",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "output_price: Text<Decimal>",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "cache_read_price: Text<Decimal>",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "cache_write_price: Text<Decimal>",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_default",
+        "ordinal": 9,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 10,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "updated_at: DateTime<Utc>",
+        "ordinal": 11,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8b50f0aa2beb37391adf52406bf1a5ac36afc0115a7c4d54358b5c06e69bbca8"
+}

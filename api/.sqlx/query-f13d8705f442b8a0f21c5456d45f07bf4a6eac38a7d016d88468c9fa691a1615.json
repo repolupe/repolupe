@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT d.path, e.status, e.markdown, e.error\n               FROM repository_documents d\n                        JOIN document_extractions e ON e.blob_oid = d.blob_oid\n               WHERE d.repository_id = $1 AND e.extractor <> 'seeded'\n               ORDER BY d.path",
+  "describe": {
+    "columns": [
+      {
+        "name": "path",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "status",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "markdown",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "error",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "f13d8705f442b8a0f21c5456d45f07bf4a6eac38a7d016d88468c9fa691a1615"
+}

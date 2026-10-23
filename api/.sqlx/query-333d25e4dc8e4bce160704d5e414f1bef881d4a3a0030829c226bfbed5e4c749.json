@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT a.id AS \"id: Uuid\", a.file_name, a.content_type, a.blob_oid\n           FROM attachments a\n                    LEFT JOIN document_extractions e ON e.blob_oid = a.blob_oid AND e.extractor = $1\n           WHERE e.blob_oid IS NULL\n             AND a.content_type IN (SELECT value FROM json_each($2))\n             AND a.blob_oid NOT IN (SELECT value FROM json_each($3))\n           ORDER BY a.created_at, a.id\n           LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "file_name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "content_type",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "blob_oid",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "333d25e4dc8e4bce160704d5e414f1bef881d4a3a0030829c226bfbed5e4c749"
+}

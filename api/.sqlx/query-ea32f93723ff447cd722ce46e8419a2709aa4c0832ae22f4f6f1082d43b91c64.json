@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE tool_calls SET output = $2, is_error = true WHERE message_id = $1 AND output IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "ea32f93723ff447cd722ce46e8419a2709aa4c0832ae22f4f6f1082d43b91c64"
+}

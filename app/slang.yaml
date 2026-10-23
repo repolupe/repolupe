@@ -1,0 +1,13 @@
+base_locale: en
+fallback_strategy: base_locale
+namespaces: true
+pluralization:
+  default_parameter: count
+input_directory: assets/i18n
+input_file_pattern: .json
+string_interpolation: braces
+timestamp: false # for F-Droid reproducible builds
+flat_map: false
+format:
+  enabled: true
+  width: 150

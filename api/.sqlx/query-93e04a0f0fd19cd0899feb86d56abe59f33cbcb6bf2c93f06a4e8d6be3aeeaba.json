@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT u.id AS \"user_id: Uuid\", u.user_name, u.email, ru.can_commit, ru.created_at AS \"created_at: DateTime<Utc>\"\n           FROM repository_users ru\n           JOIN users u ON u.id = ru.user_id\n           WHERE ru.repository_id = $1\n           ORDER BY ru.created_at, u.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "user_id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "user_name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "email",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "can_commit",
+        "ordinal": 3,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 4,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "93e04a0f0fd19cd0899feb86d56abe59f33cbcb6bf2c93f06a4e8d6be3aeeaba"
+}

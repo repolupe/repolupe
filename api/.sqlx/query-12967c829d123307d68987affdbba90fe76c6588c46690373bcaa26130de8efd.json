@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM chats\n           WHERE temporary\n             AND updated_at < $1\n             AND NOT EXISTS (SELECT 1 FROM messages m WHERE m.chat_id = chats.id AND m.status = 'GENERATING')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "12967c829d123307d68987affdbba90fe76c6588c46690373bcaa26130de8efd"
+}

@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT r.id AS \"id: Uuid\", r.name, r.description, r.branch, r.head_commit_sha,\n                  r.allow_commits AND u.can_manage_repositories\n                      AND (r.user_id = c.user_id\n                           OR EXISTS (SELECT 1\n                                      FROM repository_users ru\n                                      WHERE ru.repository_id = r.id AND ru.user_id = c.user_id AND ru.can_commit)) AS \"can_commit!: bool\"\n           FROM chats c\n           JOIN users u ON u.id = c.user_id\n           JOIN repositories r\n                ON r.user_id = c.user_id\n                    OR EXISTS (SELECT 1 FROM repository_users ru WHERE ru.repository_id = r.id AND ru.user_id = c.user_id)\n           WHERE c.id = $1\n             AND (c.all_repositories\n                  OR EXISTS (SELECT 1\n                             FROM chat_repositories cr\n                             WHERE cr.chat_id = c.id AND cr.repository_id = r.id))\n           ORDER BY lower(r.name), r.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "branch",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "head_commit_sha",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "can_commit!: bool",
+        "ordinal": 5,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true,
+      null
+    ]
+  },
+  "hash": "38afbe338c5cb5d0eabe8fbf173ae737e359238e6414042f3abf2d17f734c604"
+}

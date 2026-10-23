@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO repository_documents (repository_id, path, blob_oid) VALUES ($1, $2, $3)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "05be399d94e0c1678dbc4697e757e41f878f6d42b8c5ae59bd70acca74c2f85b"
+}

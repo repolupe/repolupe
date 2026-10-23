@@ -1,0 +1,98 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id: Uuid\", role AS \"role: MessageRole\", content,\n                  status AS \"status: MessageStatus\", error, model_id AS \"model_id: Uuid\",\n                  created_at AS \"created_at: DateTime<Utc>\", finished_at AS \"finished_at: DateTime<Utc>\",\n                  input_tokens, output_tokens, cache_read_tokens, cache_write_tokens,\n                  cost AS \"cost: Text<Decimal>\", cost_currency\n           FROM messages\n           WHERE chat_id = $1\n           ORDER BY created_at, id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "role: MessageRole",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "content",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "status: MessageStatus",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "error",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "model_id: Uuid",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 6,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "finished_at: DateTime<Utc>",
+        "ordinal": 7,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "input_tokens",
+        "ordinal": 8,
+        "type_info": "Integer"
+      },
+      {
+        "name": "output_tokens",
+        "ordinal": 9,
+        "type_info": "Integer"
+      },
+      {
+        "name": "cache_read_tokens",
+        "ordinal": 10,
+        "type_info": "Integer"
+      },
+      {
+        "name": "cache_write_tokens",
+        "ordinal": 11,
+        "type_info": "Integer"
+      },
+      {
+        "name": "cost: Text<Decimal>",
+        "ordinal": 12,
+        "type_info": "Text"
+      },
+      {
+        "name": "cost_currency",
+        "ordinal": 13,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "b7ba7bafbef05b0dce35afc92e2269cdfabfafc1e5117781dca184bccdea6c69"
+}

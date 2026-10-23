@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT path, moves AS \"moves: Json<Vec<FileMove>>\", proposed_commit,\n                  status AS \"status: ProposedCommitStatus\", pushed_commit, pushed_branch, error,\n                  committed_at AS \"committed_at: DateTime<Utc>\"\n           FROM proposed_commits WHERE tool_call_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "name": "path",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "moves: Json<Vec<FileMove>>",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "proposed_commit",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "status: ProposedCommitStatus",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "pushed_commit",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "pushed_branch",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "error",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "committed_at: DateTime<Utc>",
+        "ordinal": 7,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "9d1ec98317039d81006c88709346901936775073e015a2b6619bb6adcd1f8e63"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE llm_models SET is_default = false WHERE is_default AND id <> $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "a93dc6987fc8d627149d0d3cfc7becd4276deaba857ca2dd9fd19dba6e0c1fa8"
+}

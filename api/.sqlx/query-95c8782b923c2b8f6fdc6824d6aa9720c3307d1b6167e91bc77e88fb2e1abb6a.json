@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO tool_calls (id, message_id, name, input, repository_id, commit_sha, is_error, created_at)\n           SELECT $1, m.id, $3, $4, $5, $6, false, $7\n           FROM messages m\n           WHERE m.id = $2 AND m.status = 'GENERATING'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "95c8782b923c2b8f6fdc6824d6aa9720c3307d1b6167e91bc77e88fb2e1abb6a"
+}

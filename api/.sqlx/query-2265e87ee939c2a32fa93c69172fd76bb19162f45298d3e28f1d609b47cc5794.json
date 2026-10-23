@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT r.id AS \"id: Uuid\",\n                  r.name,\n                  u.user_name AS owner_name,\n                  (r.user_id = $2 OR EXISTS (SELECT 1\n                                             FROM repository_users ru\n                                             WHERE ru.repository_id = r.id AND ru.user_id = $2)) AS \"readable!: bool\"\n           FROM repositories r\n                    JOIN users u ON u.id = r.user_id\n           WHERE r.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "owner_name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "readable!: bool",
+        "ordinal": 3,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "2265e87ee939c2a32fa93c69172fd76bb19162f45298d3e28f1d609b47cc5794"
+}

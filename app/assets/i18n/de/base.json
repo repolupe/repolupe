@@ -1,0 +1,740 @@
+{
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "close": "Schließen",
+    "edit": "Bearbeiten",
+    "retry": "Erneut versuchen",
+    "search": "Suchen",
+    "refresh": "Aktualisieren",
+    "download": "Herunterladen",
+    "name": "Name",
+    "model": "Modell",
+    "status": "Status",
+    "error": "Fehler",
+    "unknownError": "Unbekannter Fehler",
+    "required": "Pflichtfeld.",
+    "loading": "Wird geladen...",
+    "actions": "Aktionen",
+    "default": "Standard",
+    "added": "Hinzugefügt",
+    "repository": "Repository",
+    "input": "Eingabe",
+    "output": "Ausgabe",
+    "missingName": "Name fehlt",
+    "nameTooLong": "Der Name darf höchstens {max} Zeichen lang sein"
+  },
+  "errors": {
+    "invalidResponse": "Unerwartete Antwort vom Server ({status}).",
+    "unreachable": "Der Server ist nicht erreichbar.",
+    "internalError": "Auf dem Server ist ein Fehler aufgetreten.",
+    "validationError": "Die Anfrage ist ungültig.",
+    "unsupportedMediaType": "Die Anfrage hat ein nicht unterstütztes Format.",
+    "unauthorized": "Du bist nicht angemeldet.",
+    "forbidden": "Dazu bist du nicht berechtigt.",
+    "notFound": "Nicht gefunden, es wurde vielleicht gelöscht.",
+    "conflict": "Es wurde gleichzeitig geändert, bitte versuche es erneut.",
+    "rateLimited": "Zu viele Anfragen, bitte versuche es später erneut.",
+    "userNameTaken": "Es gibt bereits einen Benutzer mit diesem Benutzernamen.",
+    "emailTaken": "Es gibt bereits einen Benutzer mit dieser E-Mail.",
+    "nameTaken": "Dieser Name ist bereits vergeben.",
+    "repoNotFound": "Das Repository wurde auf dem Remote nicht gefunden.",
+    "branchNotFound": "Der Branch wurde auf dem Remote nicht gefunden.",
+    "authFailed": "Die Zugangsdaten wurden abgelehnt, prüfe den Zugriffstoken oder API-Schlüssel.",
+    "tokenRequired": "Der Host hat sich geändert, daher kann der gespeicherte Token oder API-Schlüssel nicht behalten werden. Setze einen neuen oder entferne ihn.",
+    "remoteUnreachable": "Der Remote-Server ist nicht erreichbar oder hat mit einem Fehler geantwortet.",
+    "unknownRepository": "Ein Repository existiert nicht mehr.",
+    "unknownUser": "Es gibt keinen Benutzer mit diesem Benutzernamen oder dieser E-Mail.",
+    "generationInProgress": "In diesem Chat wird bereits eine Antwort erstellt.",
+    "notRetryable": "Nur eine fehlgeschlagene oder abgebrochene Antwort am Ende des Chats kann wiederholt werden.",
+    "wrongPassword": "Das aktuelle Passwort ist falsch.",
+    "samePassword": "Das neue Passwort muss sich vom aktuellen unterscheiden.",
+    "passwordChangeRequired": "Du musst zuerst dein Passwort ändern.",
+    "unknownModel": "Das Modell ist nicht mehr verfügbar.",
+    "noModelConfigured": "Es ist kein Sprachmodell eingerichtet, bitte einen Admin, eines hinzuzufügen.",
+    "unavailable": "Der Server ist nicht verfügbar, bitte versuche es später erneut.",
+    "fileUnavailable": "Die Datei ist nicht mehr verfügbar.",
+    "unknownAttachment": "Der Anhang existiert nicht oder wurde bereits gesendet."
+  },
+  "status": {
+    "pending": "Ausstehend",
+    "syncing": "Wird synchronisiert",
+    "ready": "Bereit",
+    "failed": "Fehlgeschlagen",
+    "waiting": "Wartet",
+    "converting": "Wird umgewandelt",
+    "notAvailable": "Nicht verfügbar",
+    "converted": "Umgewandelt"
+  },
+  "user": {
+    "userName": "Benutzername",
+    "email": "E-Mail",
+    "emailOptional": "E-Mail (optional)",
+    "userNameOrEmail": "Benutzername oder E-Mail",
+    "password": "Passwort",
+    "passwordHint": "{min} bis {max} Zeichen",
+    "currentPassword": "Aktuelles Passwort",
+    "newPassword": "Neues Passwort",
+    "confirmPassword": "Neues Passwort bestätigen",
+    "missingPassword": "Passwort fehlt",
+    "passwordLengthInvalid": "Das Passwort muss {min} bis {max} Zeichen lang sein",
+    "newPasswordLengthInvalid": "Das neue Passwort muss {min} bis {max} Zeichen lang sein.",
+    "passwordMismatch": "Die neuen Passwörter stimmen nicht überein.",
+    "wrongPassword": "Das aktuelle Passwort ist falsch",
+    "samePassword": "Das neue Passwort muss sich vom aktuellen unterscheiden",
+    "role": "Rolle",
+    "roleAdmin": "Admin",
+    "roleUser": "Benutzer",
+    "missingUserName": "Benutzername fehlt",
+    "userNameInvalid": "Der Benutzername muss aus 1 bis {max} Buchstaben, Ziffern, '.', '_' oder '-' bestehen",
+    "emailInvalid": "Ungültige E-Mail-Adresse",
+    "userNameTaken": "Es gibt bereits einen Benutzer mit diesem Benutzernamen",
+    "emailTaken": "Es gibt bereits einen Benutzer mit dieser E-Mail"
+  },
+  "app": {
+    "logoAlt": "Repolupe-Logo",
+    "navigation": {
+      "expand": "Ausklappen",
+      "expandNavigation": "Navigation ausklappen",
+      "collapse": "Einklappen",
+      "collapseNavigation": "Navigation einklappen",
+      "newChat": "Neuer Chat",
+      "allChats": "Alle Chats"
+    },
+    "mainContainer": {
+      "quotedTitle": "„{title}“"
+    },
+    "genericDeleteDialog": {
+      "verifyPrompt": "Gib zur Bestätigung „{verify}“ in das Feld unten ein:",
+      "verification": "Bestätigung",
+      "mismatch": "Stimmt nicht überein."
+    }
+  },
+  "login": {
+    "login": "Anmelden",
+    "wrongCredentials": "Falscher Benutzername oder falsches Passwort",
+    "changePasswordPage": {
+      "title": "Passwort ändern",
+      "submit": "Passwort ändern",
+      "logout": "Abmelden"
+    },
+    "loginFailed": "Anmeldung fehlgeschlagen: {error}"
+  },
+  "chat": {
+    "title": "Chats",
+    "noChats": "Noch keine Chats",
+    "placeholder": "Nachricht",
+    "unknownModel": "Das ausgewählte Modell ist nicht mehr verfügbar.",
+    "unknownAttachment": "Die angehängte Datei ist nicht mehr verfügbar, bitte hänge sie erneut an.",
+    "noModelConfigured": "Es ist kein Sprachmodell eingerichtet. Bitte einen Admin, einen LLM-Anbieter hinzuzufügen.",
+    "rateLimited": "Es werden gerade zu viele Antworten erstellt. Bitte warte, bis eine fertig ist.",
+    "allRepositories": "Alle Repositories",
+    "repositoryCount": {
+      "zero": "Kein Repository",
+      "one": "1 Repository",
+      "other": "{count} Repositories"
+    },
+    "moveCount": {
+      "one": "1 Verschiebung",
+      "other": "{count} Verschiebungen"
+    },
+    "temporary": "Temporärer Chat",
+    "startPage": {
+      "loadFailed": "Die Repositories konnten nicht geladen werden.",
+      "noModel": "Es ist noch kein Sprachmodell eingerichtet, daher können keine Fragen beantwortet werden.",
+      "addProvider": "{link}, um loszulegen.",
+      "addProviderLink": "Füge einen LLM-Anbieter hinzu",
+      "askAdmin": "Bitte einen Admin, einen LLM-Anbieter einzurichten.",
+      "waitForUpload": "Bitte warte, bis die Datei hochgeladen ist.",
+      "enterQuestion": "Bitte gib eine Frage ein.",
+      "unknownRepository": "Ein ausgewähltes Repository ist nicht mehr verfügbar."
+    },
+    "page": {
+      "actions": "Chat-Aktionen",
+      "rename": "Umbenennen",
+      "deleteTitle": "Chat löschen",
+      "deleteConfirm": "Möchtest du „{title}“ mit allen Nachrichten wirklich löschen?",
+      "connectionLost": "Die Verbindung zur Antwort ist abgebrochen. Lade die Seite neu, um es erneut zu versuchen.",
+      "notFound": "Chat nicht gefunden",
+      "renamed": "Chat umbenannt.",
+      "deleted": "Chat gelöscht.",
+      "openFailed": "Der Chat konnte nicht geöffnet werden: {error}",
+      "sendFailed": "Die Nachricht konnte nicht gesendet werden: {error}",
+      "retryFailed": "Die Antwort konnte nicht erneut erstellt werden: {error}",
+      "stopFailed": "Die Antwort konnte nicht gestoppt werden: {error}",
+      "renameFailed": "Der Chat konnte nicht umbenannt werden: {error}",
+      "changeModelFailed": "Das Modell konnte nicht geändert werden: {error}",
+      "deleteFailed": "Der Chat konnte nicht gelöscht werden: {error}"
+    },
+    "messageInput": {
+      "stop": "Stoppen",
+      "send": "Senden",
+      "dropHint": "Datei hier ablegen, um sie anzuhängen",
+      "fileTooLarge": "Die Datei ist zu groß, sie darf höchstens {max} groß sein.",
+      "uploadFailed": "Die Datei konnte nicht hochgeladen werden: {error}",
+      "oneFileOnly": "An eine Nachricht kann nur eine Datei angehängt werden."
+    },
+    "assistantMessage": {
+      "thinking": "Denkt nach…",
+      "noAnswer": "(Keine Antwort)",
+      "proposedStore": "Speichern als {path} vorgeschlagen",
+      "proposedChange": "Vorgeschlagene Änderung an {path}",
+      "proposedMoves": "Vorgeschlagene Verschiebungen: {moves}",
+      "failed": "Die Antwort konnte nicht erstellt werden.",
+      "cancelled": "Abgebrochen",
+      "showUsage": "Token-Verbrauch anzeigen",
+      "durationSeconds": "{seconds} s",
+      "durationMinutes": "{minutes} min {seconds} s"
+    },
+    "userMessage": {
+      "download": "{name} herunterladen"
+    },
+    "toolCallList": {
+      "running": "Liest die Repositories",
+      "used": {
+        "one": "{count} Tool verwendet",
+        "other": "{count} Tools verwendet"
+      },
+      "usedWithFailed": {
+        "one": "{count} Tool verwendet ({failed} fehlgeschlagen)",
+        "other": "{count} Tools verwendet ({failed} fehlgeschlagen)"
+      }
+    },
+    "toolCallLabel": {
+      "grepPatternIn": "\"{pattern}\" in {where}",
+      "grepIn": "in {where}"
+    },
+    "toolCallDialog": {
+      "stillRunning": "Läuft noch.",
+      "noOutput": "Keine Ausgabe.",
+      "loadFailed": "Der Tool-Aufruf konnte nicht geladen werden: {error}"
+    },
+    "proposedCommitPanel": {
+      "applied": "Übernommen",
+      "appliedAt": "Übernommen {relative} ({dateTime})",
+      "more": "Mehr",
+      "downloadPatch": "Als Patch-Datei herunterladen",
+      "willDelete": "Diese Datei wird gelöscht.",
+      "willCreate": "Diese Datei wird erstellt.",
+      "removed": "Entfernt",
+      "unchangedLines": "Unveränderte Zeilen",
+      "removedLine": "entfernt: {text}",
+      "addedLine": "hinzugefügt: {text}",
+      "movedTo": "{from} verschoben nach {to}",
+      "folderFiles": {
+        "one": "Ordner mit 1 Datei",
+        "other": "Ordner mit {count} Dateien"
+      },
+      "noPreview": "Für diese Art von Datei gibt es keine Vorschau.",
+      "cannotCommit": "Nur der Besitzer dieses Repositorys und Benutzer mit Schreibzugriff können Änderungen übernehmen.",
+      "enableAutoCommit": "Immer automatisch übernehmen",
+      "autoCommitTitle": "Immer automatisch übernehmen?",
+      "autoCommitText": "Ab jetzt werden Änderungen, die der Assistent vorschlägt, übernommen, sobald seine Antwort fertig ist, ohne dich zu fragen. Diese Änderung wird jetzt übernommen. Du kannst das in deinen Einstellungen wieder ausschalten.",
+      "autoCommitConfirm": "Aktivieren und übernehmen",
+      "apply": "Änderung übernehmen",
+      "tryAgain": "Erneut versuchen",
+      "appliedTo": "Änderung an {name} übernommen",
+      "appliedMoves": "Verschiebungen übernommen",
+      "applyFailed": "Die Änderung konnte nicht übernommen werden: {error}",
+      "downloadFailed": "Der Patch konnte nicht heruntergeladen werden: {error}"
+    },
+    "renameDialog": {
+      "title": "Chat umbenennen",
+      "label": "Titel",
+      "maxLength": "Höchstens {max} Zeichen."
+    },
+    "usageDialog": {
+      "title": "Token-Verbrauch",
+      "type": "Art",
+      "tokens": "Tokens",
+      "inputHint": "Weder aus dem Cache gelesen noch in den Cache geschrieben",
+      "cacheRead": "Cache gelesen",
+      "cacheReadHint": "Aus dem Cache gelesene Eingabe",
+      "cacheWrite": "Cache geschrieben",
+      "cacheWriteHint": "In den Cache geschriebene Eingabe",
+      "outputHint": "Einschließlich Denkschritten",
+      "total": "Gesamt",
+      "cost": "Kosten"
+    },
+    "loadFailed": "Die Chats konnten nicht geladen werden: {error}"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "page": {
+      "admin": "Admin",
+      "logout": "Abmelden",
+      "repositoriesSubtitle": "Repositories als Wissensbasis hinzufügen und mit anderen Benutzern teilen",
+      "accountSubtitle": "Deine Anmeldedaten und dein Passwort",
+      "profileSubtitle": "Was der Assistent über dich erfährt",
+      "preferencesSubtitle": "Dein Standardmodell und deine Sprache",
+      "usersSubtitle": "Benutzer erstellen, ihre Rollen und Berechtigungen festlegen",
+      "llmSubtitle": "LLM-Server, ihre Modelle und das Standardmodell konfigurieren",
+      "extractionSubtitle": "Die Umwandlung von Dokumenten in Text verfolgen und fehlgeschlagene erneut versuchen",
+      "configSubtitle": "Die Serverkonfiguration ansehen und Einstellungen ohne Neustart überschreiben"
+    },
+    "account": {
+      "title": "Konto",
+      "page": {
+        "memberSince": "Mitglied seit",
+        "identitySaved": "Benutzername und E-Mail gespeichert",
+        "passwordChanged": "Passwort geändert. Deine anderen Sitzungen wurden abgemeldet.",
+        "identitySaveFailed": "Benutzername und E-Mail konnten nicht gespeichert werden: {error}",
+        "changePasswordFailed": "Das Passwort konnte nicht geändert werden: {error}"
+      },
+      "changePasswordDialog": {
+        "title": "Passwort ändern",
+        "signOutNote": "Alle deine anderen Sitzungen werden abgemeldet.",
+        "fillAll": "Bitte fülle alle Felder aus."
+      },
+      "identityDialog": {
+        "title": "Benutzername und E-Mail ändern",
+        "loginHint": "Du kannst dich mit beidem anmelden."
+      }
+    },
+    "profile": {
+      "title": "Profil",
+      "fullName": "Vollständiger Name",
+      "firstName": "Vorname",
+      "about": "Über dich",
+      "page": {
+        "description": "Was der Assistent über dich erfährt, damit er weiß, wer „ich“ in deinen Fragen ist.",
+        "updated": "Profil aktualisiert.",
+        "saveFailed": "Das Profil konnte nicht gespeichert werden: {error}"
+      },
+      "dialog": {
+        "title": "Profil bearbeiten",
+        "description": "Das erfährt der Assistent über dich, damit er weiß, wer „ich“ in deinen Fragen ist.",
+        "fullNameHint": "So wie er in Dokumenten steht",
+        "aboutPlaceholder": "Z. B. deine Rolle, die Projekte, an denen du arbeitest, oder wie dir Antworten am liebsten sind.",
+        "fullNameTooLong": "Der vollständige Name darf höchstens {max} Zeichen lang sein.",
+        "firstNameTooLong": "Der Vorname darf höchstens {max} Zeichen lang sein.",
+        "aboutTooLong": "„Über dich“ darf höchstens {max} Zeichen lang sein."
+      }
+    },
+    "preferences": {
+      "title": "Voreinstellungen",
+      "language": "Sprache",
+      "browserDefault": "Standard des Browsers ({locale})",
+      "defaultModel": "Standard ({name})",
+      "defaultNone": "Standard (keines konfiguriert)",
+      "page": {
+        "noModels": "Keine Modelle konfiguriert",
+        "noModelsAskAdmin": "Keine Modelle konfiguriert. Bitte einen Admin, eines hinzuzufügen.",
+        "modelUpdated": "Modell aktualisiert.",
+        "languageUpdated": "Sprache aktualisiert.",
+        "autoCommit": "Änderungen automatisch übernehmen",
+        "autoCommitHint": "Änderungen, die der Assistent vorschlägt, werden übernommen, sobald seine Antwort fertig ist.",
+        "autoCommitOn": "Vorgeschlagene Änderungen werden jetzt automatisch übernommen.",
+        "autoCommitOff": "Vorgeschlagene Änderungen warten jetzt darauf, dass du sie übernimmst.",
+        "modelsLoadFailed": "Die Modelle konnten nicht geladen werden: {error}",
+        "modelSaveFailed": "Das Modell konnte nicht gespeichert werden: {error}",
+        "languageSaveFailed": "Die Sprache konnte nicht gespeichert werden: {error}",
+        "autoCommitSaveFailed": "Die Einstellung konnte nicht gespeichert werden: {error}"
+      },
+      "localeDialog": {
+        "title": "Sprache bearbeiten",
+        "description": "Die Sprache, in der das Modell antwortet, und auch die Sprache der Oberfläche, sofern sie darin verfügbar ist.",
+        "label": "Sprache (BCP-47)"
+      },
+      "modelDialog": {
+        "title": "Modell bearbeiten",
+        "description": "Das Modell, das deine Fragen beantwortet."
+      }
+    }
+  },
+  "repositories": {
+    "title": "Repositories",
+    "newRepository": "Neues Repository",
+    "size": "Größe",
+    "share": "Teilen",
+    "remote": "Remote",
+    "local": "Lokal",
+    "remoteUrl": "Remote-URL",
+    "branch": "Branch",
+    "description": "Beschreibung",
+    "accessToken": "Zugriffstoken",
+    "syncInterval": "Synchronisierungsintervall",
+    "allowCommits": "Schreibzugriff aktivieren",
+    "descriptionTooLong": "Die Beschreibung darf höchstens {max} Zeichen lang sein",
+    "missingRemoteUrl": "Remote-URL fehlt",
+    "missingBranch": "Branch fehlt",
+    "pollInterval": {
+      "minute": "Jede Minute",
+      "minutes5": "Alle 5 Minuten",
+      "minutes15": "Alle 15 Minuten",
+      "hour": "Jede Stunde",
+      "hours6": "Alle 6 Stunden",
+      "daily": "Täglich",
+      "seconds": "Alle {seconds} Sekunden"
+    },
+    "listPage": {
+      "count": {
+        "zero": "{count} Repositories",
+        "one": "{count} Repository",
+        "other": "{count} Repositories"
+      },
+      "description": "Deine Repositories und die, die mit dir geteilt wurden. In Chats liest das Modell ihre Dateien, um deine Fragen zu beantworten.",
+      "emptyTitle": "Noch keine Repositories",
+      "emptyText": "Ein Repository ist ein Git-Branch, den Repolupe spiegelt und synchron hält. Sobald es synchronisiert ist, kannst du in Chats Fragen dazu stellen, und das Modell liest seine Dateien, um sie zu beantworten.",
+      "noMatch": "Keine Repositories passen zu deiner Suche.",
+      "added": "Repository hinzugefügt, wird synchronisiert…",
+      "loadFailed": "Die Repositories konnten nicht geladen werden: {error}",
+      "createFailed": "Das Repository konnte nicht hinzugefügt werden: {error}"
+    },
+    "page": {
+      "ownerIntro": "Hier kannst du die Details des Repositorys bearbeiten, Synchronisierungen starten und das Repository mit anderen Benutzern teilen.",
+      "ownerIntroLocal": "Hier kannst du die Details des Repositorys bearbeiten und das Repository mit anderen Benutzern teilen.",
+      "sharedIntro": "Dieses Repository wurde mit dir geteilt. Hier siehst du seine Details und den Stand der Synchronisierung.",
+      "owner": "Besitzer",
+      "ownerYou": "Du",
+      "ownerShared": "Mit dir geteilt",
+      "sizeSplit": "Git {git}, LFS {lfs}",
+      "sizeTitle": "Nur der Branch {branch} wird abgerufen, das Remote kann also größer sein",
+      "created": "Erstellt",
+      "askQuestion": "Frage stellen",
+      "lastSyncFailed": "Letzte Synchronisierung fehlgeschlagen",
+      "remoteNone": "Keins (lokales Repository auf diesem Server)",
+      "tokenNone": "Keiner (öffentlich)",
+      "tokenSet": "Gesetzt",
+      "writeAccess": "Schreibzugriff",
+      "writeAccessEnabled": "Aktiviert (das Modell kann Änderungen vorschlagen)",
+      "writeAccessDisabled": "Deaktiviert (das Modell kann Dateien nur lesen)",
+      "leave": "Verlassen",
+      "sync": "Synchronisierung",
+      "interval": "Intervall",
+      "intervalLocal": "Nach jedem Commit",
+      "headCommit": "Aktuelle Version",
+      "lastSynced": "Zuletzt synchronisiert",
+      "syncStarted": "Synchronisierung gestartet",
+      "nextSync": "Nächste Synchronisierung",
+      "syncNow": "Jetzt synchronisieren",
+      "deleteTitle": "Repository löschen",
+      "deleteText": "Nur die Kopie des Repositorys auf diesem Server wird gelöscht. Das Remote-Repository ist davon nicht betroffen. Chats und Benutzer, mit denen es geteilt ist, verlieren den Zugriff darauf.",
+      "deleteTextLocal": "Das Repository existiert nur auf diesem Server, daher werden seine Dateien und sein Verlauf endgültig gelöscht. Chats und Benutzer, mit denen es geteilt ist, verlieren den Zugriff darauf.",
+      "leaveTitle": "Repository verlassen",
+      "leaveText": "Du verlierst den Zugriff auf dieses Repository, und es wird aus deinen Chats entfernt. Der Besitzer kann es erneut mit dir teilen.",
+      "notFound": "Repository nicht gefunden",
+      "syncRequested": "Synchronisierung angefordert.",
+      "updated": "Repository aktualisiert.",
+      "deleted": "Repository gelöscht.",
+      "left": "Du hast das Repository verlassen.",
+      "loadFailed": "Das Repository konnte nicht geladen werden: {error}",
+      "syncFailed": "Die Synchronisierung konnte nicht angefordert werden: {error}",
+      "saveFailed": "Das Repository konnte nicht gespeichert werden: {error}",
+      "deleteFailed": "Das Repository konnte nicht gelöscht werden: {error}",
+      "leaveFailed": "Das Repository konnte nicht verlassen werden: {error}"
+    },
+    "kindDialog": {
+      "remoteDescription": "Spiegelt einen Branch eines Git-Repositorys, z. B. auf GitHub, GitLab oder Forgejo, und hält ihn synchron.",
+      "localDescription": "Erstellt ein leeres Repository, das nur auf diesem Server existiert."
+    },
+    "createDialog": {
+      "titleRemote": "Neues Remote-Repository",
+      "titleLocal": "Neues lokales Repository",
+      "descriptionOptional": "Beschreibung (optional)",
+      "descriptionHint": "Hilft dem Modell zu entscheiden, wann es in dieses Repository schauen soll.",
+      "tokenOptional": "Zugriffstoken (optional)",
+      "tokenHint": "Für private Repositories nötig.",
+      "allowCommitsHintLocal": "Ohne Schreibzugriff kann das Modell keine Dateien hinzufügen, das Repository bleibt also leer.",
+      "remoteUrlHintAdmin": "Als Admin kannst du auch http:// und interne Hosts verwenden.",
+      "remoteUrlHintUser": "Muss https:// und einen Host mit öffentlicher Adresse verwenden.",
+      "checkingRemote": "Das Remote wird geprüft, das kann einige Sekunden dauern…"
+    },
+    "editDialog": {
+      "title": "Repository bearbeiten",
+      "keepToken": "Aktuellen Token behalten",
+      "keepTokenWithHint": "Aktuellen Token behalten (•••• {hint})",
+      "removeToken": "Token entfernen (öffentliches Repository)",
+      "noToken": "Kein Token (öffentliches Repository)",
+      "setToken": "Neuen Token setzen",
+      "newToken": "Neuer Zugriffstoken",
+      "newTokenHint": "Ein Token mit Lesezugriff, z. B. ein persönlicher Zugriffstoken.",
+      "hostChanged": "Das Remote liegt jetzt auf einem anderen Host, daher kann der aktuelle Token nicht behalten werden. Setze einen neuen Token oder entferne ihn, wenn das neue Remote öffentlich ist.",
+      "missingToken": "Token fehlt"
+    },
+    "usersCard": {
+      "title": "Teilen",
+      "description": "Benutzer, mit denen es geteilt ist, können dieses Repository lesen und in ihren Chats verwenden, es aber nicht ändern, synchronisieren oder löschen. Ist der Schreibzugriff aktiviert, kannst du ihnen erlauben, die vom Modell vorgeschlagenen Änderungen mit dem Zugriffstoken dieses Repositorys zu übernehmen.",
+      "descriptionLocal": "Benutzer, mit denen es geteilt ist, können dieses Repository lesen und in ihren Chats verwenden, es aber nicht ändern oder löschen. Ist der Schreibzugriff aktiviert, kannst du ihnen erlauben, die vom Modell vorgeschlagenen Änderungen zu übernehmen.",
+      "notShared": "Mit niemandem geteilt",
+      "user": "Benutzer",
+      "sharedAt": "Geteilt",
+      "canCommit": "Schreibzugriff",
+      "canCommitOff": "Aktiviere zuerst den Schreibzugriff für das Repository",
+      "stopSharing": "Nicht mehr teilen",
+      "stopSharingTitle": "Nicht mehr teilen",
+      "stopSharingText": "{name} verliert den Zugriff auf dieses Repository, und es wird aus den eigenen Chats entfernt.",
+      "shared": "Repository geteilt.",
+      "unknownUser": "Kein Benutzer mit diesem Benutzernamen oder dieser E-Mail",
+      "stopped": "Nicht mehr geteilt.",
+      "loadFailed": "Die Benutzer konnten nicht geladen werden: {error}",
+      "shareFailed": "Das Repository konnte nicht geteilt werden: {error}",
+      "canCommitFailed": "Der Schreibzugriff konnte nicht geändert werden: {error}",
+      "stopFailed": "Das Teilen konnte nicht beendet werden: {error}"
+    },
+    "shareDialog": {
+      "title": "Repository teilen",
+      "description": "Der Benutzer kann dieses Repository lesen und in seinen Chats verwenden, es aber nicht ändern, synchronisieren oder löschen.",
+      "missing": "Benutzername oder E-Mail fehlt"
+    }
+  },
+  "documents": {
+    "title": "Dokumente",
+    "description": "Dokumente werden im Hintergrund in Text umgewandelt, damit das Modell sie lesen kann.",
+    "document": "Dokument",
+    "detailsColumn": "Details",
+    "noData": "Keine Dokumente in dieser Kategorie.",
+    "card": {
+      "paused": "Der OCR-Dienst ist nicht verfügbar. Die Umwandlungen sind bis {time} pausiert."
+    },
+    "statusFilter": {
+      "filterByStatus": "Nach Status filtern",
+      "all": "Alle"
+    },
+    "details": {
+      "started": "Gestartet {relative}",
+      "skipped": "{reason} Neuer Versuch {relative}.",
+      "lfsObjectMissing": "Die Datei ist mit Git LFS gespeichert und konnte nicht heruntergeladen werden.",
+      "unreadable": "Die Datei konnte nicht gelesen werden.",
+      "settingsChanged": "Geänderte Einstellungen",
+      "new": "Neu"
+    },
+    "loadFailed": "Die Dokumente konnten nicht geladen werden: {error}"
+  },
+  "admin": {
+    "users": {
+      "title": "Benutzer",
+      "mustChangePassword": "Muss Passwort ändern",
+      "chooseOwnPasswordHint": "Der Benutzer wählt nach der Anmeldung mit diesem Passwort ein eigenes",
+      "page": {
+        "count": {
+          "zero": "{count} Benutzer",
+          "one": "{count} Benutzer",
+          "other": "{count} Benutzer"
+        },
+        "description": "Jeder Benutzer hat eigene Chats und, falls erlaubt, eigene Repositories. LLM-Anbieter und Modelle werden von Admins eingerichtet und von allen genutzt.",
+        "newUser": "Neuer Benutzer",
+        "user": "Benutzer",
+        "identity": "Identität",
+        "noUsers": "Keine Benutzer",
+        "loginDisabled": "Anmeldung deaktiviert",
+        "passwordChangeRequired": "Passwortänderung erforderlich",
+        "manage": "Verwalten",
+        "readOnly": "Nur lesen",
+        "editable": "Änderbar",
+        "fixed": "Fest",
+        "cannotDeleteSelf": "Du kannst dich nicht selbst löschen",
+        "cannotDeleteAdmin": "Admins können nicht gelöscht werden",
+        "setPassword": "Passwort festlegen",
+        "cannotSetOwnPassword": "Ändere dein eigenes Passwort in deinen Kontoeinstellungen",
+        "created": "Benutzer erstellt.",
+        "updated": "Benutzer aktualisiert.",
+        "passwordSet": "Passwort festgelegt.",
+        "deleted": "Benutzer gelöscht.",
+        "loadFailed": "Die Benutzer konnten nicht geladen werden: {error}",
+        "createFailed": "Der Benutzer konnte nicht erstellt werden: {error}",
+        "saveFailed": "Der Benutzer konnte nicht gespeichert werden: {error}",
+        "setPasswordFailed": "Das Passwort konnte nicht festgelegt werden: {error}",
+        "deleteFailed": "Der Benutzer konnte nicht gelöscht werden: {error}"
+      },
+      "createDialog": {
+        "title": "Benutzer erstellen"
+      },
+      "editDialog": {
+        "title": "Benutzer bearbeiten",
+        "adminUnrestricted": "Admins können nicht eingeschränkt werden",
+        "canLogin": "Darf sich anmelden",
+        "canLoginHint": "Beim Ausschalten wird der Benutzer überall abgemeldet",
+        "canManageRepositories": "Darf Repositories verwalten",
+        "canManageRepositoriesHint": "Ohne diese Berechtigung ist die Seite Repositories ausgeblendet, und der Benutzer kann nur Fragen zu Repositories stellen, die mit ihm geteilt wurden",
+        "canChangeIdentity": "Darf Benutzername und E-Mail ändern",
+        "canChangeIdentityHint": "Ohne diese Berechtigung können nur Admins sie ändern",
+        "mustChangePasswordHint": "Bis dahin kann der Benutzer nach der Anmeldung nichts anderes tun"
+      },
+      "passwordDialog": {
+        "title": "Passwort festlegen",
+        "intro": "Legt ein neues Passwort für {name} fest und meldet den Benutzer überall ab."
+      },
+      "deleteDialog": {
+        "title": "Benutzer löschen",
+        "intro": "Dieser Benutzer wird gelöscht:",
+        "consequences": "Seine Sitzungen, Chats und Repositories werden ebenfalls gelöscht. Repositories, die ihm gehören, werden auch für alle entfernt, mit denen sie geteilt wurden."
+      }
+    },
+    "llm": {
+      "title": "LLM-Anbieter",
+      "newProvider": "Neuer Anbieter",
+      "pricePerMillion": "Preis pro 1 Mio. Tokens",
+      "page": {
+        "count": {
+          "zero": "{count} Modelle",
+          "one": "{count} Modell",
+          "other": "{count} Modelle"
+        },
+        "providerIntro": "Ein Anbieter ist ein LLM-Server: die Anthropic-API oder ein beliebiger OpenAI-kompatibler Server wie OpenRouter, Ollama, vLLM oder LM Studio.",
+        "modelsIntro": "Modelle gehören zu einem Anbieter und müssen Streaming und Tool-Aufrufe unterstützen.",
+        "defaultIntro": "Das Standardmodell ({icon}) antwortet Benutzern, die in ihren Einstellungen keines gewählt haben.",
+        "emptyTitle": "Noch keine Anbieter",
+        "emptyText": "Niemand kann Fragen stellen, bis ein Modell eingerichtet ist. Das erste Modell, das du hinzufügst, wird zum Standardmodell.",
+        "noModels": "Füge einem Anbieter ein Modell hinzu. Bis dahin kann niemand Fragen stellen.",
+        "noDefault": "Es gibt kein Standardmodell. Benutzer, die in ihren Einstellungen kein Modell gewählt haben, können keine Fragen stellen, bis du eines zum Standard machst ({icon}).",
+        "editProvider": "Anbieter bearbeiten",
+        "deleteProvider": "Anbieter löschen",
+        "defaultModel": "Standardmodell",
+        "makeDefault": "Zum Standard machen",
+        "price": "{input} Eingabe / {output} Ausgabe",
+        "cachePrices": "Cache lesen {read}, Cache schreiben {write}",
+        "notSet": "Nicht festgelegt",
+        "editModel": "Modell bearbeiten",
+        "deleteModel": "Modell löschen",
+        "noModelsYet": "Noch keine Modelle.",
+        "fetchModels": "Modelle abrufen",
+        "addModel": "Modell hinzufügen",
+        "deleteProviderTitle": "Anbieter löschen",
+        "deleteProviderText": {
+          "one": "Der Anbieter {name} wird zusammen mit seinem Modell gelöscht. Benutzer, die es gewählt haben, verwenden stattdessen das Standardmodell.",
+          "other": "Der Anbieter {name} wird zusammen mit seinen {count} Modellen gelöscht. Benutzer, die eines davon gewählt haben, verwenden stattdessen das Standardmodell."
+        },
+        "deleteProviderHasDefault": "Er hat das Standardmodell, danach gibt es also kein Standardmodell mehr.",
+        "deleteModelTitle": "Modell löschen",
+        "deleteModelText": "Das Modell {name} wird gelöscht. Benutzer, die es gewählt haben, verwenden stattdessen das Standardmodell.",
+        "deleteModelIsDefault": "Es ist das Standardmodell, danach gibt es also kein Standardmodell mehr.",
+        "continue": "Fortfahren?",
+        "providerUpdated": "Anbieter aktualisiert.",
+        "providerCreated": "Anbieter erstellt.",
+        "providerDeleted": "Anbieter gelöscht.",
+        "modelUpdated": "Modell aktualisiert.",
+        "modelsAdded": {
+          "one": "Modell hinzugefügt.",
+          "other": "{count} Modelle hinzugefügt."
+        },
+        "modelDeleted": "Modell gelöscht.",
+        "partlyAdded": "{added} von {total} Modellen hinzugefügt. {error}",
+        "partlyAddedMore": "{added} von {total} Modellen hinzugefügt. {error} (und {more} weitere)",
+        "defaultChanged": "Standardmodell geändert.",
+        "loadFailed": "Die Anbieter konnten nicht geladen werden: {error}",
+        "createProviderFailed": "Der Anbieter konnte nicht erstellt werden: {error}",
+        "saveProviderFailed": "Der Anbieter konnte nicht gespeichert werden: {error}",
+        "deleteProviderFailed": "Der Anbieter konnte nicht gelöscht werden: {error}",
+        "addModelFailed": "Das Modell konnte nicht hinzugefügt werden: {error}",
+        "saveModelFailed": "Das Modell konnte nicht gespeichert werden: {error}",
+        "deleteModelFailed": "Das Modell konnte nicht gelöscht werden: {error}",
+        "setDefaultFailed": "Das Standardmodell konnte nicht geändert werden: {error}"
+      },
+      "providerDialog": {
+        "editTitle": "Anbieter bearbeiten",
+        "apiFormat": "API-Format",
+        "currency": "Währung",
+        "baseUrl": "Basis-URL",
+        "apiKey": "API-Schlüssel",
+        "currentKey": "(aktuell {key})",
+        "keyNone": "keiner",
+        "keySet": "gesetzt",
+        "keepKey": "Aktuellen Schlüssel behalten",
+        "removeKey": "Schlüssel entfernen",
+        "noKey": "Kein Schlüssel",
+        "setKey": "Neuen Schlüssel setzen",
+        "newKey": "Neuer API-Schlüssel",
+        "hostChanged": "Die Basis-URL zeigt jetzt auf einen anderen Host, daher kann der aktuelle Schlüssel nicht behalten werden. Setze einen neuen Schlüssel oder entferne ihn, wenn der neue Server keinen braucht.",
+        "thirdParty": "Server von Drittanbietern",
+        "nameLength": "1 bis {max} Zeichen.",
+        "missingApiKey": "API-Schlüssel fehlt"
+      },
+      "modelDialog": {
+        "editTitle": "Modell bearbeiten",
+        "newTitle": "Neues Modell für {provider}",
+        "apiName": "API-Name",
+        "displayName": "Anzeigename",
+        "maxOutputTokens": "Max. Ausgabe-Tokens",
+        "noCurrency": "Der Anbieter hat keine Währung, daher haben seine Modelle keine Preise. Lege eine für den Anbieter fest, um sie einzugeben.",
+        "priceHint": "Zeigt die Kosten jeder Antwort an. Lass Eingabe und Ausgabe leer, um keine anzuzeigen.",
+        "cacheRead": "Cache lesen",
+        "cacheWrite": "Cache schreiben",
+        "sameAsInput": "Wie Eingabe",
+        "becomesDefault": "Es gibt noch kein Standardmodell, daher wird dieses Modell zum Standard.",
+        "tokensInvalid": "Muss eine positive ganze Zahl sein.",
+        "priceInvalid": "Eine Zahl bis {max} mit höchstens {decimals} Nachkommastellen.",
+        "missingApiName": "API-Name fehlt",
+        "apiNameTooLong": "Der API-Name darf höchstens {max} Zeichen lang sein",
+        "displayNameTooLong": "Der Anzeigename darf höchstens {max} Zeichen lang sein",
+        "maxOutputTokensInvalid": "Max. Ausgabe-Tokens müssen eine positive ganze Zahl sein",
+        "pricesInvalid": "Preise müssen Zahlen bis {max} mit höchstens {decimals} Nachkommastellen sein",
+        "inputOutputBoth": "Lege Eingabe- und Ausgabepreis fest oder keinen von beiden",
+        "cacheRequiresPrices": "Cache-Preise erfordern Eingabe- und Ausgabepreise"
+      },
+      "remoteModelsDialog": {
+        "title": "Modelle von {name}",
+        "fetching": "Der Server wird nach seinen Modellen gefragt…",
+        "addByNameHint": "Du kannst die Modelle trotzdem über ihren Namen hinzufügen.",
+        "noModels": "Der Server listet keine Modelle auf.",
+        "intro": "Wähle die Modelle aus, die hinzugefügt werden sollen. Sie müssen Streaming und Tool-Aufrufe unterstützen. Preise und max. Ausgabe-Tokens kannst du danach festlegen, indem du jedes Modell bearbeitest.",
+        "selectAll": "Alle auswählen",
+        "selectAllMatches": "Alle {count} Treffer auswählen",
+        "noMatch": "Kein Modell passt zu „{query}“.",
+        "becomesDefault": "Es gibt noch kein Standardmodell, daher wird das erste hinzugefügte Modell zum Standard.",
+        "addByName": "Über Namen hinzufügen",
+        "addModels": {
+          "one": "1 Modell hinzufügen",
+          "other": "{count} Modelle hinzufügen"
+        }
+      }
+    },
+    "config": {
+      "title": "Konfiguration",
+      "overrideAction": "Überschreiben",
+      "page": {
+        "stored": "Überschreibungen werden in der Datenbank gespeichert und bleiben daher auch nach einem Neustart des Servers erhalten.",
+        "recommendEnv": "Wir empfehlen {envVars}, damit die Einrichtung deklarativ an einer Stelle bleibt. Überschreibungen sind für schnelle Tests gedacht.",
+        "envVars": "Umgebungsvariablen",
+        "ocrHint": "Wenn du die OCR-Einstellungen änderst, werden alle Dokumente nacheinander neu umgewandelt. Bis dahin wird ihr bisheriger Text verwendet.",
+        "key": "Schlüssel",
+        "env": "Umgebung",
+        "override": "Überschreibung",
+        "noConfig": "Keine Konfiguration",
+        "notSet": "nicht gesetzt",
+        "envOnly": "Nur Umgebung",
+        "useEnv": "Wert der Umgebungsvariable verwenden",
+        "updated": "Konfiguration aktualisiert.",
+        "loadFailed": "Die Konfiguration konnte nicht geladen werden: {error}",
+        "saveFailed": "Die Überschreibung konnte nicht gespeichert werden: {error}"
+      },
+      "overrideDialog": {
+        "env": "Umgebung: {value}",
+        "value": "Wert",
+        "clearHint": "Leeren, um den Wert der Umgebungsvariable zu verwenden",
+        "emptyHint": "Leer lassen, um den Wert der Umgebungsvariable zu verwenden"
+      }
+    },
+    "extraction": {
+      "title": "Dokumentextraktion",
+      "page": {
+        "count": {
+          "one": "{count} Dokument",
+          "other": "{count} Dokumente"
+        },
+        "ocrSettings": "Die OCR-Einstellungen sind Teil der {config}. Wenn du sie änderst, werden alle Dokumente neu umgewandelt.",
+        "configLink": "Konfiguration",
+        "pausedTitle": "Der OCR-Dienst ist nicht verfügbar",
+        "pausedUntil": "Die Umwandlungen sind bis {time} pausiert.",
+        "now": "Jetzt",
+        "converting": "{path} wird umgewandelt, gestartet {started}",
+        "convertingAttachment": "{path} (an einen Chat angehängt) wird umgewandelt, gestartet {started}",
+        "convertingRepository": "{path} in {repository} ({owner}) wird umgewandelt, gestartet {started}",
+        "statusPaused": "Pausiert",
+        "statusWaiting": "Wartet auf das nächste Dokument",
+        "statusIdle": "Leerlauf, es warten keine Dokumente",
+        "total": "{count} gesamt",
+        "converted": "{count} umgewandelt",
+        "failed": "{count} fehlgeschlagen",
+        "waiting": "{count} wartend",
+        "notAvailable": "{count} nicht verfügbar",
+        "extractor": "Extraktor",
+        "convertAgain": "Erneut umwandeln",
+        "retried": "Das Dokument wird neu umgewandelt.",
+        "loadFailed": "Die Dokumente konnten nicht geladen werden: {error}",
+        "retryFailed": "Das Dokument konnte nicht neu umgewandelt werden: {error}"
+      }
+    }
+  }
+}

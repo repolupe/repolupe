@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE proposed_commits\n           SET status = $2, pushed_commit = $3, pushed_branch = $4, error = $5, committed_at = $6\n           WHERE tool_call_id = $1 AND status != 'COMMITTED'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "63dff25af6ec1f951c905a797f71a720c6dcb7f64fe7fd7d60a749d4342d9722"
+}

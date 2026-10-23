@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT c.id AS \"id: Uuid\", c.title, c.all_repositories,\n                  (SELECT json_group_array(lower(hex(cr.repository_id)) ORDER BY cr.repository_id)\n                   FROM chat_repositories cr\n                   WHERE cr.chat_id = c.id) AS \"repository_ids!: Json<Vec<Uuid>>\",\n                  c.model_id AS \"model_id: Uuid\", c.temporary, c.created_at AS \"created_at: DateTime<Utc>\",\n                  c.updated_at AS \"updated_at: DateTime<Utc>\"\n           FROM chats c\n           WHERE c.user_id = $1\n             AND NOT c.temporary\n             AND ($2 IS NULL OR (c.updated_at, c.id) < ($2, $3))\n           ORDER BY c.updated_at DESC, c.id DESC\n           LIMIT $4",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "title",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "all_repositories",
+        "ordinal": 2,
+        "type_info": "Bool"
+      },
+      {
+        "name": "repository_ids!: Json<Vec<Uuid>>",
+        "ordinal": 3,
+        "type_info": "Null"
+      },
+      {
+        "name": "model_id: Uuid",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "temporary",
+        "ordinal": 5,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 6,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "updated_at: DateTime<Utc>",
+        "ordinal": 7,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a7af85e88778e3cb250f044da44a5918651c0bf4e8271e446ee2bc341d19c7a0"
+}

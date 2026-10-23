@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT m.id AS \"id: Uuid\", COALESCE(m.display_name, m.api_name) AS \"display_name!: String\",\n                  p.id AS \"provider_id: Uuid\", p.name AS provider_name, m.is_default\n           FROM llm_models m\n           JOIN llm_providers p ON p.id = m.provider_id\n           ORDER BY lower(p.name), p.id, lower(COALESCE(m.display_name, m.api_name)), m.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "display_name!: String",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "provider_id: Uuid",
+        "ordinal": 2,
+        "type_info": "Blob"
+      },
+      {
+        "name": "provider_name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_default",
+        "ordinal": 4,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "9097a190e9d93a2e778a2a9b32c4eeb740523cbf528de51bf2e2142736eefc26"
+}

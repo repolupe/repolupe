@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT blob_oid, markdown AS \"markdown!\", ocr AS \"ocr!\"\n           FROM document_extractions\n           WHERE status = 'COMPLETED'\n             AND blob_oid IN (SELECT value FROM json_each($1))",
+  "describe": {
+    "columns": [
+      {
+        "name": "blob_oid",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "markdown!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "ocr!",
+        "ordinal": 2,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "5366d82809cc71a0112d9ff4f41ece361d558cb055e0f4658c6341052c12055f"
+}

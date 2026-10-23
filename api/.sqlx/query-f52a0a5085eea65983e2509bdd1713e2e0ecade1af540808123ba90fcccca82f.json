@@ -1,0 +1,56 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT d.path,\n                  d.blob_oid,\n                  e.status       AS \"status?: DocumentExtractionStatus\",\n                  e.ocr          AS \"ocr?\",\n                  e.error        AS \"error?\",\n                  e.extractor    AS \"extractor?\",\n                  e.extracted_at AS \"extracted_at?: DateTime<Utc>\"\n           FROM repository_documents d\n                    LEFT JOIN document_extractions e ON e.blob_oid = d.blob_oid\n           WHERE d.repository_id = $1\n           ORDER BY d.path",
+  "describe": {
+    "columns": [
+      {
+        "name": "path",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "blob_oid",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "status?: DocumentExtractionStatus",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "ocr?",
+        "ordinal": 3,
+        "type_info": "Bool"
+      },
+      {
+        "name": "error?",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "extractor?",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "extracted_at?: DateTime<Utc>",
+        "ordinal": 6,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "f52a0a5085eea65983e2509bdd1713e2e0ecade1af540808123ba90fcccca82f"
+}

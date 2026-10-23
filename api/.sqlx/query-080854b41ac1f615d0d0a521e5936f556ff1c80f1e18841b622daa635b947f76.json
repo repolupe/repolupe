@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO repositories (id, user_id, name, remote_url, branch, poll_interval_seconds,\n                                         allow_commits, sync_status, head_commit_sha, last_synced_at,\n                                         next_sync_at, created_at, updated_at)\n               VALUES ($1, $2, $3, 'https://example.com/seeded.git', 'main', 3600,\n                       false, 'READY', $4, $5, $6, $5, $5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "080854b41ac1f615d0d0a521e5936f556ff1c80f1e18841b622daa635b947f76"
+}

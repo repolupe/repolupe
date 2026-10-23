@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT t.id AS \"id: Uuid\", t.name, t.input AS \"input: serde_json::Value\", t.output,\n                  t.repository_id AS \"repository_id: Uuid\", t.commit_sha, t.is_error,\n                  t.created_at AS \"created_at: DateTime<Utc>\"\n           FROM tool_calls t\n           JOIN messages m ON m.id = t.message_id\n           JOIN chats c ON c.id = m.chat_id\n           WHERE t.id = $1 AND m.chat_id = $2 AND c.user_id = $3",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "input: serde_json::Value",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "output",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "repository_id: Uuid",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "commit_sha",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "is_error",
+        "ordinal": 6,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 7,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "440f4bbd62ab2f7f9793a29cd4f05a56a3fe3b0741da4d65e3a02c8d77aedfec"
+}

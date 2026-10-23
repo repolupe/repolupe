@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT blob_oid FROM attachments WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "name": "blob_oid",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "850a7f3929900a4cb5bae065090482837f8fca22293dc7e2923da1ea837f4c4b"
+}
