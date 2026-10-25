@@ -85,7 +85,7 @@ class _UserPageState extends State<UserPage> with Refena {
       appBar: AppBar(title: Text(user.userName, overflow: TextOverflow.ellipsis)),
       body: ListView(
         key: const ValueKey('user.body'),
-        padding: const EdgeInsets.only(top: 8, bottom: 24),
+        padding: EdgeInsets.only(top: 8, bottom: 24 + MediaQuery.paddingOf(context).bottom),
         children: [
           if (UserFlagChips.flags(user).isNotEmpty)
             Padding(

@@ -262,7 +262,7 @@ class _Body extends StatelessWidget {
     final page = context.t.base.repositories.page;
     return ListView(
       key: const ValueKey('repository.body'),
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: EdgeInsets.only(bottom: 24 + MediaQuery.paddingOf(context).bottom),
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),

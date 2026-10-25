@@ -117,7 +117,7 @@ class SettingsPage extends StatelessWidget {
       appBar: AppBar(title: Text(t.base.settings.title)),
       body: ListView(
         key: const ValueKey('settings.sections'),
-        padding: const EdgeInsets.only(top: 8, bottom: 64),
+        padding: EdgeInsets.only(top: 8, bottom: 64 + MediaQuery.paddingOf(context).bottom),
         children: [
           ListTile(
             key: const ValueKey('settings.theme'),

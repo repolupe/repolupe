@@ -36,7 +36,7 @@ class _AccountPageState extends State<AccountPage> with Refena {
       body: user == null
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: EdgeInsets.only(top: 8, bottom: 8 + MediaQuery.paddingOf(context).bottom),
               children: [
                 ListTile(
                   key: const ValueKey('account.userName'),

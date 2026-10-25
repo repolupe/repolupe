@@ -308,7 +308,8 @@ class _RemoteModelsSheetState extends State<RemoteModelsSheet> with Refena {
               child: InlineError(addError, key: const ValueKey('remoteModels.addError')),
             ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            // useSafeArea only covers the top.
+            padding: EdgeInsets.fromLTRB(16, 8, 16, 8 + MediaQuery.paddingOf(context).bottom),
             child: OverflowBar(
               alignment: MainAxisAlignment.end,
               spacing: 8,

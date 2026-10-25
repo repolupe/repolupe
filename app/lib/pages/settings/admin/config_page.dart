@@ -88,7 +88,7 @@ class _ConfigPageState extends State<ConfigPage> with Refena {
                   )
           : ListView(
               key: const ValueKey('config.list'),
-              padding: const EdgeInsets.only(bottom: 24),
+              padding: EdgeInsets.only(bottom: 24 + MediaQuery.paddingOf(context).bottom),
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),

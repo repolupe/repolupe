@@ -228,7 +228,7 @@ class _LlmPageState extends State<LlmPage> with Refena {
           ? _EmptyState(onCreate: _createProvider)
           : ListView(
               key: const ValueKey('llm.list'),
-              padding: const EdgeInsets.only(bottom: 88),
+              padding: EdgeInsets.only(bottom: 88 + MediaQuery.paddingOf(context).bottom),
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),

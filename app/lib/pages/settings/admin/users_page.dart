@@ -119,7 +119,7 @@ class _UsersPageState extends State<UsersPage> with Refena {
                   )
           : ListView(
               key: const ValueKey('users.list'),
-              padding: EdgeInsets.only(bottom: local ? 16 : 88),
+              padding: EdgeInsets.only(bottom: (local ? 16 : 88) + MediaQuery.paddingOf(context).bottom),
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),

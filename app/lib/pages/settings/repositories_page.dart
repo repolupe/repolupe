@@ -158,7 +158,7 @@ class _RepositoriesPageState extends State<RepositoriesPage> with Refena {
           ? _EmptyState(onCreate: _create)
           : ListView(
               key: const ValueKey('repositories.list'),
-              padding: const EdgeInsets.only(bottom: 88),
+              padding: EdgeInsets.only(bottom: 88 + MediaQuery.paddingOf(context).bottom),
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
