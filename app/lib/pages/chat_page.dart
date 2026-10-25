@@ -191,56 +191,59 @@ class _MessageInputState extends State<_MessageInput> with Refena {
     final state = context.watch(chatProvider);
     final answering = state.answer != null;
     final canSend = !state.sending && !answering && _controller.text.trim().isNotEmpty;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.fromLTRB(16, 4, 4, 4),
-      decoration: BoxDecoration(
-        // A shade darker than the answers' surfaceContainerLow.
-        color: Theme.of(context).colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: TextField(
-              key: const ValueKey('chat.input'),
-              controller: _controller,
-              minLines: 1,
-              maxLines: 6,
-              keyboardType: TextInputType.multiline,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                hintText: context.t.base.chat.placeholder,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+    // Sending or stopping keeps the keyboard open.
+    return TextFieldTapRegion(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.fromLTRB(16, 4, 4, 4),
+        decoration: BoxDecoration(
+          // A shade darker than the answers' surfaceContainerLow.
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: TextField(
+                key: const ValueKey('chat.input'),
+                controller: _controller,
+                minLines: 1,
+                maxLines: 6,
+                keyboardType: TextInputType.multiline,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(
+                  hintText: context.t.base.chat.placeholder,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          if (answering)
-            IconButton.filledTonal(
-              key: const ValueKey('chat.stop'),
-              icon: const Icon(Icons.stop),
-              tooltip: context.t.base.chat.messageInput.stop,
-              onPressed: () async {
-                await ref.redux(chatProvider).dispatchAsync(CancelAnswerAction());
-              },
-            )
-          else
-            IconButton.filled(
-              key: const ValueKey('chat.send'),
-              icon: state.sending
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.send),
-              tooltip: context.t.base.chat.messageInput.send,
-              onPressed: canSend ? _send : null,
-            ),
-        ],
+            const SizedBox(width: 8),
+            if (answering)
+              IconButton.filledTonal(
+                key: const ValueKey('chat.stop'),
+                icon: const Icon(Icons.stop),
+                tooltip: context.t.base.chat.messageInput.stop,
+                onPressed: () async {
+                  await ref.redux(chatProvider).dispatchAsync(CancelAnswerAction());
+                },
+              )
+            else
+              IconButton.filled(
+                key: const ValueKey('chat.send'),
+                icon: state.sending
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.send),
+                tooltip: context.t.base.chat.messageInput.send,
+                onPressed: canSend ? _send : null,
+              ),
+          ],
+        ),
       ),
     );
   }

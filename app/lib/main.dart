@@ -48,6 +48,21 @@ class MyApp extends StatelessWidget {
       navigatorKey: context.read(navigationProvider).key,
       scaffoldMessengerKey: context.read(snackBarProvider).key,
 
+      // Flutter keeps the keyboard open on mobile like native apps do, which leaves no way to close it
+      // for multiline and number fields on iOS. Scrolling or tapping outside a text field closes it,
+      // except on widgets wrapped in a TextFieldTapRegion.
+      scrollBehavior: const MaterialScrollBehavior().copyWith(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      ),
+      builder: (context, child) => Actions(
+        actions: {
+          EditableTextTapOutsideIntent: CallbackAction<EditableTextTapOutsideIntent>(
+            onInvoke: (intent) => intent.focusNode.unfocus(),
+          ),
+        },
+        child: child!,
+      ),
+
       home: home,
     );
   }
