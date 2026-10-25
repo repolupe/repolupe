@@ -51,6 +51,9 @@ class ChatState with ChatStateMappable {
   /// Whether a previous chat is being opened, see [OpenChatAction].
   final bool loading;
 
+  /// Whether the models and repositories have been loaded by [NewChatAction].
+  final bool loaded;
+
   /// Incremented by [NewChatAction] and [OpenChatAction], so the results of requests for the previous chat are dropped.
   final int epoch;
 
@@ -66,6 +69,7 @@ class ChatState with ChatStateMappable {
     required this.temporary,
     required this.sending,
     required this.loading,
+    required this.loaded,
     required this.epoch,
   });
 
@@ -82,6 +86,7 @@ class ChatState with ChatStateMappable {
         temporary: false,
         sending: false,
         loading: false,
+        loaded: false,
         epoch: 0,
       );
 
@@ -149,7 +154,7 @@ class NewChatAction extends AsyncReduxAction<ChatService, ChatState> {
     final epoch = dispatch(_IncrementEpochAction()).epoch;
     dispatch(_SetStateAction(ChatState.empty().copyWith(epoch: epoch)));
     if (notifier._api.state == null) {
-      return state;
+      return state.copyWith(loaded: true);
     }
 
     final api = external(notifier._api);
@@ -169,6 +174,7 @@ class NewChatAction extends AsyncReduxAction<ChatService, ChatState> {
       // Without repositories, "all" would be misleading.
       allRepositories: repositoryIds == null && repositories != null && repositories.isNotEmpty,
       repositoryIds: repositoryIds ?? const [],
+      loaded: true,
     );
   }
 
@@ -208,6 +214,7 @@ class OpenChatAction extends AsyncReduxAction<ChatService, ChatState> with Globa
           defaultModelId: state.defaultModelId,
           repositories: state.repositories,
           loading: true,
+          loaded: state.loaded,
           epoch: epoch,
         ),
       ),

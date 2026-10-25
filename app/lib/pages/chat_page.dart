@@ -250,20 +250,24 @@ class _MessageInputState extends State<_MessageInput> with Refena {
 }
 
 /// The title of a new chat: the repositories it reads, opening a sheet to choose them.
-/// Just "New chat" while the user has none.
+/// Just "New chat" while the user has none. Fades in once the repositories are loaded.
 class _RepositoryButton extends StatelessWidget {
   const _RepositoryButton();
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch(chatProvider);
-    if (state.repositories.isEmpty) {
-      return Text(state.loading ? '' : context.t.base.app.navigation.newChat);
-    }
-    return TextButton.icon(
-      icon: const Icon(Icons.folder_outlined),
-      label: Text(RepositorySheet.summary(context, state), overflow: TextOverflow.ellipsis),
-      onPressed: !state.loading && !state.sending ? () async => RepositorySheet.show(context) : null,
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      child: switch (state) {
+        ChatState(loaded: false) || ChatState(loading: true, repositories: []) => const SizedBox.shrink(),
+        ChatState(repositories: []) => Text(context.t.base.app.navigation.newChat),
+        _ => TextButton.icon(
+          icon: const Icon(Icons.folder_outlined),
+          label: Text(RepositorySheet.summary(context, state), overflow: TextOverflow.ellipsis),
+          onPressed: !state.loading && !state.sending ? () async => RepositorySheet.show(context) : null,
+        ),
+      },
     );
   }
 }

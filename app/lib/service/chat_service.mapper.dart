@@ -68,6 +68,8 @@ class ChatStateMapper extends ClassMapperBase<ChatState> {
   static const Field<ChatState, bool> _f$sending = Field('sending', _$sending);
   static bool _$loading(ChatState v) => v.loading;
   static const Field<ChatState, bool> _f$loading = Field('loading', _$loading);
+  static bool _$loaded(ChatState v) => v.loaded;
+  static const Field<ChatState, bool> _f$loaded = Field('loaded', _$loaded);
   static int _$epoch(ChatState v) => v.epoch;
   static const Field<ChatState, int> _f$epoch = Field('epoch', _$epoch);
 
@@ -84,6 +86,7 @@ class ChatStateMapper extends ClassMapperBase<ChatState> {
     #temporary: _f$temporary,
     #sending: _f$sending,
     #loading: _f$loading,
+    #loaded: _f$loaded,
     #epoch: _f$epoch,
   };
 
@@ -100,6 +103,7 @@ class ChatStateMapper extends ClassMapperBase<ChatState> {
       temporary: data.dec(_f$temporary),
       sending: data.dec(_f$sending),
       loading: data.dec(_f$loading),
+      loaded: data.dec(_f$loaded),
       epoch: data.dec(_f$epoch),
     );
   }
@@ -186,6 +190,7 @@ abstract class ChatStateCopyWith<$R, $In extends ChatState, $Out>
     bool? temporary,
     bool? sending,
     bool? loading,
+    bool? loaded,
     int? epoch,
   });
   ChatStateCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(Then<$Out2, $R2> t);
@@ -244,6 +249,7 @@ class _ChatStateCopyWithImpl<$R, $Out>
     bool? temporary,
     bool? sending,
     bool? loading,
+    bool? loaded,
     int? epoch,
   }) => $apply(
     FieldCopyWithData({
@@ -258,6 +264,7 @@ class _ChatStateCopyWithImpl<$R, $Out>
       if (temporary != null) #temporary: temporary,
       if (sending != null) #sending: sending,
       if (loading != null) #loading: loading,
+      if (loaded != null) #loaded: loaded,
       if (epoch != null) #epoch: epoch,
     }),
   );
@@ -274,6 +281,7 @@ class _ChatStateCopyWithImpl<$R, $Out>
     temporary: data.get(#temporary, or: $value.temporary),
     sending: data.get(#sending, or: $value.sending),
     loading: data.get(#loading, or: $value.loading),
+    loaded: data.get(#loaded, or: $value.loaded),
     epoch: data.get(#epoch, or: $value.epoch),
   );
 
