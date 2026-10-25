@@ -72,4 +72,38 @@ void main() {
     final restoredMe = await container.redux(apiProvider).dispatchAsyncTakeResult(ApiGetMeAction());
     expect(restoredMe.id, me.id);
   });
+
+  test('the Mistral OCR key of the local instance is stored and starts it again, keeping the session', () async {
+    final dataDir = await Directory.systemTemp.createTemp('repolupe-local-');
+    addTearDown(() => dataDir.delete(recursive: true));
+    final persistence = await mockPersistence();
+    final container = RefenaContainer(
+      overrides: [
+        persistenceProvider.overrideWithValue(persistence),
+        localInstanceProvider.overrideWithNotifier((ref) => LocalInstanceService(dataDir: () async => dataDir.path)),
+      ],
+    );
+    addTearDown(() => container.redux(localInstanceProvider).dispatchAsync(StopLocalInstanceAction()));
+    await container.redux(accountProvider).dispatchAsync(CreateLocalAccountAction());
+    final account = container.read(accountProvider).active!;
+    Future<String?> env() async {
+      final entries = await container.redux(apiProvider).dispatchAsyncTakeResult(ApiGetConfigAction());
+      return entries.firstWhere((e) => e.key == 'OCR_API_KEY_MISTRAL').env;
+    }
+
+    expect(await env(), isNull);
+    final first = container.read(localInstanceProvider);
+
+    await container.redux(accountProvider).dispatchAsync(SetLocalOcrApiKeyMistralAction('mistral-key'));
+    expect(persistence.getLocalInstanceSecrets()!.ocrApiKeyMistral, 'mistral-key');
+    expect(container.read(localInstanceProvider), isNot(same(first)));
+    expect(first!.isRunning(), isFalse);
+    // The client goes to the new instance, with the same session.
+    expect(await env(), '******');
+    expect(container.read(accountProvider).active, account);
+
+    await container.redux(accountProvider).dispatchAsync(SetLocalOcrApiKeyMistralAction(null));
+    expect(persistence.getLocalInstanceSecrets()!.ocrApiKeyMistral, isNull);
+    expect(await env(), isNull);
+  });
 }

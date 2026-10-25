@@ -580,6 +580,7 @@ fn local_instance() {
         data_dir: dir.path().join("data").to_str().unwrap().into(),
         token_encryption_key: generate_secret(),
         admin_password: password.clone(),
+        ocr_api_key_mistral: None,
     }))
     .unwrap();
     let client = &Client::local(&local, None);

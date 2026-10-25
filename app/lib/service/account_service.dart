@@ -285,6 +285,51 @@ class SetLocalPasswordAction extends AsyncGlobalAction {
   String toString() => 'SetLocalPasswordAction()';
 }
 
+/// Stores [key] as the API key of Mistral's OCR on the local instance (`null` removes it) and starts the instance
+/// again with it if it runs, which fails the answers being generated. Throws [LocalError] if the instance can't be
+/// started with it, keeping the previous key, with which it is started again.
+class SetLocalOcrApiKeyMistralAction extends AsyncReduxAction<AccountService, AccountState> {
+  final String? key;
+
+  SetLocalOcrApiKeyMistralAction(this.key);
+
+  @override
+  Future<AccountState> reduce() async {
+    final secrets = notifier._persistence.getLocalInstanceSecrets();
+    if (secrets == null) {
+      return state;
+    }
+    final updated = secrets.copyWith(ocrApiKeyMistral: key);
+    final local = external(notifier._local);
+    if (!(notifier._local.state?.isRunning() ?? false)) {
+      await notifier._persistence.setLocalInstanceSecrets(updated);
+      return state;
+    }
+
+    // Its stream ends with the instance.
+    external(notifier._messages).dispatch(StopFollowMessageAction());
+    await local.dispatchAsync(StopLocalInstanceAction());
+    try {
+      await local.dispatchAsync(StartLocalInstanceAction(updated));
+      await notifier._persistence.setLocalInstanceSecrets(updated);
+    } on LocalError {
+      try {
+        await local.dispatchAsync(StartLocalInstanceAction(secrets));
+      } on LocalError catch (e) {
+        _logger.warning('Cannot start the local instance again: ${e.message}');
+      }
+      rethrow;
+    } finally {
+      external(notifier._api).dispatch(ApiReconnectLocalAction());
+    }
+    return state;
+  }
+
+  /// Without the key, which the debug observers would print otherwise.
+  @override
+  String toString() => 'SetLocalOcrApiKeyMistralAction()';
+}
+
 /// Logs out of the active account and removes it.
 /// Switches to the next account, or opens the setup page if there is none.
 class LogoutAction extends AsyncReduxAction<AccountService, AccountState> {

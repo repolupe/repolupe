@@ -5810,10 +5810,12 @@ impl SseDecode for crate::api::local::LocalConfig {
         let mut var_dataDir = <String>::sse_decode(deserializer);
         let mut var_tokenEncryptionKey = <String>::sse_decode(deserializer);
         let mut var_adminPassword = <String>::sse_decode(deserializer);
+        let mut var_ocrApiKeyMistral = <Option<String>>::sse_decode(deserializer);
         return crate::api::local::LocalConfig {
             data_dir: var_dataDir,
             token_encryption_key: var_tokenEncryptionKey,
             admin_password: var_adminPassword,
+            ocr_api_key_mistral: var_ocrApiKeyMistral,
         };
     }
 }
@@ -8243,6 +8245,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::local::LocalConfig {
             self.data_dir.into_into_dart().into_dart(),
             self.token_encryption_key.into_into_dart().into_dart(),
             self.admin_password.into_into_dart().into_dart(),
+            self.ocr_api_key_mistral.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -10153,6 +10156,7 @@ impl SseEncode for crate::api::local::LocalConfig {
         <String>::sse_encode(self.data_dir, serializer);
         <String>::sse_encode(self.token_encryption_key, serializer);
         <String>::sse_encode(self.admin_password, serializer);
+        <Option<String>>::sse_encode(self.ocr_api_key_mistral, serializer);
     }
 }
 

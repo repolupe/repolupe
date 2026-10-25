@@ -50,6 +50,11 @@ pub struct LocalConfig {
     /// afterwards. Generate it once with [`generate_secret`] and keep it in secure storage, to
     /// log in again when the session expired (after 30 days without use).
     pub admin_password: String,
+    /// The API key of Mistral's OCR, the only OCR engine of the instance (the crate is built
+    /// without local OCR), as `OCR_API_KEY_MISTRAL` on a server. Admins can select `mistral` as
+    /// `OCR_ENGINE` only while it is set. Keep it in secure storage, and start the instance
+    /// again to change it.
+    pub ocr_api_key_mistral: Option<String>,
 }
 
 /// Why a local instance could not be started, e.g. an invalid key or a data directory that
@@ -213,8 +218,10 @@ fn repolupe_config(config: LocalConfig, data_dir: &Path) -> Config {
         run_migrations: true,
         background_tasks: true,
         debug_api: false,
-        ocr_api_key_mistral: None,
-        // Without OCR (the crate is built without local OCR, and Mistral would need a key) and
+        ocr_api_key_mistral: config
+            .ocr_api_key_mistral
+            .filter(|key| !key.trim().is_empty()),
+        // Without OCR (the crate is built without local OCR, and Mistral needs the key) and
         // named "Repolupe"; admins can change the runtime settings with `set_config`.
         runtime: RuntimeConfig::default(),
     }
@@ -276,6 +283,7 @@ mod tests {
             data_dir: data_dir.to_owned(),
             token_encryption_key: generate_secret(),
             admin_password: admin_password.to_owned(),
+            ocr_api_key_mistral: None,
         }
     }
 
@@ -357,6 +365,7 @@ mod tests {
             data_dir,
             token_encryption_key: key,
             admin_password: generate_secret(),
+            ocr_api_key_mistral: None,
         };
         let restarted = block_on(start_local(config)).unwrap();
         let client = Client::local(&restarted, token);
@@ -386,6 +395,48 @@ mod tests {
         assert!(second.is_running());
         assert_eq!(block_on(client.me()).unwrap().user_name, "admin");
         block_on(second.shutdown());
+    }
+
+    #[test]
+    fn mistral_ocr_needs_the_key() {
+        let dir = tempfile::tempdir().unwrap();
+        let data_dir = data_dir(&dir);
+        let password = generate_secret();
+        let mistral = HashMap::from([("OCR_ENGINE".to_owned(), "mistral".to_owned())]);
+        let env = |client: &Client| {
+            block_on(client.get_config())
+                .unwrap()
+                .into_iter()
+                .find(|entry| entry.key == "OCR_API_KEY_MISTRAL")
+                .unwrap()
+                .env
+        };
+
+        // Without the key (a blank one counts as none), mistral can't be selected.
+        let mut start = LocalConfig {
+            ocr_api_key_mistral: Some(" ".into()),
+            ..config(&data_dir, &password)
+        };
+        let key = start.token_encryption_key.clone();
+        let local = block_on(start_local(start)).unwrap();
+        let client = Client::local(&local, None);
+        login(&client, &local_admin_user_name(), &password).unwrap();
+        assert_eq!(env(&client), None);
+        assert!(block_on(client.set_config(mistral.clone())).is_err());
+        let token = client.token();
+        block_on(local.shutdown());
+
+        // Started again with the key, it is listed as a secret, and mistral can be selected.
+        start = LocalConfig {
+            token_encryption_key: key,
+            ocr_api_key_mistral: Some("mistral-key".into()),
+            ..config(&data_dir, &password)
+        };
+        let restarted = block_on(start_local(start)).unwrap();
+        let client = Client::local(&restarted, token);
+        assert_eq!(env(&client).as_deref(), Some("******"));
+        block_on(client.set_config(mistral)).unwrap();
+        block_on(restarted.shutdown());
     }
 
     #[test]

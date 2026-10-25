@@ -8,6 +8,7 @@ import 'package:app/service/api_service.dart';
 import 'package:app/service/instance_name_provider.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/service/persistence_service.dart';
+import 'package:app/widget/admin/mistral_key_sheet.dart';
 import 'package:app/widget/admin/override_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -153,6 +154,7 @@ void main() {
       entries: [
         fakeConfigEntry(key: 'ADMIN_PASSWORD', env: '******'),
         fakeConfigEntry(key: 'INSTANCE_NAME', env: 'Repolupe', runtime: true),
+        fakeConfigEntry(key: 'OCR_API_KEY_MISTRAL', env: '******'),
         fakeConfigEntry(key: 'OCR_ENGINE', env: 'paddle', override: 'none', runtime: true),
         fakeConfigEntry(key: 'OCR_SCAN_CONFIDENCE', env: '0.5', runtime: true),
         fakeConfigEntry(key: 'REPOS_DIR'),
@@ -167,7 +169,7 @@ void main() {
 
     // The rows: the env values (the secret masked, an unset one as "Not set"), the override, and the runtime marker.
     expect(find.text('ADMIN_PASSWORD'), findsOneWidget);
-    expect(find.text('Env: ******', findRichText: true), findsOneWidget);
+    expect(find.text('Env: ******', findRichText: true), findsNWidgets(2));
     expect(find.text('Env: Repolupe', findRichText: true), findsOneWidget);
     expect(find.text('Env: paddle', findRichText: true), findsOneWidget);
     expect(find.text('Override: none', findRichText: true), findsOneWidget);
@@ -175,6 +177,7 @@ void main() {
     expect(find.text('Runtime'), findsNWidgets(3));
     // Only runtime settings open the sheet.
     expect(tester.widget<ListTile>(find.byKey(const ValueKey('config.entry.REPOS_DIR'))).onTap, isNull);
+    expect(tester.widget<ListTile>(find.byKey(const ValueKey('config.entry.OCR_API_KEY_MISTRAL'))).onTap, isNull);
     expect(tester.widget<ListTile>(find.byKey(const ValueKey('config.entry.INSTANCE_NAME'))).onTap, isNotNull);
 
     // Set an override: the other override is sent along.
@@ -183,7 +186,13 @@ void main() {
     expect(find.byType(OverrideSheet), findsOneWidget);
     expect(find.descendant(of: find.byType(OverrideSheet), matching: find.text('INSTANCE_NAME')), findsOneWidget);
     // The env value is the hint of the empty field.
-    expect(tester.widget<TextField>(find.descendant(of: find.byKey(const ValueKey('config.override.value')), matching: find.byType(TextField))).decoration?.hintText, 'Repolupe');
+    expect(
+      tester
+          .widget<TextField>(find.descendant(of: find.byKey(const ValueKey('config.override.value')), matching: find.byType(TextField)))
+          .decoration
+          ?.hintText,
+      'Repolupe',
+    );
     expect(find.byKey(const ValueKey('config.override.remove')), findsNothing);
     await tester.enterText(find.byKey(const ValueKey('config.override.value')), 'Acme Docs');
     await tester.pump();
@@ -251,16 +260,44 @@ void main() {
     expect(find.text('Override: abc', findRichText: true), findsNothing);
   });
 
-  testWidgets('the config page of the local instance leaves out the advice on overrides and environment variables', (tester) async {
+  testWidgets('the config page of the local instance leaves out the advice and the settings the user can\'t change, and sets the Mistral key', (
+    tester,
+  ) async {
     final server = await _FakeServer.start(
       tester,
-      entries: [fakeConfigEntry(key: 'INSTANCE_NAME', env: 'Repolupe', runtime: true)],
+      entries: [
+        fakeConfigEntry(key: 'ADMIN_PASSWORD', env: '******'),
+        fakeConfigEntry(key: 'INSTANCE_NAME', env: 'Repolupe', runtime: true),
+        fakeConfigEntry(key: 'OCR_API_KEY_MISTRAL'),
+        fakeConfigEntry(key: 'REPOS_DIR'),
+      ],
     );
     await _pumpPage(tester, server, local: true);
 
     expect(find.text('Overrides are stored in the database, so they survive restarts of the server.'), findsNothing);
     expect(find.textContaining('We recommend', findRichText: true), findsNothing);
-    expect(find.text('Changing the OCR settings converts all documents again, one at a time. Until then, their earlier text is used.'), findsOneWidget);
+    expect(
+      find.text('Changing the OCR settings converts all documents again, one at a time. Until then, their earlier text is used.'),
+      findsOneWidget,
+    );
+    expect(find.text('Only runtime settings can be overridden; the others need a restart.'), findsNothing);
+    // Only the runtime settings and the Mistral key are listed.
     expect(find.byKey(const ValueKey('config.entry.INSTANCE_NAME')), findsOneWidget);
+    expect(find.byKey(const ValueKey('config.entry.OCR_API_KEY_MISTRAL')), findsOneWidget);
+    expect(find.byKey(const ValueKey('config.entry.ADMIN_PASSWORD')), findsNothing);
+    expect(find.byKey(const ValueKey('config.entry.REPOS_DIR')), findsNothing);
+
+    // The Mistral key opens its sheet; without a key, there is nothing to remove, and nothing to save while empty.
+    await tester.tap(find.byKey(const ValueKey('config.entry.OCR_API_KEY_MISTRAL')));
+    await tester.pumpAndSettle();
+    expect(find.byType(MistralKeySheet), findsOneWidget);
+    expect(find.byKey(const ValueKey('config.mistralKey.remove')), findsNothing);
+    expect(tester.widget<FilledButton>(find.byKey(const ValueKey('config.mistralKey.save'))).onPressed, isNull);
+    await tester.enterText(find.byKey(const ValueKey('config.mistralKey.value')), 'mistral-key');
+    await tester.pump();
+    expect(tester.widget<FilledButton>(find.byKey(const ValueKey('config.mistralKey.save'))).onPressed, isNotNull);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.byType(MistralKeySheet), findsNothing);
   });
 }

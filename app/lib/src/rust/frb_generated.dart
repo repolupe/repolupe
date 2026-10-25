@@ -3293,11 +3293,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   LocalConfig dco_decode_local_config(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return LocalConfig(
       dataDir: dco_decode_String(arr[0]),
       tokenEncryptionKey: dco_decode_String(arr[1]),
       adminPassword: dco_decode_String(arr[2]),
+      ocrApiKeyMistral: dco_decode_opt_String(arr[3]),
     );
   }
 
@@ -5170,7 +5171,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_dataDir = sse_decode_String(deserializer);
     var var_tokenEncryptionKey = sse_decode_String(deserializer);
     var var_adminPassword = sse_decode_String(deserializer);
-    return LocalConfig(dataDir: var_dataDir, tokenEncryptionKey: var_tokenEncryptionKey, adminPassword: var_adminPassword);
+    var var_ocrApiKeyMistral = sse_decode_opt_String(deserializer);
+    return LocalConfig(
+      dataDir: var_dataDir,
+      tokenEncryptionKey: var_tokenEncryptionKey,
+      adminPassword: var_adminPassword,
+      ocrApiKeyMistral: var_ocrApiKeyMistral,
+    );
   }
 
   @protected
@@ -6969,6 +6976,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.dataDir, serializer);
     sse_encode_String(self.tokenEncryptionKey, serializer);
     sse_encode_String(self.adminPassword, serializer);
+    sse_encode_opt_String(self.ocrApiKeyMistral, serializer);
   }
 
   @protected

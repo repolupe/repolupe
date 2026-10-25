@@ -15,10 +15,14 @@ class LocalInstanceSecrets with LocalInstanceSecretsMappable {
   /// The password of the instance's admin, which the user can change.
   final String password;
 
+  /// The API key of Mistral's OCR (`OCR_API_KEY_MISTRAL`), the only OCR engine of the instance, set by the user.
+  final String? ocrApiKeyMistral;
+
   LocalInstanceSecrets({
     required this.tokenEncryptionKey,
     required this.userName,
     required this.password,
+    this.ocrApiKeyMistral,
   });
 
   /// Without the secrets, which the debug observers would print otherwise.

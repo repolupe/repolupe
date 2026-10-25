@@ -58,14 +58,21 @@ class LocalConfig {
   /// log in again when the session expired (after 30 days without use).
   final String adminPassword;
 
+  /// The API key of Mistral's OCR, the only OCR engine of the instance (the crate is built
+  /// without local OCR), as `OCR_API_KEY_MISTRAL` on a server. Admins can select `mistral` as
+  /// `OCR_ENGINE` only while it is set. Keep it in secure storage, and start the instance
+  /// again to change it.
+  final String? ocrApiKeyMistral;
+
   const LocalConfig({
     required this.dataDir,
     required this.tokenEncryptionKey,
     required this.adminPassword,
+    this.ocrApiKeyMistral,
   });
 
   @override
-  int get hashCode => dataDir.hashCode ^ tokenEncryptionKey.hashCode ^ adminPassword.hashCode;
+  int get hashCode => dataDir.hashCode ^ tokenEncryptionKey.hashCode ^ adminPassword.hashCode ^ ocrApiKeyMistral.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -74,7 +81,8 @@ class LocalConfig {
           runtimeType == other.runtimeType &&
           dataDir == other.dataDir &&
           tokenEncryptionKey == other.tokenEncryptionKey &&
-          adminPassword == other.adminPassword;
+          adminPassword == other.adminPassword &&
+          ocrApiKeyMistral == other.ocrApiKeyMistral;
 }
 
 /// Why a local instance could not be started, e.g. an invalid key or a data directory that

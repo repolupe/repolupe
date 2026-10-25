@@ -167,6 +167,25 @@ class ApiSetAccountAction extends ReduxAction<ApiService, AccountClient?> {
   String toString() => 'ApiSetAccountAction($account)';
 }
 
+/// Creates the client of the active account again if it is the local one, after the local instance was started
+/// again, since a client sends its requests to the instance it was created for. Keeps the client if the instance is
+/// not running, whose requests fail then.
+class ApiReconnectLocalAction extends ReduxAction<ApiService, AccountClient?> {
+  @override
+  AccountClient? reduce() {
+    final active = state;
+    if (active == null || !active.account.isLocal) {
+      return state;
+    }
+    try {
+      return AccountClient.of(active.account, notifier._local.state);
+    } on ClientError catch (e) {
+      _logger.warning('Cannot reconnect to the local instance: $e');
+      return state;
+    }
+  }
+}
+
 /// Calls the API with the client of an account and returns the result.
 /// Throws [ClientError] if it fails. `UNAUTHORIZED` means the session ended, so the account is removed
 /// (see [SessionExpiredAction]) unless [expireOnUnauthorized] is `false`. `PASSWORD_CHANGE_REQUIRED` means

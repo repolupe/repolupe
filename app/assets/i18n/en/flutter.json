@@ -190,6 +190,10 @@
       },
       "overrideDialog": {
         "remove": "Remove override"
+      },
+      "mistralKeySheet": {
+        "intro": "Used when OCR_ENGINE is mistral.",
+        "remove": "Remove key"
       }
     },
     "extraction": {

@@ -1851,6 +1851,8 @@ class _Translations$flutter$admin$config$de extends Translations$flutter$admin$c
   late final _Translations$flutter$admin$config$page$de page = _Translations$flutter$admin$config$page$de._(_root);
   @override
   late final _Translations$flutter$admin$config$overrideDialog$de overrideDialog = _Translations$flutter$admin$config$overrideDialog$de._(_root);
+  @override
+  late final _Translations$flutter$admin$config$mistralKeySheet$de mistralKeySheet = _Translations$flutter$admin$config$mistralKeySheet$de._(_root);
 }
 
 // Path: flutter.admin.extraction
@@ -2667,6 +2669,19 @@ class _Translations$flutter$admin$config$overrideDialog$de extends Translations$
   // Translations
   @override
   String get remove => 'Überschreibung entfernen';
+}
+
+// Path: flutter.admin.config.mistralKeySheet
+class _Translations$flutter$admin$config$mistralKeySheet$de extends Translations$flutter$admin$config$mistralKeySheet$en {
+  _Translations$flutter$admin$config$mistralKeySheet$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get intro => 'Wird verwendet, wenn OCR_ENGINE mistral ist.';
+  @override
+  String get remove => 'Schlüssel entfernen';
 }
 
 // Path: flutter.admin.extraction.page

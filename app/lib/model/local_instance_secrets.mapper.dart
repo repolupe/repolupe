@@ -41,12 +41,21 @@ class LocalInstanceSecretsMapper extends ClassMapperBase<LocalInstanceSecrets> {
     'password',
     _$password,
   );
+  static String? _$ocrApiKeyMistral(LocalInstanceSecrets v) =>
+      v.ocrApiKeyMistral;
+  static const Field<LocalInstanceSecrets, String> _f$ocrApiKeyMistral = Field(
+    'ocrApiKeyMistral',
+    _$ocrApiKeyMistral,
+    key: r'ocr_api_key_mistral',
+    opt: true,
+  );
 
   @override
   final MappableFields<LocalInstanceSecrets> fields = const {
     #tokenEncryptionKey: _f$tokenEncryptionKey,
     #userName: _f$userName,
     #password: _f$password,
+    #ocrApiKeyMistral: _f$ocrApiKeyMistral,
   };
 
   static LocalInstanceSecrets _instantiate(DecodingData data) {
@@ -54,6 +63,7 @@ class LocalInstanceSecretsMapper extends ClassMapperBase<LocalInstanceSecrets> {
       tokenEncryptionKey: data.dec(_f$tokenEncryptionKey),
       userName: data.dec(_f$userName),
       password: data.dec(_f$password),
+      ocrApiKeyMistral: data.dec(_f$ocrApiKeyMistral),
     );
   }
 
@@ -127,7 +137,12 @@ abstract class LocalInstanceSecretsCopyWith<
   $Out
 >
     implements ClassCopyWith<$R, $In, $Out> {
-  $R call({String? tokenEncryptionKey, String? userName, String? password});
+  $R call({
+    String? tokenEncryptionKey,
+    String? userName,
+    String? password,
+    String? ocrApiKeyMistral,
+  });
   LocalInstanceSecretsCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
     Then<$Out2, $R2> t,
   );
@@ -142,15 +157,19 @@ class _LocalInstanceSecretsCopyWithImpl<$R, $Out>
   late final ClassMapperBase<LocalInstanceSecrets> $mapper =
       LocalInstanceSecretsMapper.ensureInitialized();
   @override
-  $R call({String? tokenEncryptionKey, String? userName, String? password}) =>
-      $apply(
-        FieldCopyWithData({
-          if (tokenEncryptionKey != null)
-            #tokenEncryptionKey: tokenEncryptionKey,
-          if (userName != null) #userName: userName,
-          if (password != null) #password: password,
-        }),
-      );
+  $R call({
+    String? tokenEncryptionKey,
+    String? userName,
+    String? password,
+    Object? ocrApiKeyMistral = $none,
+  }) => $apply(
+    FieldCopyWithData({
+      if (tokenEncryptionKey != null) #tokenEncryptionKey: tokenEncryptionKey,
+      if (userName != null) #userName: userName,
+      if (password != null) #password: password,
+      if (ocrApiKeyMistral != $none) #ocrApiKeyMistral: ocrApiKeyMistral,
+    }),
+  );
   @override
   LocalInstanceSecrets $make(CopyWithData data) => LocalInstanceSecrets(
     tokenEncryptionKey: data.get(
@@ -159,6 +178,7 @@ class _LocalInstanceSecretsCopyWithImpl<$R, $Out>
     ),
     userName: data.get(#userName, or: $value.userName),
     password: data.get(#password, or: $value.password),
+    ocrApiKeyMistral: data.get(#ocrApiKeyMistral, or: $value.ocrApiKeyMistral),
   );
 
   @override

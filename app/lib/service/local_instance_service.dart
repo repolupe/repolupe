@@ -46,6 +46,7 @@ class StartLocalInstanceAction extends AsyncReduxActionWithResult<LocalInstanceS
         dataDir: await notifier._dataDir(),
         tokenEncryptionKey: secrets.tokenEncryptionKey,
         adminPassword: secrets.password,
+        ocrApiKeyMistral: secrets.ocrApiKeyMistral,
       ),
     );
     return (instance, instance);
