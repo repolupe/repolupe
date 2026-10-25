@@ -11,7 +11,7 @@ RUN npm ci --ignore-scripts
 COPY web ./
 RUN npm run generate
 
-FROM rust:1.97.1 AS api
+FROM rust:1.99.1 AS api
 
 # Tesseract and Leptonica for OCR, linked by xberg via pkg-config
 RUN apt-get update \
