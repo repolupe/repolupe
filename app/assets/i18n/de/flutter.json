@@ -189,7 +189,6 @@
         "overrideValue": "Überschreibung: {value}"
       },
       "overrideDialog": {
-        "choiceHint": "Wähle den Wert der Umgebungsvariable, um die Überschreibung zu entfernen",
         "remove": "Überschreibung entfernen"
       }
     },

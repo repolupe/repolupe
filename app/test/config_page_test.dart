@@ -8,6 +8,7 @@ import 'package:app/service/api_service.dart';
 import 'package:app/service/instance_name_provider.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/service/persistence_service.dart';
+import 'package:app/widget/admin/override_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:refena_flutter/addons.dart';
@@ -103,8 +104,9 @@ class _FakeServer {
   }
 }
 
-/// Opens the page for the admin of [server], whose user is loaded.
-Future<RefenaContainer> _pumpPage(WidgetTester tester, _FakeServer server) async {
+/// Opens the page for the admin of [server], whose user is loaded. With [local], the active account is the local
+/// instance's, while the requests still go to [server].
+Future<RefenaContainer> _pumpPage(WidgetTester tester, _FakeServer server, {bool local = false}) async {
   tester.view.physicalSize = const Size(600, 2400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -113,7 +115,8 @@ Future<RefenaContainer> _pumpPage(WidgetTester tester, _FakeServer server) async
     token: 'session-token',
     user: AccountUser(id: _adminId, userName: 'alice'),
   );
-  final persistence = (await tester.runAsync(() => mockPersistence(account: account)))!;
+  final stored = local ? account.copyWith(apiUrl: null) : account;
+  final persistence = (await tester.runAsync(() => mockPersistence(account: stored)))!;
   final container = RefenaContainer(overrides: [persistenceProvider.overrideWithValue(persistence)]);
   container.redux(apiProvider).dispatch(ApiSetAccountAction(account));
   await tester.runAsync(() => container.redux(meProvider).dispatchAsync(RefreshMeAction()));
@@ -142,7 +145,7 @@ void main() {
     await initRustLib();
   });
 
-  testWidgets('the config page lists the settings, sets and removes an override with the whole map, and keeps the dialog open on an error', (
+  testWidgets('the config page lists the settings, sets and removes an override with the whole map, and keeps the sheet open on an error', (
     tester,
   ) async {
     final server = await _FakeServer.start(
@@ -157,6 +160,8 @@ void main() {
     );
     final container = await _pumpPage(tester, server);
     void clearSnackBars() => container.read(snackBarProvider).key.currentState!.clearSnackBars();
+    expect(find.text('Overrides are stored in the database, so they survive restarts of the server.'), findsOneWidget);
+    expect(find.textContaining('We recommend', findRichText: true), findsOneWidget);
     // The start page shows the instance name, which an override changes.
     expect(await tester.runAsync(() => container.future(instanceNameProvider)), 'Repolupe');
 
@@ -168,15 +173,17 @@ void main() {
     expect(find.text('Override: none', findRichText: true), findsOneWidget);
     expect(find.text('Env: not set', findRichText: true), findsOneWidget);
     expect(find.text('Runtime'), findsNWidgets(3));
-    // Only runtime settings open the dialog.
+    // Only runtime settings open the sheet.
     expect(tester.widget<ListTile>(find.byKey(const ValueKey('config.entry.REPOS_DIR'))).onTap, isNull);
     expect(tester.widget<ListTile>(find.byKey(const ValueKey('config.entry.INSTANCE_NAME'))).onTap, isNotNull);
 
     // Set an override: the other override is sent along.
     await tester.tap(find.byKey(const ValueKey('config.entry.INSTANCE_NAME')));
     await tester.pumpAndSettle();
-    expect(find.text('Override'), findsOneWidget);
-    expect(find.descendant(of: find.byType(AlertDialog), matching: find.text('Env: Repolupe')), findsOneWidget);
+    expect(find.byType(OverrideSheet), findsOneWidget);
+    expect(find.descendant(of: find.byType(OverrideSheet), matching: find.text('INSTANCE_NAME')), findsOneWidget);
+    // The env value is the hint of the empty field.
+    expect(tester.widget<TextField>(find.descendant(of: find.byKey(const ValueKey('config.override.value')), matching: find.byType(TextField))).decoration?.hintText, 'Repolupe');
     expect(find.byKey(const ValueKey('config.override.remove')), findsNothing);
     await tester.enterText(find.byKey(const ValueKey('config.override.value')), 'Acme Docs');
     await tester.pump();
@@ -185,7 +192,7 @@ void main() {
     expect(server.requests.last.$1, '/api/v1/config');
     expect(server.requests.last.$2, {'OCR_ENGINE': 'none', 'INSTANCE_NAME': 'Acme Docs'});
     await tester.pumpAndSettle();
-    expect(find.text('Override'), findsNothing);
+    expect(find.byType(OverrideSheet), findsNothing);
     // The response is shown, and the instance name is loaded again.
     expect(find.text('Override: Acme Docs', findRichText: true), findsOneWidget);
     for (var i = 0; i < 100 && container.read(instanceNameProvider).data != 'Acme Docs'; i++) {
@@ -209,9 +216,10 @@ void main() {
     expect(find.text('Override: Acme Docs', findRichText: true), findsOneWidget);
     clearSnackBars();
 
-    // Choose an engine from the dropdown.
+    // Choose an engine from the dropdown; without an override, the env value is chosen.
     await tester.tap(find.byKey(const ValueKey('config.entry.OCR_ENGINE')));
     await tester.pumpAndSettle();
+    expect(find.descendant(of: find.byType(OverrideSheet), matching: find.text('(paddle)')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('config.override.choice')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('mistral').last);
@@ -224,7 +232,7 @@ void main() {
     expect(find.text('Override: mistral', findRichText: true), findsOneWidget);
     clearSnackBars();
 
-    // A rejected value: the API's message is shown and the dialog stays open with nothing changed.
+    // A rejected value: the API's message is shown and the sheet stays open with nothing changed.
     server.rejectedValue = 'abc';
     await tester.tap(find.byKey(const ValueKey('config.entry.OCR_SCAN_CONFIDENCE')));
     await tester.pumpAndSettle();
@@ -236,10 +244,23 @@ void main() {
     expect(server.requests.last.$1, '/api/v1/config');
     expect(server.requests.last.$2, {'INSTANCE_NAME': 'Acme Docs', 'OCR_ENGINE': 'mistral', 'OCR_SCAN_CONFIDENCE': 'abc'});
     await tester.pumpAndSettle();
-    expect(find.text('Override'), findsOneWidget);
+    expect(find.byType(OverrideSheet), findsOneWidget);
     expect(find.byKey(const ValueKey('config.override.save')), findsOneWidget);
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(find.text('Override: abc', findRichText: true), findsNothing);
+  });
+
+  testWidgets('the config page of the local instance leaves out the advice on overrides and environment variables', (tester) async {
+    final server = await _FakeServer.start(
+      tester,
+      entries: [fakeConfigEntry(key: 'INSTANCE_NAME', env: 'Repolupe', runtime: true)],
+    );
+    await _pumpPage(tester, server, local: true);
+
+    expect(find.text('Overrides are stored in the database, so they survive restarts of the server.'), findsNothing);
+    expect(find.textContaining('We recommend', findRichText: true), findsNothing);
+    expect(find.text('Changing the OCR settings converts all documents again, one at a time. Until then, their earlier text is used.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('config.entry.INSTANCE_NAME')), findsOneWidget);
   });
 }

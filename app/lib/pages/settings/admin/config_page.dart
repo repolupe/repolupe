@@ -1,15 +1,17 @@
 import 'package:app/gen/strings.g.dart';
+import 'package:app/service/account_service.dart';
 import 'package:app/service/api_service.dart';
 import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/config.dart';
-import 'package:app/widget/admin/override_dialog.dart';
+import 'package:app/widget/admin/override_sheet.dart';
 import 'package:app/widget/status_chip.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
 /// The configuration of the server, for admins: every environment variable with its value and its override, and
-/// overriding the runtime settings (those that apply without a restart) by tapping them.
+/// overriding the runtime settings (those that apply without a restart) by tapping them. The advice on overrides versus
+/// environment variables is left out for the local instance, whose environment the user can't set.
 class ConfigPage extends StatefulWidget {
   const ConfigPage({super.key});
 
@@ -58,7 +60,7 @@ class _ConfigPageState extends State<ConfigPage> with Refena {
     if (entries == null) {
       return;
     }
-    final updated = await OverrideDialog.show(context, entry: entry, entries: entries);
+    final updated = await OverrideSheet.show(context, entry: entry, entries: entries);
     if (updated != null && mounted) {
       setState(() {
         _entries = updated;
@@ -73,6 +75,7 @@ class _ConfigPageState extends State<ConfigPage> with Refena {
     final theme = Theme.of(context);
     final muted = theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     final recommendEnv = t.base.admin.config.page.recommendEnv(envVars: '\u0000').split('\u0000');
+    final local = context.watch(accountProvider.select((state) => state.active?.isLocal ?? false));
     return Scaffold(
       appBar: AppBar(title: Text(t.base.admin.config.title)),
       body: entries == null
@@ -90,28 +93,30 @@ class _ConfigPageState extends State<ConfigPage> with Refena {
               key: const ValueKey('config.list'),
               padding: EdgeInsets.only(bottom: 24 + MediaQuery.paddingOf(context).bottom),
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Text(t.base.admin.config.page.stored, style: muted),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                  child: Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(text: recommendEnv.first),
-                        TextSpan(
-                          text: t.base.admin.config.page.envVars,
-                          style: muted?.copyWith(fontWeight: FontWeight.bold),
-                        ),
-                        TextSpan(text: recommendEnv.last),
-                      ],
-                    ),
-                    style: muted,
+                if (!local) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Text(t.base.admin.config.page.stored, style: muted),
                   ),
-                ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(text: recommendEnv.first),
+                          TextSpan(
+                            text: t.base.admin.config.page.envVars,
+                            style: muted?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          TextSpan(text: recommendEnv.last),
+                        ],
+                      ),
+                      style: muted,
+                    ),
+                  ),
+                ],
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  padding: EdgeInsets.fromLTRB(16, local ? 16 : 0, 16, 8),
                   child: Text(t.base.admin.config.page.ocrHint, style: muted),
                 ),
                 Padding(
@@ -134,7 +139,7 @@ class _ConfigPageState extends State<ConfigPage> with Refena {
 }
 
 /// A setting: its key, its environment value (struck through while an override is in effect), its override, and
-/// whether it is a runtime setting (tapping it opens the override dialog).
+/// whether it is a runtime setting (tapping it opens the override sheet).
 class _EntryTile extends StatelessWidget {
   final ConfigEntryDto entry;
   final VoidCallback? onTap;

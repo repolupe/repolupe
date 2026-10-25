@@ -189,7 +189,6 @@
         "overrideValue": "Override: {value}"
       },
       "overrideDialog": {
-        "choiceHint": "Use the env value to remove the override",
         "remove": "Remove override"
       }
     },

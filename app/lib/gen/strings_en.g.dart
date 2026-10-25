@@ -3235,9 +3235,6 @@ class Translations$flutter$admin$config$overrideDialog$en {
 
   // Translations
 
-  /// en: 'Use the env value to remove the override'
-  String get choiceHint => 'Use the env value to remove the override';
-
   /// en: 'Remove override'
   String get remove => 'Remove override';
 }

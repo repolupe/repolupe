@@ -2666,8 +2666,6 @@ class _Translations$flutter$admin$config$overrideDialog$de extends Translations$
 
   // Translations
   @override
-  String get choiceHint => 'Wähle den Wert der Umgebungsvariable, um die Überschreibung zu entfernen';
-  @override
   String get remove => 'Überschreibung entfernen';
 }
 
