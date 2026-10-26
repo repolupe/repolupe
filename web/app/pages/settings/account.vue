@@ -6,12 +6,12 @@
         <tr>
           <td>{{ $t('user.userName') }}</td>
           <td>{{ user.user_name }}</td>
-          <td><v-btn v-if="user.can_change_identity" @click="showIdentityDialog" icon="mdi-pencil" variant="text"/></td>
+          <td><v-btn v-if="user.can_change_identity" @click="showUserNameDialog" icon="mdi-pencil" variant="text"/></td>
         </tr>
         <tr v-if="user.email || user.can_change_identity">
           <td>{{ $t('user.email') }}</td>
           <td>{{ user.email ?? '-' }}</td>
-          <td><v-btn v-if="user.can_change_identity" @click="showIdentityDialog" icon="mdi-pencil" variant="text"/></td>
+          <td><v-btn v-if="user.can_change_identity" @click="showEmailDialog" icon="mdi-pencil" variant="text"/></td>
         </tr>
         <tr>
           <td>{{ $t('user.role') }}</td>
@@ -32,7 +32,8 @@
       </v-table>
     </v-card>
 
-    <IdentityDialog ref="identity-dialog" v-model="dialogIdentity" :loading="loading" @submit="updateIdentity"/>
+    <UserNameDialog ref="user-name-dialog" v-model="dialogUserName" :loading="loading" @submit="updateUserName"/>
+    <EmailDialog ref="email-dialog" v-model="dialogEmail" :loading="loading" @submit="updateEmail"/>
     <ChangePasswordDialog ref="password-dialog" v-model="dialogPassword" :loading="loading" @submit="updatePassword"/>
   </MainContainer>
 </template>
@@ -53,9 +54,11 @@ import {ErrorCode, UserRole} from "~/utils/model";
 import {formatDateTime, showSnackbar} from "~/utils/utils";
 import MainContainer from "~/components/MainContainer.vue";
 import ChangePasswordDialog from "~/components/settings/ChangePasswordDialog.vue";
-import IdentityDialog from "~/components/settings/IdentityDialog.vue";
+import EmailDialog from "~/components/settings/EmailDialog.vue";
+import UserNameDialog from "~/components/settings/UserNameDialog.vue";
 
-const identityDialog = useTemplateRef<InstanceType<typeof IdentityDialog>>('identity-dialog');
+const userNameDialog = useTemplateRef<InstanceType<typeof UserNameDialog>>('user-name-dialog');
+const emailDialog = useTemplateRef<InstanceType<typeof EmailDialog>>('email-dialog');
 const passwordDialog = useTemplateRef<InstanceType<typeof ChangePasswordDialog>>('password-dialog');
 
 const {t} = useI18n();
@@ -63,28 +66,48 @@ const {t} = useI18n();
 const user = useUser();
 
 const loading = ref(false);
-const dialogIdentity = ref(false);
+const dialogUserName = ref(false);
+const dialogEmail = ref(false);
 const dialogPassword = ref(false);
 
-const showIdentityDialog = () => {
-  identityDialog.value!.load(user.value!.user_name, user.value!.email);
-  dialogIdentity.value = true;
+const showUserNameDialog = () => {
+  userNameDialog.value!.load(user.value!.user_name, user.value!.email);
+  dialogUserName.value = true;
 }
 
-const updateIdentity = async (data: UpdateIdentityPayload) => {
+const showEmailDialog = () => {
+  emailDialog.value!.load(user.value!.user_name, user.value!.email);
+  dialogEmail.value = true;
+}
+
+const updateUserName = async (data: UpdateIdentityPayload) => {
+  if (await updateIdentity(data, t('settings.account.page.userNameSaved'), (error) => t('settings.account.page.userNameSaveFailed', {error}))) {
+    dialogUserName.value = false;
+  }
+}
+
+const updateEmail = async (data: UpdateIdentityPayload) => {
+  if (await updateIdentity(data, t('settings.account.page.emailSaved'), (error) => t('settings.account.page.emailSaveFailed', {error}))) {
+    dialogEmail.value = false;
+  }
+}
+
+// Saves the user name and email, returns whether that succeeded.
+const updateIdentity = async (data: UpdateIdentityPayload, saved: string, failed: (error: string) => string): Promise<boolean> => {
   loading.value = true;
   try {
     user.value = await updateMyIdentity(data);
-    dialogIdentity.value = false;
-    showSnackbar(t('settings.account.page.identitySaved'));
+    showSnackbar(saved);
+    return true;
   } catch (e) {
     if (e instanceof ApiError && e.code === ErrorCode.USER_NAME_TAKEN) {
       showSnackbar(t('user.userNameTaken'));
     } else if (e instanceof ApiError && e.code === ErrorCode.EMAIL_TAKEN) {
       showSnackbar(t('user.emailTaken'));
     } else {
-      showSnackbar(t('settings.account.page.identitySaveFailed', {error: errorMessage(e)}));
+      showSnackbar(failed(errorMessage(e)));
     }
+    return false;
   } finally {
     loading.value = false;
   }

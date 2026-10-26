@@ -277,9 +277,11 @@
       "title": "Account",
       "page": {
         "memberSince": "Member since",
-        "identitySaved": "User name and email saved",
+        "userNameSaved": "User name saved",
+        "emailSaved": "Email saved",
         "passwordChanged": "Password changed. Your other sessions were signed out.",
-        "identitySaveFailed": "Could not save the user name and email: {error}",
+        "userNameSaveFailed": "Could not save the user name: {error}",
+        "emailSaveFailed": "Could not save the email: {error}",
         "changePasswordFailed": "Could not change the password: {error}"
       },
       "changePasswordDialog": {
@@ -287,10 +289,13 @@
         "signOutNote": "All your other sessions will be signed out.",
         "fillAll": "Please fill in all fields."
       },
-      "identityDialog": {
-        "title": "Change User Name and Email",
-        "loginHint": "You log in with either of them."
-      }
+      "userNameDialog": {
+        "title": "Change User Name"
+      },
+      "emailDialog": {
+        "title": "Change Email"
+      },
+      "loginHint": "You log in with your user name or email."
     },
     "profile": {
       "title": "Profile",

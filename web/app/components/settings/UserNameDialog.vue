@@ -1,11 +1,9 @@
 <template>
-  <GenericSaveDialog :title="$t('settings.account.identityDialog.title')" v-model="dialog" :loading="props.loading" @submit="submit">
+  <GenericSaveDialog :title="$t('settings.account.userNameDialog.title')" v-model="dialog" :loading="props.loading" @submit="submit">
     <v-text-field v-model="userName" @keydown.enter="submit" :label="$t('user.userName')" :disabled="loading"
                   autocomplete="username" prepend-icon="mdi-account" class="mb-2" />
-    <v-text-field v-model="email" @keydown.enter="submit" :label="$t('user.emailOptional')" type="email" :disabled="loading"
-                  autocomplete="email" prepend-icon="mdi-email" class="mb-2" />
     <div class="text-caption text-grey-darken-1">
-      {{ $t('settings.account.identityDialog.loginHint') }}
+      {{ $t('settings.account.loginHint') }}
     </div>
   </GenericSaveDialog>
 </template>
@@ -32,12 +30,12 @@ const dialog = computed({
 });
 
 const userName = ref('');
-const email = ref('');
+// Sent unchanged, since the API changes both together.
+const email = ref<string | null>(null);
 
 const submit = () => {
   const trimmedUserName = userName.value.trim();
-  const trimmedEmail = email.value.trim();
-  const error = userNameOrEmailError(trimmedUserName, trimmedEmail);
+  const error = userNameOrEmailError(trimmedUserName, email.value ?? '');
   if (error) {
     showSnackbar(error);
     return;
@@ -45,14 +43,14 @@ const submit = () => {
 
   emit('submit', {
     user_name: trimmedUserName,
-    email: trimmedEmail || null,
+    email: email.value,
   });
 }
 
 defineExpose({
   load: (currentUserName: string, currentEmail: string | null) => {
     userName.value = currentUserName;
-    email.value = currentEmail ?? '';
+    email.value = currentEmail;
   },
 });
 </script>

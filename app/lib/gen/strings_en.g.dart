@@ -1282,9 +1282,13 @@ class Translations$base$settings$account$en {
   late final Translations$base$settings$account$page$en page = Translations$base$settings$account$page$en.internal(_root);
   late final Translations$base$settings$account$changePasswordDialog$en changePasswordDialog =
       Translations$base$settings$account$changePasswordDialog$en.internal(_root);
-  late final Translations$base$settings$account$identityDialog$en identityDialog = Translations$base$settings$account$identityDialog$en.internal(
+  late final Translations$base$settings$account$userNameDialog$en userNameDialog = Translations$base$settings$account$userNameDialog$en.internal(
     _root,
   );
+  late final Translations$base$settings$account$emailDialog$en emailDialog = Translations$base$settings$account$emailDialog$en.internal(_root);
+
+  /// en: 'You log in with your user name or email.'
+  String get loginHint => 'You log in with your user name or email.';
 }
 
 // Path: base.settings.profile
@@ -2212,14 +2216,20 @@ class Translations$base$settings$account$page$en {
   /// en: 'Member since'
   String get memberSince => 'Member since';
 
-  /// en: 'User name and email saved'
-  String get identitySaved => 'User name and email saved';
+  /// en: 'User name saved'
+  String get userNameSaved => 'User name saved';
+
+  /// en: 'Email saved'
+  String get emailSaved => 'Email saved';
 
   /// en: 'Password changed. Your other sessions were signed out.'
   String get passwordChanged => 'Password changed. Your other sessions were signed out.';
 
-  /// en: 'Could not save the user name and email: {error}'
-  String identitySaveFailed({required Object error}) => 'Could not save the user name and email: ${error}';
+  /// en: 'Could not save the user name: {error}'
+  String userNameSaveFailed({required Object error}) => 'Could not save the user name: ${error}';
+
+  /// en: 'Could not save the email: {error}'
+  String emailSaveFailed({required Object error}) => 'Could not save the email: ${error}';
 
   /// en: 'Could not change the password: {error}'
   String changePasswordFailed({required Object error}) => 'Could not change the password: ${error}';
@@ -2243,19 +2253,28 @@ class Translations$base$settings$account$changePasswordDialog$en {
   String get fillAll => 'Please fill in all fields.';
 }
 
-// Path: base.settings.account.identityDialog
-class Translations$base$settings$account$identityDialog$en {
-  Translations$base$settings$account$identityDialog$en.internal(this._root);
+// Path: base.settings.account.userNameDialog
+class Translations$base$settings$account$userNameDialog$en {
+  Translations$base$settings$account$userNameDialog$en.internal(this._root);
 
   final Translations _root; // ignore: unused_field
 
   // Translations
 
-  /// en: 'Change User Name and Email'
-  String get title => 'Change User Name and Email';
+  /// en: 'Change User Name'
+  String get title => 'Change User Name';
+}
 
-  /// en: 'You log in with either of them.'
-  String get loginHint => 'You log in with either of them.';
+// Path: base.settings.account.emailDialog
+class Translations$base$settings$account$emailDialog$en {
+  Translations$base$settings$account$emailDialog$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Change Email'
+  String get title => 'Change Email';
 }
 
 // Path: base.settings.profile.page

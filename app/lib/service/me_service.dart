@@ -134,14 +134,18 @@ class ChangePasswordAction extends AsyncReduxActionWithResult<MeService, UserDto
   String toString() => 'ChangePasswordAction()';
 }
 
-/// Changes the user name and email of the active account after checking them (an empty email removes it).
-/// Returns why that failed, `null` if it succeeded (with a snack bar then). Updates the user and the stored
-/// account, which the account list shows by its user name.
+/// Which of user name and email the user changed in [UpdateIdentityAction], for its messages.
+enum IdentityField { userName, email }
+
+/// Changes the user name and email of the active account after checking them (an empty email removes it), from the
+/// dialog of [field]. Returns why that failed, `null` if it succeeded (with a snack bar then). Updates the user and the
+/// stored account, which the account list shows by its user name.
 class UpdateIdentityAction extends AsyncGlobalActionWithResult<String?> {
   final String userName;
   final String email;
+  final IdentityField field;
 
-  UpdateIdentityAction({required this.userName, required this.email});
+  UpdateIdentityAction({required this.userName, required this.email, required this.field});
 
   @override
   Future<String?> reduce() async {
@@ -159,18 +163,29 @@ class UpdateIdentityAction extends AsyncGlobalActionWithResult<String?> {
       return switch (e.code) {
         ErrorCode.userNameTaken => t.base.user.userNameTaken,
         ErrorCode.emailTaken => t.base.user.emailTaken,
-        _ => t.base.settings.account.page.identitySaveFailed(error: e.userMessage),
+        _ => switch (field) {
+          IdentityField.userName => t.base.settings.account.page.userNameSaveFailed(error: e.userMessage),
+          IdentityField.email => t.base.settings.account.page.emailSaveFailed(error: e.userMessage),
+        },
       };
     }
 
     ref.redux(meProvider).dispatch(SetMeAction(user));
     await ref.redux(accountProvider).dispatchAsync(SetAccountUserNameAction(user.userName));
-    ref.global.dispatch(ShowSnackBarAction(message: t.base.settings.account.page.identitySaved));
+    final page = t.base.settings.account.page;
+    ref.global.dispatch(
+      ShowSnackBarAction(
+        message: switch (field) {
+          IdentityField.userName => page.userNameSaved,
+          IdentityField.email => page.emailSaved,
+        },
+      ),
+    );
     return null;
   }
 
   @override
-  String toString() => 'UpdateIdentityAction(userName: $userName, email: $email)';
+  String toString() => 'UpdateIdentityAction(userName: $userName, email: $email, field: $field)';
 }
 
 /// Replaces the profile of the active account, which the assistant is told about the user, after checking the

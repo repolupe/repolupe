@@ -1,14 +1,16 @@
 import 'package:app/gen/strings.g.dart';
+import 'package:app/service/account_service.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
 import 'package:app/util/format.dart';
 import 'package:app/widget/settings/change_password_dialog.dart';
-import 'package:app/widget/settings/identity_dialog.dart';
+import 'package:app/widget/settings/email_dialog.dart';
+import 'package:app/widget/settings/user_name_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
-/// The login details of the active account: user name and email (changed together, if the user may), role,
-/// member since, and the password.
+/// The login details of the active account: user name and email (if the user may change them), role,
+/// member since, and the password. The local instance has no email or password here, as the app logs in to it.
 class AccountPage extends StatefulWidget {
   const AccountPage({super.key});
 
@@ -31,6 +33,7 @@ class _AccountPageState extends State<AccountPage> with Refena {
   Widget build(BuildContext context) {
     final t = context.t;
     final user = context.watch(meProvider);
+    final local = context.watch(accountProvider.select((state) => state.active?.isLocal ?? false));
     return Scaffold(
       appBar: AppBar(title: Text(t.base.settings.account.title)),
       body: user == null
@@ -44,16 +47,16 @@ class _AccountPageState extends State<AccountPage> with Refena {
                   title: Text(t.base.user.userName),
                   subtitle: Text(user.userName),
                   trailing: user.canChangeIdentity ? const Icon(Icons.edit) : null,
-                  onTap: user.canChangeIdentity ? () => _editIdentity(user) : null,
+                  onTap: user.canChangeIdentity ? () => _editUserName(user, local: local) : null,
                 ),
-                if (user.email != null || user.canChangeIdentity)
+                if (!local && (user.email != null || user.canChangeIdentity))
                   ListTile(
                     key: const ValueKey('account.email'),
                     leading: const Icon(Icons.email),
                     title: Text(t.base.user.email),
                     subtitle: Text(user.email ?? '-'),
                     trailing: user.canChangeIdentity ? const Icon(Icons.edit) : null,
-                    onTap: user.canChangeIdentity ? () => _editIdentity(user) : null,
+                    onTap: user.canChangeIdentity ? () => _editEmail(user) : null,
                   ),
                 ListTile(
                   leading: const Icon(Icons.shield),
@@ -65,22 +68,27 @@ class _AccountPageState extends State<AccountPage> with Refena {
                   title: Text(t.base.settings.account.page.memberSince),
                   subtitle: Text(formatDateTime(user.createdAt)),
                 ),
-                ListTile(
-                  key: const ValueKey('account.password'),
-                  leading: const Icon(Icons.lock),
-                  title: Text(t.base.user.password),
-                  subtitle: const Text('●●●●●●'),
-                  trailing: const Icon(Icons.edit),
-                  onTap: () async {
-                    await ChangePasswordDialog.show(context);
-                  },
-                ),
+                if (!local)
+                  ListTile(
+                    key: const ValueKey('account.password'),
+                    leading: const Icon(Icons.lock),
+                    title: Text(t.base.user.password),
+                    subtitle: const Text('●●●●●●'),
+                    trailing: const Icon(Icons.edit),
+                    onTap: () async {
+                      await ChangePasswordDialog.show(context);
+                    },
+                  ),
               ],
             ),
     );
   }
 
-  Future<void> _editIdentity(UserDto user) async {
-    await IdentityDialog.show(context, userName: user.userName, email: user.email ?? '');
+  Future<void> _editUserName(UserDto user, {required bool local}) async {
+    await UserNameDialog.show(context, userName: user.userName, email: user.email ?? '', showLoginHint: !local);
+  }
+
+  Future<void> _editEmail(UserDto user) async {
+    await EmailDialog.show(context, userName: user.userName, email: user.email ?? '');
   }
 }

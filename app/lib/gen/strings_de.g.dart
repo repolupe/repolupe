@@ -1099,7 +1099,11 @@ class _Translations$base$settings$account$de extends Translations$base$settings$
   late final _Translations$base$settings$account$changePasswordDialog$de changePasswordDialog =
       _Translations$base$settings$account$changePasswordDialog$de._(_root);
   @override
-  late final _Translations$base$settings$account$identityDialog$de identityDialog = _Translations$base$settings$account$identityDialog$de._(_root);
+  late final _Translations$base$settings$account$userNameDialog$de userNameDialog = _Translations$base$settings$account$userNameDialog$de._(_root);
+  @override
+  late final _Translations$base$settings$account$emailDialog$de emailDialog = _Translations$base$settings$account$emailDialog$de._(_root);
+  @override
+  String get loginHint => 'Du meldest dich mit deinem Benutzernamen oder deiner E-Mail an.';
 }
 
 // Path: base.settings.profile
@@ -1876,11 +1880,15 @@ class _Translations$base$settings$account$page$de extends Translations$base$sett
   @override
   String get memberSince => 'Mitglied seit';
   @override
-  String get identitySaved => 'Benutzername und E-Mail gespeichert';
+  String get userNameSaved => 'Benutzername gespeichert';
+  @override
+  String get emailSaved => 'E-Mail gespeichert';
   @override
   String get passwordChanged => 'Passwort geändert. Deine anderen Sitzungen wurden abgemeldet.';
   @override
-  String identitySaveFailed({required Object error}) => 'Benutzername und E-Mail konnten nicht gespeichert werden: ${error}';
+  String userNameSaveFailed({required Object error}) => 'Der Benutzername konnte nicht gespeichert werden: ${error}';
+  @override
+  String emailSaveFailed({required Object error}) => 'Die E-Mail konnte nicht gespeichert werden: ${error}';
   @override
   String changePasswordFailed({required Object error}) => 'Das Passwort konnte nicht geändert werden: ${error}';
 }
@@ -1900,17 +1908,26 @@ class _Translations$base$settings$account$changePasswordDialog$de extends Transl
   String get fillAll => 'Bitte fülle alle Felder aus.';
 }
 
-// Path: base.settings.account.identityDialog
-class _Translations$base$settings$account$identityDialog$de extends Translations$base$settings$account$identityDialog$en {
-  _Translations$base$settings$account$identityDialog$de._(TranslationsDe root) : this._root = root, super.internal(root);
+// Path: base.settings.account.userNameDialog
+class _Translations$base$settings$account$userNameDialog$de extends Translations$base$settings$account$userNameDialog$en {
+  _Translations$base$settings$account$userNameDialog$de._(TranslationsDe root) : this._root = root, super.internal(root);
 
   final TranslationsDe _root; // ignore: unused_field
 
   // Translations
   @override
-  String get title => 'Benutzername und E-Mail ändern';
+  String get title => 'Benutzernamen ändern';
+}
+
+// Path: base.settings.account.emailDialog
+class _Translations$base$settings$account$emailDialog$de extends Translations$base$settings$account$emailDialog$en {
+  _Translations$base$settings$account$emailDialog$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
   @override
-  String get loginHint => 'Du kannst dich mit beidem anmelden.';
+  String get title => 'E-Mail ändern';
 }
 
 // Path: base.settings.profile.page

@@ -277,9 +277,11 @@
       "title": "Konto",
       "page": {
         "memberSince": "Mitglied seit",
-        "identitySaved": "Benutzername und E-Mail gespeichert",
+        "userNameSaved": "Benutzername gespeichert",
+        "emailSaved": "E-Mail gespeichert",
         "passwordChanged": "Passwort geändert. Deine anderen Sitzungen wurden abgemeldet.",
-        "identitySaveFailed": "Benutzername und E-Mail konnten nicht gespeichert werden: {error}",
+        "userNameSaveFailed": "Der Benutzername konnte nicht gespeichert werden: {error}",
+        "emailSaveFailed": "Die E-Mail konnte nicht gespeichert werden: {error}",
         "changePasswordFailed": "Das Passwort konnte nicht geändert werden: {error}"
       },
       "changePasswordDialog": {
@@ -287,10 +289,13 @@
         "signOutNote": "Alle deine anderen Sitzungen werden abgemeldet.",
         "fillAll": "Bitte fülle alle Felder aus."
       },
-      "identityDialog": {
-        "title": "Benutzername und E-Mail ändern",
-        "loginHint": "Du kannst dich mit beidem anmelden."
-      }
+      "userNameDialog": {
+        "title": "Benutzernamen ändern"
+      },
+      "emailDialog": {
+        "title": "E-Mail ändern"
+      },
+      "loginHint": "Du meldest dich mit deinem Benutzernamen oder deiner E-Mail an."
     },
     "profile": {
       "title": "Profil",

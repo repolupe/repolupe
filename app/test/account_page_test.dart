@@ -106,19 +106,30 @@ void main() {
     // A taken user name keeps the dialog open and is shown in it, since a snack bar would be behind its barrier.
     await tester.tap(find.byKey(const ValueKey('account.userName')));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const ValueKey('account.identity.userName')), 'bob');
-    await tester.tap(find.byKey(const ValueKey('account.identity.save')));
+    await tester.enterText(find.byKey(const ValueKey('account.userNameDialog.userName')), 'bob');
+    await tester.tap(find.byKey(const ValueKey('account.userNameDialog.save')));
     await _pumpUntil(tester, find.descendant(of: find.byType(AlertDialog), matching: find.text('A user with this user name already exists')));
-    expect(find.byKey(const ValueKey('account.identity.save')), findsOneWidget);
+    expect(find.byKey(const ValueKey('account.userNameDialog.save')), findsOneWidget);
     expect(find.byType(SnackBar), findsNothing);
 
-    // Saved: shown by the page and stored with the account.
-    await tester.enterText(find.byKey(const ValueKey('account.identity.userName')), 'alice2');
-    await tester.enterText(find.byKey(const ValueKey('account.identity.email')), 'alice2@example.com');
-    await tester.tap(find.byKey(const ValueKey('account.identity.save')));
-    await _pumpUntil(tester, find.text('User name and email saved'));
+    // Saved: shown by the page and stored with the account, keeping the email.
+    await tester.enterText(find.byKey(const ValueKey('account.userNameDialog.userName')), 'alice2');
+    await tester.tap(find.byKey(const ValueKey('account.userNameDialog.save')));
+    await _pumpUntil(tester, find.text('User name saved'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('account.identity.save')), findsNothing);
+    clearSnackBars();
+    expect(find.byKey(const ValueKey('account.userNameDialog.save')), findsNothing);
+    expect(find.text('alice2'), findsOneWidget);
+    expect(find.text('alice@example.com'), findsOneWidget);
+
+    // The email on its own, keeping the user name.
+    await tester.tap(find.byKey(const ValueKey('account.email')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('account.emailDialog.email')), 'alice2@example.com');
+    await tester.tap(find.byKey(const ValueKey('account.emailDialog.save')));
+    await _pumpUntil(tester, find.text('Email saved'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('account.emailDialog.save')), findsNothing);
     expect(find.text('alice2'), findsOneWidget);
     expect(find.text('alice2@example.com'), findsOneWidget);
     expect(container.read(accountProvider).active?.user.userName, 'alice2');
