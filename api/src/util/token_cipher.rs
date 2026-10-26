@@ -1,5 +1,5 @@
 use aes_gcm::aead::{Aead, KeyInit, Payload};
-use aes_gcm::{Aes256Gcm, Key, Nonce};
+use aes_gcm::{Aes256Gcm, Nonce};
 use sha2::{Digest, Sha256};
 use uuid::Uuid;
 
@@ -33,7 +33,7 @@ impl TokenCipher {
         }
         let key = Sha256::digest(secret.as_bytes());
         Ok(Self {
-            cipher: Aes256Gcm::new(Key::<Aes256Gcm>::from_slice(&key)),
+            cipher: Aes256Gcm::new(&key),
         })
     }
 
@@ -47,7 +47,7 @@ impl TokenCipher {
         };
         let sealed = self
             .cipher
-            .encrypt(Nonce::from_slice(&nonce), payload)
+            .encrypt(&Nonce::from(nonce), payload)
             .map_err(|_| TokenCipherError::Crypto)?;
 
         let mut ciphertext = Vec::with_capacity(NONCE_LENGTH + sealed.len());
@@ -65,13 +65,14 @@ impl TokenCipher {
             return Err(TokenCipherError::Crypto);
         }
         let (nonce, sealed) = ciphertext.split_at(NONCE_LENGTH);
+        let nonce = Nonce::try_from(nonce).map_err(|_| TokenCipherError::Crypto)?;
         let payload = Payload {
             msg: sealed,
             aad: owner_id.as_bytes(),
         };
         let plain = self
             .cipher
-            .decrypt(Nonce::from_slice(nonce), payload)
+            .decrypt(&nonce, payload)
             .map_err(|_| TokenCipherError::Crypto)?;
         String::from_utf8(plain).map_err(|_| TokenCipherError::Crypto)
     }

@@ -41,9 +41,10 @@ use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 /// Identifies how the stored extractions were made, together with the OCR settings (see
-/// [`extractor_id`]). Change it when the xberg version or [`extraction_config`] changes, so the
-/// documents are extracted again.
-const EXTRACTOR: &str = "xberg-1.3.9";
+/// [`extractor_id`]). The xberg version is the one pinned in `Cargo.toml` (see `build.rs`).
+/// Append a revision (e.g. `/config-2`) when [`extraction_config`] changes, so the documents are
+/// extracted again.
+const EXTRACTOR: &str = concat!("xberg-", env!("XBERG_VERSION"));
 
 /// Extensions of the supported documents, with their MIME type.
 const FORMATS: &[(&str, &str)] = &[("pdf", "application/pdf")];
@@ -1028,26 +1029,32 @@ mod tests {
         let extractor = DocumentExtractor::new(None, None);
         let previous = extractor.settings();
         extractor.set_ocr(Some(&ocr(OcrEngine::Paddle, &["deu"])));
-        assert_eq!(previous.extractor, "xberg-1.3.9/no-ocr");
+        assert_eq!(previous.extractor, format!("{EXTRACTOR}/no-ocr"));
         assert!(previous.config.disable_ocr);
         let current = extractor.settings();
-        assert_eq!(current.extractor, "xberg-1.3.9/paddle-ocr:deu/scan-0.5");
+        assert_eq!(
+            current.extractor,
+            format!("{EXTRACTOR}/paddle-ocr:deu/scan-0.5")
+        );
         assert!(!current.config.disable_ocr);
 
         // xberg only finds the scans for Mistral
         extractor.set_ocr(Some(&ocr(OcrEngine::Mistral, &["deu"])));
         let current = extractor.settings();
-        assert_eq!(current.extractor, "xberg-1.3.9/mistral-ocr-latest/scan-0.5");
+        assert_eq!(
+            current.extractor,
+            format!("{EXTRACTOR}/mistral-ocr-latest/scan-0.5")
+        );
         assert!(current.config.disable_ocr);
         assert_eq!(current.config.ocr_strategy, xberg::OcrStrategy::Auto);
     }
 
     #[test]
     fn identifies_ocr_settings() {
-        assert_eq!(extractor_id(None), "xberg-1.3.9/no-ocr");
+        assert_eq!(extractor_id(None), format!("{EXTRACTOR}/no-ocr"));
         assert_eq!(
             extractor_id(Some(&ocr(OcrEngine::Tesseract, &["deu", "eng"]))),
-            "xberg-1.3.9/tesseract:deu+eng/scan-0.5"
+            format!("{EXTRACTOR}/tesseract:deu+eng/scan-0.5")
         );
         let ocr = OcrConfig {
             scan_confidence: 0.85,
@@ -1055,7 +1062,7 @@ mod tests {
         };
         assert_eq!(
             extractor_id(Some(&ocr)),
-            "xberg-1.3.9/paddle-ocr:deu/scan-0.85"
+            format!("{EXTRACTOR}/paddle-ocr:deu/scan-0.85")
         );
         // Without the languages, which Mistral does not use
         let ocr = OcrConfig {
@@ -1064,7 +1071,7 @@ mod tests {
         };
         assert_eq!(
             extractor_id(Some(&ocr)),
-            "xberg-1.3.9/mistral-ocr-latest/scan-0.85"
+            format!("{EXTRACTOR}/mistral-ocr-latest/scan-0.85")
         );
     }
 

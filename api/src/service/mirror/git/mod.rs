@@ -876,6 +876,9 @@ pub(crate) mod tests {
                 .arg("-C")
                 .arg(&self.dir)
                 .args(["-c", "user.name=Test", "-c", "user.email=test@example.com"])
+                // Since git 2.54 the automatic maintenance after a commit combines packs, in the
+                // background.
+                .args(["-c", "maintenance.auto=false"])
                 .args(args)
                 .output()
                 .unwrap();

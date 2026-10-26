@@ -18,7 +18,7 @@ futures-util = "0.3"
 # Decodes the file name of `Content-Disposition`.
 percent-encoding = "2"
 # Generates the secrets of a local instance.
-rand = "0.9"
+rand = "0.10"
 repolupe = { path = "../../api", default-features = false }
 # rustls, no OpenSSL (the certificates are in `transport::client_builder`).
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "http2", "stream"] }

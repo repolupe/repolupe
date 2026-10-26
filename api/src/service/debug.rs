@@ -3,8 +3,8 @@ use crate::config::state::AppState;
 use crate::repository;
 use crate::repository::debug::{DummyChat, DummyMessage};
 use chrono::{Duration, Utc};
-use rand::Rng;
 use rand::seq::IndexedRandom;
+use rand::{Rng, RngExt};
 use uuid::Uuid;
 
 const DUMMY_CHAT_COUNT: usize = 200;

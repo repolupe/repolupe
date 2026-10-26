@@ -4,15 +4,15 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-aes-gcm = "0.10"
+aes-gcm = "0.11"
 argon2 = "0.6"
 axum = { version = "0.8", features = ["macros"] }
 axum-extra = { version = "0.12", features = ["cookie", "typed-header"] }
-base64 = "0.22"
+base64 = "0.23"
 chrono = { version = "0.4", features = ["serde"] }
 futures-util = "0.3"
 hex = "0.4"
-rand = "0.9"
+rand = "0.10"
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "http2", "json", "query", "stream"] }
 # The LLM client, see `service::llm`. Pinned, since every minor release breaks the API. Without
 # rig's TLS features, which only configure its own shared client: requests go through ours,
@@ -32,14 +32,20 @@ tracing = "0.1"
 tracing-subscriber = "0.3"
 url = "2"
 uuid = { version = "1", features = ["serde", "v7"] }
-xberg = { version = "1.3.9", default-features = false, features = ["pdf", "tokio-runtime"] }
+# Pinned, since build.rs derives the id of the stored extractions from it.
+xberg = { version = "=1.3.10", default-features = false, features = ["pdf", "tokio-runtime"] }
+# Not used directly. xberg accepts newer releases of its parts, which would change the
+# extractions without changing the xberg version.
+xberg-native-pdf = { version = "=1.3.10", default-features = false }
+xberg-tesseract = { version = "=1.3.10", default-features = false, optional = true }
+xberg-paddle-ocr = { version = "=1.3.10", default-features = false, optional = true }
 # Not used directly. xberg-paddle-ocr 1.3.9 accepts newer releases but does not compile with rc.14.
 ort = { version = "=2.0.0-rc.13", default-features = false, optional = true }
-gix = { version = "0.89", default-features = false, features = ["blocking-network-client", "sha1", "max-performance-safe"] }
-gix-transport = { version = "0.61", features = ["http-client"] }
+gix = { version = "0.90", default-features = false, features = ["blocking-network-client", "sha1", "max-performance"] }
+gix-transport = { version = "0.62", features = ["http-client"] }
 fancy-regex = "0.19.2"
 bytes = "1"
-gix-pack = { version = "0.76", default-features = false, features = ["generate"] }
+gix-pack = { version = "0.77", default-features = false, features = ["generate"] }
 similar = "3"
 
 [target.'cfg(target_os = "android")'.dependencies]
@@ -50,7 +56,7 @@ webpki-root-certs = "1"
 default = ["local-ocr"]
 # The OCR engines tesseract and paddle, which need Tesseract and ONNX Runtime to build.
 # Without it, only mistral is available, e.g. on mobile.
-local-ocr = ["xberg/ocr", "xberg/tesseract-dynamic", "xberg/paddle-ocr", "dep:ort"]
+local-ocr = ["xberg/ocr", "xberg/tesseract-dynamic", "xberg/paddle-ocr", "dep:xberg-tesseract", "dep:xberg-paddle-ocr", "dep:ort"]
 
 [dev-dependencies]
 tempfile = "3"

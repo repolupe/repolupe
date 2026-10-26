@@ -21,7 +21,7 @@ RUN apt-get update \
 WORKDIR /app
 
 # Compile dependencies first so they are cached between source changes
-COPY api/Cargo.toml api/Cargo.lock ./
+COPY api/Cargo.toml api/Cargo.lock api/build.rs ./
 RUN mkdir src && echo 'fn main() { panic!("Dummy image called!") }' > ./src/main.rs
 RUN cargo build --release
 
