@@ -749,6 +749,7 @@ class Translations$flutter$format$en {
   final Translations _root; // ignore: unused_field
 
   // Translations
+  late final Translations$flutter$format$day$en day = Translations$flutter$format$day$en.internal(_root);
   late final Translations$flutter$format$relative$en relative = Translations$flutter$format$relative$en.internal(_root);
 }
 
@@ -2118,6 +2119,21 @@ class Translations$flutter$documents$details$en {
 
   /// en: 'No'
   String get ocrNotUsed => 'No';
+}
+
+// Path: flutter.format.day
+class Translations$flutter$format$day$en {
+  Translations$flutter$format$day$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Today'
+  String get today => 'Today';
+
+  /// en: 'Yesterday'
+  String get yesterday => 'Yesterday';
 }
 
 // Path: flutter.format.relative

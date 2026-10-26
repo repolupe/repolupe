@@ -102,6 +102,10 @@
     }
   },
   "format": {
+    "day": {
+      "today": "Today",
+      "yesterday": "Yesterday"
+    },
     "relative": {
       "justNow": "just now",
       "minutesAgo": {

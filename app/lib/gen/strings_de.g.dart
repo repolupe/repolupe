@@ -676,6 +676,8 @@ class _Translations$flutter$format$de extends Translations$flutter$format$en {
 
   // Translations
   @override
+  late final _Translations$flutter$format$day$de day = _Translations$flutter$format$day$de._(_root);
+  @override
   late final _Translations$flutter$format$relative$de relative = _Translations$flutter$format$relative$de._(_root);
 }
 
@@ -1786,6 +1788,19 @@ class _Translations$flutter$documents$details$de extends Translations$flutter$do
   String get ocrUsed => 'Seiten wurden per OCR erkannt, der Text kann also Fehler enthalten.';
   @override
   String get ocrNotUsed => 'Nein';
+}
+
+// Path: flutter.format.day
+class _Translations$flutter$format$day$de extends Translations$flutter$format$day$en {
+  _Translations$flutter$format$day$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get today => 'Heute';
+  @override
+  String get yesterday => 'Gestern';
 }
 
 // Path: flutter.format.relative

@@ -29,6 +29,22 @@ String formatCount(int count) => NumberFormat.decimalPattern().format(count);
 /// E.g. `Oct 21, 2026 2:05 PM`, in the device's time zone.
 String formatDateTime(DateTime dateTime) => DateFormat.yMMMd().add_jm().format(dateTime.toLocal());
 
+/// E.g. `Today · 3:45 PM`, `Yesterday · 3:45 PM`, `Oct 21 · 3:45 PM` or `Oct 21, 2025 · 3:45 PM`, in the device's time zone.
+String formatDayTime(DateTime dateTime, {DateTime? now}) {
+  final local = dateTime.toLocal();
+  final current = now ?? DateTime.now();
+  // UTC, so a day changing to or from daylight saving time still counts as one.
+  final today = DateTime.utc(current.year, current.month, current.day);
+  final day = DateTime.utc(local.year, local.month, local.day);
+  final labels = t.flutter.format.day;
+  final dayLabel = switch (today.difference(day).inDays) {
+    0 => labels.today,
+    1 => labels.yesterday,
+    _ => day.year == today.year ? DateFormat.MMMd().format(local) : DateFormat.yMMMd().format(local),
+  };
+  return '$dayLabel · ${DateFormat.jm().format(local)}';
+}
+
 /// E.g. `1.2 MB` with decimal units like GitLab and Forgejo, `-` for `null` (before the first sync).
 String formatBytes(int? bytes) {
   if (bytes == null) {
