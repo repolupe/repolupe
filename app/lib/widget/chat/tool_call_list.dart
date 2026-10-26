@@ -102,7 +102,7 @@ class ToolCallSheet extends StatelessWidget {
                 for (final toolCall in toolCalls)
                   ListTile(
                     title: ToolCallLabel(toolCall: toolCall),
-                    trailing: ToolCallStatusIcon(status: toolCall.status),
+                    trailing: toolCall.status == ToolCallStatus.completed ? null : ToolCallStatusIcon(status: toolCall.status),
                     onTap: () async {
                       await ref.global.dispatchAsync(NavigateAction.push(ToolCallPage(chatId: chatId, toolCall: toolCall)));
                     },
