@@ -102,8 +102,8 @@ List<SettingsSection> _adminSections(Translations t, {required bool local}) => [
   ),
 ];
 
-/// The hub of the settings: the active account of the device, which opens a sheet to change it, the theme of the
-/// device, the sections of the active account, and the administration for admins.
+/// The hub of the settings: the active account of the device, which opens a sheet to change it, then the groups App
+/// (the theme of the device), User (the sections of the active account) and Admin (the administration, for admins).
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -111,7 +111,6 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.t;
     final user = context.watch(meProvider);
-    final theme = Theme.of(context);
     final themeMode = context.watch(themeModeProvider);
     final local = context.watch(accountProvider.select((state) => state.active?.isLocal ?? false));
     return Scaffold(
@@ -121,6 +120,7 @@ class SettingsPage extends StatelessWidget {
         padding: EdgeInsets.only(top: 8, bottom: 64 + MediaQuery.paddingOf(context).bottom),
         children: [
           const _AccountChip(),
+          _GroupHeader(title: t.base.settings.page.app),
           ListTile(
             key: const ValueKey('settings.theme'),
             leading: Icon(themeMode.icon),
@@ -130,12 +130,10 @@ class SettingsPage extends StatelessWidget {
               await ThemeModeSheet.show(context);
             },
           ),
+          _GroupHeader(title: t.base.settings.page.user),
           for (final section in _sections(t, user)) _SectionTile(section: section),
           if (user?.role == UserRole.admin) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-              child: Text(t.base.settings.page.admin, style: theme.textTheme.titleSmall),
-            ),
+            _GroupHeader(title: t.base.settings.page.admin),
             for (final section in _adminSections(t, local: local)) _SectionTile(section: section),
           ],
         ],
@@ -180,6 +178,20 @@ class _AccountChip extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+class _GroupHeader extends StatelessWidget {
+  final String title;
+
+  const _GroupHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+      child: Text(title, style: Theme.of(context).textTheme.titleSmall),
     );
   }
 }

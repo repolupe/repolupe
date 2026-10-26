@@ -1238,6 +1238,12 @@ class Translations$base$settings$page$en {
 
   // Translations
 
+  /// en: 'App'
+  String get app => 'App';
+
+  /// en: 'User'
+  String get user => 'User';
+
   /// en: 'Admin'
   String get admin => 'Admin';
 

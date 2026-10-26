@@ -74,6 +74,8 @@ void main() {
 
   testWidgets('the settings of an admin offer the users', (tester) async {
     await _pumpPage(tester, local: false);
+    expect(find.text('App'), findsOneWidget);
+    expect(find.text('User'), findsOneWidget);
     expect(find.text('Admin'), findsOneWidget);
     expect(find.byKey(const ValueKey('settings.accounts')), findsOneWidget);
     expect(find.byKey(const ValueKey('settings.admin.users')), findsOneWidget);

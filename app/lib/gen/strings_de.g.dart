@@ -1065,6 +1065,10 @@ class _Translations$base$settings$page$de extends Translations$base$settings$pag
 
   // Translations
   @override
+  String get app => 'App';
+  @override
+  String get user => 'Benutzer';
+  @override
   String get admin => 'Admin';
   @override
   String get logout => 'Abmelden';

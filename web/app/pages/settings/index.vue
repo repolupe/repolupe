@@ -1,5 +1,6 @@
 <template>
   <MainContainer :title="$t('settings.title')">
+    <div class="mb-4 ml-4 ml-sm-0">{{ $t('settings.page.app') }}</div>
     <v-card>
       <v-list lines="two">
         <!-- stored in the browser, so it applies right away -->
@@ -13,13 +14,19 @@
             </v-list>
           </v-menu>
         </v-list-item>
+      </v-list>
+    </v-card>
+
+    <div class="mt-12 mb-4 ml-4 ml-sm-0">{{ $t('settings.page.user') }}</div>
+    <v-card>
+      <v-list lines="two">
         <v-list-item v-for="p in pagesVisible" :key="p.route" :to="p.route" :title="p.label" :subtitle="p.description"
                      :prepend-icon="p.icon" append-icon="mdi-chevron-right"/>
       </v-list>
     </v-card>
 
     <template v-if="user?.role === UserRole.ADMIN">
-      <div class="mt-12 mb-8 ml-4 ml-sm-0">{{ $t('settings.page.admin') }}</div>
+      <div class="mt-12 mb-4 ml-4 ml-sm-0">{{ $t('settings.page.admin') }}</div>
       <v-card>
         <v-list lines="two">
           <v-list-item v-for="p in adminPages" :key="p.route" :to="p.route" :title="p.label" :subtitle="p.description"

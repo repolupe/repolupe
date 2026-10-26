@@ -268,6 +268,8 @@
       "dark": "Dunkel"
     },
     "page": {
+      "app": "App",
+      "user": "Benutzer",
       "admin": "Admin",
       "logout": "Abmelden",
       "repositoriesSubtitle": "Repositories als Wissensbasis hinzufügen und mit anderen Benutzern teilen",
