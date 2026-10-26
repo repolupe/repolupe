@@ -181,7 +181,7 @@ fn ocr_engine_name(engine: Option<OcrEngine>) -> &'static str {
 pub(crate) fn validate_ocr_engine_built(
     engine: Option<OcrEngine>,
 ) -> Result<(), InvalidConfigValue> {
-    let local = matches!(engine, Some(OcrEngine::Tesseract | OcrEngine::Paddle));
+    let local = engine.is_some_and(OcrEngine::is_local);
     if local && !cfg!(feature = "local-ocr") {
         return Err(InvalidConfigValue(format!(
             "{OCR_ENGINE}: {} is not available, Repolupe was built without the local-ocr feature",

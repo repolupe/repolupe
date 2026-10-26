@@ -129,6 +129,16 @@ pub enum OcrEngine {
     Mistral,
 }
 
+impl OcrEngine {
+    /// Whether the engine runs in-process, within xberg, rather than as a service.
+    pub(crate) fn is_local(self) -> bool {
+        match self {
+            OcrEngine::Tesseract | OcrEngine::Paddle => true,
+            OcrEngine::Mistral => false,
+        }
+    }
+}
+
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum InitError {

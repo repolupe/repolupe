@@ -111,7 +111,7 @@ impl Repolupe {
 /// Recognizes a sample scan with `ocr` and checks that its text was found. The engine
 /// downloads what it is missing on first use. Mistral needs nothing, so it is not called.
 pub async fn prepare_ocr(ocr: &OcrConfig) -> Result<(), InitError> {
-    if ocr.engine == OcrEngine::Mistral {
+    if !ocr.engine.is_local() {
         return Ok(());
     }
     config::runtime::validate_ocr_engine_built(Some(ocr.engine))?;
