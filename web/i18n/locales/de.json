@@ -256,14 +256,8 @@
       "user": "Benutzer",
       "admin": "Admin",
       "logout": "Abmelden",
-      "repositoriesSubtitle": "Repositories als Wissensbasis hinzufügen und mit anderen Benutzern teilen",
-      "accountSubtitle": "Deine Anmeldedaten und dein Passwort",
-      "profileSubtitle": "Was der Assistent über dich erfährt",
-      "preferencesSubtitle": "Dein Standardmodell und deine Sprache",
-      "usersSubtitle": "Benutzer erstellen, ihre Rollen und Berechtigungen festlegen",
-      "llmSubtitle": "LLM-Server, ihre Modelle und das Standardmodell konfigurieren",
-      "extractionSubtitle": "Die Umwandlung von Dokumenten in Text verfolgen und fehlgeschlagene erneut versuchen",
-      "configSubtitle": "Die Serverkonfiguration ansehen und Einstellungen ohne Neustart überschreiben"
+      "repositoryCount": "Keine Repositories | 1 Repository | {count} Repositories",
+      "profileEmpty": "Noch nicht ausgefüllt"
     },
     "account": {
       "title": "Konto",

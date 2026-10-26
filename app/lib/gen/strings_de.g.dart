@@ -1073,21 +1073,14 @@ class _Translations$base$settings$page$de extends Translations$base$settings$pag
   @override
   String get logout => 'Abmelden';
   @override
-  String get repositoriesSubtitle => 'Repositories als Wissensbasis hinzufügen und mit anderen Benutzern teilen';
+  String repositoryCount({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
+    count,
+    zero: 'Keine Repositories',
+    one: '1 Repository',
+    other: '${count} Repositories',
+  );
   @override
-  String get accountSubtitle => 'Deine Anmeldedaten und dein Passwort';
-  @override
-  String get profileSubtitle => 'Was der Assistent über dich erfährt';
-  @override
-  String get preferencesSubtitle => 'Dein Standardmodell und deine Sprache';
-  @override
-  String get usersSubtitle => 'Benutzer erstellen, ihre Rollen und Berechtigungen festlegen';
-  @override
-  String get llmSubtitle => 'LLM-Server, ihre Modelle und das Standardmodell konfigurieren';
-  @override
-  String get extractionSubtitle => 'Die Umwandlung von Dokumenten in Text verfolgen und fehlgeschlagene erneut versuchen';
-  @override
-  String get configSubtitle => 'Die Serverkonfiguration ansehen und Einstellungen ohne Neustart überschreiben';
+  String get profileEmpty => 'Noch nicht ausgefüllt';
 }
 
 // Path: base.settings.account

@@ -256,14 +256,8 @@
       "user": "User",
       "admin": "Admin",
       "logout": "Logout",
-      "repositoriesSubtitle": "Add repositories as knowledge base and share them with other users",
-      "accountSubtitle": "Your login details and password",
-      "profileSubtitle": "What the assistant is told about you",
-      "preferencesSubtitle": "Your default model and language",
-      "usersSubtitle": "Create users, set their roles and permissions",
-      "llmSubtitle": "Configure LLM servers, their models and the default model",
-      "extractionSubtitle": "Follow the conversion of documents to text and retry failed ones",
-      "configSubtitle": "View the server config and override settings without a restart"
+      "repositoryCount": "No repositories | 1 repository | {count} repositories",
+      "profileEmpty": "Not filled in yet"
     },
     "account": {
       "title": "Account",

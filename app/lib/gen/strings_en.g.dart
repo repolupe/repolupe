@@ -1250,29 +1250,16 @@ class Translations$base$settings$page$en {
   /// en: 'Logout'
   String get logout => 'Logout';
 
-  /// en: 'Add repositories as knowledge base and share them with other users'
-  String get repositoriesSubtitle => 'Add repositories as knowledge base and share them with other users';
+  /// en: '(zero) {No repositories} (one) {1 repository} (other) {{count} repositories}'
+  String repositoryCount({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
+    count,
+    zero: 'No repositories',
+    one: '1 repository',
+    other: '${count} repositories',
+  );
 
-  /// en: 'Your login details and password'
-  String get accountSubtitle => 'Your login details and password';
-
-  /// en: 'What the assistant is told about you'
-  String get profileSubtitle => 'What the assistant is told about you';
-
-  /// en: 'Your default model and language'
-  String get preferencesSubtitle => 'Your default model and language';
-
-  /// en: 'Create users, set their roles and permissions'
-  String get usersSubtitle => 'Create users, set their roles and permissions';
-
-  /// en: 'Configure LLM servers, their models and the default model'
-  String get llmSubtitle => 'Configure LLM servers, their models and the default model';
-
-  /// en: 'Follow the conversion of documents to text and retry failed ones'
-  String get extractionSubtitle => 'Follow the conversion of documents to text and retry failed ones';
-
-  /// en: 'View the server config and override settings without a restart'
-  String get configSubtitle => 'View the server config and override settings without a restart';
+  /// en: 'Not filled in yet'
+  String get profileEmpty => 'Not filled in yet';
 }
 
 // Path: base.settings.account

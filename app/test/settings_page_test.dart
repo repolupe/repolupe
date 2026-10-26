@@ -12,15 +12,33 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
+import 'support/fake_repository.dart';
 import 'support/fake_user.dart';
 import 'support/persistence.dart';
 import 'support/rust.dart';
 
 const _adminId = '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12';
+const _providerId = '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f13';
+const _modelId = '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f14';
 
-/// Opens the settings for the admin of a server answering `GET /api/v1/me`. With [local], the active account is the
-/// local instance's, while the requests still go to the server.
-Future<void> _pumpPage(WidgetTester tester, {required bool local}) async {
+/// Pumps until [finder] finds something, letting the requests to the server run meanwhile.
+Future<void> _pumpUntil(WidgetTester tester, Finder finder) async {
+  for (var i = 0; i < 100 && finder.evaluate().isEmpty; i++) {
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.pump(const Duration(milliseconds: 50));
+  }
+  expect(finder, findsWidgets);
+}
+
+/// The subtitle of the tile with [key], `null` if it has none.
+String? _subtitle(WidgetTester tester, String key) {
+  final subtitle = tester.widget<ListTile>(find.byKey(ValueKey(key))).subtitle;
+  return subtitle == null ? null : (subtitle as Text).data;
+}
+
+/// Opens the settings for the admin of a server answering `GET /api/v1/me`, `/repositories` (two) and `/models` (one,
+/// the default). With [local], the active account is the local instance's, while the requests still go to the server.
+Future<void> _pumpPage(WidgetTester tester, {required bool local, String? fullName, String? locale}) async {
   // Bound and listened to in the real async zone, so that it also answers the requests sent outside the pumps.
   final server = (await tester.runAsync(() => HttpServer.bind(InternetAddress.loopbackIPv4, 0)))!;
   addTearDown(() => server.close(force: true));
@@ -29,7 +47,22 @@ Future<void> _pumpPage(WidgetTester tester, {required bool local}) async {
       final response = request.response;
       response.headers.contentType = ContentType.json;
       if (request.uri.path == '/api/v1/me') {
-        response.write(jsonEncode(fakeUser(id: _adminId, userName: 'admin', role: 'ADMIN')));
+        response.write(
+          jsonEncode(fakeUser(id: _adminId, userName: 'admin', role: 'ADMIN', fullName: fullName, locale: locale)),
+        );
+      } else if (request.uri.path == '/api/v1/repositories') {
+        response.write(
+          jsonEncode([
+            fakeRepository(id: '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f15', ownerId: _adminId),
+            fakeRepository(id: '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f16', ownerId: _adminId, name: 'handbook'),
+          ]),
+        );
+      } else if (request.uri.path == '/api/v1/models') {
+        response.write(
+          jsonEncode([
+            fakeModel(id: _modelId, displayName: 'Fast', providerId: _providerId, providerName: 'Acme', isDefault: true),
+          ]),
+        );
       } else {
         response.statusCode = 404;
         response.write(jsonEncode(fakeError('NOT_FOUND', 'Not found')));
@@ -87,5 +120,25 @@ void main() {
     expect(find.text('Admin'), findsOneWidget);
     expect(find.byKey(const ValueKey('settings.admin.users')), findsNothing);
     expect(find.byKey(const ValueKey('settings.admin.llm')), findsOneWidget);
+  });
+
+  testWidgets('the user sections show their state', (tester) async {
+    await _pumpPage(tester, local: false, fullName: 'Ada Admin', locale: 'de-CH');
+    await _pumpUntil(tester, find.text('2 repositories'));
+    expect(_subtitle(tester, 'settings.account'), 'admin · alice@example.com');
+    expect(_subtitle(tester, 'settings.profile'), 'Ada Admin');
+    expect(_subtitle(tester, 'settings.preferences'), 'Fast · de-CH');
+  });
+
+  testWidgets('an empty profile says so', (tester) async {
+    await _pumpPage(tester, local: false);
+    expect(_subtitle(tester, 'settings.profile'), 'Not filled in yet');
+  });
+
+  testWidgets('the admin sections have no subtitle', (tester) async {
+    await _pumpPage(tester, local: false);
+    for (final key in ['users', 'llm', 'extraction', 'config']) {
+      expect(_subtitle(tester, 'settings.admin.$key'), isNull, reason: key);
+    }
   });
 }

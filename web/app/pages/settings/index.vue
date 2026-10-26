@@ -20,7 +20,7 @@
     <div class="mt-12 mb-4 ml-4 ml-sm-0">{{ $t('settings.page.user') }}</div>
     <v-card>
       <v-list lines="two">
-        <v-list-item v-for="p in pagesVisible" :key="p.route" :to="p.route" :title="p.label" :subtitle="p.description"
+        <v-list-item v-for="p in pagesVisible" :key="p.route" :to="p.route" :title="p.label" :subtitle="p.state"
                      :prepend-icon="p.icon" append-icon="mdi-chevron-right"/>
       </v-list>
     </v-card>
@@ -28,8 +28,8 @@
     <template v-if="user?.role === UserRole.ADMIN">
       <div class="mt-12 mb-4 ml-4 ml-sm-0">{{ $t('settings.page.admin') }}</div>
       <v-card>
-        <v-list lines="two">
-          <v-list-item v-for="p in adminPages" :key="p.route" :to="p.route" :title="p.label" :subtitle="p.description"
+        <v-list>
+          <v-list-item v-for="p in adminPages" :key="p.route" :to="p.route" :title="p.label"
                        :prepend-icon="p.icon" append-icon="mdi-chevron-right"/>
         </v-list>
       </v-card>
@@ -40,12 +40,12 @@
 </template>
 
 <script setup lang="ts">
-import {computed} from "vue";
+import {computed, onMounted, ref} from "vue";
 import {useTheme} from "vuetify";
 import {useI18n} from "#i18n";
 import {useUser} from "~/composables/states";
-import {logout} from "~/utils/api";
-import {UserRole} from "~/utils/model";
+import {getModels, getRepositories, logout} from "~/utils/api";
+import {type ModelDto, UserRole} from "~/utils/model";
 import {THEME_MODE_ICONS, ThemeMode, writeThemeMode} from "~/utils/theme";
 import MainContainer from "~/components/MainContainer.vue";
 
@@ -66,30 +66,42 @@ const setThemeMode = (mode: ThemeMode) => {
   writeThemeMode(mode);
 }
 
+// For the states of the pages, `null` until loaded (or if loading failed, then the state is left out).
+const repositoryCount = ref<number | null>(null);
+const models = ref<ModelDto[] | null>(null);
+
+// The model the user's chats use: their own, else the default one. `undefined` if there is none.
+const modelName = computed(() => {
+  const chosen = models.value?.find(m => m.id === user.value?.default_model_id)
+    ?? models.value?.find(m => m.is_default);
+  return chosen?.display_name;
+});
+
 const pages = computed(() => [
   {
     route: '/settings/repositories',
     label: t('repositories.title'),
-    description: t('settings.page.repositoriesSubtitle'),
+    state: repositoryCount.value !== null ? t('settings.page.repositoryCount', repositoryCount.value) : undefined,
     icon: 'mdi-source-repository',
     requiresRepositoryManagement: true,
   },
   {
     route: '/settings/account',
     label: t('settings.account.title'),
-    description: t('settings.page.accountSubtitle'),
+    state: [user.value?.user_name, user.value?.email].filter(Boolean).join(' · '),
     icon: 'mdi-account-key',
   },
   {
     route: '/settings/profile',
     label: t('settings.profile.title'),
-    description: t('settings.page.profileSubtitle'),
+    state: user.value?.full_name ?? user.value?.first_name ?? user.value?.about ?? t('settings.page.profileEmpty'),
     icon: 'mdi-card-account-details',
   },
   {
     route: '/settings/preferences',
     label: t('settings.preferences.title'),
-    description: t('settings.page.preferencesSubtitle'),
+    // the server uses the browser's language for users without one
+    state: [modelName.value, user.value?.locale ?? navigator.language].filter(Boolean).join(' · '),
     icon: 'mdi-tune',
   },
 ]);
@@ -102,28 +114,32 @@ const adminPages = computed(() => [
   {
     route: '/settings/admin/users',
     label: t('admin.users.title'),
-    description: t('settings.page.usersSubtitle'),
     icon: 'mdi-account-multiple',
   },
   {
     route: '/settings/admin/llm',
     label: t('admin.llm.title'),
-    description: t('settings.page.llmSubtitle'),
     icon: 'mdi-robot',
   },
   {
     route: '/settings/admin/extraction',
     label: t('admin.extraction.title'),
-    description: t('settings.page.extractionSubtitle'),
     icon: 'mdi-file-document-multiple',
   },
   {
     route: '/settings/admin/config',
     label: t('admin.config.title'),
-    description: t('settings.page.configSubtitle'),
     icon: 'mdi-cog-transfer',
   },
 ]);
+
+// The states are only a summary, a failed request leaves them out instead of showing an error.
+onMounted(() => {
+  if (user.value?.can_manage_repositories) {
+    getRepositories().then(r => repositoryCount.value = r.length).catch(() => {});
+  }
+  getModels().then(m => models.value = m).catch(() => {});
+});
 
 const doLogout = async () => {
   try {

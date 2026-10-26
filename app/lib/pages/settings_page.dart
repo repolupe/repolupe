@@ -8,9 +8,13 @@ import 'package:app/pages/settings/preferences_page.dart';
 import 'package:app/pages/settings/profile_page.dart';
 import 'package:app/pages/settings/repositories_page.dart';
 import 'package:app/service/account_service.dart';
+import 'package:app/service/api_service.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/service/theme_mode_service.dart';
+import 'package:app/src/rust/api/error.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
+import 'package:app/util/locales.dart';
 import 'package:app/widget/account_sheet.dart';
 import 'package:app/widget/theme_mode_sheet.dart';
 import 'package:flutter/material.dart';
@@ -23,51 +27,63 @@ class SettingsSection {
   final String key;
   final IconData icon;
   final String title;
-  final String subtitle;
+
+  /// The current state of the page, e.g. the number of repositories. `null` shows none.
+  final String? subtitle;
   final Widget Function() page;
 
   const SettingsSection({
     required this.key,
     required this.icon,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     required this.page,
   });
 }
 
-/// The sections every user has. Repositories only for users who may manage them (the others only use the ones
-/// shared with them in chats).
-List<SettingsSection> _sections(Translations t, UserDto? user) => [
+/// The sections every user has, with their state. Repositories only for users who may manage them (the others only
+/// use the ones shared with them in chats). [repositoryCount] and [models] are `null` until they are loaded.
+List<SettingsSection> _sections(Translations t, UserDto? user, {required int? repositoryCount, required List<ModelDto>? models}) => [
   if (user?.canManageRepositories ?? false)
     SettingsSection(
       key: 'settings.repositories',
       icon: Icons.source,
       title: t.base.repositories.title,
-      subtitle: t.base.settings.page.repositoriesSubtitle,
+      subtitle: repositoryCount != null ? t.base.settings.page.repositoryCount(count: repositoryCount) : null,
       page: () => const RepositoriesPage(),
     ),
   SettingsSection(
     key: 'settings.account',
     icon: Icons.key,
     title: t.base.settings.account.title,
-    subtitle: t.base.settings.page.accountSubtitle,
+    subtitle: user != null ? [user.userName, ?user.email].join(' · ') : null,
     page: () => const AccountPage(),
   ),
   SettingsSection(
     key: 'settings.profile',
     icon: Icons.badge,
     title: t.base.settings.profile.title,
-    subtitle: t.base.settings.page.profileSubtitle,
+    subtitle: user != null ? user.fullName ?? user.firstName ?? user.about ?? t.base.settings.page.profileEmpty : null,
     page: () => const ProfilePage(),
   ),
   SettingsSection(
     key: 'settings.preferences',
     icon: Icons.tune,
     title: t.base.settings.preferences.title,
-    subtitle: t.base.settings.page.preferencesSubtitle,
+    subtitle: user != null
+        // The server uses the device's language for users without one.
+        ? [?_modelName(user, models), user.locale ?? deviceLocaleTag()].join(' · ')
+        : null,
     page: () => const PreferencesPage(),
   ),
 ];
+
+/// The model the user's chats use: their own, else the default one. `null` if there is none, or until the [models]
+/// are loaded.
+String? _modelName(UserDto user, List<ModelDto>? models) {
+  final chosen = models?.where((m) => m.id == user.defaultModelId).firstOrNull ?? models?.where((m) => m.isDefault).firstOrNull;
+  return chosen?.displayName;
+}
 
 /// The sections of admins. Users not on the local instance, whose admin is its only user.
 List<SettingsSection> _adminSections(Translations t, {required bool local}) => [
@@ -76,36 +92,75 @@ List<SettingsSection> _adminSections(Translations t, {required bool local}) => [
       key: 'settings.admin.users',
       icon: Icons.group,
       title: t.base.admin.users.title,
-      subtitle: t.base.settings.page.usersSubtitle,
       page: () => const UsersPage(),
     ),
   SettingsSection(
     key: 'settings.admin.llm',
     icon: Icons.smart_toy,
     title: t.base.admin.llm.title,
-    subtitle: t.base.settings.page.llmSubtitle,
     page: () => const LlmPage(),
   ),
   SettingsSection(
     key: 'settings.admin.extraction',
     icon: Icons.file_copy,
     title: t.base.admin.extraction.title,
-    subtitle: t.base.settings.page.extractionSubtitle,
     page: () => const ExtractionPage(),
   ),
   SettingsSection(
     key: 'settings.admin.config',
     icon: Icons.settings_applications,
     title: t.base.admin.config.title,
-    subtitle: t.base.settings.page.configSubtitle,
     page: () => const ConfigPage(),
   ),
 ];
 
 /// The hub of the settings: the active account of the device, which opens a sheet to change it, then the groups App
-/// (the theme of the device), User (the sections of the active account) and Admin (the administration, for admins).
-class SettingsPage extends StatelessWidget {
+/// (the theme of the device), User (the sections of the active account, with their state) and Admin (the
+/// administration, for admins).
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> with Refena {
+  /// For the states of the sections, `null` until loaded (or if loading failed, then the state is left out).
+  int? _repositoryCount;
+  List<ModelDto>? _models;
+
+  @override
+  void initState() {
+    super.initState();
+    ensureRef((ref) {
+      // ignore: discarded_futures
+      _load();
+    });
+  }
+
+  /// Loads what the states need beyond the user. They are only a summary, so a failed request shows no error.
+  Future<void> _load() async {
+    final api = ref.redux(apiProvider);
+    final canManageRepositories = ref.read(meProvider)?.canManageRepositories ?? false;
+    final (repositories, models) = await (
+      canManageRepositories ? _loadOrNull(() => api.dispatchAsyncTakeResult(ApiListRepositoriesAction())) : Future.value(),
+      _loadOrNull(() => api.dispatchAsyncTakeResult(ApiListModelsAction())),
+    ).wait;
+    if (mounted) {
+      setState(() {
+        _repositoryCount = repositories?.length;
+        _models = models;
+      });
+    }
+  }
+
+  Future<T?> _loadOrNull<T>(Future<T> Function() load) async {
+    try {
+      return await load();
+    } on ClientError {
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -131,10 +186,12 @@ class SettingsPage extends StatelessWidget {
             },
           ),
           _GroupHeader(title: t.base.settings.page.user),
-          for (final section in _sections(t, user)) _SectionTile(section: section),
+          for (final section in _sections(t, user, repositoryCount: _repositoryCount, models: _models))
+            // The page may have changed the state, e.g. added a repository.
+            _SectionTile(section: section, onReturn: _load),
           if (user?.role == UserRole.admin) ...[
             _GroupHeader(title: t.base.settings.page.admin),
-            for (final section in _adminSections(t, local: local)) _SectionTile(section: section),
+            for (final section in _adminSections(t, local: local)) _SectionTile(section: section, onReturn: _load),
           ],
         ],
       ),
@@ -199,7 +256,10 @@ class _GroupHeader extends StatelessWidget {
 class _SectionTile extends StatelessWidget {
   final SettingsSection section;
 
-  const _SectionTile({required this.section});
+  /// Called when its page was closed.
+  final Future<void> Function() onReturn;
+
+  const _SectionTile({required this.section, required this.onReturn});
 
   @override
   Widget build(BuildContext context) {
@@ -207,10 +267,14 @@ class _SectionTile extends StatelessWidget {
       key: ValueKey(section.key),
       leading: Icon(section.icon),
       title: Text(section.title),
-      subtitle: Text(section.subtitle),
+      subtitle: switch (section.subtitle) {
+        final subtitle? => Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+        null => null,
+      },
       trailing: const Icon(Icons.chevron_right),
       onTap: () async {
         await context.ref.global.dispatchAsync(NavigateAction.push(section.page()));
+        await onReturn();
       },
     );
   }
