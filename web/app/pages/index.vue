@@ -126,7 +126,8 @@ const submit = async () => {
       temporary: temporary.value,
     });
     await refreshChats();
-    await navigateTo('/chat/' + created.id);
+    // lets the chat page show the temporary background before the chat is loaded
+    await navigateTo({path: '/chat/' + created.id, state: {temporary: created.temporary}});
   } catch (e) {
     if (e instanceof ApiError && e.code === ErrorCode.NO_MODEL_CONFIGURED) {
       showSnackbar(t('chat.noModelConfigured'));
@@ -209,7 +210,7 @@ onBeforeUnmount(() => timeouts.forEach(clearTimeout));
 }
 
 .new-page-temporary {
-  background-color: rgba(var(--v-theme-on-surface), 0.06);
+  background-color: rgb(var(--v-theme-temporary));
 }
 
 .fade-in {

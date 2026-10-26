@@ -12,7 +12,8 @@ export default defineNuxtPlugin({
     dependsOn: ['i18n:plugin'],
     setup(app) {
         const vuetify = createVuetify({
-            // secondary is the page background, navigation the drawer and app bar (with the white logo)
+            // secondary is the page background, navigation the drawer and app bar (with the white logo),
+            // temporary the page background of a new temporary chat
             theme: {
                 defaultTheme: readThemeMode(),
                 themes: {
@@ -22,6 +23,7 @@ export default defineNuxtPlugin({
                             primary: '#00002b',
                             secondary: '#f0f2f5',
                             navigation: '#00002b',
+                            temporary: '#e4e3f7',
                         },
                     },
                     dark: {
@@ -32,6 +34,7 @@ export default defineNuxtPlugin({
                             background: '#131318',
                             surface: '#1f1f25',
                             navigation: '#0c0c26',
+                            temporary: '#211a33',
                         },
                     },
                 },

@@ -1,5 +1,5 @@
 <template>
-  <div class="chat-layout">
+  <div class="chat-layout" :class="{'chat-layout-temporary': temporary}">
     <div class="chat-page">
       <div ref="chat-body" class="chat-column chat-body">
         <!-- header -->
@@ -184,6 +184,10 @@ const filePresented = useFilePresented();
 watch(presentedFile, (file) => {
   filePresented.value = !!file;
 });
+
+/** Whether the start page created the chat as temporary, known before the chat is loaded. */
+const temporaryHint = ref(false);
+const temporary = computed(() => chat.value?.temporary ?? temporaryHint.value);
 
 /** The chat of the current route, set before it is loaded. */
 let currentId: string | null = null;
@@ -382,6 +386,7 @@ watch(() => route.params.id, async (id) => {
   streamErrors = 0;
   currentId = id;
   chat.value = null;
+  temporaryHint.value = history.state?.temporary === true;
   input.value = '';
   attachment.value = null;
   dialogRename.value = false;
@@ -590,8 +595,15 @@ const doDelete = async () => {
 
 <style scoped>
 .chat-layout {
+  --page-background: var(--v-theme-secondary);
   display: flex;
   align-items: flex-start;
+  background-color: rgb(var(--page-background));
+  transition: background-color 250ms;
+}
+
+.chat-layout-temporary {
+  --page-background: var(--v-theme-temporary);
 }
 
 .chat-page {
@@ -623,7 +635,7 @@ const doDelete = async () => {
   position: sticky;
   bottom: 0;
   padding: 12px 0 24px;
-  background: linear-gradient(to bottom, rgba(var(--v-theme-secondary), 0), rgb(var(--v-theme-secondary)) 24px);
+  background: linear-gradient(to bottom, rgba(var(--page-background), 0), rgb(var(--page-background)) 24px);
 }
 
 /*
