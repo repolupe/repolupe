@@ -63,6 +63,30 @@ async fn admin_routes_require_admin(db: SqlitePool) {
 }
 
 #[sqlx::test]
+async fn provider_suggestions_are_for_admins(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let alice = app.user("alice@example.com").await;
+
+    let (status, _) = alice.get("/api/v1/llm-providers/suggestions").await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+
+    let (status, body) = app.admin().get("/api/v1/llm-providers/suggestions").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        body[0],
+        json!({
+            "name": "Anthropic",
+            "api_format": "ANTHROPIC",
+            "base_url": "https://api.anthropic.com",
+            "currency": "USD",
+            "country_code": "US",
+            "runs_inference": true,
+            "model_brand": "Claude",
+        })
+    );
+}
+
+#[sqlx::test]
 async fn instance_is_public(db: SqlitePool) {
     let app = TestApp::new(db).await;
 

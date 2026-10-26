@@ -2177,6 +2177,7 @@ class Translations$flutter$admin$llm$en {
 
   // Translations
   late final Translations$flutter$admin$llm$page$en page = Translations$flutter$admin$llm$page$en.internal(_root);
+  late final Translations$flutter$admin$llm$namePicker$en namePicker = Translations$flutter$admin$llm$namePicker$en.internal(_root);
   late final Translations$flutter$admin$llm$providerForm$en providerForm = Translations$flutter$admin$llm$providerForm$en.internal(_root);
   late final Translations$flutter$admin$llm$modelForm$en modelForm = Translations$flutter$admin$llm$modelForm$en.internal(_root);
 }
@@ -3171,6 +3172,24 @@ class Translations$flutter$admin$llm$page$en {
   String get models => 'Models';
 }
 
+// Path: flutter.admin.llm.namePicker
+class Translations$flutter$admin$llm$namePicker$en {
+  Translations$flutter$admin$llm$namePicker$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Choose provider'
+  String get title => 'Choose provider';
+
+  /// en: 'Search or enter a name'
+  String get searchHint => 'Search or enter a name';
+
+  /// en: 'Use “{name}”'
+  String useName({required Object name}) => 'Use “${name}”';
+}
+
 // Path: flutter.admin.llm.providerForm
 class Translations$flutter$admin$llm$providerForm$en {
   Translations$flutter$admin$llm$providerForm$en.internal(this._root);
@@ -3179,26 +3198,8 @@ class Translations$flutter$admin$llm$providerForm$en {
 
   // Translations
 
-  /// en: 'OpenAI-compatible'
-  String get openAiTitle => 'OpenAI-compatible';
-
-  /// en: 'The OpenAI Chat Completions API, also offered by OpenRouter, Ollama, vLLM, LM Studio, etc.'
-  String get openAiDescription => 'The OpenAI Chat Completions API, also offered by OpenRouter, Ollama, vLLM, LM Studio, etc.';
-
-  /// en: 'The Anthropic Messages API.'
-  String get anthropicDescription => 'The Anthropic Messages API.';
-
-  /// en: 'Leave empty for the official API of the format.'
-  String get baseUrlHint => 'Leave empty for the official API of the format.';
-
-  /// en: 'ISO 4217 code of the model prices, e.g. USD or EUR. Leave empty if its models have no prices.'
-  String get currencyHint => 'ISO 4217 code of the model prices, e.g. USD or EUR. Leave empty if its models have no prices.';
-
-  /// en: 'API key (optional)'
-  String get apiKeyOptional => 'API key (optional)';
-
-  /// en: 'Leave empty for servers without authentication.'
-  String get apiKeyHint => 'Leave empty for servers without authentication.';
+  /// en: 'Clear currency'
+  String get clearCurrency => 'Clear currency';
 
   /// en: 'Show key'
   String get showKey => 'Show key';

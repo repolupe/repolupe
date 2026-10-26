@@ -14,6 +14,7 @@ import {
     type LlmApiFormat,
     type LlmModelDto,
     type LlmProviderDto,
+    type LlmProviderSuggestionDto,
     type RemoteModelDto,
     type MessageDto,
     type MessageStreamEvent,
@@ -688,6 +689,11 @@ export async function retryDocument(blobOid: string): Promise<void> {
 
 export async function getLlmProviders(): Promise<LlmProviderDto[]> {
     return await makeRequest({route: 'llm-providers', method: 'GET'});
+}
+
+/** Common providers, offered when creating one. */
+export async function getLlmProviderSuggestions(): Promise<LlmProviderSuggestionDto[]> {
+    return await makeRequest({route: 'llm-providers/suggestions', method: 'GET'});
 }
 
 export interface CreateLlmProviderPayload {

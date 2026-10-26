@@ -163,14 +163,13 @@
         "currencyNone": "None (its models have no prices)",
         "models": "Models"
       },
+      "namePicker": {
+        "title": "Choose provider",
+        "searchHint": "Search or enter a name",
+        "useName": "Use “{name}”"
+      },
       "providerForm": {
-        "openAiTitle": "OpenAI-compatible",
-        "openAiDescription": "The OpenAI Chat Completions API, also offered by OpenRouter, Ollama, vLLM, LM Studio, etc.",
-        "anthropicDescription": "The Anthropic Messages API.",
-        "baseUrlHint": "Leave empty for the official API of the format.",
-        "currencyHint": "ISO 4217 code of the model prices, e.g. USD or EUR. Leave empty if its models have no prices.",
-        "apiKeyOptional": "API key (optional)",
-        "apiKeyHint": "Leave empty for servers without authentication.",
+        "clearCurrency": "Clear currency",
         "showKey": "Show key",
         "hideKey": "Hide key"
       },

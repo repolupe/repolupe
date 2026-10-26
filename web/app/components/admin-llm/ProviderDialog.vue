@@ -10,7 +10,7 @@
         <v-list-item v-bind="itemProps">
           <template v-slot:prepend>
             <!-- without a country, the empty `fi` keeps the titles aligned -->
-            <span :class="['fi', item.raw.countryCode && `fi-${item.raw.countryCode.toLowerCase()}`]"
+            <span :class="['fi', item.raw.country_code && `fi-${item.raw.country_code.toLowerCase()}`]"
                   class="mr-4" />
           </template>
           <template v-if="suggestionSubtitle(item.raw)" v-slot:subtitle>
@@ -81,9 +81,8 @@
 import {computed, ref} from "vue";
 import "flag-icons/css/flag-icons.min.css";
 import {charCount, currencyOptions, showSnackbar, trimmedOrNull} from "~/utils/utils";
-import type {ApiKeyChange, UpdateLlmProviderPayload} from "~/utils/api";
-import {LlmApiFormat, type LlmProviderDto} from "~/utils/model";
-import {LLM_PROVIDER_SUGGESTIONS, type LlmProviderSuggestion} from "~/utils/llm-providers";
+import {type ApiKeyChange, getLlmProviderSuggestions, type UpdateLlmProviderPayload} from "~/utils/api";
+import {LlmApiFormat, type LlmProviderDto, type LlmProviderSuggestionDto} from "~/utils/model";
 import GenericSaveDialog from "~/components/dialogs/GenericSaveDialog.vue";
 import {useI18n} from "#i18n";
 
@@ -136,15 +135,29 @@ const currencyFlag = computed(() => currencies.value.find(c => c.value === curre
 
 const nameMenu = ref(false);
 
+/** Loaded when the dialog first opens to create a provider. */
+const suggestions = ref<LlmProviderSuggestionDto[]>([]);
+
+const loadSuggestions = async () => {
+  if (suggestions.value.length > 0) {
+    return;
+  }
+  try {
+    suggestions.value = await getLlmProviderSuggestions();
+  } catch {
+    // Only a convenience: without them, all fields are entered by hand.
+  }
+};
+
 /** Only offered when creating a provider, since choosing one fills in the other fields. */
-const nameSuggestions = computed(() => current.value ? [] : LLM_PROVIDER_SUGGESTIONS);
+const nameSuggestions = computed(() => current.value ? [] : suggestions.value);
 
 /** The brand of the provider's own models, or for routers that requests may run anywhere; hosts have none. */
-const suggestionSubtitle = (suggestion: LlmProviderSuggestion): {icon?: string, text: string} | null => {
-  if (suggestion.modelBrand) {
-    return {text: suggestion.modelBrand};
+const suggestionSubtitle = (suggestion: LlmProviderSuggestionDto): {icon?: string, text: string} | null => {
+  if (suggestion.model_brand) {
+    return {text: suggestion.model_brand};
   }
-  return suggestion.runsInference ? null : {icon: 'mdi-call-split', text: t('admin.llm.providerDialog.thirdParty')};
+  return suggestion.runs_inference ? null : {icon: 'mdi-call-split', text: t('admin.llm.providerDialog.thirdParty')};
 };
 
 const onNameFocused = (focused: boolean) => {
@@ -160,9 +173,9 @@ const onNameChange = (value: string | null) => {
   if (!suggestion) {
     return;
   }
-  apiFormat.value = suggestion.apiFormat;
+  apiFormat.value = suggestion.api_format;
   // Like `load`, the official API is left to the placeholder.
-  baseUrl.value = suggestion.baseUrl === DEFAULT_BASE_URLS[suggestion.apiFormat] ? '' : suggestion.baseUrl;
+  baseUrl.value = suggestion.base_url === DEFAULT_BASE_URLS[suggestion.api_format] ? '' : suggestion.base_url;
   currency.value = suggestion.currency;
 };
 
@@ -243,6 +256,7 @@ defineExpose({
     apiKey.value = '';
     showKey.value = false;
     currency.value = DEFAULT_CURRENCY;
+    loadSuggestions();
   },
   load: (provider: LlmProviderDto) => {
     current.value = provider;

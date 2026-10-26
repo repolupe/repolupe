@@ -273,6 +273,21 @@ export interface LlmModelDto {
     updated_at: string;
 }
 
+/** A common LLM provider, offered when creating one, see {@link getLlmProviderSuggestions}. */
+export interface LlmProviderSuggestionDto {
+    name: string;
+    api_format: LlmApiFormat;
+    base_url: string;
+    /** ISO 4217 code the provider prices its models in, `null` for local servers. */
+    currency: string | null;
+    /** ISO 3166-1 alpha-2 code of the provider's country, shown as its flag. `null` for local servers. */
+    country_code: string | null;
+    /** Whether the provider serves the models itself, `false` for routers that forward requests to other providers. */
+    runs_inference: boolean;
+    /** Brand of the models the provider develops (e.g. Claude), shown as its subtitle. `null` for hosts and routers of other companies' models. */
+    model_brand: string | null;
+}
+
 /** A model the provider's server offers, see {@link getRemoteLlmModels}. */
 export interface RemoteModelDto {
     /** Sent to the API, e.g. `claude-opus-5-5`. */

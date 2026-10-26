@@ -1,11 +1,15 @@
 import 'package:app/gen/strings.g.dart';
+import 'package:app/pages/settings/admin/llm_provider_name_picker_page.dart';
 import 'package:app/service/admin_llm_service.dart';
 import 'package:app/src/rust/api/mirror.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
+import 'package:app/util/currencies.dart';
 import 'package:app/util/validation.dart';
+import 'package:app/widget/flag_emoji.dart';
 import 'package:app/widget/unsaved_changes_guard.dart';
 import 'package:flutter/material.dart';
 import 'package:moform/moform.dart';
+import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
 const _defaultCurrency = 'USD';
@@ -52,7 +56,15 @@ class _LlmProviderFormPageState extends State<LlmProviderFormPage> with Refena {
   String _apiKey = '';
   bool _showKey = false;
   late _KeyAction _keyAction = _hadKey ? _KeyAction.keep : _KeyAction.remove;
-  late String _currency = widget.provider == null ? _defaultCurrency : (widget.provider!.currency ?? '');
+  late String _currency = switch (widget.provider) {
+    null => _defaultCurrency,
+    final provider => provider.currency ?? '',
+  };
+
+  /// Owned here, so picking a name can fill them in.
+  late final _nameController = TextEditingController(text: _name);
+  late final _currencyController = TextEditingController(text: _currency);
+  final _currencyFocus = FocusNode();
 
   bool get _isEdit => widget.provider != null;
   bool get _hadKey => widget.provider?.apiKey != null;
@@ -70,6 +82,33 @@ class _LlmProviderFormPageState extends State<LlmProviderFormPage> with Refena {
   void initState() {
     super.initState();
     _initialValues = _values;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _currencyController.dispose();
+    _currencyFocus.dispose();
+    super.dispose();
+  }
+
+  /// Picks the name of a new provider; one of the common providers also fills in the other fields.
+  Future<void> _pickName() async {
+    final choice = await ref.global.dispatchAsync(NavigateAction.push<LlmProviderNameChoice>(LlmProviderNamePickerPage(name: _name)));
+    if (choice == null || !mounted) {
+      return;
+    }
+    setState(() {
+      _name = choice.name;
+      _nameController.text = _name;
+      if (choice.suggestion case final suggestion?) {
+        _apiFormat = suggestion.apiFormat;
+        // The official API is left to the hint.
+        _baseUrl = suggestion.baseUrl == defaultBaseUrl(suggestion.apiFormat) ? '' : suggestion.baseUrl;
+        _currency = suggestion.currency ?? '';
+        _currencyController.text = _currency;
+      }
+    });
   }
 
   /// Whether the base URL now points to another host, so the current key cannot be kept (the server rejects
@@ -127,6 +166,7 @@ class _LlmProviderFormPageState extends State<LlmProviderFormPage> with Refena {
     final form = t.flutter.admin.llm.providerForm;
     final theme = Theme.of(context);
     final muted = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+    final flag = currencyFlag(_currency.trim().toUpperCase());
     return UnsavedChangesGuard(
       dirty: _dirty,
       child: Scaffold(
@@ -150,17 +190,18 @@ class _LlmProviderFormPageState extends State<LlmProviderFormPage> with Refena {
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              StringField(
+              TextField(
                 key: const ValueKey('providerForm.name'),
-                value: _name,
+                controller: _nameController,
                 decoration: InputDecoration(
-                  labelText: t.base.common.name,
-                  hintText: 'Anthropic',
-                  helperText: dialog.nameLength(max: maxLlmProviderNameLength),
+                  labelText: '${t.base.common.name}*',
                   prefixIcon: const Icon(Icons.label_outline),
+                  suffixIcon: _isEdit ? null : const Icon(Icons.chevron_right),
                 ),
                 enabled: !_saving,
-                autofocus: !_isEdit,
+                // A new provider's name is picked on its own page, an existing one's is edited here.
+                readOnly: !_isEdit,
+                onTap: _isEdit ? null : _pickName,
                 textInputAction: TextInputAction.next,
                 onChanged: (value) {
                   setState(() {
@@ -169,11 +210,16 @@ class _LlmProviderFormPageState extends State<LlmProviderFormPage> with Refena {
                 },
               ),
               const SizedBox(height: 16),
-              Text(dialog.apiFormat, style: theme.textTheme.titleSmall),
-              RadioGroup<LlmApiFormat>(
-                groupValue: _apiFormat,
+              DropdownButtonFormField<LlmApiFormat>(
+                key: const ValueKey('providerForm.format'),
+                initialValue: _apiFormat,
+                decoration: InputDecoration(labelText: '${dialog.apiFormat}*', prefixIcon: const Icon(Icons.api)),
+                items: [
+                  for (final format in [LlmApiFormat.openAi, LlmApiFormat.anthropic])
+                    DropdownMenuItem(value: format, child: Text(apiFormatLabel(format))),
+                ],
                 onChanged: _saving
-                    ? (_) {}
+                    ? null
                     : (value) {
                         if (value != null) {
                           setState(() {
@@ -181,23 +227,59 @@ class _LlmProviderFormPageState extends State<LlmProviderFormPage> with Refena {
                           });
                         }
                       },
-                child: Column(
-                  children: [
-                    RadioListTile(
-                      key: const ValueKey('providerForm.format.openai'),
-                      value: LlmApiFormat.openAi,
-                      title: Text(form.openAiTitle),
-                      subtitle: Text(form.openAiDescription),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    RadioListTile(
-                      key: const ValueKey('providerForm.format.anthropic'),
-                      value: LlmApiFormat.anthropic,
-                      title: const Text('Anthropic'),
-                      subtitle: Text(form.anthropicDescription),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ],
+              ),
+              const SizedBox(height: 16),
+              RawAutocomplete<String>(
+                textEditingController: _currencyController,
+                focusNode: _currencyFocus,
+                optionsBuilder: (value) => _matching(currencies, value.text, (code) => code),
+                onSelected: (code) {
+                  setState(() {
+                    _currency = code;
+                  });
+                },
+                optionsViewBuilder: (context, onSelected, options) => _OptionsView(
+                  options: options,
+                  onSelected: onSelected,
+                  tileBuilder: (code, selected, onTap) => ListTile(
+                    key: ValueKey('providerForm.currency.$code'),
+                    selected: selected,
+                    leading: FlagEmoji(currencyFlag(code)),
+                    title: Text(currencyLabel(code)),
+                    onTap: onTap,
+                  ),
+                ),
+                fieldViewBuilder: (context, controller, focusNode, _) => TextField(
+                  key: const ValueKey('providerForm.currency'),
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: InputDecoration(
+                    labelText: dialog.currency,
+                    prefixIcon: const Icon(Icons.payments_outlined),
+                    prefixText: flag == null ? null : '$flag ',
+                    // Like the web's clearable field: no currency means the models have no prices.
+                    suffixIcon: _currency.isEmpty || _saving
+                        ? null
+                        : IconButton(
+                            key: const ValueKey('providerForm.currency.clear'),
+                            icon: const Icon(Icons.clear),
+                            tooltip: form.clearCurrency,
+                            onPressed: () {
+                              setState(() {
+                                controller.clear();
+                                _currency = '';
+                              });
+                            },
+                          ),
+                  ),
+                  enabled: !_saving,
+                  textCapitalization: TextCapitalization.characters,
+                  textInputAction: TextInputAction.next,
+                  onChanged: (value) {
+                    setState(() {
+                      _currency = value;
+                    });
+                  },
                 ),
               ),
               const SizedBox(height: 16),
@@ -206,35 +288,17 @@ class _LlmProviderFormPageState extends State<LlmProviderFormPage> with Refena {
                 value: _baseUrl,
                 decoration: InputDecoration(
                   labelText: dialog.baseUrl,
+                  // Like the web's persistent placeholder: the official API is used when it is left empty.
                   hintText: defaultBaseUrl(_apiFormat),
-                  helperText: form.baseUrlHint,
+                  floatingLabelBehavior: FloatingLabelBehavior.always,
                   prefixIcon: const Icon(Icons.link),
                 ),
                 keyboardType: TextInputType.url,
                 enabled: !_saving,
-                textInputAction: TextInputAction.next,
-                onChanged: (value) {
-                  setState(() {
-                    _baseUrl = value;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              StringField(
-                key: const ValueKey('providerForm.currency'),
-                value: _currency,
-                decoration: InputDecoration(
-                  labelText: dialog.currency,
-                  hintText: _defaultCurrency,
-                  helperText: form.currencyHint,
-                  helperMaxLines: 2,
-                  prefixIcon: const Icon(Icons.payments_outlined),
-                ),
-                enabled: !_saving,
                 textInputAction: _isEdit ? TextInputAction.done : TextInputAction.next,
                 onChanged: (value) {
                   setState(() {
-                    _currency = value;
+                    _baseUrl = value;
                   });
                 },
               ),
@@ -305,8 +369,7 @@ class _LlmProviderFormPageState extends State<LlmProviderFormPage> with Refena {
                   key: const ValueKey('providerForm.apiKey'),
                   value: _apiKey,
                   decoration: InputDecoration(
-                    labelText: _isEdit ? dialog.newKey : form.apiKeyOptional,
-                    helperText: _isEdit ? null : form.apiKeyHint,
+                    labelText: _isEdit ? '${dialog.newKey}*' : dialog.apiKey,
                     prefixIcon: const Icon(Icons.key),
                     suffixIcon: IconButton(
                       icon: Icon(_showKey ? Icons.visibility_off : Icons.visibility),
@@ -334,4 +397,49 @@ class _LlmProviderFormPageState extends State<LlmProviderFormPage> with Refena {
       ),
     );
   }
+}
+
+/// The options below an autocomplete field.
+class _OptionsView<T extends Object> extends StatelessWidget {
+  final Iterable<T> options;
+  final AutocompleteOnSelected<T> onSelected;
+
+  /// The tile of [option], [selected] while it is highlighted with the keyboard.
+  final Widget Function(T option, bool selected, VoidCallback onTap) tileBuilder;
+
+  const _OptionsView({required this.options, required this.onSelected, required this.tileBuilder});
+
+  @override
+  Widget build(BuildContext context) {
+    final highlighted = AutocompleteHighlightedOption.of(context);
+    return Align(
+      alignment: AlignmentDirectional.topStart,
+      child: Material(
+        elevation: 4,
+        borderRadius: BorderRadius.circular(4),
+        // Fills the free space below the field (or above it), which the autocomplete limits it to.
+        child: Scrollbar(
+          child: ListView.builder(
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            itemCount: options.length,
+            itemBuilder: (context, index) {
+              final option = options.elementAt(index);
+              return tileBuilder(option, index == highlighted, () => onSelected(option));
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The options whose label contains [query], ignoring case. All of them while it is empty or one of them exactly
+/// (e.g. after choosing it), like the web's comboboxes.
+Iterable<T> _matching<T>(Iterable<T> options, String query, String Function(T) label) {
+  final normalized = query.trim().toLowerCase();
+  if (normalized.isEmpty || options.any((option) => label(option).toLowerCase() == normalized)) {
+    return options;
+  }
+  return options.where((option) => label(option).toLowerCase().contains(normalized));
 }

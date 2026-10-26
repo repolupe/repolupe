@@ -393,6 +393,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<LlmProviderDto> dco_decode_list_llm_provider_dto(dynamic raw);
 
   @protected
+  List<LlmProviderSuggestionDto> dco_decode_list_llm_provider_suggestion_dto(dynamic raw);
+
+  @protected
   List<MessageDto> dco_decode_list_message_dto(dynamic raw);
 
   @protected
@@ -436,6 +439,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LlmProviderDto dco_decode_llm_provider_dto(dynamic raw);
+
+  @protected
+  LlmProviderSuggestionDto dco_decode_llm_provider_suggestion_dto(dynamic raw);
 
   @protected
   LocalConfig dco_decode_local_config(dynamic raw);
@@ -1010,6 +1016,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<LlmProviderDto> sse_decode_list_llm_provider_dto(SseDeserializer deserializer);
 
   @protected
+  List<LlmProviderSuggestionDto> sse_decode_list_llm_provider_suggestion_dto(SseDeserializer deserializer);
+
+  @protected
   List<MessageDto> sse_decode_list_message_dto(SseDeserializer deserializer);
 
   @protected
@@ -1053,6 +1062,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LlmProviderDto sse_decode_llm_provider_dto(SseDeserializer deserializer);
+
+  @protected
+  LlmProviderSuggestionDto sse_decode_llm_provider_suggestion_dto(SseDeserializer deserializer);
 
   @protected
   LocalConfig sse_decode_local_config(SseDeserializer deserializer);
@@ -1631,6 +1643,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_llm_provider_dto(List<LlmProviderDto> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_llm_provider_suggestion_dto(List<LlmProviderSuggestionDto> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_message_dto(List<MessageDto> self, SseSerializer serializer);
 
   @protected
@@ -1674,6 +1689,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_llm_provider_dto(LlmProviderDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_llm_provider_suggestion_dto(LlmProviderSuggestionDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_local_config(LocalConfig self, SseSerializer serializer);

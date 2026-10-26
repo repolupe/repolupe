@@ -42,7 +42,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 330697907;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1609641947;
 
 // Section: executor
 
@@ -4122,6 +4122,38 @@ fn wire__crate__api__simple__init_app_impl(
         },
     )
 }
+fn wire__repolupe__dto__llm__llm_provider_suggestions_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "llm_provider_suggestions",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Ok::<_, ()>(repolupe::dto::llm::llm_provider_suggestions())?;
+                    std::result::Result::Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__local__local_admin_user_name_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -4424,6 +4456,17 @@ const _: fn() = || {
         let _: Vec<repolupe::dto::llm::LlmModelDto> = LlmProviderDto.models;
         let _: chrono::DateTime<chrono::Utc> = LlmProviderDto.created_at;
         let _: chrono::DateTime<chrono::Utc> = LlmProviderDto.updated_at;
+    }
+    {
+        let LlmProviderSuggestionDto =
+            None::<repolupe::dto::llm::LlmProviderSuggestionDto>.unwrap();
+        let _: String = LlmProviderSuggestionDto.name;
+        let _: repolupe::dto::llm::LlmApiFormat = LlmProviderSuggestionDto.api_format;
+        let _: String = LlmProviderSuggestionDto.base_url;
+        let _: Option<String> = LlmProviderSuggestionDto.currency;
+        let _: Option<String> = LlmProviderSuggestionDto.country_code;
+        let _: bool = LlmProviderSuggestionDto.runs_inference;
+        let _: Option<String> = LlmProviderSuggestionDto.model_brand;
     }
     {
         let LoginRequest = None::<repolupe::dto::auth::LoginRequest>.unwrap();
@@ -5584,6 +5627,20 @@ impl SseDecode for Vec<repolupe::dto::llm::LlmProviderDto> {
     }
 }
 
+impl SseDecode for Vec<repolupe::dto::llm::LlmProviderSuggestionDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<repolupe::dto::llm::LlmProviderSuggestionDto>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<repolupe::dto::chat::MessageDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -5800,6 +5857,28 @@ impl SseDecode for repolupe::dto::llm::LlmProviderDto {
             models: var_models,
             created_at: var_createdAt,
             updated_at: var_updatedAt,
+        };
+    }
+}
+
+impl SseDecode for repolupe::dto::llm::LlmProviderSuggestionDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_apiFormat = <repolupe::dto::llm::LlmApiFormat>::sse_decode(deserializer);
+        let mut var_baseUrl = <String>::sse_decode(deserializer);
+        let mut var_currency = <Option<String>>::sse_decode(deserializer);
+        let mut var_countryCode = <Option<String>>::sse_decode(deserializer);
+        let mut var_runsInference = <bool>::sse_decode(deserializer);
+        let mut var_modelBrand = <Option<String>>::sse_decode(deserializer);
+        return repolupe::dto::llm::LlmProviderSuggestionDto {
+            name: var_name,
+            api_format: var_apiFormat,
+            base_url: var_baseUrl,
+            currency: var_currency,
+            country_code: var_countryCode,
+            runs_inference: var_runsInference,
+            model_brand: var_modelBrand,
         };
     }
 }
@@ -7122,7 +7201,13 @@ fn pde_ffi_dispatcher_primary_impl(
         ),
         68 => wire__crate__api__local__LocalHandle_shutdown_impl(port, ptr, rust_vec_len, data_len),
         71 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
-        73 => wire__crate__api__local__start_local_impl(port, ptr, rust_vec_len, data_len),
+        72 => wire__repolupe__dto__llm__llm_provider_suggestions_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        74 => wire__crate__api__local__start_local_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -7152,7 +7237,7 @@ fn pde_ffi_dispatcher_sync_impl(
         67 => wire__crate__api__local__LocalHandle_is_running_impl(ptr, rust_vec_len, data_len),
         69 => wire__crate__api__local__generate_secret_impl(ptr, rust_vec_len, data_len),
         70 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
-        72 => wire__crate__api__local__local_admin_user_name_impl(ptr, rust_vec_len, data_len),
+        73 => wire__crate__api__local__local_admin_user_name_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -8235,6 +8320,32 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::llm::LlmProvide
     for repolupe::dto::llm::LlmProviderDto
 {
     fn into_into_dart(self) -> FrbWrapper<repolupe::dto::llm::LlmProviderDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::llm::LlmProviderSuggestionDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.name.into_into_dart().into_dart(),
+            self.0.api_format.into_into_dart().into_dart(),
+            self.0.base_url.into_into_dart().into_dart(),
+            self.0.currency.into_into_dart().into_dart(),
+            self.0.country_code.into_into_dart().into_dart(),
+            self.0.runs_inference.into_into_dart().into_dart(),
+            self.0.model_brand.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<repolupe::dto::llm::LlmProviderSuggestionDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::llm::LlmProviderSuggestionDto>>
+    for repolupe::dto::llm::LlmProviderSuggestionDto
+{
+    fn into_into_dart(self) -> FrbWrapper<repolupe::dto::llm::LlmProviderSuggestionDto> {
         self.into()
     }
 }
@@ -9988,6 +10099,16 @@ impl SseEncode for Vec<repolupe::dto::llm::LlmProviderDto> {
     }
 }
 
+impl SseEncode for Vec<repolupe::dto::llm::LlmProviderSuggestionDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <repolupe::dto::llm::LlmProviderSuggestionDto>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<repolupe::dto::chat::MessageDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -10147,6 +10268,19 @@ impl SseEncode for repolupe::dto::llm::LlmProviderDto {
         <Vec<repolupe::dto::llm::LlmModelDto>>::sse_encode(self.models, serializer);
         <chrono::DateTime<chrono::Utc>>::sse_encode(self.created_at, serializer);
         <chrono::DateTime<chrono::Utc>>::sse_encode(self.updated_at, serializer);
+    }
+}
+
+impl SseEncode for repolupe::dto::llm::LlmProviderSuggestionDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.name, serializer);
+        <repolupe::dto::llm::LlmApiFormat>::sse_encode(self.api_format, serializer);
+        <String>::sse_encode(self.base_url, serializer);
+        <Option<String>>::sse_encode(self.currency, serializer);
+        <Option<String>>::sse_encode(self.country_code, serializer);
+        <bool>::sse_encode(self.runs_inference, serializer);
+        <Option<String>>::sse_encode(self.model_brand, serializer);
     }
 }
 

@@ -8,7 +8,12 @@ import 'package:app/src/rust/frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:uuid/uuid.dart';
 
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `Suggestion`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `compatible`, `decode`, `encode_by_ref`, `eq`, `fmt`, `fmt`, `hash`, `size_hint`, `type_info`
+
+/// The common LLM providers, offered when creating one. Served by
+/// `GET /api/v1/llm-providers/suggestions`, and called directly by clients that embed the crate.
+Future<List<LlmProviderSuggestionDto>> llmProviderSuggestions() => RustLib.instance.api.repolupeDtoLlmLlmProviderSuggestions();
 
 class ApiKeyDto {
   final String? hint;
@@ -257,6 +262,55 @@ class LlmProviderDto {
           models == other.models &&
           createdAt == other.createdAt &&
           updatedAt == other.updatedAt;
+}
+
+/// A common LLM provider, offered when creating one, see [`llm_provider_suggestions`].
+class LlmProviderSuggestionDto {
+  final String name;
+  final LlmApiFormat apiFormat;
+  final String baseUrl;
+
+  /// ISO 4217 code the provider prices its models in, `null` for local servers.
+  final String? currency;
+
+  /// ISO 3166-1 alpha-2 code of the provider's country, shown as its flag. `null` for local
+  /// servers.
+  final String? countryCode;
+
+  /// Whether the provider serves the models itself, `false` for routers that forward requests
+  /// to other providers.
+  final bool runsInference;
+
+  /// Brand of the models the provider develops (e.g. Claude), shown as its subtitle. `null` for
+  /// hosts and routers of other companies' models.
+  final String? modelBrand;
+
+  const LlmProviderSuggestionDto({
+    required this.name,
+    required this.apiFormat,
+    required this.baseUrl,
+    this.currency,
+    this.countryCode,
+    required this.runsInference,
+    this.modelBrand,
+  });
+
+  @override
+  int get hashCode =>
+      name.hashCode ^ apiFormat.hashCode ^ baseUrl.hashCode ^ currency.hashCode ^ countryCode.hashCode ^ runsInference.hashCode ^ modelBrand.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is LlmProviderSuggestionDto &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          apiFormat == other.apiFormat &&
+          baseUrl == other.baseUrl &&
+          currency == other.currency &&
+          countryCode == other.countryCode &&
+          runsInference == other.runsInference &&
+          modelBrand == other.modelBrand;
 }
 
 /// A model as users see it, see [`LlmModelDto`] for admins.

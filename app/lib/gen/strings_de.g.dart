@@ -1839,6 +1839,8 @@ class _Translations$flutter$admin$llm$de extends Translations$flutter$admin$llm$
   @override
   late final _Translations$flutter$admin$llm$page$de page = _Translations$flutter$admin$llm$page$de._(_root);
   @override
+  late final _Translations$flutter$admin$llm$namePicker$de namePicker = _Translations$flutter$admin$llm$namePicker$de._(_root);
+  @override
   late final _Translations$flutter$admin$llm$providerForm$de providerForm = _Translations$flutter$admin$llm$providerForm$de._(_root);
   @override
   late final _Translations$flutter$admin$llm$modelForm$de modelForm = _Translations$flutter$admin$llm$modelForm$de._(_root);
@@ -2616,6 +2618,21 @@ class _Translations$flutter$admin$llm$page$de extends Translations$flutter$admin
   String get models => 'Modelle';
 }
 
+// Path: flutter.admin.llm.namePicker
+class _Translations$flutter$admin$llm$namePicker$de extends Translations$flutter$admin$llm$namePicker$en {
+  _Translations$flutter$admin$llm$namePicker$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'Anbieter wählen';
+  @override
+  String get searchHint => 'Suchen oder Namen eingeben';
+  @override
+  String useName({required Object name}) => '„${name}“ verwenden';
+}
+
 // Path: flutter.admin.llm.providerForm
 class _Translations$flutter$admin$llm$providerForm$de extends Translations$flutter$admin$llm$providerForm$en {
   _Translations$flutter$admin$llm$providerForm$de._(TranslationsDe root) : this._root = root, super.internal(root);
@@ -2624,19 +2641,7 @@ class _Translations$flutter$admin$llm$providerForm$de extends Translations$flutt
 
   // Translations
   @override
-  String get openAiTitle => 'OpenAI-kompatibel';
-  @override
-  String get openAiDescription => 'Die OpenAI-Chat-Completions-API, die auch OpenRouter, Ollama, vLLM, LM Studio usw. anbieten.';
-  @override
-  String get anthropicDescription => 'Die Anthropic-Messages-API.';
-  @override
-  String get baseUrlHint => 'Leer lassen für die offizielle API des Formats.';
-  @override
-  String get currencyHint => 'ISO-4217-Code der Modellpreise, z. B. USD oder EUR. Leer lassen, wenn seine Modelle keine Preise haben.';
-  @override
-  String get apiKeyOptional => 'API-Schlüssel (optional)';
-  @override
-  String get apiKeyHint => 'Leer lassen für Server ohne Authentifizierung.';
+  String get clearCurrency => 'Währung entfernen';
   @override
   String get showKey => 'Schlüssel anzeigen';
   @override

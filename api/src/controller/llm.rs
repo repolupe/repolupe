@@ -4,8 +4,9 @@ use crate::controller::encrypt_token;
 use crate::dto::error::ErrorCode;
 use crate::dto::llm::LlmApiFormat;
 use crate::dto::llm::{
-    ApiKeyChange, CreateLlmProviderRequest, LlmModelDto, LlmModelRequest, LlmProviderDto, ModelDto,
-    RemoteModelDto, SetDefaultModelRequest, UpdateLlmProviderRequest,
+    ApiKeyChange, CreateLlmProviderRequest, LlmModelDto, LlmModelRequest, LlmProviderDto,
+    LlmProviderSuggestionDto, ModelDto, RemoteModelDto, SetDefaultModelRequest,
+    UpdateLlmProviderRequest, llm_provider_suggestions,
 };
 use crate::model::llm_model::ModelPrices;
 use crate::model::llm_provider::LlmProvider;
@@ -41,6 +42,11 @@ pub(crate) async fn set_default_model(
         return Err(unknown_model());
     }
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Common providers, offered when creating one.
+pub(crate) async fn list_provider_suggestions() -> Json<Vec<LlmProviderSuggestionDto>> {
+    Json(llm_provider_suggestions())
 }
 
 /// Providers with their models, including the ones without models.

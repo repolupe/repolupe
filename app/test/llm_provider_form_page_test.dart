@@ -42,6 +42,13 @@ Future<void> _settle(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// Opens the name picker of the create form and waits for its suggestions, which come from the Rust crate.
+Future<void> _openNamePicker(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('providerForm.name')));
+  await _pumpUntil(tester, find.byKey(const ValueKey('providerNamePicker.Anthropic')));
+  await tester.pumpAndSettle();
+}
+
 /// A server with an admin that accepts providers; the POSTs are recorded by their path with their body.
 class _FakeServer {
   final HttpServer server;
@@ -152,15 +159,31 @@ void main() {
 
     // The form starts with the OpenAI format, the default currency and no key field choice.
     expect(find.byKey(const ValueKey('providerForm.key.keep')), findsNothing);
-    expect(find.text('API key (optional)'), findsOneWidget);
+    expect(find.text('API key'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('providerForm.save')));
     await _pumpUntil(tester, find.text('Missing name'));
     expect(server.requests, isEmpty);
     container.read(snackBarProvider).key.currentState!.clearSnackBars();
 
-    await tester.enterText(find.byKey(const ValueKey('providerForm.name')), ' step6 ');
-    await tester.tap(find.byKey(const ValueKey('providerForm.format.anthropic')));
-    await tester.enterText(find.byKey(const ValueKey('providerForm.currency')), 'eur');
+    // A name of its own, which no suggestion matches.
+    await _openNamePicker(tester);
+    await tester.enterText(find.byKey(const ValueKey('providerNamePicker.search')), ' step6 ');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('providerNamePicker.Anthropic')), findsNothing);
+    expect(find.text('Use “step6”'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('providerNamePicker.custom')));
+    await tester.pumpAndSettle();
+    expect(find.text('step6'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('providerForm.format')));
+    await tester.pumpAndSettle();
+    // The menu shows the items again above the field's own.
+    await tester.tap(find.descendant(of: find.byType(Scrollable).last, matching: find.text('Anthropic')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('providerForm.currency')), 'eu');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('providerForm.currency.USD')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('providerForm.currency.EUR')));
+    await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('providerForm.apiKey')), 'sk-123');
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('providerForm.save')));
@@ -171,6 +194,69 @@ void main() {
     expect(find.byKey(const ValueKey('providerForm.save')), findsNothing);
     expect(created?.name, 'step6');
     expect(created?.apiKey, isNotNull);
+  });
+
+  testWidgets('choosing a common provider fills in the form', (tester) async {
+    final server = await _FakeServer.start(tester);
+    final container = await _pumpApp(tester, server);
+    unawaited(container.global.dispatchAsync(NavigateAction.push(const LlmProviderFormPage.create())));
+    await _settle(tester);
+
+    // All of them while the search is empty, then only the matching ones.
+    await _openNamePicker(tester);
+    await tester.enterText(find.byKey(const ValueKey('providerNamePicker.search')), 'ak');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('providerNamePicker.Anthropic')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('providerNamePicker.Aki')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('providerNamePicker.search')), findsNothing);
+    expect(find.text('Aki'), findsOneWidget);
+    expect(find.text('https://aki.io/anthropic'), findsOneWidget);
+    expect(find.text('EUR'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('providerForm.save')));
+    await _pumpUntil(tester, find.text('Provider created.'));
+    expect(server.requests.single.$2, {
+      'name': 'Aki',
+      'api_format': 'ANTHROPIC',
+      'base_url': 'https://aki.io/anthropic',
+      'api_key': null,
+      'currency': 'EUR',
+    });
+  });
+
+  testWidgets('clearing the currency creates a provider without prices', (tester) async {
+    final server = await _FakeServer.start(tester);
+    final container = await _pumpApp(tester, server);
+    unawaited(container.global.dispatchAsync(NavigateAction.push(const LlmProviderFormPage.create())));
+    await _settle(tester);
+
+    // The keyboard's "done" takes the name as it is.
+    await _openNamePicker(tester);
+    await tester.enterText(find.byKey(const ValueKey('providerNamePicker.search')), 'local');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.text('local'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('providerForm.currency.clear')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('providerForm.currency.clear')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('providerForm.save')));
+    await _pumpUntil(tester, find.text('Provider created.'));
+    expect(server.requests.single.$2?['currency'], isNull);
+  });
+
+  testWidgets('editing a provider renames it in place instead of picking a name', (tester) async {
+    final server = await _FakeServer.start(tester);
+    final provider = llmProviderOf(fakeLlmProvider(id: _providerId, name: 'Anthropic', keyHint: 'ab12'));
+    final container = await _pumpApp(tester, server);
+    unawaited(container.global.dispatchAsync(NavigateAction.push(LlmProviderFormPage.edit(provider: provider))));
+    await _settle(tester);
+    await tester.tap(find.byKey(const ValueKey('providerForm.name')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('providerNamePicker.search')), findsNothing);
+    await tester.enterText(find.byKey(const ValueKey('providerForm.name')), 'Claude');
+    await tester.pump();
+    expect(find.text('Claude'), findsOneWidget);
   });
 
   testWidgets('editing a provider keeps the key unless a new one is chosen, which must not be empty', (tester) async {

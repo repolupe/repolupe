@@ -165,6 +165,330 @@ pub struct SetDefaultModelRequest {
     pub model_id: Uuid,
 }
 
+/// A common LLM provider, offered when creating one, see [`llm_provider_suggestions`].
+#[derive(Serialize, Deserialize)]
+pub struct LlmProviderSuggestionDto {
+    pub name: String,
+    pub api_format: LlmApiFormat,
+    pub base_url: String,
+    /// ISO 4217 code the provider prices its models in, `null` for local servers.
+    pub currency: Option<String>,
+    /// ISO 3166-1 alpha-2 code of the provider's country, shown as its flag. `null` for local
+    /// servers.
+    pub country_code: Option<String>,
+    /// Whether the provider serves the models itself, `false` for routers that forward requests
+    /// to other providers.
+    pub runs_inference: bool,
+    /// Brand of the models the provider develops (e.g. Claude), shown as its subtitle. `null` for
+    /// hosts and routers of other companies' models.
+    pub model_brand: Option<String>,
+}
+
+/// The common LLM providers, offered when creating one. Served by
+/// `GET /api/v1/llm-providers/suggestions`, and called directly by clients that embed the crate.
+pub fn llm_provider_suggestions() -> Vec<LlmProviderSuggestionDto> {
+    SUGGESTIONS
+        .iter()
+        .map(|s| LlmProviderSuggestionDto {
+            name: s.name.to_owned(),
+            api_format: s.api_format,
+            base_url: s.base_url.to_owned(),
+            currency: s.currency.map(str::to_owned),
+            country_code: s.country_code.map(str::to_owned),
+            runs_inference: s.runs_inference,
+            model_brand: s.model_brand.map(str::to_owned),
+        })
+        .collect()
+}
+
+/// [`LlmProviderSuggestionDto`] as a constant.
+struct Suggestion {
+    name: &'static str,
+    api_format: LlmApiFormat,
+    base_url: &'static str,
+    currency: Option<&'static str>,
+    country_code: Option<&'static str>,
+    runs_inference: bool,
+    model_brand: Option<&'static str>,
+}
+
+const SUGGESTIONS: &[Suggestion] = &[
+    // Model developers
+    Suggestion {
+        name: "Anthropic",
+        api_format: LlmApiFormat::Anthropic,
+        base_url: "https://api.anthropic.com",
+        currency: Some("USD"),
+        country_code: Some("US"),
+        runs_inference: true,
+        model_brand: Some("Claude"),
+    },
+    Suggestion {
+        name: "OpenAI",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://api.openai.com/v1",
+        currency: Some("USD"),
+        country_code: Some("US"),
+        runs_inference: true,
+        model_brand: Some("GPT"),
+    },
+    Suggestion {
+        name: "DeepSeek",
+        api_format: LlmApiFormat::Anthropic,
+        base_url: "https://api.deepseek.com/anthropic",
+        currency: Some("USD"),
+        country_code: Some("CN"),
+        runs_inference: true,
+        model_brand: Some("DeepSeek"),
+    },
+    Suggestion {
+        name: "Google Gemini",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://generativelanguage.googleapis.com/v1beta/openai",
+        currency: Some("USD"),
+        country_code: Some("US"),
+        runs_inference: true,
+        model_brand: Some("Gemini"),
+    },
+    Suggestion {
+        name: "Mistral",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://api.mistral.ai/v1",
+        currency: Some("USD"),
+        country_code: Some("FR"),
+        runs_inference: true,
+        model_brand: Some("Mistral"),
+    },
+    Suggestion {
+        name: "xAI",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://api.x.ai/v1",
+        currency: Some("USD"),
+        country_code: Some("US"),
+        runs_inference: true,
+        model_brand: Some("Grok"),
+    },
+    Suggestion {
+        name: "Perplexity",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://api.perplexity.ai",
+        currency: Some("USD"),
+        country_code: Some("US"),
+        runs_inference: true,
+        model_brand: Some("Sonar"),
+    },
+    Suggestion {
+        name: "Moonshot AI",
+        api_format: LlmApiFormat::Anthropic,
+        base_url: "https://api.moonshot.ai/anthropic",
+        currency: Some("USD"),
+        country_code: Some("CN"),
+        runs_inference: true,
+        model_brand: Some("Kimi"),
+    },
+    Suggestion {
+        name: "Alibaba Cloud",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+        currency: Some("USD"),
+        country_code: Some("CN"),
+        runs_inference: true,
+        model_brand: Some("Qwen"),
+    },
+    Suggestion {
+        name: "Z.ai",
+        api_format: LlmApiFormat::Anthropic,
+        base_url: "https://api.z.ai/api/anthropic",
+        currency: Some("USD"),
+        country_code: Some("CN"),
+        runs_inference: true,
+        model_brand: Some("GLM"),
+    },
+    Suggestion {
+        name: "MiniMax",
+        api_format: LlmApiFormat::Anthropic,
+        base_url: "https://api.minimax.io/anthropic",
+        currency: Some("USD"),
+        country_code: Some("CN"),
+        runs_inference: true,
+        model_brand: Some("MiniMax"),
+    },
+    Suggestion {
+        name: "Cohere",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://api.cohere.ai/compatibility/v1",
+        currency: Some("USD"),
+        country_code: Some("CA"),
+        runs_inference: true,
+        model_brand: Some("Command"),
+    },
+    // Routers
+    Suggestion {
+        name: "OpenRouter",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://openrouter.ai/api/v1",
+        currency: Some("USD"),
+        country_code: Some("US"),
+        runs_inference: false,
+        model_brand: None,
+    },
+    Suggestion {
+        name: "Hugging Face",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://router.huggingface.co/v1",
+        currency: Some("USD"),
+        country_code: Some("US"),
+        runs_inference: false,
+        model_brand: None,
+    },
+    Suggestion {
+        name: "Vercel AI Gateway",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://ai-gateway.vercel.sh/v1",
+        currency: Some("USD"),
+        country_code: Some("US"),
+        runs_inference: false,
+        model_brand: None,
+    },
+    // Hosts of open models
+    Suggestion {
+        name: "Groq",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://api.groq.com/openai/v1",
+        currency: Some("USD"),
+        country_code: Some("US"),
+        runs_inference: true,
+        model_brand: None,
+    },
+    Suggestion {
+        name: "Aki",
+        api_format: LlmApiFormat::Anthropic,
+        base_url: "https://aki.io/anthropic",
+        currency: Some("EUR"),
+        country_code: Some("DE"),
+        runs_inference: true,
+        model_brand: None,
+    },
+    Suggestion {
+        name: "IONOS AI Model Hub",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://openai.inference.de-txl.ionos.com/v1",
+        currency: Some("EUR"),
+        country_code: Some("DE"),
+        runs_inference: true,
+        model_brand: None,
+    },
+    Suggestion {
+        name: "Scaleway",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://api.scaleway.ai/v1",
+        currency: Some("EUR"),
+        country_code: Some("FR"),
+        runs_inference: true,
+        model_brand: None,
+    },
+    Suggestion {
+        name: "OVHcloud AI Endpoints",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1",
+        currency: Some("EUR"),
+        country_code: Some("FR"),
+        runs_inference: true,
+        model_brand: None,
+    },
+    Suggestion {
+        name: "Together AI",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://api.together.xyz/v1",
+        currency: Some("USD"),
+        country_code: Some("US"),
+        runs_inference: true,
+        model_brand: None,
+    },
+    Suggestion {
+        name: "Fireworks AI",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://api.fireworks.ai/inference/v1",
+        currency: Some("USD"),
+        country_code: Some("US"),
+        runs_inference: true,
+        model_brand: None,
+    },
+    Suggestion {
+        name: "Cerebras",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://api.cerebras.ai/v1",
+        currency: Some("USD"),
+        country_code: Some("US"),
+        runs_inference: true,
+        model_brand: None,
+    },
+    Suggestion {
+        name: "SambaNova",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://api.sambanova.ai/v1",
+        currency: Some("USD"),
+        country_code: Some("US"),
+        runs_inference: true,
+        model_brand: None,
+    },
+    Suggestion {
+        name: "DeepInfra",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://api.deepinfra.com/v1/openai",
+        currency: Some("USD"),
+        country_code: Some("US"),
+        runs_inference: true,
+        model_brand: None,
+    },
+    // Local servers
+    Suggestion {
+        name: "Ollama",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "http://localhost:11434/v1",
+        currency: None,
+        country_code: None,
+        runs_inference: true,
+        model_brand: None,
+    },
+    Suggestion {
+        name: "LM Studio",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "http://localhost:1234/v1",
+        currency: None,
+        country_code: None,
+        runs_inference: true,
+        model_brand: None,
+    },
+    Suggestion {
+        name: "llama.cpp",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "http://localhost:8080/v1",
+        currency: None,
+        country_code: None,
+        runs_inference: true,
+        model_brand: None,
+    },
+    Suggestion {
+        name: "vLLM",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "http://localhost:8000/v1",
+        currency: None,
+        country_code: None,
+        runs_inference: true,
+        model_brand: None,
+    },
+    Suggestion {
+        name: "Jan",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "http://localhost:1337/v1",
+        currency: None,
+        country_code: None,
+        runs_inference: true,
+        model_brand: None,
+    },
+];
+
 #[cfg(test)]
 mod tests {
     use super::*;

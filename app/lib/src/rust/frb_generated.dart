@@ -83,7 +83,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 330697907;
+  int get rustContentHash => 1609641947;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'repolupe_ffi',
@@ -263,6 +263,8 @@ abstract class RustLibApi extends BaseApi {
   String crateApiSimpleGreet({required String name});
 
   Future<void> crateApiSimpleInitApp();
+
+  Future<List<LlmProviderSuggestionDto>> repolupeDtoLlmLlmProviderSuggestions();
 
   String crateApiLocalLocalAdminUserName();
 
@@ -2183,12 +2185,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<List<LlmProviderSuggestionDto>> repolupeDtoLlmLlmProviderSuggestions() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 72, port: port_);
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_llm_provider_suggestion_dto,
+          decodeErrorData: null,
+        ),
+        constMeta: kRepolupeDtoLlmLlmProviderSuggestionsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kRepolupeDtoLlmLlmProviderSuggestionsConstMeta => const TaskConstMeta(
+    debugName: 'llm_provider_suggestions',
+    argNames: [],
+  );
+
+  @override
   String crateApiLocalLocalAdminUserName() {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 72)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 73)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -2213,7 +2239,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_local_config(config, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 73, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 74, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalHandle,
@@ -3163,6 +3189,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<LlmProviderSuggestionDto> dco_decode_list_llm_provider_suggestion_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_llm_provider_suggestion_dto).toList();
+  }
+
+  @protected
   List<MessageDto> dco_decode_list_message_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_message_dto).toList();
@@ -3286,6 +3318,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       models: dco_decode_list_llm_model_dto(arr[6]),
       createdAt: dco_decode_Chrono_Utc(arr[7]),
       updatedAt: dco_decode_Chrono_Utc(arr[8]),
+    );
+  }
+
+  @protected
+  LlmProviderSuggestionDto dco_decode_llm_provider_suggestion_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 7) throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    return LlmProviderSuggestionDto(
+      name: dco_decode_String(arr[0]),
+      apiFormat: dco_decode_llm_api_format(arr[1]),
+      baseUrl: dco_decode_String(arr[2]),
+      currency: dco_decode_opt_String(arr[3]),
+      countryCode: dco_decode_opt_String(arr[4]),
+      runsInference: dco_decode_bool(arr[5]),
+      modelBrand: dco_decode_opt_String(arr[6]),
     );
   }
 
@@ -4960,6 +5008,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<LlmProviderSuggestionDto> sse_decode_list_llm_provider_suggestion_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <LlmProviderSuggestionDto>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_llm_provider_suggestion_dto(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<MessageDto> sse_decode_list_message_dto(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -5162,6 +5222,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       models: var_models,
       createdAt: var_createdAt,
       updatedAt: var_updatedAt,
+    );
+  }
+
+  @protected
+  LlmProviderSuggestionDto sse_decode_llm_provider_suggestion_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_name = sse_decode_String(deserializer);
+    var var_apiFormat = sse_decode_llm_api_format(deserializer);
+    var var_baseUrl = sse_decode_String(deserializer);
+    var var_currency = sse_decode_opt_String(deserializer);
+    var var_countryCode = sse_decode_opt_String(deserializer);
+    var var_runsInference = sse_decode_bool(deserializer);
+    var var_modelBrand = sse_decode_opt_String(deserializer);
+    return LlmProviderSuggestionDto(
+      name: var_name,
+      apiFormat: var_apiFormat,
+      baseUrl: var_baseUrl,
+      currency: var_currency,
+      countryCode: var_countryCode,
+      runsInference: var_runsInference,
+      modelBrand: var_modelBrand,
     );
   }
 
@@ -6827,6 +6908,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_llm_provider_suggestion_dto(List<LlmProviderSuggestionDto> self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_llm_provider_suggestion_dto(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_message_dto(List<MessageDto> self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.length, serializer);
@@ -6968,6 +7058,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_list_llm_model_dto(self.models, serializer);
     sse_encode_Chrono_Utc(self.createdAt, serializer);
     sse_encode_Chrono_Utc(self.updatedAt, serializer);
+  }
+
+  @protected
+  void sse_encode_llm_provider_suggestion_dto(LlmProviderSuggestionDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.name, serializer);
+    sse_encode_llm_api_format(self.apiFormat, serializer);
+    sse_encode_String(self.baseUrl, serializer);
+    sse_encode_opt_String(self.currency, serializer);
+    sse_encode_opt_String(self.countryCode, serializer);
+    sse_encode_bool(self.runsInference, serializer);
+    sse_encode_opt_String(self.modelBrand, serializer);
   }
 
   @protected

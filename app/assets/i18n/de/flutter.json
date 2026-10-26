@@ -163,14 +163,13 @@
         "currencyNone": "Keine (seine Modelle haben keine Preise)",
         "models": "Modelle"
       },
+      "namePicker": {
+        "title": "Anbieter wählen",
+        "searchHint": "Suchen oder Namen eingeben",
+        "useName": "„{name}“ verwenden"
+      },
       "providerForm": {
-        "openAiTitle": "OpenAI-kompatibel",
-        "openAiDescription": "Die OpenAI-Chat-Completions-API, die auch OpenRouter, Ollama, vLLM, LM Studio usw. anbieten.",
-        "anthropicDescription": "Die Anthropic-Messages-API.",
-        "baseUrlHint": "Leer lassen für die offizielle API des Formats.",
-        "currencyHint": "ISO-4217-Code der Modellpreise, z. B. USD oder EUR. Leer lassen, wenn seine Modelle keine Preise haben.",
-        "apiKeyOptional": "API-Schlüssel (optional)",
-        "apiKeyHint": "Leer lassen für Server ohne Authentifizierung.",
+        "clearCurrency": "Währung entfernen",
         "showKey": "Schlüssel anzeigen",
         "hideKey": "Schlüssel verbergen"
       },

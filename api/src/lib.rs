@@ -209,6 +209,7 @@ fn configure_routes(state: config::state::AppState) -> Router<config::state::App
         .route("/api/v1/register", post(controller::user::register))
         .route("/api/v1/delete-user", post(controller::user::delete_user))
         .route("/api/v1/llm-providers", get(controller::llm::list_providers).post(controller::llm::create_provider))
+        .route("/api/v1/llm-providers/suggestions", get(controller::llm::list_provider_suggestions))
         .route("/api/v1/llm-providers/{id}/update", post(controller::llm::update_provider))
         .route("/api/v1/llm-providers/{id}/delete", post(controller::llm::delete_provider))
         .route("/api/v1/llm-providers/{id}/models", post(controller::llm::create_model))
