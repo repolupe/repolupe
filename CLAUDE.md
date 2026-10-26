@@ -34,7 +34,7 @@ fvm flutter test
 fvm flutter analyze
 flutter_rust_bridge_codegen generate && fvm dart run build_runner build   # after changing app/rust/src/api or api/src/dto
 fvm dart run slang              # after changing app/assets/i18n
-fvm dart tool/import_web_i18n.dart   # after changing web/i18n/locales, then run slang
+fvm dart ../scripts/import_web_i18n.dart   # after changing web/i18n/locales, then run slang
 cd rust && cargo test
 ```
 
@@ -96,5 +96,5 @@ cd rust && cargo test
 - State uses refena, models use dart_mappable. The app reaches the API only through `app/rust` (`repolupe_ffi`), bound with flutter_rust_bridge using native assets (`hook/build.dart`), pinned to the same exact version in `pubspec.yaml` and `rust/Cargo.toml`. `rust/rust-toolchain.toml` must pin an exact version.
 - The bridge binds `crate::api` and `repolupe::dto`, so DTO changes need a regeneration. FRB's own build_runner run is off because it deletes other generated files; run `fvm dart run build_runner build` after the codegen.
 - `Client` (`rust/src/api/client.rs`) sends every request through `Transport`: `Remote` (reqwest) or `Local` (the in-process router of a local instance, started in `api/local.rs`).
-- All texts go in `assets/i18n/<code>/<namespace>.json` (slang, generated into `lib/gen/`), with the same key conventions as `web/`. `base` is generated from the web's locales by `tool/import_web_i18n.dart` (never edit it), texts only the app needs go in `flutter`.
+- All texts go in `assets/i18n/<code>/<namespace>.json` (slang, generated into `lib/gen/`), with the same key conventions as `web/`. `base` is generated from the web's locales by `scripts/import_web_i18n.dart` (never edit it), texts only the app needs go in `flutter`.
 - Tests call `initRustLib()` (`test/support/rust.dart`), because FRB's loader can't find the library outside an app bundle. Widget tests serve fake JSON from an HTTP server on loopback and use `tester.runAsync` so the requests can run.
