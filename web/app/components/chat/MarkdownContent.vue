@@ -100,7 +100,7 @@ const html = computed(() => renderMarkdown(props.content));
 .markdown-content :deep(code) {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.875em;
-  background: rgba(0, 0, 0, 0.06);
+  background: rgba(var(--v-theme-on-surface), 0.06);
   border-radius: 4px;
   padding: 1px 5px;
 }
@@ -108,6 +108,8 @@ const html = computed(() => renderMarkdown(props.content));
 .markdown-content :deep(pre) {
   background: #1e1e2e;
   color: #e6e6f0;
+  /* sets it apart from a dark surface */
+  border: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
   border-radius: 8px;
   padding: 12px 16px;
   overflow-x: auto;
@@ -122,9 +124,9 @@ const html = computed(() => renderMarkdown(props.content));
 }
 
 .markdown-content :deep(blockquote) {
-  border-left: 4px solid rgba(0, 0, 0, 0.15);
+  border-left: 4px solid rgba(var(--v-theme-on-surface), 0.15);
   padding-left: 12px;
-  color: rgba(0, 0, 0, 0.65);
+  color: rgba(var(--v-theme-on-surface), 0.65);
 }
 
 .markdown-content :deep(table) {
@@ -136,7 +138,7 @@ const html = computed(() => renderMarkdown(props.content));
 
 .markdown-content :deep(th),
 .markdown-content :deep(td) {
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
   padding: 6px 10px;
   text-align: left;
   /* Breaking words would squeeze the columns; the table scrolls instead. */
@@ -144,13 +146,13 @@ const html = computed(() => renderMarkdown(props.content));
 }
 
 .markdown-content :deep(th) {
-  background: rgba(0, 0, 0, 0.04);
+  background: rgba(var(--v-theme-on-surface), 0.04);
   font-weight: 600;
 }
 
 .markdown-content :deep(hr) {
   border: none;
-  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  border-top: 1px solid rgba(var(--v-theme-on-surface), 0.12);
   margin: 16px 0;
 }
 

@@ -5,19 +5,33 @@ import {watch} from "vue";
 import {createVuetify} from 'vuetify'
 import {de, en} from 'vuetify/locale'
 import {defineNuxtPlugin} from "#imports";
+import {readThemeMode} from "~/utils/theme";
 
 export default defineNuxtPlugin({
     name: 'vuetify',
     dependsOn: ['i18n:plugin'],
     setup(app) {
         const vuetify = createVuetify({
+            // secondary is the page background, navigation the drawer and app bar (with the white logo)
             theme: {
+                defaultTheme: readThemeMode(),
                 themes: {
                     light: {
                         dark: false,
                         colors: {
                             primary: '#00002b',
-                            secondary: '#f0f2f5'
+                            secondary: '#f0f2f5',
+                            navigation: '#00002b',
+                        },
+                    },
+                    dark: {
+                        dark: true,
+                        colors: {
+                            primary: '#bec2ff',
+                            secondary: '#131318',
+                            background: '#131318',
+                            surface: '#1f1f25',
+                            navigation: '#0c0c26',
                         },
                     },
                 },

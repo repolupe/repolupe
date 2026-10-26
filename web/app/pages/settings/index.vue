@@ -2,6 +2,17 @@
   <MainContainer :title="$t('settings.title')">
     <v-card>
       <v-list lines="two">
+        <!-- stored in the browser, so it applies right away -->
+        <v-list-item :title="$t('settings.themeMode.title')" :subtitle="themeModeLabel(themeMode)"
+                     :prepend-icon="THEME_MODE_ICONS[themeMode]" append-icon="mdi-menu-down">
+          <v-menu activator="parent">
+            <v-list :selected="[themeMode]" color="primary" mandatory>
+              <v-list-item v-for="mode in Object.values(ThemeMode)" :key="mode" :value="mode"
+                           :title="themeModeLabel(mode)" :prepend-icon="THEME_MODE_ICONS[mode]"
+                           @click="setThemeMode(mode)"/>
+            </v-list>
+          </v-menu>
+        </v-list-item>
         <v-list-item v-for="p in pagesVisible" :key="p.route" :to="p.route" :title="p.label" :subtitle="p.description"
                      :prepend-icon="p.icon" append-icon="mdi-chevron-right"/>
       </v-list>
@@ -23,14 +34,30 @@
 
 <script setup lang="ts">
 import {computed} from "vue";
+import {useTheme} from "vuetify";
 import {useI18n} from "#i18n";
 import {useUser} from "~/composables/states";
 import {logout} from "~/utils/api";
 import {UserRole} from "~/utils/model";
+import {THEME_MODE_ICONS, ThemeMode, writeThemeMode} from "~/utils/theme";
 import MainContainer from "~/components/MainContainer.vue";
 
 const {t} = useI18n();
 const user = useUser();
+const theme = useTheme();
+
+const themeMode = computed(() => theme.isSystem.value ? ThemeMode.SYSTEM : theme.name.value as ThemeMode);
+
+const themeModeLabel = (mode: ThemeMode) => ({
+  [ThemeMode.SYSTEM]: t('settings.themeMode.system'),
+  [ThemeMode.LIGHT]: t('settings.themeMode.light'),
+  [ThemeMode.DARK]: t('settings.themeMode.dark'),
+})[mode];
+
+const setThemeMode = (mode: ThemeMode) => {
+  theme.change(mode);
+  writeThemeMode(mode);
+}
 
 const pages = computed(() => [
   {

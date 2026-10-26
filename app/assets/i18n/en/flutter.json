@@ -64,12 +64,6 @@
   "validation": {
     "invalidCurrency": "Invalid currency, expected a code like USD or EUR"
   },
-  "themeMode": {
-    "title": "Theme",
-    "system": "System",
-    "light": "Light",
-    "dark": "Dark"
-  },
   "repositories": {
     "statusUnknown": "Unknown",
     "listPage": {

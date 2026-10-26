@@ -64,12 +64,6 @@
   "validation": {
     "invalidCurrency": "Ungültige Währung, erwartet wird ein Code wie USD oder EUR"
   },
-  "themeMode": {
-    "title": "Design",
-    "system": "System",
-    "light": "Hell",
-    "dark": "Dunkel"
-  },
   "repositories": {
     "statusUnknown": "Unbekannt",
     "listPage": {

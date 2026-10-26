@@ -7,7 +7,7 @@
                   :hint="$t('user.passwordHint', {min: MIN_LENGTH, max: MAX_LENGTH})" persistent-hint />
     <v-text-field v-model="confirmPassword" @keydown.enter="submit" :label="$t('user.confirmPassword')" :disabled="loading"
                   type="password" autocomplete="new-password" prepend-icon="mdi-lock-check" class="mb-2" />
-    <div class="text-caption text-grey-darken-1">
+    <div class="text-caption text-medium-emphasis">
       {{ $t('settings.account.changePasswordDialog.signOutNote') }}
     </div>
   </GenericSaveDialog>

@@ -124,7 +124,7 @@ class SettingsPage extends StatelessWidget {
           ListTile(
             key: const ValueKey('settings.theme'),
             leading: Icon(themeMode.icon),
-            title: Text(t.flutter.themeMode.title),
+            title: Text(t.base.settings.themeMode.title),
             subtitle: Text(themeMode.label(t)),
             onTap: () async {
               await ThemeModeSheet.show(context);

@@ -80,7 +80,6 @@ class Translations$flutter$en {
   late final Translations$flutter$chat$en chat = Translations$flutter$chat$en.internal(_root);
   late final Translations$flutter$settings$en settings = Translations$flutter$settings$en.internal(_root);
   late final Translations$flutter$validation$en validation = Translations$flutter$validation$en.internal(_root);
-  late final Translations$flutter$themeMode$en themeMode = Translations$flutter$themeMode$en.internal(_root);
   late final Translations$flutter$repositories$en repositories = Translations$flutter$repositories$en.internal(_root);
   late final Translations$flutter$documents$en documents = Translations$flutter$documents$en.internal(_root);
   late final Translations$flutter$format$en format = Translations$flutter$format$en.internal(_root);
@@ -491,6 +490,7 @@ class Translations$base$settings$en {
   /// en: 'Settings'
   String get title => 'Settings';
 
+  late final Translations$base$settings$themeMode$en themeMode = Translations$base$settings$themeMode$en.internal(_root);
   late final Translations$base$settings$page$en page = Translations$base$settings$page$en.internal(_root);
   late final Translations$base$settings$account$en account = Translations$base$settings$account$en.internal(_root);
   late final Translations$base$settings$profile$en profile = Translations$base$settings$profile$en.internal(_root);
@@ -702,27 +702,6 @@ class Translations$flutter$validation$en {
 
   /// en: 'Invalid currency, expected a code like USD or EUR'
   String get invalidCurrency => 'Invalid currency, expected a code like USD or EUR';
-}
-
-// Path: flutter.themeMode
-class Translations$flutter$themeMode$en {
-  Translations$flutter$themeMode$en.internal(this._root);
-
-  final Translations _root; // ignore: unused_field
-
-  // Translations
-
-  /// en: 'Theme'
-  String get title => 'Theme';
-
-  /// en: 'System'
-  String get system => 'System';
-
-  /// en: 'Light'
-  String get light => 'Light';
-
-  /// en: 'Dark'
-  String get dark => 'Dark';
 }
 
 // Path: flutter.repositories
@@ -1228,6 +1207,27 @@ class Translations$base$chat$usageDialog$en {
 
   /// en: 'Cost'
   String get cost => 'Cost';
+}
+
+// Path: base.settings.themeMode
+class Translations$base$settings$themeMode$en {
+  Translations$base$settings$themeMode$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Theme'
+  String get title => 'Theme';
+
+  /// en: 'System'
+  String get system => 'System';
+
+  /// en: 'Light'
+  String get light => 'Light';
+
+  /// en: 'Dark'
+  String get dark => 'Dark';
 }
 
 // Path: base.settings.page

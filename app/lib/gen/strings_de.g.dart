@@ -98,8 +98,6 @@ class _Translations$flutter$de extends Translations$flutter$en {
   @override
   late final _Translations$flutter$validation$de validation = _Translations$flutter$validation$de._(_root);
   @override
-  late final _Translations$flutter$themeMode$de themeMode = _Translations$flutter$themeMode$de._(_root);
-  @override
   late final _Translations$flutter$repositories$de repositories = _Translations$flutter$repositories$de._(_root);
   @override
   late final _Translations$flutter$documents$de documents = _Translations$flutter$documents$de._(_root);
@@ -424,6 +422,8 @@ class _Translations$base$settings$de extends Translations$base$settings$en {
   @override
   String get title => 'Einstellungen';
   @override
+  late final _Translations$base$settings$themeMode$de themeMode = _Translations$base$settings$themeMode$de._(_root);
+  @override
   late final _Translations$base$settings$page$de page = _Translations$base$settings$page$de._(_root);
   @override
   late final _Translations$base$settings$account$de account = _Translations$base$settings$account$de._(_root);
@@ -628,23 +628,6 @@ class _Translations$flutter$validation$de extends Translations$flutter$validatio
   // Translations
   @override
   String get invalidCurrency => 'Ungültige Währung, erwartet wird ein Code wie USD oder EUR';
-}
-
-// Path: flutter.themeMode
-class _Translations$flutter$themeMode$de extends Translations$flutter$themeMode$en {
-  _Translations$flutter$themeMode$de._(TranslationsDe root) : this._root = root, super.internal(root);
-
-  final TranslationsDe _root; // ignore: unused_field
-
-  // Translations
-  @override
-  String get title => 'Design';
-  @override
-  String get system => 'System';
-  @override
-  String get light => 'Hell';
-  @override
-  String get dark => 'Dunkel';
 }
 
 // Path: flutter.repositories
@@ -1055,6 +1038,23 @@ class _Translations$base$chat$usageDialog$de extends Translations$base$chat$usag
   String get total => 'Gesamt';
   @override
   String get cost => 'Kosten';
+}
+
+// Path: base.settings.themeMode
+class _Translations$base$settings$themeMode$de extends Translations$base$settings$themeMode$en {
+  _Translations$base$settings$themeMode$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'Design';
+  @override
+  String get system => 'System';
+  @override
+  String get light => 'Hell';
+  @override
+  String get dark => 'Dunkel';
 }
 
 // Path: base.settings.page

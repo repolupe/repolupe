@@ -112,7 +112,7 @@ defineExpose({
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.8rem;
   line-height: 1.5;
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(var(--v-theme-on-surface), 0.05);
   border-radius: 6px;
   padding: 10px 12px;
   overflow: auto;

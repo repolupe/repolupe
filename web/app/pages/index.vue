@@ -209,7 +209,7 @@ onBeforeUnmount(() => timeouts.forEach(clearTimeout));
 }
 
 .new-page-temporary {
-  background-color: rgba(0, 0, 0, 0.06);
+  background-color: rgba(var(--v-theme-on-surface), 0.06);
 }
 
 .fade-in {

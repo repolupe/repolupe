@@ -261,6 +261,12 @@
   },
   "settings": {
     "title": "Einstellungen",
+    "themeMode": {
+      "title": "Design",
+      "system": "System",
+      "light": "Hell",
+      "dark": "Dunkel"
+    },
     "page": {
       "admin": "Admin",
       "logout": "Abmelden",

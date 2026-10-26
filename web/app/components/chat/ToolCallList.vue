@@ -53,7 +53,7 @@ const summary = computed(() => {
 
 <style scoped>
 .tool-call-rows {
-  border-left: 2px solid rgba(0, 0, 0, 0.1);
+  border-left: 2px solid rgba(var(--v-theme-on-surface), 0.1);
   margin-left: 14px;
   padding-left: 8px;
 }
@@ -69,7 +69,7 @@ const summary = computed(() => {
 
 .tool-call-row:hover,
 .tool-call-row:focus-visible {
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(var(--v-theme-on-surface), 0.05);
   outline: none;
 }
 </style>

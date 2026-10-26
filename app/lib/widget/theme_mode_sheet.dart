@@ -45,9 +45,9 @@ class ThemeModeSheet extends StatelessWidget {
 
 extension ThemeModeLabel on ThemeMode {
   String label(Translations t) => switch (this) {
-    ThemeMode.system => t.flutter.themeMode.system,
-    ThemeMode.light => t.flutter.themeMode.light,
-    ThemeMode.dark => t.flutter.themeMode.dark,
+    ThemeMode.system => t.base.settings.themeMode.system,
+    ThemeMode.light => t.base.settings.themeMode.light,
+    ThemeMode.dark => t.base.settings.themeMode.dark,
   };
 
   IconData get icon => switch (this) {

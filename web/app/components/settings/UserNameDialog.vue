@@ -2,7 +2,7 @@
   <GenericSaveDialog :title="$t('settings.account.userNameDialog.title')" v-model="dialog" :loading="props.loading" @submit="submit">
     <v-text-field v-model="userName" @keydown.enter="submit" :label="$t('user.userName')" :disabled="loading"
                   autocomplete="username" prepend-icon="mdi-account" class="mb-2" />
-    <div class="text-caption text-grey-darken-1">
+    <div class="text-caption text-medium-emphasis">
       {{ $t('settings.account.loginHint') }}
     </div>
   </GenericSaveDialog>

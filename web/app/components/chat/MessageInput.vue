@@ -1,7 +1,7 @@
 <template>
   <div>
     <div v-if="props.attachment" class="mb-2">
-      <v-chip size="large" variant="flat" color="white" closable :disabled="props.disabled"
+      <v-chip size="large" variant="flat" color="surface" closable :disabled="props.disabled"
               :title="props.attachment.file_name" class="attachment-chip" @click:close="emit('update:attachment', null)">
         <template v-slot:prepend>
           <v-progress-circular v-if="!props.attachment.uploaded" indeterminate size="18" width="2" class="mr-2"/>
@@ -13,7 +13,7 @@
     </div>
 
     <v-textarea ref="textarea" v-model="content" class="message-input" :placeholder="props.placeholder" rows="1" max-rows="8"
-                auto-grow variant="solo" bg-color="white" rounded="lg" hide-details autofocus
+                auto-grow variant="solo" bg-color="surface" rounded="lg" hide-details autofocus
                 :maxlength="MAX_LENGTH" :disabled="props.disabled" @keydown.enter="onEnter">
       <template v-slot:append-inner>
         <v-btn v-if="props.generating" icon="mdi-stop" color="primary" variant="tonal"

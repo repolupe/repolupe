@@ -1,6 +1,6 @@
 <template>
   <GenericSaveDialog :title="$t('settings.preferences.localeDialog.title')" v-model="dialog" :loading="props.loading" @submit="submit">
-    <div class="text-body-2 text-grey-darken-1 mb-4">
+    <div class="text-body-2 text-medium-emphasis mb-4">
       {{ $t('settings.preferences.localeDialog.description') }}
     </div>
     <v-combobox v-model="locale" :items="locales" :label="$t('settings.preferences.localeDialog.label')"

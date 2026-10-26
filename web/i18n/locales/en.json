@@ -245,6 +245,12 @@
   },
   "settings": {
     "title": "Settings",
+    "themeMode": {
+      "title": "Theme",
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
     "page": {
       "admin": "Admin",
       "logout": "Logout",

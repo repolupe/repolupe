@@ -1,12 +1,12 @@
 <template>
   <div>
-    <v-app-bar color="primary" v-if="user && !user.must_change_password && $vuetify.display.mdAndDown">
+    <v-app-bar color="navigation" v-if="user && !user.must_change_password && $vuetify.display.mdAndDown">
       <v-app-bar-nav-icon variant="text" @click.stop="drawerVisible = !drawerVisible"></v-app-bar-nav-icon>
 
       <v-toolbar-title><InstanceTitle/></v-toolbar-title>
     </v-app-bar>
 
-    <v-navigation-drawer v-if="user && !user.must_change_password" class="bg-primary" v-model="drawerVisible" :rail="railActive">
+    <v-navigation-drawer v-if="user && !user.must_change_password" class="bg-navigation" v-model="drawerVisible" :rail="railActive">
       <div class="pt-6 pb-4 px-4" :class="{'header-rail': railActive}" style="display: flex; align-items: center;">
         <div class="logo">
           <!-- smaller when collapsed, so it lines up with the icons below instead of filling the width -->

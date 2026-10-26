@@ -69,7 +69,7 @@
                 <template v-if="!repository.remote.token">{{ $t('repositories.page.tokenNone') }}</template>
                 <template v-else>
                   {{ $t('repositories.page.tokenSet') }}
-                  <span v-if="repository.remote.token.hint" class="ml-2 text-grey-darken-1">•••• {{ repository.remote.token.hint }}</span>
+                  <span v-if="repository.remote.token.hint" class="ml-2 text-medium-emphasis">•••• {{ repository.remote.token.hint }}</span>
                 </template>
               </td>
             </tr>
