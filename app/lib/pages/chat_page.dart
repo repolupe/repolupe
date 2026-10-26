@@ -1,3 +1,4 @@
+import 'package:app/config/theme.dart';
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/chat_list_service.dart';
 import 'package:app/service/chat_service.dart';
@@ -43,52 +44,67 @@ class _ChatPageState extends State<ChatPage> with Refena {
   Widget build(BuildContext context) {
     final state = context.watch(chatProvider);
     final chat = state.chat;
-    return Scaffold(
-      drawer: const AppDrawer(),
-      onDrawerChanged: (opened) async {
-        if (opened) {
-          await ref.redux(chatListProvider).dispatchAsync(LoadChatsAction(limit: 10));
-        }
-      },
-      appBar: AppBar(
-        leading: Builder(
-          // Below the Scaffold, to find it.
-          builder: (context) => IconButton(
-            key: const ValueKey('chat.drawer'),
-            icon: const Icon(Icons.menu),
-            tooltip: context.t.base.chat.title,
-            onPressed: () => Scaffold.of(context).openDrawer(),
-          ),
-        ),
-        title: switch (state.chat) {
-          final chat? => Text(chat.title, overflow: TextOverflow.ellipsis),
-          null => const _RepositoryButton(),
-        },
-        actions: [
-          if (chat == null)
-            IconButton(
-              key: const ValueKey('chat.temporary'),
-              icon: Icon(state.isTemporary ? Icons.close : Icons.history_toggle_off),
-              tooltip: state.temporary ? context.t.flutter.chat.page.temporaryOff : context.t.base.chat.temporary,
-              onPressed: state.loading || state.sending
-                  ? null
-                  : () {
-                      context.redux(chatProvider).dispatch(SetTemporaryAction(!state.temporary));
-                    },
+    // Fades to the temporary background, the app bar too because it has the page's color.
+    return TweenAnimationBuilder<double>(
+      tween: Tween(end: state.isTemporary ? 1 : 0),
+      duration: const Duration(milliseconds: 250),
+      builder: (context, temporary, body) {
+        final colors = Theme.of(context).colorScheme;
+        final background = Color.lerp(colors.surface, colors.temporary, temporary)!;
+        final scrolledUnder = Color.lerp(colors.surfaceContainer, colors.temporaryContainer, temporary)!;
+        return Scaffold(
+          backgroundColor: background,
+          drawer: const AppDrawer(),
+          onDrawerChanged: (opened) async {
+            if (opened) {
+              await ref.redux(chatListProvider).dispatchAsync(LoadChatsAction(limit: 10));
+            }
+          },
+          appBar: AppBar(
+            backgroundColor: WidgetStateColor.resolveWith(
+              (states) => states.contains(WidgetState.scrolledUnder) ? scrolledUnder : background,
             ),
-          IconButton(
-            key: const ValueKey('chat.newChat'),
-            icon: const Icon(Icons.add_comment_outlined),
-            tooltip: context.t.base.app.navigation.newChat,
-            onPressed: state.messages.isEmpty
-                ? null
-                : () async {
-                    await context.redux(chatProvider).dispatchAsync(NewChatAction());
-                  },
+            leading: Builder(
+              // Below the Scaffold, to find it.
+              builder: (context) => IconButton(
+                key: const ValueKey('chat.drawer'),
+                icon: const Icon(Icons.menu),
+                tooltip: context.t.base.chat.title,
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              ),
+            ),
+            title: switch (state.chat) {
+              final chat? => Text(chat.title, overflow: TextOverflow.ellipsis),
+              null => const _RepositoryButton(),
+            },
+            actions: [
+              if (chat == null)
+                IconButton(
+                  key: const ValueKey('chat.temporary'),
+                  icon: Icon(state.isTemporary ? Icons.close : Icons.history_toggle_off),
+                  tooltip: state.temporary ? context.t.flutter.chat.page.temporaryOff : context.t.base.chat.temporary,
+                  onPressed: state.loading || state.sending
+                      ? null
+                      : () {
+                          context.redux(chatProvider).dispatch(SetTemporaryAction(!state.temporary));
+                        },
+                ),
+              IconButton(
+                key: const ValueKey('chat.newChat'),
+                icon: const Icon(Icons.add_comment_outlined),
+                tooltip: context.t.base.app.navigation.newChat,
+                onPressed: state.messages.isEmpty
+                    ? null
+                    : () async {
+                        await context.redux(chatProvider).dispatchAsync(NewChatAction());
+                      },
+              ),
+            ],
           ),
-        ],
-      ),
-      body: SafeArea(
+          body: body,
+        );
+      },
+      child: SafeArea(
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
@@ -207,13 +223,17 @@ class _MessageInputState extends State<_MessageInput> with Refena {
     final canSend = state.canSend(_controller.text);
     final attachment = state.attachment;
     // Stopping keeps the keyboard open, sending closes it.
+    final colors = Theme.of(context).colorScheme;
     return TextFieldTapRegion(
-      child: Container(
+      child: AnimatedContainer(
+        // Fades with the page's background.
+        duration: const Duration(milliseconds: 250),
         margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          // A shade darker than the answers' surfaceContainerLow.
-          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          // A shade darker than the answers' surfaceContainerLow,
+          // but white on the light temporary background, which is about as dark.
+          color: state.isTemporary && colors.brightness == Brightness.light ? colors.surfaceContainerLowest : colors.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
