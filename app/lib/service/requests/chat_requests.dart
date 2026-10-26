@@ -52,11 +52,12 @@ class ApiGetChatAction extends AsyncReduxActionWithResult<ApiService, AccountCli
   String toString() => 'ApiGetChatAction(chatId: $chatId)';
 }
 
-/// Creates a chat with [content] as its first message, and starts the answer.
+/// Creates a chat with [content] as its first message (may be blank with [attachmentId]), and starts the answer.
 /// It reads all repositories of the user if [allRepositories], else those of [repositoryIds]; [modelId] `null` uses
 /// the user's model. A [temporary] chat is not listed, and is deleted a day after its last message.
 class ApiCreateChatAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, ChatDetailDto> {
   final String content;
+  final UuidValue? attachmentId;
   final bool allRepositories;
   final List<UuidValue> repositoryIds;
   final UuidValue? modelId;
@@ -64,6 +65,7 @@ class ApiCreateChatAction extends AsyncReduxActionWithResult<ApiService, Account
 
   ApiCreateChatAction({
     required this.content,
+    required this.attachmentId,
     required this.allRepositories,
     required this.repositoryIds,
     required this.modelId,
@@ -77,6 +79,7 @@ class ApiCreateChatAction extends AsyncReduxActionWithResult<ApiService, Account
         call: (client) => client.createChat(
           request: CreateChatRequest(
             content: content,
+            attachmentId: attachmentId,
             allRepositories: allRepositories,
             repositoryIds: allRepositories ? const [] : repositoryIds,
             modelId: modelId,
@@ -90,7 +93,7 @@ class ApiCreateChatAction extends AsyncReduxActionWithResult<ApiService, Account
 
   @override
   String toString() =>
-      'ApiCreateChatAction(allRepositories: $allRepositories, repositoryIds: $repositoryIds, modelId: $modelId, temporary: $temporary)';
+      'ApiCreateChatAction(attachmentId: $attachmentId, allRepositories: $allRepositories, repositoryIds: $repositoryIds, modelId: $modelId, temporary: $temporary)';
 }
 
 /// Renames the chat [chatId] to [title] and lets [modelId] answer in it (`null` uses the user's model).
@@ -118,12 +121,14 @@ class ApiUpdateChatAction extends AsyncReduxActionWithResult<ApiService, Account
   String toString() => 'ApiUpdateChatAction(chatId: $chatId, modelId: $modelId)';
 }
 
-/// Sends [content] in the chat and returns the user message and the answer being generated.
+/// Sends [content] (may be blank with [attachmentId]) in the chat and returns the user message and the answer being
+/// generated.
 class ApiSendMessageAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, List<MessageDto>> {
   final UuidValue chatId;
   final String content;
+  final UuidValue? attachmentId;
 
-  ApiSendMessageAction({required this.chatId, required this.content});
+  ApiSendMessageAction({required this.chatId, required this.content, required this.attachmentId});
 
   @override
   Future<(AccountClient?, List<MessageDto>)> reduce() async {
@@ -131,7 +136,7 @@ class ApiSendMessageAction extends AsyncReduxActionWithResult<ApiService, Accoun
       _ApiCallAction(
         call: (client) => client.sendMessage(
           chatId: chatId,
-          request: SendMessageRequest(content: content),
+          request: SendMessageRequest(content: content, attachmentId: attachmentId),
         ),
       ),
     );
@@ -139,7 +144,48 @@ class ApiSendMessageAction extends AsyncReduxActionWithResult<ApiService, Accoun
   }
 
   @override
-  String toString() => 'ApiSendMessageAction(chatId: $chatId)';
+  String toString() => 'ApiSendMessageAction(chatId: $chatId, attachmentId: $attachmentId)';
+}
+
+/// Uploads [content] as the file [fileName], to send with the next message. The server infers its type from the name.
+class ApiUploadAttachmentAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, AttachmentDto> {
+  final String fileName;
+  final Uint8List content;
+
+  ApiUploadAttachmentAction({required this.fileName, required this.content});
+
+  @override
+  Future<(AccountClient?, AttachmentDto)> reduce() async {
+    final attachment = await dispatchAsyncTakeResult(
+      _ApiCallAction(
+        call: (client) => client.uploadAttachment(fileName: fileName, content: content),
+      ),
+    );
+    return (state, attachment);
+  }
+
+  @override
+  String toString() => 'ApiUploadAttachmentAction(${content.length} bytes)';
+}
+
+/// Loads the file of the attachment [attachmentId].
+class ApiDownloadAttachmentAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, FileDownload> {
+  final UuidValue attachmentId;
+
+  ApiDownloadAttachmentAction({required this.attachmentId});
+
+  @override
+  Future<(AccountClient?, FileDownload)> reduce() async {
+    final file = await dispatchAsyncTakeResult(
+      _ApiCallAction(
+        call: (client) => client.downloadAttachment(id: attachmentId),
+      ),
+    );
+    return (state, file);
+  }
+
+  @override
+  String toString() => 'ApiDownloadAttachmentAction($attachmentId)';
 }
 
 /// Stops the answer [messageId]. Its stream then ends with the cancelled message.

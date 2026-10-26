@@ -22,6 +22,9 @@
     "sessionExpired": "Your session on {server} has ended. Please log in again."
   },
   "chat": {
+    "messageInput": {
+      "attach": "Attach file"
+    },
     "page": {
       "temporaryOff": "Turn off temporary chat"
     },
@@ -35,7 +38,7 @@
     "toolCallPage": {
       "commit": "Commit {sha}"
     },
-    "presentedFilePage": {
+    "fileContent": {
       "cannotShow": "This file cannot be shown in the app."
     },
     "proposedCommitPage": {

@@ -22,6 +22,9 @@
     "sessionExpired": "Deine Sitzung auf {server} ist abgelaufen. Bitte melde dich erneut an."
   },
   "chat": {
+    "messageInput": {
+      "attach": "Datei anhängen"
+    },
     "page": {
       "temporaryOff": "Temporären Chat ausschalten"
     },
@@ -35,7 +38,7 @@
     "toolCallPage": {
       "commit": "Commit {sha}"
     },
-    "presentedFilePage": {
+    "fileContent": {
       "cannotShow": "Diese Datei kann in der App nicht angezeigt werden."
     },
     "proposedCommitPage": {

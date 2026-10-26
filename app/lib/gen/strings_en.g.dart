@@ -669,11 +669,12 @@ class Translations$flutter$chat$en {
   final Translations _root; // ignore: unused_field
 
   // Translations
+  late final Translations$flutter$chat$messageInput$en messageInput = Translations$flutter$chat$messageInput$en.internal(_root);
   late final Translations$flutter$chat$page$en page = Translations$flutter$chat$page$en.internal(_root);
   late final Translations$flutter$chat$markdownContent$en markdownContent = Translations$flutter$chat$markdownContent$en.internal(_root);
   late final Translations$flutter$chat$repositorySheet$en repositorySheet = Translations$flutter$chat$repositorySheet$en.internal(_root);
   late final Translations$flutter$chat$toolCallPage$en toolCallPage = Translations$flutter$chat$toolCallPage$en.internal(_root);
-  late final Translations$flutter$chat$presentedFilePage$en presentedFilePage = Translations$flutter$chat$presentedFilePage$en.internal(_root);
+  late final Translations$flutter$chat$fileContent$en fileContent = Translations$flutter$chat$fileContent$en.internal(_root);
   late final Translations$flutter$chat$proposedCommitPage$en proposedCommitPage = Translations$flutter$chat$proposedCommitPage$en.internal(_root);
 }
 
@@ -1887,6 +1888,18 @@ class Translations$flutter$common$unsavedChanges$en {
   String get discard => 'Discard';
 }
 
+// Path: flutter.chat.messageInput
+class Translations$flutter$chat$messageInput$en {
+  Translations$flutter$chat$messageInput$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Attach file'
+  String get attach => 'Attach file';
+}
+
 // Path: flutter.chat.page
 class Translations$flutter$chat$page$en {
   Translations$flutter$chat$page$en.internal(this._root);
@@ -1938,9 +1951,9 @@ class Translations$flutter$chat$toolCallPage$en {
   String commit({required Object sha}) => 'Commit ${sha}';
 }
 
-// Path: flutter.chat.presentedFilePage
-class Translations$flutter$chat$presentedFilePage$en {
-  Translations$flutter$chat$presentedFilePage$en.internal(this._root);
+// Path: flutter.chat.fileContent
+class Translations$flutter$chat$fileContent$en {
+  Translations$flutter$chat$fileContent$en.internal(this._root);
 
   final Translations _root; // ignore: unused_field
 

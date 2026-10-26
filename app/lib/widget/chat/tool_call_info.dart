@@ -1,6 +1,7 @@
 import 'package:app/service/chat_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/util/tool_call.dart';
+import 'package:app/widget/chat/file_content.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
@@ -80,45 +81,14 @@ class ToolCallFileScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title ?? fileName(path), overflow: TextOverflow.ellipsis),
-        bottom: loading ? const PreferredSize(preferredSize: Size.fromHeight(4), child: LinearProgressIndicator()) : null,
-      ),
-      bottomNavigationBar: footer,
-      body: SafeArea(
-        child: switch ((fill, error, child)) {
-          (true, null, final child?) => Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: ToolCallLocation(toolCall: toolCall, path: path),
-              ),
-              Expanded(child: child),
-            ],
-          ),
-          _ => ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              ToolCallLocation(toolCall: toolCall, path: path),
-              const SizedBox(height: 16),
-              if (error case final error?)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(error, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onErrorContainer)),
-                )
-              else
-                ?child,
-            ],
-          ),
-        },
-      ),
+    return FileScaffold(
+      title: title ?? fileName(path),
+      header: ToolCallLocation(toolCall: toolCall, path: path),
+      loading: loading,
+      error: error,
+      footer: footer,
+      fill: fill,
+      child: child,
     );
   }
 }

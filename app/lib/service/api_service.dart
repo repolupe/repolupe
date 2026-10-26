@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:app/gen/strings.g.dart';
 import 'package:app/model/account.dart';
 import 'package:app/service/account_service.dart';
@@ -7,6 +9,7 @@ import 'package:app/src/rust/api/client.dart';
 import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/api/local.dart';
 import 'package:app/src/rust/api/stream.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/attachment.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/auth.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/config.dart';

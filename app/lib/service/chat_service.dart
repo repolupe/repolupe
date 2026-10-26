@@ -1,19 +1,39 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/api_service.dart';
 import 'package:app/service/message_service.dart';
 import 'package:app/src/rust/api/error.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/attachment.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
+import 'package:app/util/format.dart';
 import 'package:dart_mappable/dart_mappable.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 part 'chat_service.mapper.dart';
+
+/// Larger files are rejected, same as the API's limit.
+const maxAttachmentBytes = 50 * 1024 * 1024;
+
+/// The file attached to the next message, uploaded right away to be sent with it.
+@MappableClass()
+class PendingAttachment with PendingAttachmentMappable {
+  /// Tells uploads apart, so a finished one only updates the attachment it started.
+  final int key;
+  final String fileName;
+  final int size;
+
+  /// `null` while it is being uploaded.
+  final AttachmentDto? uploaded;
+
+  PendingAttachment({required this.key, required this.fileName, required this.size, required this.uploaded});
+}
 
 @MappableClass()
 class ChatState with ChatStateMappable {
@@ -45,6 +65,9 @@ class ChatState with ChatStateMappable {
   /// Whether the new chat is temporary, see [isTemporary].
   final bool temporary;
 
+  /// The file to send with the next message.
+  final PendingAttachment? attachment;
+
   /// Whether a message is being sent.
   final bool sending;
 
@@ -67,6 +90,7 @@ class ChatState with ChatStateMappable {
     required this.repositoryIds,
     required this.modelId,
     required this.temporary,
+    required this.attachment,
     required this.sending,
     required this.loading,
     required this.loaded,
@@ -84,11 +108,22 @@ class ChatState with ChatStateMappable {
         repositoryIds: const [],
         modelId: null,
         temporary: false,
+        attachment: null,
         sending: false,
         loading: false,
         loaded: false,
         epoch: 0,
       );
+
+  /// Whether a message can be sent with [content]: none is being sent or answered, and it has text or an uploaded
+  /// attachment (then it may be blank).
+  bool canSend(String content) {
+    if (loading || sending || answer != null) {
+      return false;
+    }
+    final attachment = this.attachment;
+    return attachment != null ? attachment.uploaded != null : content.trim().isNotEmpty;
+  }
 
   /// The answer being generated, at most one per chat.
   /// Its content stays as it was sent until it is finished, the [MessageService] has the current one.
@@ -130,6 +165,9 @@ final chatProvider = ReduxProvider<ChatService, ChatState>((ref) {
 class ChatService extends ReduxNotifier<ChatState> {
   final ApiService _api;
   final MessageService _messages;
+
+  /// The [PendingAttachment.key] of the next attached file.
+  int _nextAttachmentKey = 1;
 
   ChatService({
     required this._api,
@@ -246,8 +284,8 @@ class OpenChatAction extends AsyncReduxAction<ChatService, ChatState> with Globa
   String toString() => 'OpenChatAction($chatId)';
 }
 
-/// Sends [content] (creating the chat with it if there is none yet) and follows the answer.
-/// Returns whether it was sent; shows a snack bar if it fails.
+/// Sends [content] with the [ChatState.attachment] (creating the chat with them if there is none yet) and follows the
+/// answer. Returns whether it was sent; shows a snack bar if it fails.
 class SendMessageAction extends AsyncReduxActionWithResult<ChatService, ChatState, bool> with GlobalActions {
   final String content;
 
@@ -255,12 +293,13 @@ class SendMessageAction extends AsyncReduxActionWithResult<ChatService, ChatStat
 
   @override
   Future<(ChatState, bool)> reduce() async {
-    if (notifier._api.state == null || state.loading || state.sending || state.answer != null || content.trim().isEmpty) {
+    if (notifier._api.state == null || !state.canSend(content)) {
       return (state, false);
     }
 
     final epoch = state.epoch;
     final chat = state.chat;
+    final attachmentId = state.attachment?.uploaded?.id;
     dispatch(_SetStateAction(state.copyWith(sending: true)));
     (ChatDto, List<MessageDto>) sent;
     try {
@@ -268,6 +307,7 @@ class SendMessageAction extends AsyncReduxActionWithResult<ChatService, ChatStat
         final detail = await external(notifier._api).dispatchAsyncTakeResult(
           ApiCreateChatAction(
             content: content,
+            attachmentId: attachmentId,
             allRepositories: state.allRepositories,
             repositoryIds: state.repositoryIds,
             modelId: state.modelId,
@@ -278,12 +318,17 @@ class SendMessageAction extends AsyncReduxActionWithResult<ChatService, ChatStat
       } else {
         final messages = await external(
           notifier._api,
-        ).dispatchAsyncTakeResult(ApiSendMessageAction(chatId: chat.id, content: content));
+        ).dispatchAsyncTakeResult(ApiSendMessageAction(chatId: chat.id, content: content, attachmentId: attachmentId));
         sent = (chat, messages);
       }
     } on ClientError catch (e) {
       if (epoch != state.epoch) {
         return (state, false);
+      }
+      if (e.code == ErrorCode.unknownAttachment) {
+        // Removed a day after it was uploaded, so it has to be attached again.
+        global.dispatch(ShowSnackBarAction(message: t.base.chat.unknownAttachment));
+        return (state.copyWith(sending: false, attachment: null), false);
       }
       global.dispatch(ShowSnackBarAction(message: t.base.chat.page.sendFailed(error: e.userMessage)));
       return (state.copyWith(sending: false), false);
@@ -296,6 +341,7 @@ class SendMessageAction extends AsyncReduxActionWithResult<ChatService, ChatStat
     final next = state.copyWith(
       chat: newChat,
       messages: [...state.messages, ...newMessages],
+      attachment: null,
       sending: false,
     );
     final answer = next.answer;
@@ -308,6 +354,60 @@ class SendMessageAction extends AsyncReduxActionWithResult<ChatService, ChatStat
 
   @override
   String toString() => 'SendMessageAction(${content.length} chars)';
+}
+
+/// Attaches the file [fileName] of [size] bytes to the next message, replacing the attached one, and uploads it with
+/// the content [read] returns. Shows a snack bar if it is too large or fails to upload.
+class AttachFileAction extends AsyncReduxAction<ChatService, ChatState> with GlobalActions {
+  final String fileName;
+  final int size;
+  final Future<Uint8List> Function() read;
+
+  AttachFileAction({required this.fileName, required this.size, required this.read});
+
+  @override
+  Future<ChatState> reduce() async {
+    if (notifier._api.state == null || state.loading || state.sending) {
+      return state;
+    }
+    if (size > maxAttachmentBytes) {
+      global.dispatch(ShowSnackBarAction(message: t.base.chat.messageInput.fileTooLarge(max: formatBytes(maxAttachmentBytes))));
+      return state;
+    }
+
+    final epoch = state.epoch;
+    final key = notifier._nextAttachmentKey++;
+    final pending = PendingAttachment(key: key, fileName: fileName, size: size, uploaded: null);
+    dispatch(_SetStateAction(state.copyWith(attachment: pending)));
+    // Removed or replaced in the meantime, or another chat.
+    bool current() => epoch == state.epoch && state.attachment?.key == key;
+    final AttachmentDto uploaded;
+    try {
+      final content = await read();
+      uploaded = await external(notifier._api).dispatchAsyncTakeResult(ApiUploadAttachmentAction(fileName: fileName, content: content));
+    } on Exception catch (e) {
+      if (!current()) {
+        return state;
+      }
+      // Other exceptions come from reading the file.
+      final error = e is ClientError ? e.userMessage : e.toString();
+      global.dispatch(ShowSnackBarAction(message: t.base.chat.messageInput.uploadFailed(error: error)));
+      return state.copyWith(attachment: null);
+    }
+    if (!current()) {
+      return state;
+    }
+    return state.copyWith(attachment: pending.copyWith(uploaded: uploaded));
+  }
+
+  @override
+  String toString() => 'AttachFileAction($size bytes)';
+}
+
+/// Removes the file attached to the next message. It stays uploaded until the server removes it a day later.
+class RemoveAttachmentAction extends ReduxAction<ChatService, ChatState> {
+  @override
+  ChatState reduce() => state.copyWith(attachment: null);
 }
 
 /// Chooses the repositories of the new chat: all of the user's if [all], else [ids].

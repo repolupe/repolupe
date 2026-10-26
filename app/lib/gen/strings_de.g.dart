@@ -589,6 +589,8 @@ class _Translations$flutter$chat$de extends Translations$flutter$chat$en {
 
   // Translations
   @override
+  late final _Translations$flutter$chat$messageInput$de messageInput = _Translations$flutter$chat$messageInput$de._(_root);
+  @override
   late final _Translations$flutter$chat$page$de page = _Translations$flutter$chat$page$de._(_root);
   @override
   late final _Translations$flutter$chat$markdownContent$de markdownContent = _Translations$flutter$chat$markdownContent$de._(_root);
@@ -597,7 +599,7 @@ class _Translations$flutter$chat$de extends Translations$flutter$chat$en {
   @override
   late final _Translations$flutter$chat$toolCallPage$de toolCallPage = _Translations$flutter$chat$toolCallPage$de._(_root);
   @override
-  late final _Translations$flutter$chat$presentedFilePage$de presentedFilePage = _Translations$flutter$chat$presentedFilePage$de._(_root);
+  late final _Translations$flutter$chat$fileContent$de fileContent = _Translations$flutter$chat$fileContent$de._(_root);
   @override
   late final _Translations$flutter$chat$proposedCommitPage$de proposedCommitPage = _Translations$flutter$chat$proposedCommitPage$de._(_root);
 }
@@ -1581,6 +1583,17 @@ class _Translations$flutter$common$unsavedChanges$de extends Translations$flutte
   String get discard => 'Verwerfen';
 }
 
+// Path: flutter.chat.messageInput
+class _Translations$flutter$chat$messageInput$de extends Translations$flutter$chat$messageInput$en {
+  _Translations$flutter$chat$messageInput$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get attach => 'Datei anhängen';
+}
+
 // Path: flutter.chat.page
 class _Translations$flutter$chat$page$de extends Translations$flutter$chat$page$en {
   _Translations$flutter$chat$page$de._(TranslationsDe root) : this._root = root, super.internal(root);
@@ -1627,9 +1640,9 @@ class _Translations$flutter$chat$toolCallPage$de extends Translations$flutter$ch
   String commit({required Object sha}) => 'Commit ${sha}';
 }
 
-// Path: flutter.chat.presentedFilePage
-class _Translations$flutter$chat$presentedFilePage$de extends Translations$flutter$chat$presentedFilePage$en {
-  _Translations$flutter$chat$presentedFilePage$de._(TranslationsDe root) : this._root = root, super.internal(root);
+// Path: flutter.chat.fileContent
+class _Translations$flutter$chat$fileContent$de extends Translations$flutter$chat$fileContent$en {
+  _Translations$flutter$chat$fileContent$de._(TranslationsDe root) : this._root = root, super.internal(root);
 
   final TranslationsDe _root; // ignore: unused_field
 

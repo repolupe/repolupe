@@ -3,12 +3,14 @@ import 'package:app/service/chat_list_service.dart';
 import 'package:app/service/chat_service.dart';
 import 'package:app/service/message_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
+import 'package:app/util/format.dart';
 import 'package:app/widget/app_drawer.dart';
 import 'package:app/widget/chat/assistant_message.dart';
 import 'package:app/widget/chat/instance_hero.dart';
 import 'package:app/widget/chat/model_sheet.dart';
 import 'package:app/widget/chat/repository_sheet.dart';
 import 'package:app/widget/chat/user_message.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -156,7 +158,8 @@ class _RunningAnswer extends StatelessWidget {
   }
 }
 
-/// The text field and the button that sends the message, or stops the answer being generated.
+/// The text field with the button that attaches a file, the attached one above, and the button that sends the
+/// message, or stops the answer being generated.
 class _MessageInput extends StatefulWidget {
   const _MessageInput();
 
@@ -187,65 +190,125 @@ class _MessageInputState extends State<_MessageInput> with Refena {
     }
   }
 
+  Future<void> _attach() async {
+    final file = await FilePicker.pickFile();
+    if (file == null || !mounted) {
+      return;
+    }
+    // Without a length, reading the file fails too, which the action reports.
+    final size = file.lengthSync() ?? await file.length() ?? 0;
+    await ref.redux(chatProvider).dispatchAsync(AttachFileAction(fileName: file.name, size: size, read: file.readAsBytes));
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch(chatProvider);
     final answering = state.answer != null;
-    final canSend = !state.sending && !answering && _controller.text.trim().isNotEmpty;
+    final canSend = state.canSend(_controller.text);
+    final attachment = state.attachment;
     // Stopping keeps the keyboard open, sending closes it.
     return TextFieldTapRegion(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.fromLTRB(16, 4, 4, 4),
+        padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
           // A shade darker than the answers' surfaceContainerLow.
           color: Theme.of(context).colorScheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: TextField(
-                key: const ValueKey('chat.input'),
-                controller: _controller,
-                minLines: 1,
-                maxLines: 6,
-                keyboardType: TextInputType.multiline,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  hintText: context.t.base.chat.placeholder,
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+            if (attachment != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+                child: _AttachmentChip(attachment: attachment, enabled: !state.sending),
+              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                IconButton(
+                  key: const ValueKey('chat.attach'),
+                  icon: const Icon(Icons.attach_file),
+                  tooltip: context.t.flutter.chat.messageInput.attach,
+                  onPressed: state.loading || state.sending ? null : _attach,
                 ),
-              ),
+                Expanded(
+                  child: TextField(
+                    key: const ValueKey('chat.input'),
+                    controller: _controller,
+                    minLines: 1,
+                    maxLines: 6,
+                    keyboardType: TextInputType.multiline,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      hintText: context.t.base.chat.placeholder,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (answering)
+                  IconButton.filledTonal(
+                    key: const ValueKey('chat.stop'),
+                    icon: const Icon(Icons.stop),
+                    tooltip: context.t.base.chat.messageInput.stop,
+                    onPressed: () async {
+                      await ref.redux(chatProvider).dispatchAsync(CancelAnswerAction());
+                    },
+                  )
+                else
+                  IconButton.filled(
+                    key: const ValueKey('chat.send'),
+                    icon: state.sending
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.send),
+                    tooltip: context.t.base.chat.messageInput.send,
+                    onPressed: canSend ? _send : null,
+                  ),
+              ],
             ),
-            const SizedBox(width: 8),
-            if (answering)
-              IconButton.filledTonal(
-                key: const ValueKey('chat.stop'),
-                icon: const Icon(Icons.stop),
-                tooltip: context.t.base.chat.messageInput.stop,
-                onPressed: () async {
-                  await ref.redux(chatProvider).dispatchAsync(CancelAnswerAction());
-                },
-              )
-            else
-              IconButton.filled(
-                key: const ValueKey('chat.send'),
-                icon: state.sending
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.send),
-                tooltip: context.t.base.chat.messageInput.send,
-                onPressed: canSend ? _send : null,
-              ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The file attached to the next message, with a spinner while it is uploaded, and a button that removes it.
+class _AttachmentChip extends StatelessWidget {
+  final PendingAttachment attachment;
+  final bool enabled;
+
+  const _AttachmentChip({required this.attachment, required this.enabled});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InputChip(
+      key: const ValueKey('chat.attachment'),
+      isEnabled: enabled,
+      avatar: attachment.uploaded == null
+          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+          : const Icon(Icons.attach_file),
+      label: Text.rich(
+        TextSpan(
+          text: attachment.fileName,
+          children: [
+            TextSpan(
+              text: '  ${formatBytes(attachment.size)}',
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+        overflow: TextOverflow.ellipsis,
+      ),
+      onDeleted: () => context.redux(chatProvider).dispatch(RemoveAttachmentAction()),
     );
   }
 }

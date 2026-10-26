@@ -8,6 +8,161 @@
 
 part of 'chat_service.dart';
 
+class PendingAttachmentMapper extends ClassMapperBase<PendingAttachment> {
+  PendingAttachmentMapper._();
+
+  static PendingAttachmentMapper? _instance;
+  static PendingAttachmentMapper ensureInitialized() {
+    if (_instance == null) {
+      MapperContainer.globals.use(_instance = PendingAttachmentMapper._());
+    }
+    return _instance!;
+  }
+
+  @override
+  final String id = 'PendingAttachment';
+
+  static int _$key(PendingAttachment v) => v.key;
+  static const Field<PendingAttachment, int> _f$key = Field('key', _$key);
+  static String _$fileName(PendingAttachment v) => v.fileName;
+  static const Field<PendingAttachment, String> _f$fileName = Field(
+    'fileName',
+    _$fileName,
+  );
+  static int _$size(PendingAttachment v) => v.size;
+  static const Field<PendingAttachment, int> _f$size = Field('size', _$size);
+  static AttachmentDto? _$uploaded(PendingAttachment v) => v.uploaded;
+  static const Field<PendingAttachment, AttachmentDto> _f$uploaded = Field(
+    'uploaded',
+    _$uploaded,
+  );
+
+  @override
+  final MappableFields<PendingAttachment> fields = const {
+    #key: _f$key,
+    #fileName: _f$fileName,
+    #size: _f$size,
+    #uploaded: _f$uploaded,
+  };
+
+  static PendingAttachment _instantiate(DecodingData data) {
+    return PendingAttachment(
+      key: data.dec(_f$key),
+      fileName: data.dec(_f$fileName),
+      size: data.dec(_f$size),
+      uploaded: data.dec(_f$uploaded),
+    );
+  }
+
+  @override
+  final Function instantiate = _instantiate;
+
+  static PendingAttachment fromMap(Map<String, dynamic> map) {
+    return ensureInitialized().decodeMap<PendingAttachment>(map);
+  }
+
+  static PendingAttachment fromJson(String json) {
+    return ensureInitialized().decodeJson<PendingAttachment>(json);
+  }
+}
+
+mixin PendingAttachmentMappable {
+  String toJson() {
+    return PendingAttachmentMapper.ensureInitialized()
+        .encodeJson<PendingAttachment>(this as PendingAttachment);
+  }
+
+  Map<String, dynamic> toMap() {
+    return PendingAttachmentMapper.ensureInitialized()
+        .encodeMap<PendingAttachment>(this as PendingAttachment);
+  }
+
+  PendingAttachmentCopyWith<
+    PendingAttachment,
+    PendingAttachment,
+    PendingAttachment
+  >
+  get copyWith =>
+      _PendingAttachmentCopyWithImpl<PendingAttachment, PendingAttachment>(
+        this as PendingAttachment,
+        $identity,
+        $identity,
+      );
+  @override
+  String toString() {
+    return PendingAttachmentMapper.ensureInitialized().stringifyValue(
+      this as PendingAttachment,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return PendingAttachmentMapper.ensureInitialized().equalsValue(
+      this as PendingAttachment,
+      other,
+    );
+  }
+
+  @override
+  int get hashCode {
+    return PendingAttachmentMapper.ensureInitialized().hashValue(
+      this as PendingAttachment,
+    );
+  }
+}
+
+extension PendingAttachmentValueCopy<$R, $Out>
+    on ObjectCopyWith<$R, PendingAttachment, $Out> {
+  PendingAttachmentCopyWith<$R, PendingAttachment, $Out>
+  get $asPendingAttachment => $base.as(
+    (v, t, t2) => _PendingAttachmentCopyWithImpl<$R, $Out>(v, t, t2),
+  );
+}
+
+abstract class PendingAttachmentCopyWith<
+  $R,
+  $In extends PendingAttachment,
+  $Out
+>
+    implements ClassCopyWith<$R, $In, $Out> {
+  $R call({int? key, String? fileName, int? size, AttachmentDto? uploaded});
+  PendingAttachmentCopyWith<$R2, $In, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  );
+}
+
+class _PendingAttachmentCopyWithImpl<$R, $Out>
+    extends ClassCopyWithBase<$R, PendingAttachment, $Out>
+    implements PendingAttachmentCopyWith<$R, PendingAttachment, $Out> {
+  _PendingAttachmentCopyWithImpl(super.value, super.then, super.then2);
+
+  @override
+  late final ClassMapperBase<PendingAttachment> $mapper =
+      PendingAttachmentMapper.ensureInitialized();
+  @override
+  $R call({int? key, String? fileName, int? size, Object? uploaded = $none}) =>
+      $apply(
+        FieldCopyWithData({
+          if (key != null) #key: key,
+          if (fileName != null) #fileName: fileName,
+          if (size != null) #size: size,
+          if (uploaded != $none) #uploaded: uploaded,
+        }),
+      );
+  @override
+  PendingAttachment $make(CopyWithData data) => PendingAttachment(
+    key: data.get(#key, or: $value.key),
+    fileName: data.get(#fileName, or: $value.fileName),
+    size: data.get(#size, or: $value.size),
+    uploaded: data.get(#uploaded, or: $value.uploaded),
+  );
+
+  @override
+  PendingAttachmentCopyWith<$R2, PendingAttachment, $Out2> $chain<$R2, $Out2>(
+    Then<$Out2, $R2> t,
+  ) => _PendingAttachmentCopyWithImpl<$R2, $Out2>($value, $cast, t);
+}
+
 class ChatStateMapper extends ClassMapperBase<ChatState> {
   ChatStateMapper._();
 
@@ -15,6 +170,7 @@ class ChatStateMapper extends ClassMapperBase<ChatState> {
   static ChatStateMapper ensureInitialized() {
     if (_instance == null) {
       MapperContainer.globals.use(_instance = ChatStateMapper._());
+      PendingAttachmentMapper.ensureInitialized();
     }
     return _instance!;
   }
@@ -64,6 +220,11 @@ class ChatStateMapper extends ClassMapperBase<ChatState> {
     'temporary',
     _$temporary,
   );
+  static PendingAttachment? _$attachment(ChatState v) => v.attachment;
+  static const Field<ChatState, PendingAttachment> _f$attachment = Field(
+    'attachment',
+    _$attachment,
+  );
   static bool _$sending(ChatState v) => v.sending;
   static const Field<ChatState, bool> _f$sending = Field('sending', _$sending);
   static bool _$loading(ChatState v) => v.loading;
@@ -84,6 +245,7 @@ class ChatStateMapper extends ClassMapperBase<ChatState> {
     #repositoryIds: _f$repositoryIds,
     #modelId: _f$modelId,
     #temporary: _f$temporary,
+    #attachment: _f$attachment,
     #sending: _f$sending,
     #loading: _f$loading,
     #loaded: _f$loaded,
@@ -101,6 +263,7 @@ class ChatStateMapper extends ClassMapperBase<ChatState> {
       repositoryIds: data.dec(_f$repositoryIds),
       modelId: data.dec(_f$modelId),
       temporary: data.dec(_f$temporary),
+      attachment: data.dec(_f$attachment),
       sending: data.dec(_f$sending),
       loading: data.dec(_f$loading),
       loaded: data.dec(_f$loaded),
@@ -178,6 +341,8 @@ abstract class ChatStateCopyWith<$R, $In extends ChatState, $Out>
   get repositories;
   ListCopyWith<$R, UuidValue, ObjectCopyWith<$R, UuidValue, UuidValue>>
   get repositoryIds;
+  PendingAttachmentCopyWith<$R, PendingAttachment, PendingAttachment>?
+  get attachment;
   $R call({
     ChatDto? chat,
     List<MessageDto>? messages,
@@ -188,6 +353,7 @@ abstract class ChatStateCopyWith<$R, $In extends ChatState, $Out>
     List<UuidValue>? repositoryIds,
     UuidValue? modelId,
     bool? temporary,
+    PendingAttachment? attachment,
     bool? sending,
     bool? loading,
     bool? loaded,
@@ -237,6 +403,10 @@ class _ChatStateCopyWithImpl<$R, $Out>
     (v) => call(repositoryIds: v),
   );
   @override
+  PendingAttachmentCopyWith<$R, PendingAttachment, PendingAttachment>?
+  get attachment =>
+      $value.attachment?.copyWith.$chain((v) => call(attachment: v));
+  @override
   $R call({
     Object? chat = $none,
     List<MessageDto>? messages,
@@ -247,6 +417,7 @@ class _ChatStateCopyWithImpl<$R, $Out>
     List<UuidValue>? repositoryIds,
     Object? modelId = $none,
     bool? temporary,
+    Object? attachment = $none,
     bool? sending,
     bool? loading,
     bool? loaded,
@@ -262,6 +433,7 @@ class _ChatStateCopyWithImpl<$R, $Out>
       if (repositoryIds != null) #repositoryIds: repositoryIds,
       if (modelId != $none) #modelId: modelId,
       if (temporary != null) #temporary: temporary,
+      if (attachment != $none) #attachment: attachment,
       if (sending != null) #sending: sending,
       if (loading != null) #loading: loading,
       if (loaded != null) #loaded: loaded,
@@ -279,6 +451,7 @@ class _ChatStateCopyWithImpl<$R, $Out>
     repositoryIds: data.get(#repositoryIds, or: $value.repositoryIds),
     modelId: data.get(#modelId, or: $value.modelId),
     temporary: data.get(#temporary, or: $value.temporary),
+    attachment: data.get(#attachment, or: $value.attachment),
     sending: data.get(#sending, or: $value.sending),
     loading: data.get(#loading, or: $value.loading),
     loaded: data.get(#loaded, or: $value.loaded),

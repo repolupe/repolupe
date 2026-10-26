@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:app/model/account.dart';
 import 'package:app/service/api_service.dart';
@@ -318,6 +319,119 @@ void main() {
     final state = container.read(chatProvider);
     expect(state.answer, isNull);
     expect(state.messages.map((m) => m.content), ['Hello', 'Hi there']);
+  });
+
+  test('an attached file is uploaded and sent with a blank message, unless removed, too large or no longer available', () async {
+    const attachmentId = '0199a8d4-6d5e-7c3a-9b1f-00000000000c';
+    final attachment = {
+      'id': attachmentId,
+      'number': null,
+      'file_name': 'Invoice.pdf',
+      'content_type': 'application/pdf',
+      'size': 3,
+      'created_at': '2026-10-21T12:00:00+00:00',
+    };
+    final uploads = <(Uri, String?, List<int>)>[];
+    final bodies = <String, Map<String, dynamic>>{};
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    addTearDown(() => server.close(force: true));
+    server.listen((request) async {
+      final response = request.response;
+      switch (request.uri.path) {
+        case '/api/v1/attachments':
+          final content = await request.fold<List<int>>([], (all, chunk) => all..addAll(chunk));
+          uploads.add((request.uri, request.headers.contentType?.mimeType, content));
+          response.statusCode = 201;
+          response.headers.contentType = ContentType.json;
+          response.write(jsonEncode(attachment));
+        case '/api/v1/chats':
+          bodies[request.uri.path] = jsonDecode(await utf8.decodeStream(request)) as Map<String, dynamic>;
+          response.headers.contentType = ContentType.json;
+          response.write(
+            jsonEncode({
+              'id': _chatId,
+              'title': 'Invoice.pdf',
+              'all_repositories': false,
+              'repository_ids': <Object>[],
+              'model_id': null,
+              'temporary': false,
+              'created_at': '2026-10-21T12:00:00+00:00',
+              'updated_at': '2026-10-21T12:00:00+00:00',
+              'messages': [
+                {
+                  ..._message(id: _userMessageId, role: 'USER', content: ''),
+                  'attachment': {...attachment, 'number': 1},
+                },
+                _message(id: _answerId, role: 'ASSISTANT', content: 'It is an invoice.', finished: true),
+              ],
+            }),
+          );
+        case '/api/v1/chats/$_chatId/messages':
+          bodies[request.uri.path] = jsonDecode(await utf8.decodeStream(request)) as Map<String, dynamic>;
+          response.statusCode = 400;
+          response.headers.contentType = ContentType.json;
+          response.write(jsonEncode({'code': 'UNKNOWN_ATTACHMENT', 'message': 'Unknown attachment'}));
+        default:
+          response.statusCode = 404;
+      }
+      await response.close();
+    });
+
+    final account = Account(
+      apiUrl: 'http://127.0.0.1:${server.port}',
+      token: 'session-token',
+      user: AccountUser(id: '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12', userName: 'alice'),
+    );
+    final container = RefenaContainer();
+    container.redux(apiProvider).dispatch(ApiSetAccountAction(account));
+    final chat = container.redux(chatProvider);
+    await chat.dispatchAsync(NewChatAction());
+
+    // Too large: not uploaded, not even read.
+    await chat.dispatchAsync(
+      AttachFileAction(fileName: 'huge.pdf', size: maxAttachmentBytes + 1, read: () async => throw StateError('read')),
+    );
+    expect(container.read(chatProvider).attachment, isNull);
+
+    // Removed while it is uploaded: the finished upload does not bring it back.
+    final read = Completer<Uint8List>();
+    final removed = chat.dispatchAsync(AttachFileAction(fileName: 'Other.pdf', size: 3, read: () => read.future));
+    for (var i = 0; i < 100 && container.read(chatProvider).attachment == null; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(container.read(chatProvider).attachment?.fileName, 'Other.pdf');
+    expect(container.read(chatProvider).attachment?.uploaded, isNull);
+    expect(container.read(chatProvider).canSend(''), isFalse);
+    chat.dispatch(RemoveAttachmentAction());
+    read.complete(Uint8List.fromList([1, 2, 3]));
+    await removed;
+    expect(container.read(chatProvider).attachment, isNull);
+
+    await chat.dispatchAsync(AttachFileAction(fileName: 'Invoice.pdf', size: 3, read: () async => Uint8List.fromList([37, 80, 68])));
+    expect(container.read(chatProvider).attachment?.uploaded?.id, UuidValue.fromString(attachmentId));
+    final (uri, contentType, content) = uploads.last;
+    expect(uri.queryParameters, {'file_name': 'Invoice.pdf'});
+    expect(contentType, 'application/octet-stream');
+    expect(content, [37, 80, 68]);
+
+    // A blank message can be sent with an attachment.
+    expect(container.read(chatProvider).canSend(' '), isTrue);
+    expect(await chat.dispatchAsyncTakeResult(SendMessageAction(' ')), isTrue);
+    expect(bodies['/api/v1/chats'], containsPair('attachment_id', attachmentId));
+    var state = container.read(chatProvider);
+    expect(state.attachment, isNull);
+    expect(state.messages.first.attachment?.fileName, 'Invoice.pdf');
+    expect(state.messages.first.attachment?.number, 1);
+    expect(state.canSend(' '), isFalse);
+
+    // Removed by the server meanwhile: it has to be attached again.
+    await chat.dispatchAsync(AttachFileAction(fileName: 'Invoice.pdf', size: 3, read: () async => Uint8List.fromList([37, 80, 68])));
+    expect(await chat.dispatchAsyncTakeResult(SendMessageAction('Again')), isFalse);
+    expect(bodies['/api/v1/chats/$_chatId/messages'], containsPair('attachment_id', attachmentId));
+    state = container.read(chatProvider);
+    expect(state.attachment, isNull);
+    expect(state.sending, isFalse);
+    expect(state.messages, hasLength(2));
   });
 
   test('the tool calls of an answer are added and finished as their events arrive', () async {
