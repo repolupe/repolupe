@@ -24,13 +24,12 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
         name: SAVE_ATTACHMENT.to_string(),
         description: format!(
             "Propose a commit that stores a file the user attached to the chat in a \
-            repository. Nothing is committed yet: the proposal appears below your answer, \
-            and the user decides whether to commit it. Use the place the user named. \
-            Otherwise choose the path like the files already there: look with {LIST_FILES} \
+            repository. {} Use the place the user named. Otherwise choose the path like the files already there: look with {LIST_FILES} \
             where similar files are kept, e.g. with a glob for its extension, and follow \
             their naming. If the file name doesn't tell what the file is, read it with \
             {READ_ATTACHMENT} first. Calling it again for the same attachment replaces the earlier \
-            proposal, e.g. when the user wants it stored elsewhere."
+            proposal, e.g. when the user wants it stored elsewhere.",
+            tools.proposal_outcome()
         ),
         input_schema: json!({
             "type": "object",
@@ -174,10 +173,10 @@ pub(super) async fn run(
         "creates"
     };
     let output = format!(
-        "Proposed a commit that {action} `{path}` with attachment {number} (`{}`). It is not \
-        committed yet: the user sees it below your answer and decides whether to commit it. To \
-        store it elsewhere, call {SAVE_ATTACHMENT} for attachment {number} again.",
-        attachment.file_name
+        "Proposed a commit that {action} `{path}` with attachment {number} (`{}`). {} To store \
+        it elsewhere, call {SAVE_ATTACHMENT} for attachment {number} again.",
+        attachment.file_name,
+        invocation.proposal_outcome()
     );
     Ok((
         output,

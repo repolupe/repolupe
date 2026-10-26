@@ -69,6 +69,9 @@ pub(crate) struct RepositoryTools {
     db: DatabasePool,
     identities: CommitIdentities,
     attachments: ChatAttachments,
+    /// Whether the proposed commits are committed once the answer is complete, see
+    /// [`Self::with_auto_commit`].
+    auto_commit: bool,
 }
 
 /// The files sent in the chat, which [`READ_ATTACHMENT`] reads and [`SAVE_ATTACHMENT`] stores
@@ -115,6 +118,7 @@ pub(crate) struct Invocation<'a> {
     db: &'a DatabasePool,
     identities: &'a CommitIdentities,
     attachments: &'a ChatAttachments,
+    auto_commit: bool,
     call: Call,
 }
 
@@ -185,7 +189,15 @@ impl RepositoryTools {
             db,
             identities,
             attachments: ChatAttachments::default(),
+            auto_commit: false,
         }
+    }
+
+    /// Tells the model that the commits it proposes are committed once the answer is complete,
+    /// for a user who turned on `auto_commit`, instead of that the user decides.
+    pub(crate) fn with_auto_commit(mut self, auto_commit: bool) -> Self {
+        self.auto_commit = auto_commit;
+        self
     }
 
     /// Lets the model read the attachments sent in the chat with [`READ_ATTACHMENT`] and store
@@ -228,6 +240,17 @@ impl RepositoryTools {
     /// repositories.
     fn can_read_attachments(&self) -> bool {
         !self.attachments.sent.is_empty()
+    }
+
+    /// What happens to a proposed commit, for the descriptions of the tools that propose them.
+    fn proposal_outcome(&self) -> &'static str {
+        if self.auto_commit {
+            "The proposal appears below your answer and is committed automatically once your \
+            answer is complete."
+        } else {
+            "Nothing is committed yet: the proposal appears below your answer, and the user \
+            decides whether to commit it."
+        }
     }
 
     pub(crate) fn definitions(&self) -> Vec<ToolDefinition> {
@@ -294,6 +317,7 @@ impl RepositoryTools {
             db: &self.db,
             identities: &self.identities,
             attachments: &self.attachments,
+            auto_commit: self.auto_commit,
             call,
         })
     }
@@ -368,6 +392,17 @@ impl Invocation<'_> {
                 change: None,
             },
             Err(e) => self.error_output(e),
+        }
+    }
+
+    /// What happens to the commit the call proposed, for its output.
+    fn proposal_outcome(&self) -> &'static str {
+        if self.auto_commit {
+            "It appears below your answer and is committed automatically once your answer is \
+            complete."
+        } else {
+            "It is not committed yet: the user sees it below your answer and decides whether to \
+            commit it."
         }
     }
 
@@ -557,5 +592,19 @@ mod tests {
             "You can't change `docs`, the user did not allow it."
         );
         assert!(mixed.parse(&call("wiki")).is_ok());
+
+        let manual = &definitions[5].description;
+        assert!(manual.contains("the user decides whether to commit it"));
+        let auto_commit = mixed.with_auto_commit(true).definitions();
+        for definition in &auto_commit[5..] {
+            assert!(
+                definition
+                    .description
+                    .contains("is committed automatically once your answer is complete"),
+                "{}",
+                definition.name
+            );
+            assert!(!definition.description.contains("Nothing is committed yet"));
+        }
     }
 }

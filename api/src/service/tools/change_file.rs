@@ -20,12 +20,12 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
         name: CHANGE_FILE.to_string(),
         description: format!(
             "Propose a commit that changes one file: edit it, create or replace it, or \
-            delete it. Nothing is committed yet: the change appears below your answer, \
-            and the user decides whether to commit it. Each call starts from the \
-            repository as you read it, and the other tools don't see the change, so \
-            make all changes to a file in one call; calling it again for the same file \
-            replaces the earlier proposal. Read the file with {READ_FILE} before editing \
-            it. PDFs and binary files can only be deleted."
+            delete it. {} Each call starts from the repository as you read it, and the \
+            other tools don't see the change, so make all changes to a file in one call; \
+            calling it again for the same file replaces the earlier proposal. Read the \
+            file with {READ_FILE} before editing it. PDFs and binary files can only be \
+            deleted.",
+            tools.proposal_outcome()
         ),
         input_schema: json!({
             "type": "object",
@@ -269,9 +269,9 @@ pub(super) async fn run(
         (Some(_), Some(_)) => "changes",
     };
     let mut output = format!(
-        "Proposed a commit that {action} `{path}`. It is not committed yet: the user sees it \
-        below your answer and decides whether to commit it. To revise it, call {CHANGE_FILE} \
-        for `{path}` again with all changes."
+        "Proposed a commit that {action} `{path}`. {} To revise it, call {CHANGE_FILE} for \
+        `{path}` again with all changes.",
+        invocation.proposal_outcome()
     );
     if let Some(new) = &new {
         let diff = patch::hunks(old.as_deref().unwrap_or(""), new);
@@ -523,6 +523,36 @@ mod tests {
         assert_eq!(
             fixture.git(&["show", &format!("{commit}:win.txt")]),
             "a\r\nc\r\n"
+        );
+    }
+
+    #[tokio::test]
+    async fn tells_when_auto_committed() {
+        let fixture = Fixture::new(&[("a.md", b"a\n")]);
+        let commit = fixture.git(&["rev-parse", "HEAD"]).trim().to_string();
+        let tools = RepositoryTools::new(
+            vec![ToolRepository {
+                id: Uuid::now_v7(),
+                name: "docs".to_string(),
+                snapshot: Snapshot::at(fixture.dir.join(".git"), commit),
+                can_commit: true,
+            }],
+            unused_db(),
+            identities(),
+        )
+        .with_auto_commit(true);
+        let tool_use = ToolUse {
+            id: "call".to_string(),
+            name: CHANGE_FILE.to_string(),
+            input: json!({"path": "a.md", "message": "Delete a", "delete": true}),
+            native: None,
+        };
+        let output = tools.parse(&tool_use).ok().unwrap().run().await;
+        assert_eq!(
+            output.content,
+            "Proposed a commit that deletes `a.md`. It appears below your answer and is committed \
+            automatically once your answer is complete. To revise it, call change_file for \
+            `a.md` again with all changes."
         );
     }
 

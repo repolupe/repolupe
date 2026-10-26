@@ -72,6 +72,10 @@ async fn run(
     let user = repository::user::get_user(&state.db, generation.user_id)
         .await?
         .ok_or_else(|| GenerationError::Failed("The user no longer exists".to_string()))?;
+    let mut profile = repository::user::get_user_profile(&state.db, generation.user_id)
+        .await?
+        .unwrap_or_default();
+    profile.locale = profile.locale.or_else(|| generation.browser_locale.clone());
     let tools = RepositoryTools::new(
         scoped
             .iter()
@@ -93,11 +97,8 @@ async fn run(
         state.attachments.clone(),
         state.extractor.clone(),
         attachments,
-    );
-    let mut profile = repository::user::get_user_profile(&state.db, generation.user_id)
-        .await?
-        .unwrap_or_default();
-    profile.locale = profile.locale.or_else(|| generation.browser_locale.clone());
+    )
+    .with_auto_commit(profile.auto_commit);
     let system = system_prompt(&profile, &scoped, &tools);
     let definitions = tools.definitions();
 

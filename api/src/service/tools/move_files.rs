@@ -21,13 +21,13 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
     ToolDefinition {
         name: MOVE_FILES.to_string(),
         description: format!(
-            "Propose a commit that moves or renames files and folders. Nothing is committed \
-            yet: the proposal appears below your answer, and the user decides whether to commit \
-            it. Each call starts from the repository as you read it, and the other tools don't \
-            see the change, so make all moves in one call; calling it again for the same \
-            repository replaces the earlier proposal. Don't also change a file you move with \
-            {CHANGE_FILE}, the two proposals would conflict. Unless the user named the place, \
-            look with {LIST_FILES} where similar files are kept and follow their naming."
+            "Propose a commit that moves or renames files and folders. {} Each call starts \
+            from the repository as you read it, and the other tools don't see the change, so \
+            make all moves in one call; calling it again for the same repository replaces the \
+            earlier proposal. Don't also change a file you move with {CHANGE_FILE}, the two \
+            proposals would conflict. Unless the user named the place, look with {LIST_FILES} \
+            where similar files are kept and follow their naming.",
+            tools.proposal_outcome()
         ),
         input_schema: json!({
             "type": "object",
@@ -255,8 +255,8 @@ pub(super) async fn run(
     }
     let _ = write!(
         output,
-        "It is not committed yet: the user sees it below your answer and decides whether to \
-        commit it. To revise it, call {MOVE_FILES} for `{}` again with all moves.",
+        "{} To revise it, call {MOVE_FILES} for `{}` again with all moves.",
+        invocation.proposal_outcome(),
         repository.name
     );
     Ok((
