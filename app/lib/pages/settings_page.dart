@@ -226,14 +226,7 @@ class _AccountChip extends StatelessWidget {
         child: ActionChip(
           key: const ValueKey('settings.accounts'),
           avatar: const Icon(Icons.account_circle),
-          label: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis)),
-              const SizedBox(width: 4),
-              const Icon(Icons.unfold_more, size: 18),
-            ],
-          ),
+          label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
           onPressed: () async {
             await AccountSheet.show(context);
           },
