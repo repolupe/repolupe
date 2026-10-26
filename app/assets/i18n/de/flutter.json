@@ -46,6 +46,9 @@
     }
   },
   "settings": {
+    "page": {
+      "version": "Version {version}"
+    },
     "changePasswordPage": {
       "intro": "Du musst dein Passwort ändern, bevor du fortfahren kannst."
     },

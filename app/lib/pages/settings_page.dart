@@ -9,13 +9,16 @@ import 'package:app/pages/settings/profile_page.dart';
 import 'package:app/pages/settings/repositories_page.dart';
 import 'package:app/service/account_service.dart';
 import 'package:app/service/api_service.dart';
+import 'package:app/service/instance_name_provider.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/service/theme_mode_service.dart';
+import 'package:app/service/version_provider.dart';
 import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
 import 'package:app/util/locales.dart';
 import 'package:app/widget/account_sheet.dart';
+import 'package:app/widget/app_logo.dart';
 import 'package:app/widget/theme_mode_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
@@ -116,7 +119,7 @@ List<SettingsSection> _adminSections(Translations t, {required bool local}) => [
 
 /// The hub of the settings: the active account of the device, which opens a sheet to change it, then the groups App
 /// (the theme of the device), User (the sections of the active account, with their state) and Admin (the
-/// administration, for admins).
+/// administration, for admins), and at the bottom the logo with the app's version.
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
@@ -172,7 +175,7 @@ class _SettingsPageState extends State<SettingsPage> with Refena {
       appBar: AppBar(title: Text(t.base.settings.title)),
       body: ListView(
         key: const ValueKey('settings.sections'),
-        padding: EdgeInsets.only(top: 8, bottom: 64 + MediaQuery.paddingOf(context).bottom),
+        padding: EdgeInsets.only(top: 24, bottom: 64 + MediaQuery.paddingOf(context).bottom),
         children: [
           const _AccountChip(),
           _GroupHeader(title: t.base.settings.page.app),
@@ -193,6 +196,7 @@ class _SettingsPageState extends State<SettingsPage> with Refena {
             _GroupHeader(title: t.base.settings.page.admin),
             for (final section in _adminSections(t, local: local)) _SectionTile(section: section, onReturn: _load),
           ],
+          const _AppInfo(),
         ],
       ),
     );
@@ -234,6 +238,35 @@ class _AccountChip extends StatelessWidget {
             await AccountSheet.show(context);
           },
         ),
+      ),
+    );
+  }
+}
+
+/// The logo, the product name and the app's version (left out until loaded).
+class _AppInfo extends StatelessWidget {
+  const _AppInfo();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.t;
+    final version = context.watch(versionProvider).data;
+    final textTheme = Theme.of(context).textTheme;
+    final color = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.only(top: 48),
+      child: Column(
+        key: const ValueKey('settings.appInfo'),
+        children: [
+          const AppLogo(size: 64),
+          const SizedBox(height: 8),
+          Text(productName, style: textTheme.titleMedium?.copyWith(color: color)),
+          if (version != null)
+            Text(
+              t.flutter.settings.page.version(version: version),
+              style: textTheme.bodySmall?.copyWith(color: color),
+            ),
+        ],
       ),
     );
   }

@@ -685,6 +685,7 @@ class Translations$flutter$settings$en {
   final Translations _root; // ignore: unused_field
 
   // Translations
+  late final Translations$flutter$settings$page$en page = Translations$flutter$settings$page$en.internal(_root);
   late final Translations$flutter$settings$changePasswordPage$en changePasswordPage = Translations$flutter$settings$changePasswordPage$en.internal(
     _root,
   );
@@ -1966,6 +1967,18 @@ class Translations$flutter$chat$proposedCommitPage$en {
 
   /// en: 'Not applied yet.'
   String get notApplied => 'Not applied yet.';
+}
+
+// Path: flutter.settings.page
+class Translations$flutter$settings$page$en {
+  Translations$flutter$settings$page$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Version {version}'
+  String version({required Object version}) => 'Version ${version}';
 }
 
 // Path: flutter.settings.changePasswordPage

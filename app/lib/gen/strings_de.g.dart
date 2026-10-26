@@ -612,6 +612,8 @@ class _Translations$flutter$settings$de extends Translations$flutter$settings$en
 
   // Translations
   @override
+  late final _Translations$flutter$settings$page$de page = _Translations$flutter$settings$page$de._(_root);
+  @override
   late final _Translations$flutter$settings$changePasswordPage$de changePasswordPage = _Translations$flutter$settings$changePasswordPage$de._(_root);
   @override
   late final _Translations$flutter$settings$accountSheet$de accountSheet = _Translations$flutter$settings$accountSheet$de._(_root);
@@ -1657,6 +1659,17 @@ class _Translations$flutter$chat$proposedCommitPage$de extends Translations$flut
   // Translations
   @override
   String get notApplied => 'Noch nicht übernommen.';
+}
+
+// Path: flutter.settings.page
+class _Translations$flutter$settings$page$de extends Translations$flutter$settings$page$en {
+  _Translations$flutter$settings$page$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String version({required Object version}) => 'Version ${version}';
 }
 
 // Path: flutter.settings.changePasswordPage

@@ -1,5 +1,6 @@
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/account_service.dart';
+import 'package:app/widget/app_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:moform/moform.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -98,7 +99,7 @@ class _SetupPageState extends State<SetupPage> with Refena {
                   children: [
                     if (!addingAccount) ...[
                       Center(
-                        child: Image.asset('assets/logo-512.webp', width: 80, height: 80, semanticLabel: context.t.base.app.logoAlt),
+                        child: const AppLogo(size: 80),
                       ),
                       const SizedBox(height: 16),
                       Text(

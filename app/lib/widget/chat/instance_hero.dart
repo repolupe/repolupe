@@ -1,5 +1,6 @@
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/instance_name_provider.dart';
+import 'package:app/widget/app_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
@@ -20,7 +21,7 @@ class InstanceHero extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset('assets/logo-512.webp', width: 80, height: 80, semanticLabel: context.t.base.app.logoAlt),
+            const AppLogo(size: 80),
             const SizedBox(height: 16),
             // The lines take the same place, so the logo does not jump when a long name is replaced.
             Stack(
