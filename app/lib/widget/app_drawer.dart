@@ -1,17 +1,13 @@
 import 'package:app/gen/strings.g.dart';
 import 'package:app/pages/settings_page.dart';
-import 'package:app/service/account_service.dart';
 import 'package:app/service/chat_list_service.dart';
 import 'package:app/service/chat_service.dart';
-import 'package:app/service/me_service.dart';
-import 'package:app/widget/account_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
 /// The newest chats of the account; tapping one opens it with its messages.
-/// At the bottom, the settings of the account, then the active account of the device, which opens a sheet to change
-/// it. The local instance is shown as `This device` only, its single user's name (`admin`) tells nothing.
+/// At the bottom, the settings.
 class AppDrawer extends StatelessWidget {
   const AppDrawer();
 
@@ -20,10 +16,6 @@ class AppDrawer extends StatelessWidget {
     final t = context.t;
     final chats = context.watch(chatListProvider);
     final openId = context.watch(chatProvider.select((state) => state.chat?.id));
-    final account = context.watch(accountProvider.select((state) => state.active));
-    // As of the login until the user is loaded.
-    final userName = context.watch(meProvider.select((user) => user?.userName)) ?? account?.user.userName;
-    final local = account?.isLocal ?? false;
     return Drawer(
       child: SafeArea(
         child: Column(
@@ -75,20 +67,6 @@ class AppDrawer extends StatelessWidget {
                 final ref = context.ref;
                 Navigator.pop(context);
                 await ref.global.dispatchAsync(NavigateAction.push(const SettingsPage()));
-              },
-            ),
-            ListTile(
-              key: const ValueKey('chat.accounts'),
-              leading: const Icon(Icons.account_circle),
-              title: Text(
-                local ? account!.server : userName ?? t.flutter.settings.accountSheet.accounts,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              subtitle: account == null || local ? null : Text(account.server, maxLines: 1, overflow: TextOverflow.ellipsis),
-              trailing: const Icon(Icons.unfold_more),
-              onTap: () async {
-                await AccountSheet.show(context);
               },
             ),
           ],

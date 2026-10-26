@@ -29,9 +29,11 @@ class AccountSheet extends StatelessWidget {
         children: [
           for (final account in state.accounts)
             ListTile(
-              leading: Icon(account.key == state.activeKey ? Icons.check_circle : Icons.account_circle_outlined),
-              title: Text(account.user.userName),
-              subtitle: Text(account.server),
+              leading: Icon(account.isLocal ? Icons.smartphone : Icons.account_circle_outlined),
+              // The local instance's single user's name (`admin`) tells nothing.
+              title: Text(account.isLocal ? account.server : account.user.userName),
+              subtitle: account.isLocal ? null : Text(account.server),
+              trailing: account.key == state.activeKey ? const Icon(Icons.check) : null,
               selected: account.key == state.activeKey,
               onTap: () async {
                 Navigator.pop(context);

@@ -11,6 +11,7 @@ import 'package:app/service/account_service.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/service/theme_mode_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
+import 'package:app/widget/account_sheet.dart';
 import 'package:app/widget/theme_mode_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
@@ -101,8 +102,8 @@ List<SettingsSection> _adminSections(Translations t, {required bool local}) => [
   ),
 ];
 
-/// The hub of the settings: the theme of the device, the sections of the active account, the administration for
-/// admins, and the logout.
+/// The hub of the settings: the active account of the device, which opens a sheet to change it, the theme of the
+/// device, the sections of the active account, and the administration for admins.
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
@@ -119,6 +120,7 @@ class SettingsPage extends StatelessWidget {
         key: const ValueKey('settings.sections'),
         padding: EdgeInsets.only(top: 8, bottom: 64 + MediaQuery.paddingOf(context).bottom),
         children: [
+          const _AccountChip(),
           ListTile(
             key: const ValueKey('settings.theme'),
             leading: Icon(themeMode.icon),
@@ -136,16 +138,47 @@ class SettingsPage extends StatelessWidget {
             ),
             for (final section in _adminSections(t, local: local)) _SectionTile(section: section),
           ],
-          const Divider(height: 24),
-          ListTile(
-            key: const ValueKey('settings.logout'),
-            leading: const Icon(Icons.logout),
-            title: Text(t.base.settings.page.logout),
-            onTap: () async {
-              await context.redux(accountProvider).dispatchAsync(LogoutAction());
-            },
-          ),
         ],
+      ),
+    );
+  }
+}
+
+/// The active account, which opens a sheet to change it. The local instance is shown as `This device` only, its
+/// single user's name (`admin`) tells nothing.
+class _AccountChip extends StatelessWidget {
+  const _AccountChip();
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.t;
+    final account = context.watch(accountProvider.select((state) => state.active));
+    // As of the login until the user is loaded.
+    final userName = context.watch(meProvider.select((user) => user?.userName)) ?? account?.user.userName;
+    final local = account?.isLocal ?? false;
+    final label = switch (account) {
+      null => t.flutter.settings.accountSheet.accounts,
+      _ when local => account.server,
+      _ => '${userName ?? account.user.userName} · ${account.server}',
+    };
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Center(
+        child: ActionChip(
+          key: const ValueKey('settings.accounts'),
+          avatar: const Icon(Icons.account_circle),
+          label: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis)),
+              const SizedBox(width: 4),
+              const Icon(Icons.unfold_more, size: 18),
+            ],
+          ),
+          onPressed: () async {
+            await AccountSheet.show(context);
+          },
+        ),
       ),
     );
   }

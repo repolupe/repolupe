@@ -49,6 +49,11 @@ Future<void> _pumpPage(WidgetTester tester, {required bool local}) async {
   container.redux(apiProvider).dispatch(ApiSetAccountAction(account));
   await tester.runAsync(() => container.redux(meProvider).dispatchAsync(RefreshMeAction()));
 
+  // Tall enough that the list builds all of its sections.
+  tester.view.physicalSize = const Size(800, 1200);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(tester.view.reset);
+
   await tester.pumpWidget(
     RefenaScope.withContainer(
       container: container,
@@ -70,6 +75,7 @@ void main() {
   testWidgets('the settings of an admin offer the users', (tester) async {
     await _pumpPage(tester, local: false);
     expect(find.text('Admin'), findsOneWidget);
+    expect(find.byKey(const ValueKey('settings.accounts')), findsOneWidget);
     expect(find.byKey(const ValueKey('settings.admin.users')), findsOneWidget);
     expect(find.byKey(const ValueKey('settings.admin.llm')), findsOneWidget);
   });
