@@ -180,6 +180,7 @@ class _MessageInputState extends State<_MessageInput> with Refena {
   }
 
   Future<void> _send() async {
+    FocusScope.of(context).unfocus();
     final sent = await ref.redux(chatProvider).dispatchAsyncTakeResult(SendMessageAction(_controller.text));
     if (sent && mounted) {
       _controller.clear();
@@ -191,7 +192,7 @@ class _MessageInputState extends State<_MessageInput> with Refena {
     final state = context.watch(chatProvider);
     final answering = state.answer != null;
     final canSend = !state.sending && !answering && _controller.text.trim().isNotEmpty;
-    // Sending or stopping keeps the keyboard open.
+    // Stopping keeps the keyboard open, sending closes it.
     return TextFieldTapRegion(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16),
