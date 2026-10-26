@@ -65,10 +65,19 @@ export const useAuthChecked = () => useState<boolean>('authChecked', () => false
  */
 export const useChats = () => useState<ChatDto[]>('chats', () => []);
 
+/**
+ * Where the chats older than {@link useChats} start, `null` if there are none, `undefined` until
+ * loaded. Set by {@link refreshChats}.
+ */
+export const useOlderChatsCursor = () => useState<string | null | undefined>('olderChatsCursor', () => undefined);
+
 export async function refreshChats() {
     // useState needs the Nuxt context, which is gone after an await.
     const chats = useChats();
+    const olderCursor = useOlderChatsCursor();
     // fewer on mobile, where the navigation is a narrow overlay
     const limit = useNuxtApp().$display.mobile.value ? 5 : 10;
-    chats.value = (await getChats(null, limit)).items;
+    const page = await getChats(null, limit);
+    chats.value = page.items;
+    olderCursor.value = page.next_cursor;
 }

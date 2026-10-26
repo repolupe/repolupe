@@ -307,7 +307,8 @@ void main() {
 
     await container.redux(chatListProvider).dispatchAsync(LoadChatsAction(limit: 5));
     expect(requests.last, ('GET', '/api/v1/chats?limit=5'));
-    expect(container.read(chatListProvider)!.map((c) => c.title), ['Earlier']);
+    expect(container.read(chatListProvider)!.items.map((c) => c.title), ['Earlier']);
+    expect(container.read(chatListProvider)!.nextCursor, 'next');
 
     await container.redux(chatProvider).dispatchAsync(OpenChatAction(UuidValue.fromString(_chatId)));
     expect(container.read(chatProvider).chat?.title, 'Earlier');

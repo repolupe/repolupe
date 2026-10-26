@@ -15,21 +15,25 @@ class ApiListModelsAction extends AsyncReduxActionWithResult<ApiService, Account
   }
 }
 
-/// Lists the newest [limit] chats, newest first.
-class ApiListChatsAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, List<ChatDto>> {
+/// Lists [limit] chats, newest first: the newest ones, or those after [cursor] (a page's `nextCursor`).
+class ApiListChatsAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, ChatPageDto> {
   final int limit;
+  final String? cursor;
 
-  ApiListChatsAction({required this.limit});
+  ApiListChatsAction({required this.limit, this.cursor});
 
   @override
-  Future<(AccountClient?, List<ChatDto>)> reduce() async {
+  Future<(AccountClient?, ChatPageDto)> reduce() async {
     final page = await dispatchAsyncTakeResult(
       _ApiCallAction(
-        call: (client) => client.listChats(limit: limit),
+        call: (client) => client.listChats(limit: limit, cursor: cursor),
       ),
     );
-    return (state, page.items);
+    return (state, page);
   }
+
+  @override
+  String toString() => 'ApiListChatsAction(limit: $limit, cursor: $cursor)';
 }
 
 /// Loads the chat [chatId] with its messages.

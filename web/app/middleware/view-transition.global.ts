@@ -1,7 +1,7 @@
 import {defineNuxtRouteMiddleware} from "#app";
 
 const isStart = (path: string) => path === '/';
-const isChat = (path: string) => path.startsWith('/chat/') && path !== '/chat/list';
+const isChat = (path: string) => path.startsWith('/chat/') && path !== '/chat/older';
 
 /**
  * Enables the view transition only between the start page and a chat, where it moves the

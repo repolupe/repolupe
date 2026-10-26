@@ -100,7 +100,7 @@
       "collapse": "Einklappen",
       "collapseNavigation": "Navigation einklappen",
       "newChat": "Neuer Chat",
-      "allChats": "Alle Chats"
+      "older": "Älter"
     },
     "mainContainer": {
       "quotedTitle": "„{title}“"
@@ -256,6 +256,9 @@
       "outputHint": "Einschließlich Denkschritten",
       "total": "Gesamt",
       "cost": "Kosten"
+    },
+    "olderPage": {
+      "title": "Ältere Chats"
     },
     "loadFailed": "Die Chats konnten nicht geladen werden: {error}"
   },

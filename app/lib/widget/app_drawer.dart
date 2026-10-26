@@ -1,4 +1,5 @@
 import 'package:app/gen/strings.g.dart';
+import 'package:app/pages/older_chats_page.dart';
 import 'package:app/pages/settings_page.dart';
 import 'package:app/service/chat_list_service.dart';
 import 'package:app/service/chat_service.dart';
@@ -7,15 +8,17 @@ import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
-/// The newest chats of the account; tapping one opens it with its messages.
-/// At the bottom, the settings.
+/// The newest chats of the account; tapping one opens it with its messages. Below them "Older", if there are
+/// more, opens the others. At the bottom, the settings.
 class AppDrawer extends StatelessWidget {
   const AppDrawer();
 
   @override
   Widget build(BuildContext context) {
     final t = context.t;
-    final chats = context.watch(chatListProvider);
+    final page = context.watch(chatListProvider);
+    final chats = page?.items;
+    final olderCursor = page?.nextCursor;
     final openId = context.watch(chatProvider.select((state) => state.chat?.id));
     return Drawer(
       child: SafeArea(
@@ -64,12 +67,12 @@ class AppDrawer extends StatelessWidget {
                     )
                   else if (chats.isEmpty)
                     ListTile(title: Text(t.base.chat.noChats))
-                  else
-                    for (final (index, chat) in chats.indexed)
+                  else ...[
+                    for (final chat in chats)
                       CustomPaint(
                         painter: _TimelinePainter(
                           first: false,
-                          last: index == chats.length - 1,
+                          last: olderCursor == null && chat == chats.last,
                           selected: chat.id == openId,
                           colors: Theme.of(context).colorScheme,
                           textDirection: Directionality.of(context),
@@ -87,6 +90,30 @@ class AppDrawer extends StatelessWidget {
                           },
                         ),
                       ),
+                    // Only when there are chats it does not show.
+                    if (olderCursor != null)
+                      CustomPaint(
+                        painter: _TimelinePainter(
+                          first: false,
+                          last: true,
+                          selected: false,
+                          colors: Theme.of(context).colorScheme,
+                          textDirection: Directionality.of(context),
+                        ),
+                        child: ListTile(
+                          key: const ValueKey('chat.drawer.older'),
+                          contentPadding: const EdgeInsetsDirectional.only(start: _TimelinePainter.lineStart * 2, end: 16),
+                          title: Text(t.base.app.navigation.older),
+                          onTap: () async {
+                            // The drawer's context is gone once it is closed.
+                            final ref = context.ref;
+                            Navigator.pop(context);
+                            await ref.global.dispatchAsync(NavigateAction.push(OlderChatsPage(cursor: olderCursor)));
+                          },
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                  ],
                 ],
               ),
             ),
@@ -110,7 +137,7 @@ class AppDrawer extends StatelessWidget {
 }
 
 /// Draws a "git log" next to a chat: a vertical line through the tile with a
-/// circle at its center. The line starts at "New chat" and ends at the last chat.
+/// circle at its center. The line starts at "New chat" and ends at "Older", or the last chat without it.
 class _TimelinePainter extends CustomPainter {
   /// The distance of the line from the start edge.
   static const lineStart = 24.0;

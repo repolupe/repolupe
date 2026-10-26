@@ -474,6 +474,7 @@ class Translations$base$chat$en {
   late final Translations$base$chat$proposedCommitPanel$en proposedCommitPanel = Translations$base$chat$proposedCommitPanel$en.internal(_root);
   late final Translations$base$chat$renameDialog$en renameDialog = Translations$base$chat$renameDialog$en.internal(_root);
   late final Translations$base$chat$usageDialog$en usageDialog = Translations$base$chat$usageDialog$en.internal(_root);
+  late final Translations$base$chat$olderPage$en olderPage = Translations$base$chat$olderPage$en.internal(_root);
 
   /// en: 'Could not load the chats: {error}'
   String loadFailed({required Object error}) => 'Could not load the chats: ${error}';
@@ -789,8 +790,8 @@ class Translations$base$app$navigation$en {
   /// en: 'New Chat'
   String get newChat => 'New Chat';
 
-  /// en: 'All Chats'
-  String get allChats => 'All Chats';
+  /// en: 'Older'
+  String get older => 'Older';
 }
 
 // Path: base.app.mainContainer
@@ -1209,6 +1210,18 @@ class Translations$base$chat$usageDialog$en {
 
   /// en: 'Cost'
   String get cost => 'Cost';
+}
+
+// Path: base.chat.olderPage
+class Translations$base$chat$olderPage$en {
+  Translations$base$chat$olderPage$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Older Chats'
+  String get title => 'Older Chats';
 }
 
 // Path: base.settings.themeMode

@@ -1,5 +1,5 @@
 <template>
-  <MainContainer :title="$t('chat.title')">
+  <MainContainer :title="$t('chat.olderPage.title')">
     <v-infinite-scroll side="end" @load="load">
       <v-list lines="two" bg-color="transparent">
         <v-list-item v-for="c in chats" :key="c.id" :to="'/chat/' + c.id" :title="c.title"
@@ -26,6 +26,7 @@ import {ref} from "vue";
 import type {ChatDto} from "~/utils/model";
 import {errorMessage, getChats} from "~/utils/api";
 import {formatDateTime, formatRelative, showSnackbar} from "~/utils/utils";
+import {refreshChats, useOlderChatsCursor} from "~/composables/states";
 import MainContainer from "~/components/MainContainer.vue";
 import {useI18n} from "#i18n";
 
@@ -35,12 +36,28 @@ const PAGE_SIZE = 50;
 
 type LoadStatus = 'ok' | 'empty' | 'error';
 
+const olderChatsCursor = useOlderChatsCursor();
+
+/** The chats older than those in the navigation, so the list starts after its last one. */
 const chats = ref<ChatDto[]>([]);
-let nextCursor: string | null = null;
+
+/** `undefined` before the first page, `null` once all are loaded. */
+let nextCursor: string | null | undefined = undefined;
 
 /** Called by `v-infinite-scroll` on mount and whenever the end of the list comes into view. */
 const load = async ({done}: { done: (status: LoadStatus) => void }) => {
   try {
+    if (nextCursor === undefined) {
+      // opened directly, before the navigation's chats were loaded
+      if (olderChatsCursor.value === undefined) {
+        await refreshChats();
+      }
+      nextCursor = olderChatsCursor.value ?? null;
+    }
+    if (nextCursor === null) {
+      done('empty');
+      return;
+    }
     const page = await getChats(nextCursor, PAGE_SIZE);
     chats.value.push(...page.items);
     nextCursor = page.next_cursor;

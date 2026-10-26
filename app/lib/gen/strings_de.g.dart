@@ -409,6 +409,8 @@ class _Translations$base$chat$de extends Translations$base$chat$en {
   @override
   late final _Translations$base$chat$usageDialog$de usageDialog = _Translations$base$chat$usageDialog$de._(_root);
   @override
+  late final _Translations$base$chat$olderPage$de olderPage = _Translations$base$chat$olderPage$de._(_root);
+  @override
   String loadFailed({required Object error}) => 'Die Chats konnten nicht geladen werden: ${error}';
 }
 
@@ -716,7 +718,7 @@ class _Translations$base$app$navigation$de extends Translations$base$app$navigat
   @override
   String get newChat => 'Neuer Chat';
   @override
-  String get allChats => 'Alle Chats';
+  String get older => 'Älter';
 }
 
 // Path: base.app.mainContainer
@@ -1042,6 +1044,17 @@ class _Translations$base$chat$usageDialog$de extends Translations$base$chat$usag
   String get total => 'Gesamt';
   @override
   String get cost => 'Kosten';
+}
+
+// Path: base.chat.olderPage
+class _Translations$base$chat$olderPage$de extends Translations$base$chat$olderPage$en {
+  _Translations$base$chat$olderPage$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'Ältere Chats';
 }
 
 // Path: base.settings.themeMode
