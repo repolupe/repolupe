@@ -1,6 +1,7 @@
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/account_service.dart';
 import 'package:app/src/rust/api/local.dart';
+import 'package:app/widget/form_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:moform/moform.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -20,15 +21,7 @@ class MistralKeySheet extends StatefulWidget {
 
   /// Returns whether the key was changed.
   static Future<bool> show(BuildContext context, {required bool isSet}) async {
-    final changed = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      // Dragging closes the sheet even while it can't be popped (the drag handle too), see [PopScope] in build.
-      enableDrag: false,
-      showDragHandle: false,
-      builder: (_) => MistralKeySheet(isSet: isSet),
-    );
+    final changed = await FormSheet.show<bool>(context, enableDrag: false, builder: (_) => MistralKeySheet(isSet: isSet));
     return changed ?? false;
   }
 
@@ -72,102 +65,47 @@ class _MistralKeySheetState extends State<MistralKeySheet> with Refena {
   @override
   Widget build(BuildContext context) {
     final t = context.t;
-    final theme = Theme.of(context);
-    final muted = theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant);
-    final canSave = !_loading && _value.trim().isNotEmpty;
-    // The back button and taps outside close the sheet only while the instance is not being started.
-    return PopScope(
-      canPop: !_loading,
-      child: Padding(
-        // Keeps the field above the keyboard.
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      ocrApiKeyMistral,
-                      style: theme.textTheme.titleMedium?.copyWith(fontFamily: 'monospace', fontFamilyFallback: const ['Menlo', 'Courier']),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(t.flutter.admin.config.mistralKeySheet.intro, style: muted),
-                    const SizedBox(height: 20),
-                    StringField(
-                      key: const ValueKey('config.mistralKey.value'),
-                      value: _value,
-                      label: t.base.admin.llm.providerDialog.apiKey,
-                      enabled: !_loading,
-                      autofocus: true,
-                      obscureText: true,
-                      textInputAction: TextInputAction.done,
-                      onChanged: (value) {
-                        setState(() {
-                          _value = value;
-                        });
-                      },
-                      onSubmitted: (_) async {
-                        if (canSave) {
-                          await _save(_value.trim());
-                        }
-                      },
-                    ),
-                    if (_error case final error?)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Text(
-                          error,
-                          key: const ValueKey('config.mistralKey.error'),
-                          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
-                        ),
-                      ),
-                    if (widget.isSet)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: TextButton.icon(
-                            key: const ValueKey('config.mistralKey.remove'),
-                            onPressed: _loading ? null : () => _save(null),
-                            icon: const Icon(Icons.key_off),
-                            label: Text(t.flutter.admin.config.mistralKeySheet.remove),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              Padding(
-                // useSafeArea only covers the top.
-                padding: EdgeInsets.fromLTRB(16, 8, 16, 8 + MediaQuery.paddingOf(context).bottom),
-                child: OverflowBar(
-                  alignment: MainAxisAlignment.end,
-                  spacing: 8,
-                  children: [
-                    TextButton(
-                      onPressed: _loading ? null : () => Navigator.pop(context, false),
-                      child: Text(t.base.common.cancel),
-                    ),
-                    FilledButton(
-                      key: const ValueKey('config.mistralKey.save'),
-                      onPressed: canSave ? () => _save(_value.trim()) : null,
-                      child: _loading
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                          : Text(t.base.common.save),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+    final canSave = _value.trim().isNotEmpty;
+    return FormSheet(
+      title: const Text(
+        ocrApiKeyMistral,
+        style: TextStyle(fontFamily: 'monospace', fontFamilyFallback: ['Menlo', 'Courier']),
       ),
+      description: t.flutter.admin.config.mistralKeySheet.intro,
+      error: _error,
+      errorKey: const ValueKey('config.mistralKey.error'),
+      loading: _loading,
+      onSave: canSave ? () => _save(_value.trim()) : null,
+      saveKey: const ValueKey('config.mistralKey.save'),
+      extraAction: widget.isSet
+          ? TextButton.icon(
+              key: const ValueKey('config.mistralKey.remove'),
+              onPressed: _loading ? null : () => _save(null),
+              icon: const Icon(Icons.key_off),
+              label: Text(t.flutter.admin.config.mistralKeySheet.remove),
+            )
+          : null,
+      children: [
+        StringField(
+          key: const ValueKey('config.mistralKey.value'),
+          value: _value,
+          label: t.base.admin.llm.providerDialog.apiKey,
+          enabled: !_loading,
+          autofocus: true,
+          obscureText: true,
+          textInputAction: TextInputAction.done,
+          onChanged: (value) {
+            setState(() {
+              _value = value;
+            });
+          },
+          onSubmitted: (_) async {
+            if (!_loading && canSave) {
+              await _save(_value.trim());
+            }
+          },
+        ),
+      ],
     );
   }
 }
