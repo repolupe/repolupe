@@ -1,10 +1,12 @@
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/api_service.dart';
+import 'package:app/service/me_service.dart';
 import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/util/tool_call.dart';
 import 'package:app/widget/chat/diff_view.dart';
 import 'package:app/widget/chat/tool_call_info.dart';
+import 'package:app/widget/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -105,9 +107,34 @@ class _ProposedCommitPageState extends State<ProposedCommitPage> with Refena {
     }
   }
 
+  /// Turns on the user's `autoCommit`, which applies the changes of later answers, and commits this one.
+  Future<void> _enableAutoCommit() async {
+    final enabled = await ConfirmDialog.show(
+      context,
+      title: t.base.chat.proposedCommitPanel.autoCommitTitle,
+      text: t.base.chat.proposedCommitPanel.autoCommitText,
+      confirmText: t.base.chat.proposedCommitPanel.autoCommitConfirm,
+      confirmIcon: Icons.check_circle,
+      confirmKey: 'proposedCommit.autoCommit.confirm',
+      onConfirm: () async {
+        try {
+          await ref.redux(apiProvider).dispatchAsync(ApiSetAutoCommitAction(autoCommit: true));
+        } on ClientError catch (e) {
+          return t.base.settings.preferences.page.autoCommitSaveFailed(error: e.userMessage);
+        }
+        await ref.redux(meProvider).dispatchAsync(RefreshMeAction());
+        return null;
+      },
+    );
+    if (enabled && mounted) {
+      await _commit();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final user = context.watch(meProvider);
     final moves = widget.toolCall.moves;
     final lines = switch (widget.toolCall.inputMap['message']) {
       final String message => message.trim().split('\n'),
@@ -126,7 +153,16 @@ class _ProposedCommitPageState extends State<ProposedCommitPage> with Refena {
       title: message.isNotEmpty ? message : (moves.length > 1 ? context.t.base.chat.moveCount(count: moves.length) : null),
       loading: _loading,
       error: _error,
-      footer: change == null || applied ? null : _CommitBar(change: change, committing: _committing, onCommit: _commit),
+      footer: change == null || applied
+          ? null
+          : _CommitBar(
+              change: change,
+              committing: _committing,
+              onCommit: _commit,
+              onEnableAutoCommit: change.canCommit && change.status == ProposedCommitStatus.proposed && user != null && !user.autoCommit
+                  ? _enableAutoCommit
+                  : null,
+            ),
       child: diff == null
           ? null
           : Column(
@@ -260,7 +296,10 @@ class _CommitBar extends StatelessWidget {
   final bool committing;
   final VoidCallback onCommit;
 
-  const _CommitBar({required this.change, required this.committing, required this.onCommit});
+  /// Shows the button that turns on auto-commit, unless `null`.
+  final VoidCallback? onEnableAutoCommit;
+
+  const _CommitBar({required this.change, required this.committing, required this.onCommit, required this.onEnableAutoCommit});
 
   @override
   Widget build(BuildContext context) {
@@ -268,9 +307,40 @@ class _CommitBar extends StatelessWidget {
     final caption = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     final hint = !change.canCommit
         ? context.t.base.chat.proposedCommitPanel.cannotCommit
-        : change.status == ProposedCommitStatus.proposed
+        // No room for it next to both buttons.
+        : change.status == ProposedCommitStatus.proposed && onEnableAutoCommit == null
         ? context.t.flutter.chat.proposedCommitPage.notApplied
         : null;
+    // Wraps if the labels are too long for one line (e.g. in German).
+    final buttons = Wrap(
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 12,
+      runSpacing: 4,
+      children: [
+        if (onEnableAutoCommit case final onEnableAutoCommit?)
+          TextButton(
+            onPressed: committing ? null : onEnableAutoCommit,
+            child: Text(context.t.base.chat.proposedCommitPanel.enableAutoCommit),
+          ),
+        if (change.canCommit)
+          FilledButton.icon(
+            icon: committing
+                ? SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: theme.colorScheme.onPrimary),
+                  )
+                : const Icon(Icons.check),
+            label: Text(
+              change.status == ProposedCommitStatus.proposed
+                  ? context.t.base.chat.proposedCommitPanel.apply
+                  : context.t.base.chat.proposedCommitPanel.tryAgain,
+            ),
+            onPressed: committing ? null : onCommit,
+          ),
+      ],
+    );
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -278,29 +348,17 @@ class _CommitBar extends StatelessWidget {
           const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-            child: Row(
-              children: [
-                Expanded(child: hint == null ? const SizedBox.shrink() : Text(hint, style: caption)),
-                if (change.canCommit) ...[
-                  const SizedBox(width: 12),
-                  FilledButton.icon(
-                    icon: committing
-                        ? SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: theme.colorScheme.onPrimary),
-                          )
-                        : const Icon(Icons.check),
-                    label: Text(
-                      change.status == ProposedCommitStatus.proposed
-                          ? context.t.base.chat.proposedCommitPanel.apply
-                          : context.t.base.chat.proposedCommitPanel.tryAgain,
-                    ),
-                    onPressed: committing ? null : onCommit,
+            child: hint == null
+                ? SizedBox(width: double.infinity, child: buttons)
+                : Row(
+                    children: [
+                      Expanded(child: Text(hint, style: caption)),
+                      if (change.canCommit) ...[
+                        const SizedBox(width: 12),
+                        buttons,
+                      ],
+                    ],
                   ),
-                ],
-              ],
-            ),
           ),
         ],
       ),
