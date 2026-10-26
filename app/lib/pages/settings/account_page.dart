@@ -3,9 +3,9 @@ import 'package:app/service/account_service.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
 import 'package:app/util/format.dart';
-import 'package:app/widget/settings/change_password_dialog.dart';
-import 'package:app/widget/settings/email_dialog.dart';
-import 'package:app/widget/settings/user_name_dialog.dart';
+import 'package:app/widget/settings/change_password_sheet.dart';
+import 'package:app/widget/settings/email_sheet.dart';
+import 'package:app/widget/settings/user_name_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
@@ -76,7 +76,7 @@ class _AccountPageState extends State<AccountPage> with Refena {
                     subtitle: const Text('●●●●●●'),
                     trailing: const Icon(Icons.edit),
                     onTap: () async {
-                      await ChangePasswordDialog.show(context);
+                      await ChangePasswordSheet.show(context);
                     },
                   ),
               ],
@@ -85,10 +85,10 @@ class _AccountPageState extends State<AccountPage> with Refena {
   }
 
   Future<void> _editUserName(UserDto user, {required bool local}) async {
-    await UserNameDialog.show(context, userName: user.userName, email: user.email ?? '', showLoginHint: !local);
+    await UserNameSheet.show(context, userName: user.userName, email: user.email ?? '', showLoginHint: !local);
   }
 
   Future<void> _editEmail(UserDto user) async {
-    await EmailDialog.show(context, userName: user.userName, email: user.email ?? '');
+    await EmailSheet.show(context, userName: user.userName, email: user.email ?? '');
   }
 }

@@ -4,7 +4,7 @@ import 'package:app/service/admin_user_service.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
 import 'package:app/util/format.dart';
-import 'package:app/widget/admin/set_password_dialog.dart';
+import 'package:app/widget/admin/set_password_sheet.dart';
 import 'package:app/widget/admin/user_flag_chips.dart';
 import 'package:app/widget/delete_dialog.dart';
 import 'package:app/widget/repositories/info_card.dart';
@@ -36,7 +36,7 @@ class _UserPageState extends State<UserPage> with Refena {
   }
 
   Future<void> _setPassword() async {
-    final updated = await SetPasswordDialog.show(context, user: _user);
+    final updated = await SetPasswordSheet.show(context, user: _user);
     if (updated != null && mounted) {
       setState(() {
         _user = updated;

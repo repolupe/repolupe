@@ -1,18 +1,13 @@
 import 'package:app/gen/strings.g.dart';
-import 'package:app/widget/inline_error.dart';
 import 'package:flutter/material.dart';
 
-/// A form in a bottom sheet: [title], [description], the [children] (its fields), the [error] of the last try, an
-/// [extraAction] (such as removing the value) and Cancel and Save at the bottom. It stays above the keyboard, and
-/// while [loading] the buttons are disabled and the back button and taps outside don't close it.
+/// A form in a bottom sheet: [title], [description], the [children] (its fields, with an `InlineError` of the last
+/// try), an [extraAction] (such as removing the value) and Cancel and Save at the bottom. It stays above the keyboard,
+/// and while [loading] the buttons are disabled and the back button and taps outside don't close it.
 class FormSheet extends StatelessWidget {
   final Widget title;
   final String? description;
   final List<Widget> children;
-
-  /// Why the last try failed, until the next one.
-  final String? error;
-  final Key? errorKey;
 
   final Widget? extraAction;
   final bool loading;
@@ -21,17 +16,21 @@ class FormSheet extends StatelessWidget {
   final VoidCallback? onSave;
   final Key? saveKey;
 
+  /// The label of Save, [saveIcon] its icon (replaced by a progress indicator while [loading]).
+  final String? saveLabel;
+  final Widget? saveIcon;
+
   const FormSheet({
     super.key,
     required this.title,
     this.description,
     required this.children,
-    this.error,
-    this.errorKey,
     this.extraAction,
     required this.loading,
     required this.onSave,
     this.saveKey,
+    this.saveLabel,
+    this.saveIcon,
   });
 
   /// Opens the sheet [builder] builds. Dragging closes it even while it can't be popped, so a sheet whose save must
@@ -52,6 +51,8 @@ class FormSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.t;
     final theme = Theme.of(context);
+    final label = saveLabel ?? t.base.common.save;
+    const progress = SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2));
     return PopScope(
       canPop: !loading,
       child: Padding(
@@ -75,7 +76,6 @@ class FormSheet extends StatelessWidget {
                     ],
                     const SizedBox(height: 20),
                     ...children,
-                    if (error case final error?) InlineError(error, key: errorKey),
                     if (extraAction case final extraAction?)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
@@ -95,13 +95,28 @@ class FormSheet extends StatelessWidget {
                       onPressed: loading ? null : () => Navigator.pop(context),
                       child: Text(t.base.common.cancel),
                     ),
-                    FilledButton(
-                      key: saveKey,
-                      onPressed: loading ? null : onSave,
-                      child: loading
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                          : Text(t.base.common.save),
-                    ),
+                    if (saveIcon case final saveIcon?)
+                      FilledButton.icon(
+                        key: saveKey,
+                        onPressed: loading ? null : onSave,
+                        icon: loading ? progress : saveIcon,
+                        label: Text(label),
+                      )
+                    else
+                      FilledButton(
+                        key: saveKey,
+                        onPressed: loading ? null : onSave,
+                        // The hidden label keeps the button's width, so Cancel doesn't move.
+                        child: loading
+                            ? Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Opacity(opacity: 0, child: Text(label)),
+                                  progress,
+                                ],
+                              )
+                            : Text(label),
+                      ),
                   ],
                 ),
               ),

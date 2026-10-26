@@ -9,6 +9,7 @@ import 'package:app/service/account_service.dart';
 import 'package:app/service/api_service.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/service/persistence_service.dart';
+import 'package:app/widget/form_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:refena_flutter/addons.dart';
@@ -108,7 +109,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('account.userNameDialog.userName')), 'bob');
     await tester.tap(find.byKey(const ValueKey('account.userNameDialog.save')));
-    await _pumpUntil(tester, find.descendant(of: find.byType(AlertDialog), matching: find.text('A user with this user name already exists')));
+    await _pumpUntil(tester, find.descendant(of: find.byType(FormSheet), matching: find.text('A user with this user name already exists')));
     expect(find.byKey(const ValueKey('account.userNameDialog.save')), findsOneWidget);
     expect(find.byType(SnackBar), findsNothing);
 
@@ -143,10 +144,10 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('account.password.new')), 'new-password');
     await tester.enterText(find.byKey(const ValueKey('account.password.confirm')), 'other-password');
     await tester.tap(find.byKey(const ValueKey('account.password.save')));
-    await _pumpUntil(tester, find.descendant(of: find.byType(AlertDialog), matching: find.text('New passwords do not match.')));
+    await _pumpUntil(tester, find.descendant(of: find.byType(FormSheet), matching: find.text('New passwords do not match.')));
     await tester.enterText(find.byKey(const ValueKey('account.password.confirm')), 'new-password');
     await tester.tap(find.byKey(const ValueKey('account.password.save')));
-    await _pumpUntil(tester, find.descendant(of: find.byType(AlertDialog), matching: find.text('Current password is incorrect')));
+    await _pumpUntil(tester, find.descendant(of: find.byType(FormSheet), matching: find.text('Current password is incorrect')));
     expect(find.text('New passwords do not match.'), findsNothing);
     expect(find.byKey(const ValueKey('account.password.save')), findsOneWidget);
     expect(find.byType(SnackBar), findsNothing);

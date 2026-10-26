@@ -5,7 +5,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
 import 'package:app/util/format.dart';
 import 'package:app/widget/confirm_dialog.dart';
 import 'package:app/widget/repositories/info_card.dart';
-import 'package:app/widget/repositories/share_repository_dialog.dart';
+import 'package:app/widget/repositories/share_repository_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -70,7 +70,7 @@ class _RepositoryUsersCardState extends State<RepositoryUsersCard> with Refena {
   }
 
   Future<void> _share() async {
-    final shared = await ShareRepositoryDialog.show(context, repositoryId: widget.repositoryId);
+    final shared = await ShareRepositorySheet.show(context, repositoryId: widget.repositoryId);
     if (!shared || !mounted) {
       return;
     }

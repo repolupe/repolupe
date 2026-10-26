@@ -2,6 +2,7 @@ import 'package:app/gen/strings.g.dart';
 import 'package:app/service/admin_config_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/config.dart';
 import 'package:app/widget/form_sheet.dart';
+import 'package:app/widget/inline_error.dart';
 import 'package:flutter/material.dart';
 import 'package:moform/moform.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -81,8 +82,6 @@ class _OverrideSheetState extends State<OverrideSheet> with Refena {
         widget.entry.key,
         style: const TextStyle(fontFamily: 'monospace', fontFamilyFallback: ['Menlo', 'Courier']),
       ),
-      error: _error,
-      errorKey: const ValueKey('config.override.error'),
       loading: _loading,
       onSave: () => _save(_value),
       saveKey: const ValueKey('config.override.save'),
@@ -133,6 +132,7 @@ class _OverrideSheetState extends State<OverrideSheet> with Refena {
               }
             },
           ),
+        if (_error case final error?) InlineError(error, key: const ValueKey('config.override.error')),
       ],
     );
   }

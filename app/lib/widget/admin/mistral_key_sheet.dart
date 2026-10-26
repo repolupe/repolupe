@@ -2,6 +2,7 @@ import 'package:app/gen/strings.g.dart';
 import 'package:app/service/account_service.dart';
 import 'package:app/src/rust/api/local.dart';
 import 'package:app/widget/form_sheet.dart';
+import 'package:app/widget/inline_error.dart';
 import 'package:flutter/material.dart';
 import 'package:moform/moform.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -72,8 +73,6 @@ class _MistralKeySheetState extends State<MistralKeySheet> with Refena {
         style: TextStyle(fontFamily: 'monospace', fontFamilyFallback: ['Menlo', 'Courier']),
       ),
       description: t.flutter.admin.config.mistralKeySheet.intro,
-      error: _error,
-      errorKey: const ValueKey('config.mistralKey.error'),
       loading: _loading,
       onSave: canSave ? () => _save(_value.trim()) : null,
       saveKey: const ValueKey('config.mistralKey.save'),
@@ -105,6 +104,7 @@ class _MistralKeySheetState extends State<MistralKeySheet> with Refena {
             }
           },
         ),
+        if (_error case final error?) InlineError(error, key: const ValueKey('config.mistralKey.error')),
       ],
     );
   }

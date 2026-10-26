@@ -9,6 +9,7 @@ import 'package:app/service/api_service.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/service/persistence_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
+import 'package:app/widget/form_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:refena_flutter/addons.dart';
@@ -232,7 +233,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('user.setPassword')));
     await _settle(tester);
     await tester.tap(find.byKey(const ValueKey('user.password.save')));
-    await _pumpUntil(tester, find.descendant(of: find.byType(AlertDialog), matching: find.text('Missing password')));
+    await _pumpUntil(tester, find.descendant(of: find.byType(FormSheet), matching: find.text('Missing password')));
     expect(find.byType(SnackBar), findsNothing);
     expect(server.requests.length, 1);
     await tester.enterText(find.byKey(const ValueKey('user.password.new')), 'new-password');
