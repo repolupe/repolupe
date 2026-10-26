@@ -199,7 +199,9 @@ class _MessageInputState extends State<_MessageInput> with Refena {
   }
 
   Future<void> _send() async {
-    FocusScope.of(context).unfocus();
+    // Unfocusing the field, not the page's scope, which would keep it as the scope's focused child,
+    // so that the scope focusing again (e.g. when the drawer opens) would show the keyboard again.
+    FocusManager.instance.primaryFocus?.unfocus();
     final sent = await ref.redux(chatProvider).dispatchAsyncTakeResult(SendMessageAction(_controller.text));
     if (sent && mounted) {
       _controller.clear();
