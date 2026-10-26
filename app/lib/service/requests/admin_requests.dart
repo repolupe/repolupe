@@ -283,6 +283,23 @@ class ApiSetDefaultModelAction extends AsyncReduxAction<ApiService, AccountClien
   String toString() => 'ApiSetDefaultModelAction(modelId: $modelId)';
 }
 
+// Server (admins only).
+
+/// The server's version.
+class ApiGetServerAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, ServerDto> {
+  ApiGetServerAction();
+
+  @override
+  Future<(AccountClient?, ServerDto)> reduce() async {
+    final server = await dispatchAsyncTakeResult(
+      _ApiCallAction(
+        call: (client) => client.getServer(),
+      ),
+    );
+    return (state, server);
+  }
+}
+
 // Document extraction (admins only).
 
 /// What the document conversion is doing across all repositories, with its totals.

@@ -131,6 +131,11 @@ const adminPages = computed(() => [
     label: t('admin.config.title'),
     icon: 'mdi-cog-transfer',
   },
+  {
+    route: '/settings/admin/server',
+    label: t('admin.server.title'),
+    icon: 'mdi-server',
+  },
 ]);
 
 // The states are only a summary, a failed request leaves them out instead of showing an error.

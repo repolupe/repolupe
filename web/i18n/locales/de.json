@@ -714,6 +714,16 @@
         "loadFailed": "Die Dokumente konnten nicht geladen werden: {error}",
         "retryFailed": "Das Dokument konnte nicht neu umgewandelt werden: {error}"
       }
+    },
+    "server": {
+      "title": "Server-Informationen",
+      "page": {
+        "baseUrl": "Basis-URL",
+        "version": "Server-Version",
+        "copied": "In die Zwischenablage kopiert.",
+        "copyFailed": "Konnte nicht in die Zwischenablage kopiert werden.",
+        "loadFailed": "Die Server-Informationen konnten nicht geladen werden: {error}"
+      }
     }
   }
 }

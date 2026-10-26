@@ -10,6 +10,7 @@ pub(crate) mod extraction;
 pub(crate) mod instance;
 pub(crate) mod llm;
 pub(crate) mod repository;
+pub(crate) mod server;
 pub(crate) mod user;
 
 use crate::config::error::AppError;

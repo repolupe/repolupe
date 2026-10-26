@@ -221,6 +221,7 @@ fn configure_routes(state: config::state::AppState) -> Router<config::state::App
         .route("/api/v1/document-extraction", get(controller::extraction::get_extraction_overview))
         .route("/api/v1/document-extraction/documents", get(controller::extraction::list_extraction_documents))
         .route("/api/v1/document-extraction/retry", post(controller::extraction::retry_document))
+        .route("/api/v1/server", get(controller::server::get_server))
         .route_layer(axum::middleware::from_fn(middleware::content_type::require_json))
         .route_layer(axum::middleware::from_fn_with_state(state, middleware::auth::session_auth_admin));
 

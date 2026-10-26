@@ -17,4 +17,5 @@ pub mod extraction;
 pub mod instance;
 pub mod llm;
 pub mod repository;
+pub mod server;
 pub mod user;

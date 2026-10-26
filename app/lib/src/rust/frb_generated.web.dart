@@ -25,6 +25,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/extraction.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/instance.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/server.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_web.dart';
 import 'package:uuid/uuid.dart';
@@ -597,6 +598,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   SendMessageRequest dco_decode_send_message_request(dynamic raw);
+
+  @protected
+  ServerDto dco_decode_server_dto(dynamic raw);
 
   @protected
   SetAutoCommitRequest dco_decode_set_auto_commit_request(dynamic raw);
@@ -1220,6 +1224,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   SendMessageRequest sse_decode_send_message_request(SseDeserializer deserializer);
+
+  @protected
+  ServerDto sse_decode_server_dto(SseDeserializer deserializer);
 
   @protected
   SetAutoCommitRequest sse_decode_set_auto_commit_request(SseDeserializer deserializer);
@@ -1847,6 +1854,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_send_message_request(SendMessageRequest self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_server_dto(ServerDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_set_auto_commit_request(SetAutoCommitRequest self, SseSerializer serializer);

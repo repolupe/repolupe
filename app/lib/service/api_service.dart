@@ -18,6 +18,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/extraction.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/instance.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/server.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
 import 'package:flutter/widgets.dart';
 import 'package:logging/logging.dart';

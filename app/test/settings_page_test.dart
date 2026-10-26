@@ -137,7 +137,7 @@ void main() {
 
   testWidgets('the admin sections have no subtitle', (tester) async {
     await _pumpPage(tester, local: false);
-    for (final key in ['users', 'llm', 'extraction', 'config']) {
+    for (final key in ['users', 'llm', 'extraction', 'config', 'server']) {
       expect(_subtitle(tester, 'settings.admin.$key'), isNull, reason: key);
     }
   });

@@ -9,6 +9,11 @@ export interface InstanceDto {
     name: string;
 }
 
+/** The server as admins see it. */
+export interface ServerDto {
+    version: string;
+}
+
 /** A row of `GET /api/v1/config`, values in the text form of the environment variables. */
 export interface ConfigEntryDto {
     key: string;

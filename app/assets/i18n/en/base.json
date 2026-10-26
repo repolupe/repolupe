@@ -758,6 +758,16 @@
         "loadFailed": "Could not load the documents: {error}",
         "retryFailed": "Could not convert the document again: {error}"
       }
+    },
+    "server": {
+      "title": "Server information",
+      "page": {
+        "baseUrl": "Base URL",
+        "version": "Server version",
+        "copied": "Copied to the clipboard.",
+        "copyFailed": "Could not copy to the clipboard.",
+        "loadFailed": "Could not load the server information: {error}"
+      }
     }
   }
 }

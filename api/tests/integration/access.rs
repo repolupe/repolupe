@@ -100,6 +100,19 @@ async fn instance_is_public(db: SqlitePool) {
 }
 
 #[sqlx::test]
+async fn server_is_for_admins(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let alice = app.user("alice@example.com").await;
+
+    let (status, _) = alice.get("/api/v1/server").await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+
+    let (status, body) = app.admin().get("/api/v1/server").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body, json!({"version": env!("CARGO_PKG_VERSION")}));
+}
+
+#[sqlx::test]
 async fn unknown_routes_are_not_found_for_everyone(db: SqlitePool) {
     let app = TestApp::new(db).await;
     let admin = app.admin();

@@ -532,6 +532,8 @@ class _Translations$base$admin$de extends Translations$base$admin$en {
   late final _Translations$base$admin$config$de config = _Translations$base$admin$config$de._(_root);
   @override
   late final _Translations$base$admin$extraction$de extraction = _Translations$base$admin$extraction$de._(_root);
+  @override
+  late final _Translations$base$admin$server$de server = _Translations$base$admin$server$de._(_root);
 }
 
 // Path: flutter.common
@@ -1580,6 +1582,19 @@ class _Translations$base$admin$extraction$de extends Translations$base$admin$ext
   late final _Translations$base$admin$extraction$page$de page = _Translations$base$admin$extraction$page$de._(_root);
 }
 
+// Path: base.admin.server
+class _Translations$base$admin$server$de extends Translations$base$admin$server$en {
+  _Translations$base$admin$server$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'Server-Informationen';
+  @override
+  late final _Translations$base$admin$server$page$de page = _Translations$base$admin$server$page$de._(_root);
+}
+
 // Path: flutter.common.unsavedChanges
 class _Translations$flutter$common$unsavedChanges$de extends Translations$flutter$common$unsavedChanges$en {
   _Translations$flutter$common$unsavedChanges$de._(TranslationsDe root) : this._root = root, super.internal(root);
@@ -2608,6 +2623,25 @@ class _Translations$base$admin$extraction$page$de extends Translations$base$admi
   String loadFailed({required Object error}) => 'Die Dokumente konnten nicht geladen werden: ${error}';
   @override
   String retryFailed({required Object error}) => 'Das Dokument konnte nicht neu umgewandelt werden: ${error}';
+}
+
+// Path: base.admin.server.page
+class _Translations$base$admin$server$page$de extends Translations$base$admin$server$page$en {
+  _Translations$base$admin$server$page$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get baseUrl => 'Basis-URL';
+  @override
+  String get version => 'Server-Version';
+  @override
+  String get copied => 'In die Zwischenablage kopiert.';
+  @override
+  String get copyFailed => 'Konnte nicht in die Zwischenablage kopiert werden.';
+  @override
+  String loadFailed({required Object error}) => 'Die Server-Informationen konnten nicht geladen werden: ${error}';
 }
 
 // Path: flutter.settings.preferences.modelSheet

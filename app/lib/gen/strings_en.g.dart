@@ -603,6 +603,7 @@ class Translations$base$admin$en {
   late final Translations$base$admin$llm$en llm = Translations$base$admin$llm$en.internal(_root);
   late final Translations$base$admin$config$en config = Translations$base$admin$config$en.internal(_root);
   late final Translations$base$admin$extraction$en extraction = Translations$base$admin$extraction$en.internal(_root);
+  late final Translations$base$admin$server$en server = Translations$base$admin$server$en.internal(_root);
 }
 
 // Path: flutter.common
@@ -1873,6 +1874,20 @@ class Translations$base$admin$extraction$en {
   String get title => 'Document Extraction';
 
   late final Translations$base$admin$extraction$page$en page = Translations$base$admin$extraction$page$en.internal(_root);
+}
+
+// Path: base.admin.server
+class Translations$base$admin$server$en {
+  Translations$base$admin$server$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Server information'
+  String get title => 'Server information';
+
+  late final Translations$base$admin$server$page$en page = Translations$base$admin$server$page$en.internal(_root);
 }
 
 // Path: flutter.common.unsavedChanges
@@ -3148,6 +3163,30 @@ class Translations$base$admin$extraction$page$en {
 
   /// en: 'Could not convert the document again: {error}'
   String retryFailed({required Object error}) => 'Could not convert the document again: ${error}';
+}
+
+// Path: base.admin.server.page
+class Translations$base$admin$server$page$en {
+  Translations$base$admin$server$page$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Base URL'
+  String get baseUrl => 'Base URL';
+
+  /// en: 'Server version'
+  String get version => 'Server version';
+
+  /// en: 'Copied to the clipboard.'
+  String get copied => 'Copied to the clipboard.';
+
+  /// en: 'Could not copy to the clipboard.'
+  String get copyFailed => 'Could not copy to the clipboard.';
+
+  /// en: 'Could not load the server information: {error}'
+  String loadFailed({required Object error}) => 'Could not load the server information: ${error}';
 }
 
 // Path: flutter.settings.preferences.modelSheet

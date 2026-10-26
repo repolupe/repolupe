@@ -36,6 +36,7 @@ use repolupe::dto::repository::{
     AddRepositoryUserRequest, CreateRepositoryRequest, RepositoryDto, RepositoryUserDto,
     UpdateRepositoryRequest, UpdateRepositoryUserRequest,
 };
+use repolupe::dto::server::ServerDto;
 use repolupe::dto::user::{
     ChangePasswordRequest, DeleteUserRequest, RegisterRequest, ResetPasswordRequest,
     SetAutoCommitRequest, SetLocaleRequest, SetMyDefaultModelRequest, UpdateIdentityRequest,
@@ -620,6 +621,13 @@ impl Client {
         overrides: HashMap<String, String>,
     ) -> Result<Vec<ConfigEntryDto>, ClientError> {
         self.post("/api/v1/config".into(), &overrides).await
+    }
+
+    // Server (admins)
+
+    /// `GET /api/v1/server`.
+    pub async fn get_server(&self) -> Result<ServerDto, ClientError> {
+        self.get("/api/v1/server".into()).await
     }
 
     // Document extraction (admins)

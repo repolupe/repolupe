@@ -9,6 +9,7 @@ import {
     type DocumentFilter,
     type ExtractionDocumentPageDto,
     type ExtractionOverviewDto,
+    type ServerDto,
     type ProposedCommitDto,
     type FileDiffDto,
     type LlmApiFormat,
@@ -683,6 +684,12 @@ export async function getExtractionDocuments(
 /** Converts the document again if it failed or was not available, else does nothing. */
 export async function retryDocument(blobOid: string): Promise<void> {
     await makeRequest({route: 'document-extraction/retry', method: 'POST', body: {blob_oid: blobOid}});
+}
+
+// --- Admin: Server ---
+
+export async function getServer(): Promise<ServerDto> {
+    return await makeRequest({route: 'server', method: 'GET'});
 }
 
 // --- Admin: LLM providers and models ---

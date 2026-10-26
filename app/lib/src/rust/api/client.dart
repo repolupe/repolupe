@@ -17,6 +17,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/extraction.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/instance.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/server.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:uuid/uuid.dart';
@@ -93,6 +94,9 @@ abstract class Client implements RustOpaqueInterface {
 
   /// `GET /api/v1/repositories/{id}`.
   Future<RepositoryDto> getRepository({required UuidValue id});
+
+  /// `GET /api/v1/server`.
+  Future<ServerDto> getServer();
 
   /// `GET /api/v1/chats/{id}/tool-calls/{tool_call_id}`, with its output.
   Future<ToolCallDto> getToolCall({required UuidValue chatId, required UuidValue toolCallId});

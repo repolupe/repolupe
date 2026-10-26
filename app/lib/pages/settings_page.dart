@@ -3,6 +3,7 @@ import 'package:app/pages/settings/account_page.dart';
 import 'package:app/pages/settings/admin/config_page.dart';
 import 'package:app/pages/settings/admin/extraction_page.dart';
 import 'package:app/pages/settings/admin/llm_page.dart';
+import 'package:app/pages/settings/admin/server_page.dart';
 import 'package:app/pages/settings/admin/users_page.dart';
 import 'package:app/pages/settings/preferences_page.dart';
 import 'package:app/pages/settings/profile_page.dart';
@@ -114,6 +115,12 @@ List<SettingsSection> _adminSections(Translations t, {required bool local}) => [
     icon: Icons.settings_applications,
     title: t.base.admin.config.title,
     page: () => const ConfigPage(),
+  ),
+  SettingsSection(
+    key: 'settings.admin.server',
+    icon: Icons.dns,
+    title: t.base.admin.server.title,
+    page: () => const ServerPage(),
   ),
 ];
 
