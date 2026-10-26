@@ -11,25 +11,26 @@ use chrono::{DateTime, Utc};
 use sqlx::types::Json;
 use uuid::Uuid;
 
-/// The next document without an extraction made by `extractor`, from the repository after
+/// The next document without an extraction made by one of `extractors`, from the repository after
 /// `after` (by id, starting over after the last one), so the repositories take turns. Blobs in
 /// `skip` are left out.
 pub(crate) async fn next_queued(
     db: &DatabasePool,
-    extractor: &str,
+    extractors: &[String],
     after: Option<Uuid>,
     skip: &[String],
 ) -> Result<Option<QueuedDocument>, AppError> {
+    let extractors = Json(extractors);
     let skip = Json(skip);
     let row = sqlx::query!(
         r#"SELECT d.repository_id AS "repository_id: Uuid", d.path, d.blob_oid
            FROM repository_documents d
-                    LEFT JOIN document_extractions e ON e.blob_oid = d.blob_oid AND e.extractor = $1
+                    LEFT JOIN document_extractions e ON e.blob_oid = d.blob_oid AND e.extractor IN (SELECT value FROM json_each($1))
            WHERE e.blob_oid IS NULL
              AND d.blob_oid NOT IN (SELECT value FROM json_each($3))
            ORDER BY COALESCE(d.repository_id <= $2, FALSE), d.repository_id, d.path
            LIMIT 1"#,
-        extractor,
+        extractors,
         after,
         skip,
     )
@@ -44,26 +45,27 @@ pub(crate) async fn next_queued(
     }))
 }
 
-/// The oldest attachment of a type in `content_types` without an extraction made by
-/// `extractor`, sent or not. Blobs in `skip` are left out.
+/// The oldest attachment of a type in `content_types` without an extraction made by one of
+/// `extractors`, sent or not. Blobs in `skip` are left out.
 pub(crate) async fn next_queued_attachment(
     db: &DatabasePool,
-    extractor: &str,
+    extractors: &[String],
     content_types: &[&str],
     skip: &[String],
 ) -> Result<Option<QueuedDocument>, AppError> {
+    let extractors = Json(extractors);
     let content_types = Json(content_types);
     let skip = Json(skip);
     let row = sqlx::query!(
         r#"SELECT a.id AS "id: Uuid", a.file_name, a.content_type, a.blob_oid
            FROM attachments a
-                    LEFT JOIN document_extractions e ON e.blob_oid = a.blob_oid AND e.extractor = $1
+                    LEFT JOIN document_extractions e ON e.blob_oid = a.blob_oid AND e.extractor IN (SELECT value FROM json_each($1))
            WHERE e.blob_oid IS NULL
              AND a.content_type IN (SELECT value FROM json_each($2))
              AND a.blob_oid NOT IN (SELECT value FROM json_each($3))
            ORDER BY a.created_at, a.id
            LIMIT 1"#,
-        extractor,
+        extractors,
         content_types,
         skip,
     )
@@ -119,23 +121,27 @@ pub(crate) async fn list_documents(
         .collect())
 }
 
-/// Counts all documents by their extraction with `extractor`. `skipped` are the blobs left out
+/// Counts all documents by whether their extraction was made by one of `extractors`. `skipped` are the blobs left out
 /// for now. Not scoped to a user, only for admins.
 pub(crate) async fn count_extractions(
     db: &DatabasePool,
-    extractor: &str,
+    extractors: &[String],
     skipped: &[String],
 ) -> Result<ExtractionTotals, AppError> {
+    let extractors = Json(extractors);
     let skipped = Json(skipped);
     let row = sqlx::query!(
         r#"SELECT COUNT(*) AS "documents!",
-                  COUNT(*) FILTER (WHERE e.extractor = $1 AND e.status = 'COMPLETED') AS "converted!",
-                  COUNT(*) FILTER (WHERE e.extractor = $1 AND e.status = 'FAILED') AS "failed!",
-                  COUNT(*) FILTER (WHERE e.extractor IS DISTINCT FROM $1
+                  COUNT(*) FILTER (WHERE e.extractor IN (SELECT value FROM json_each($1))
+                                     AND e.status = 'COMPLETED') AS "converted!",
+                  COUNT(*) FILTER (WHERE e.extractor IN (SELECT value FROM json_each($1))
+                                     AND e.status = 'FAILED') AS "failed!",
+                  COUNT(*) FILTER (WHERE (e.extractor IS NULL
+                                         OR e.extractor NOT IN (SELECT value FROM json_each($1)))
                                      AND d.blob_oid IN (SELECT value FROM json_each($2))) AS "skipped!"
            FROM repository_documents d
                     LEFT JOIN document_extractions e ON e.blob_oid = d.blob_oid"#,
-        extractor,
+        extractors,
         skipped,
     )
     .fetch_one(db)
@@ -148,16 +154,18 @@ pub(crate) async fn count_extractions(
     })
 }
 
-/// The documents of all repositories matching `filter` with `extractor`, by repository name and
+/// The documents of all repositories matching `filter` with `extractors` (see
+/// [`count_extractions`]), by repository name and
 /// path. `viewer_id` decides `readable`. Not scoped to a user, only for admins.
 pub(crate) async fn list_all_documents(
     db: &DatabasePool,
-    extractor: &str,
+    extractors: &[String],
     filter: DocumentFilter,
     viewer_id: Uuid,
     offset: i64,
     limit: i64,
 ) -> Result<Vec<RepositoryListedDocument>, AppError> {
+    let extractors = Json(extractors);
     let filter = filter.as_str();
     let rows = sqlx::query!(
         r#"SELECT r.id AS "repository_id: Uuid",
@@ -178,14 +186,17 @@ pub(crate) async fn list_all_documents(
                     JOIN users u ON u.id = r.user_id
                     LEFT JOIN document_extractions e ON e.blob_oid = d.blob_oid
            WHERE CASE $2
-                     WHEN 'CONVERTED' THEN e.extractor = $1 AND e.status = 'COMPLETED'
-                     WHEN 'FAILED' THEN e.extractor = $1 AND e.status = 'FAILED'
-                     WHEN 'PENDING' THEN e.extractor IS DISTINCT FROM $1
+                     WHEN 'CONVERTED' THEN e.extractor IN (SELECT value FROM json_each($1))
+                                               AND e.status = 'COMPLETED'
+                     WHEN 'FAILED' THEN e.extractor IN (SELECT value FROM json_each($1))
+                                            AND e.status = 'FAILED'
+                     WHEN 'PENDING' THEN e.extractor IS NULL
+                                             OR e.extractor NOT IN (SELECT value FROM json_each($1))
                      ELSE TRUE
                      END
            ORDER BY r.name, r.id, d.path
            LIMIT $5 OFFSET $4"#,
-        extractor,
+        extractors,
         filter,
         viewer_id,
         offset,
@@ -225,21 +236,25 @@ pub(crate) async fn list_all_documents(
 /// How many documents [`list_all_documents`] lists in all.
 pub(crate) async fn count_all_documents(
     db: &DatabasePool,
-    extractor: &str,
+    extractors: &[String],
     filter: DocumentFilter,
 ) -> Result<i64, AppError> {
+    let extractors = Json(extractors);
     let filter = filter.as_str();
     let count = sqlx::query_scalar!(
         r#"SELECT COUNT(*) AS "count!"
            FROM repository_documents d
                     LEFT JOIN document_extractions e ON e.blob_oid = d.blob_oid
            WHERE CASE $2
-                     WHEN 'CONVERTED' THEN e.extractor = $1 AND e.status = 'COMPLETED'
-                     WHEN 'FAILED' THEN e.extractor = $1 AND e.status = 'FAILED'
-                     WHEN 'PENDING' THEN e.extractor IS DISTINCT FROM $1
+                     WHEN 'CONVERTED' THEN e.extractor IN (SELECT value FROM json_each($1))
+                                               AND e.status = 'COMPLETED'
+                     WHEN 'FAILED' THEN e.extractor IN (SELECT value FROM json_each($1))
+                                            AND e.status = 'FAILED'
+                     WHEN 'PENDING' THEN e.extractor IS NULL
+                                             OR e.extractor NOT IN (SELECT value FROM json_each($1))
                      ELSE TRUE
                      END"#,
-        extractor,
+        extractors,
         filter,
     )
     .fetch_one(db)
@@ -258,17 +273,21 @@ pub(crate) async fn document_exists(db: &DatabasePool, blob_oid: &str) -> Result
     Ok(exists)
 }
 
-/// Deletes the extraction of `blob_oid` if it was made with `extractor` and failed, so it is
+/// Deletes the extraction of `blob_oid` if it was made by one of `extractors` and failed, so it is
 /// converted again. Returns whether it did.
 pub(crate) async fn delete_failed_extraction(
     db: &DatabasePool,
     blob_oid: &str,
-    extractor: &str,
+    extractors: &[String],
 ) -> Result<bool, AppError> {
+    let extractors = Json(extractors);
     let result = sqlx::query!(
-        "DELETE FROM document_extractions WHERE blob_oid = $1 AND extractor = $2 AND status = 'FAILED'",
+        r#"DELETE FROM document_extractions
+           WHERE blob_oid = $1
+             AND extractor IN (SELECT value FROM json_each($2))
+             AND status = 'FAILED'"#,
         blob_oid,
-        extractor,
+        extractors,
     )
     .execute(db)
     .await?;
@@ -317,20 +336,21 @@ pub(crate) async fn save_extraction(
     Ok(())
 }
 
-/// Stores the extraction of `from` made by `extractor` as the extraction of `to` too, replacing
+/// Stores the extraction of `from` made by one of `extractors` as the extraction of `to` too, replacing
 /// an older one. Returns whether there was one.
 pub(crate) async fn copy_extraction(
     db: &DatabasePool,
     from: &str,
     to: &str,
-    extractor: &str,
+    extractors: &[String],
 ) -> Result<bool, AppError> {
+    let extractors = Json(extractors);
     let now = Utc::now();
     let result = sqlx::query!(
         r#"INSERT INTO document_extractions (blob_oid, status, markdown, ocr, error, extractor, extracted_at)
            SELECT $2, status, markdown, ocr, error, extractor, $4
            FROM document_extractions
-           WHERE blob_oid = $1 AND extractor = $3
+           WHERE blob_oid = $1 AND extractor IN (SELECT value FROM json_each($3))
            ON CONFLICT (blob_oid) DO UPDATE
                SET status       = excluded.status,
                    markdown     = excluded.markdown,
@@ -340,7 +360,7 @@ pub(crate) async fn copy_extraction(
                    extracted_at = excluded.extracted_at"#,
         from,
         to,
-        extractor,
+        extractors,
         now,
     )
     .execute(db)

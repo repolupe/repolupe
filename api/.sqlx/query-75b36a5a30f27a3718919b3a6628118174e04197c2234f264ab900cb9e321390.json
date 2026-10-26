@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COUNT(*) AS \"count!\"\n           FROM repository_documents d\n                    LEFT JOIN document_extractions e ON e.blob_oid = d.blob_oid\n           WHERE CASE $2\n                     WHEN 'CONVERTED' THEN e.extractor IN (SELECT value FROM json_each($1))\n                                               AND e.status = 'COMPLETED'\n                     WHEN 'FAILED' THEN e.extractor IN (SELECT value FROM json_each($1))\n                                            AND e.status = 'FAILED'\n                     WHEN 'PENDING' THEN e.extractor IS NULL\n                                             OR e.extractor NOT IN (SELECT value FROM json_each($1))\n                     ELSE TRUE\n                     END",
+  "describe": {
+    "columns": [
+      {
+        "name": "count!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "75b36a5a30f27a3718919b3a6628118174e04197c2234f264ab900cb9e321390"
+}

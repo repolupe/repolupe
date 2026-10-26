@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT a.id AS \"id: Uuid\", a.file_name, a.content_type, a.blob_oid\n           FROM attachments a\n                    LEFT JOIN document_extractions e ON e.blob_oid = a.blob_oid AND e.extractor = $1\n           WHERE e.blob_oid IS NULL\n             AND a.content_type IN (SELECT value FROM json_each($2))\n             AND a.blob_oid NOT IN (SELECT value FROM json_each($3))\n           ORDER BY a.created_at, a.id\n           LIMIT 1",
+  "query": "SELECT a.id AS \"id: Uuid\", a.file_name, a.content_type, a.blob_oid\n           FROM attachments a\n                    LEFT JOIN document_extractions e ON e.blob_oid = a.blob_oid AND e.extractor IN (SELECT value FROM json_each($1))\n           WHERE e.blob_oid IS NULL\n             AND a.content_type IN (SELECT value FROM json_each($2))\n             AND a.blob_oid NOT IN (SELECT value FROM json_each($3))\n           ORDER BY a.created_at, a.id\n           LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -34,5 +34,5 @@
       false
     ]
   },
-  "hash": "333d25e4dc8e4bce160704d5e414f1bef881d4a3a0030829c226bfbed5e4c749"
+  "hash": "c4c30309069cf9bd05769e7c8550d3ffdd1f1c279ea293288f680f3701781139"
 }

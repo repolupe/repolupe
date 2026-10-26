@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COUNT(*) AS \"documents!\",\n                  COUNT(*) FILTER (WHERE e.extractor IN (SELECT value FROM json_each($1))\n                                     AND e.status = 'COMPLETED') AS \"converted!\",\n                  COUNT(*) FILTER (WHERE e.extractor IN (SELECT value FROM json_each($1))\n                                     AND e.status = 'FAILED') AS \"failed!\",\n                  COUNT(*) FILTER (WHERE (e.extractor IS NULL\n                                         OR e.extractor NOT IN (SELECT value FROM json_each($1)))\n                                     AND d.blob_oid IN (SELECT value FROM json_each($2))) AS \"skipped!\"\n           FROM repository_documents d\n                    LEFT JOIN document_extractions e ON e.blob_oid = d.blob_oid",
+  "describe": {
+    "columns": [
+      {
+        "name": "documents!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "converted!",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "failed!",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "skipped!",
+        "ordinal": 3,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "464b46d0ad368b83c688e8b68947e0854ca52a8e26448520cd4bb89b2a9c98b9"
+}

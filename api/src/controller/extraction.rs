@@ -27,7 +27,7 @@ pub(crate) async fn get_extraction_overview(
     let status = state.extractor.status();
     let totals = repository::document::count_extractions(
         &state.db,
-        &status.extractor,
+        &status.current_extractors,
         &status.skipped_blobs(),
     )
     .await?;
@@ -90,7 +90,7 @@ pub(crate) async fn list_extraction_documents(
     let status = state.extractor.status();
     let documents = repository::document::list_all_documents(
         &state.db,
-        &status.extractor,
+        &status.current_extractors,
         filter,
         auth.user_id,
         offset,
@@ -98,7 +98,8 @@ pub(crate) async fn list_extraction_documents(
     )
     .await?;
     let total =
-        repository::document::count_all_documents(&state.db, &status.extractor, filter).await?;
+        repository::document::count_all_documents(&state.db, &status.current_extractors, filter)
+            .await?;
     Ok(Json(ExtractionDocumentPageDto {
         items: documents
             .into_iter()

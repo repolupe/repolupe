@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM document_extractions\n           WHERE blob_oid = $1\n             AND extractor IN (SELECT value FROM json_each($2))\n             AND status = 'FAILED'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "a698caf9b18823435f0a5c9df6a8b71543ae869a0f65345b7f78a48501cc5408"
+}

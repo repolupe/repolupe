@@ -9,7 +9,7 @@
 //! pointer file, which identifies the content as well. A sync records the documents in its
 //! commit in `repository_documents` without converting them, so the commit can be used right
 //! away. The documents there without an extraction made with the current settings (see
-//! [`extractor_id`]) form the queue, which [`spawn_extraction_task`] works through one document
+//! [`Settings::current`]) form the queue, which [`spawn_extraction_task`] works through one document
 //! at a time, so each one can be read as soon as it is converted. Until then, the extraction made
 //! with earlier settings, if any, is still read. Extractions no repository refers to are removed
 //! by [`remove_unused`].
@@ -45,6 +45,11 @@ use uuid::Uuid;
 /// Append a revision (e.g. `/config-2`) when [`extraction_config`] changes, so the documents are
 /// extracted again.
 const EXTRACTOR: &str = concat!("xberg-", env!("XBERG_VERSION"));
+
+/// Identifies the extractions Mistral made. They depend neither on xberg nor on the other OCR
+/// settings, so they are kept while Mistral is the OCR engine (see [`Settings::current`]), and
+/// a new xberg version only converts the documents again that xberg converted.
+const MISTRAL_EXTRACTOR: &str = mistral_ocr::MODEL;
 
 /// Extensions of the supported documents, with their MIME type.
 const FORMATS: &[(&str, &str)] = &[("pdf", "application/pdf")];
@@ -115,6 +120,7 @@ pub(crate) async fn check_ocr(ocr: &OcrConfig) -> Result<(), String> {
         )
         .await
         .map_err(|e| e.to_string())?
+        .result
         // xberg only logs why OCR failed, e.g. a failed model download, and returns no text.
         .map_err(|e| format!("recognizing a sample scan failed: {e}"))?;
     let markdown = converted.markdown;
@@ -139,9 +145,10 @@ pub(crate) async fn remove_unused(db: &DatabasePool) -> Result<(), AppError> {
 /// Converts the document with `blob_oid` again right away if it failed with the current
 /// settings or was skipped (see [`SKIP_DURATION`]). Returns whether it did.
 pub(crate) async fn retry(state: &AppState, blob_oid: &str) -> Result<bool, AppError> {
-    let extractor = state.extractor.settings().extractor.clone();
+    let settings = state.extractor.settings();
     let failed =
-        repository::document::delete_failed_extraction(&state.db, blob_oid, &extractor).await?;
+        repository::document::delete_failed_extraction(&state.db, blob_oid, &settings.current)
+            .await?;
     let skipped = state.extractor.unskip(blob_oid);
     if failed || skipped {
         tracing::info!("Converting {blob_oid} again");
@@ -261,7 +268,7 @@ impl Queue {
         // Attachments first, since someone is waiting for them in a chat.
         let queued = match repository::document::next_queued_attachment(
             &state.db,
-            &settings.extractor,
+            &settings.current,
             &content_types,
             &skipped,
         )
@@ -270,7 +277,7 @@ impl Queue {
             Ok(None) => {
                 repository::document::next_queued(
                     &state.db,
-                    &settings.extractor,
+                    &settings.current,
                     self.last_repository,
                     &skipped,
                 )
@@ -373,7 +380,7 @@ async fn convert_queued(
         blob_oid: document.blob_oid.clone(),
     };
 
-    let extraction = match content {
+    let (extraction, converter) = match content {
         Content::Bytes(content) => {
             let Some(content) = reuse_content_extraction(state, settings, &file, content).await?
             else {
@@ -384,10 +391,15 @@ async fn convert_queued(
                 .extract(settings, &file, content, mime_type)
                 .await
             {
-                Ok(Ok(Converted { markdown, ocr })) => {
-                    DocumentExtraction::Completed { markdown, ocr }
+                Ok(Extracted { result, converter }) => {
+                    let extraction = match result {
+                        Ok(Converted { markdown, ocr }) => {
+                            DocumentExtraction::Completed { markdown, ocr }
+                        }
+                        Err(error) => DocumentExtraction::Failed { error },
+                    };
+                    (extraction, converter)
                 }
-                Ok(Err(error)) => DocumentExtraction::Failed { error },
                 Err(OcrUnavailable(reason)) => {
                     tracing::warn!(
                         "Pausing document conversion for {:?}",
@@ -404,12 +416,13 @@ async fn convert_queued(
                 file.blob_oid,
                 MAX_DOCUMENT_SIZE / 1024 / 1024
             );
-            DocumentExtraction::Failed {
+            let extraction = DocumentExtraction::Failed {
                 error: format!(
                     "The file is larger than {} MB, the limit for converting it",
                     MAX_DOCUMENT_SIZE / 1024 / 1024
                 ),
-            }
+            };
+            (extraction, Converter::Xberg)
         }
         Content::Unavailable => {
             tracing::debug!(
@@ -424,7 +437,7 @@ async fn convert_queued(
         &state.db,
         &file.blob_oid,
         &extraction,
-        &settings.extractor,
+        settings.extractor_of(converter),
     )
     .await
     .map_err(|e| {
@@ -473,7 +486,7 @@ async fn reuse_content_extraction(
         &state.db,
         &content_oid,
         &document.blob_oid,
-        &settings.extractor,
+        &settings.current,
     )
     .await
     .map_err(|e| {
@@ -514,6 +527,8 @@ pub(crate) struct DocumentExtractor {
 pub(crate) struct ExtractionStatus {
     /// Of the current settings, see [`extractor_id`].
     pub(crate) extractor: String,
+    /// See [`Settings::current`].
+    pub(crate) current_extractors: Vec<String>,
     pub(crate) converting: Option<ConvertingDocument>,
     skipped: HashMap<String, (DateTime<Utc>, DocumentSkipReason)>,
     pub(crate) paused: Option<ExtractionPause>,
@@ -544,7 +559,8 @@ impl ExtractionStatus {
     /// Where the document with `blob_oid` is, given the extractor of its stored extraction.
     /// `None` if it was converted with the current settings.
     pub(crate) fn conversion(&self, blob_oid: &str, extractor: Option<&str>) -> Option<Conversion> {
-        if extractor == Some(self.extractor.as_str()) {
+        if extractor.is_some_and(|extractor| self.current_extractors.iter().any(|e| e == extractor))
+        {
             return None;
         }
         if let Some(converting) = &self.converting
@@ -573,16 +589,33 @@ impl ExtractionStatus {
 struct Settings {
     config: Arc<xberg::ExtractionConfig>,
     ocr: Option<OcrConfig>,
-    /// Stored with the extractions, see [`extractor_id`].
+    /// Stored with the extractions xberg made, see [`extractor_id`].
     extractor: String,
+    /// The extractors whose extractions are up to date, so they are not converted again:
+    /// `extractor`, and [`MISTRAL_EXTRACTOR`] while Mistral is the OCR engine.
+    current: Vec<String>,
 }
 
 impl Settings {
     fn new(ocr: Option<&OcrConfig>) -> Self {
+        let extractor = extractor_id(ocr);
+        let mut current = vec![extractor.clone()];
+        if ocr.is_some_and(|ocr| ocr.engine == OcrEngine::Mistral) {
+            current.push(MISTRAL_EXTRACTOR.to_string());
+        }
         Self {
             config: Arc::new(extraction_config(ocr)),
             ocr: ocr.cloned(),
-            extractor: extractor_id(ocr),
+            extractor,
+            current,
+        }
+    }
+
+    /// Stored with the extractions `converter` made.
+    fn extractor_of(&self, converter: Converter) -> &str {
+        match converter {
+            Converter::Xberg => &self.extractor,
+            Converter::Mistral => MISTRAL_EXTRACTOR,
         }
     }
 }
@@ -591,6 +624,22 @@ impl Settings {
 #[derive(Debug, thiserror::Error)]
 #[error("Mistral OCR is unavailable: {0}")]
 struct OcrUnavailable(String);
+
+/// The outcome of [`DocumentExtractor::extract`]. The error is stored and shown to the model,
+/// details are only logged.
+#[derive(Debug)]
+struct Extracted {
+    result: Result<Converted, String>,
+    converter: Converter,
+}
+
+/// What made an extraction, which decides the extractor it is stored with (see
+/// [`Settings::extractor_of`]).
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Converter {
+    Xberg,
+    Mistral,
+}
 
 /// A document converted to Markdown.
 #[derive(Debug)]
@@ -640,12 +689,14 @@ impl DocumentExtractor {
     /// What [`spawn_extraction_task`] is doing. A document finished after this call is not
     /// reported as converting, so read it before the stored extractions.
     pub(crate) fn status(&self) -> ExtractionStatus {
-        let extractor = self.settings().extractor.clone();
+        let settings = self.settings();
+        let extractor = settings.extractor.clone();
         let queue = self.queue.lock().unwrap();
         let now = Instant::now();
         let utc_now = Utc::now();
         let after = |wait: Duration| utc_now + chrono::Duration::from_std(wait).unwrap_or_default();
         ExtractionStatus {
+            current_extractors: settings.current.clone(),
             converting: queue.converting.clone(),
             skipped: queue
                 .skipped
@@ -736,20 +787,19 @@ impl DocumentExtractor {
     }
 
     /// Converts `content`, the content of `document`, to Markdown and logs the outcome. The
-    /// inner error is stored and shown to the model, details are only logged. The outer one
-    /// means the document could not be converted now.
+    /// error means the document could not be converted now.
     async fn extract(
         &self,
         settings: &Settings,
         document: &RepositoryDocument,
         content: Vec<u8>,
         mime_type: &str,
-    ) -> Result<Result<Converted, String>, OcrUnavailable> {
+    ) -> Result<Extracted, OcrUnavailable> {
         let permit = self.permit().await;
         // After waiting for the permit, so only the conversion is timed.
         let started = Instant::now();
         let result = self.convert(settings, permit, content, mime_type).await;
-        match &result {
+        match result.as_ref().map(|extracted| &extracted.result) {
             Ok(Ok(_)) => tracing::info!(
                 "Converted {} ({}) in {:?}",
                 document.path,
@@ -778,33 +828,41 @@ impl DocumentExtractor {
         permit: OwnedSemaphorePermit,
         content: Vec<u8>,
         mime_type: &str,
-    ) -> Result<Result<Converted, String>, OcrUnavailable> {
+    ) -> Result<Extracted, OcrUnavailable> {
         let mistral = settings
             .ocr
             .as_ref()
             .filter(|ocr| ocr.engine == OcrEngine::Mistral);
         // Only needed again if xberg finds scanned pages.
         let original = mistral.map(|_| content.clone());
+        let by_xberg = |result| Extracted {
+            result,
+            converter: Converter::Xberg,
+        };
         let native = match convert_natively(&settings.config, permit, content, mime_type).await {
             Ok(native) => native,
-            Err(error) => return Ok(Err(error)),
+            Err(error) => return Ok(by_xberg(Err(error))),
         };
         if let (Some(ocr), Some(original)) = (mistral, original)
             && native.has_scanned_pages(ocr.scan_confidence)
         {
-            return self.recognize_with_mistral(&original).await;
+            let result = self.recognize_with_mistral(&original).await?;
+            return Ok(Extracted {
+                result,
+                converter: Converter::Mistral,
+            });
         }
         if native.markdown.trim().is_empty() {
             let error = match settings.ocr {
                 None => NO_TEXT_WITHOUT_OCR,
                 Some(_) => NO_TEXT,
             };
-            return Ok(Err(error.to_string()));
+            return Ok(by_xberg(Err(error.to_string())));
         }
-        Ok(Ok(Converted {
+        Ok(by_xberg(Ok(Converted {
             markdown: native.markdown,
             ocr: native.ocr,
-        }))
+        })))
     }
 
     async fn recognize_with_mistral(
@@ -898,7 +956,7 @@ async fn convert_natively(
 }
 
 /// Identifies [`EXTRACTOR`] with the OCR settings, so changing them extracts the documents
-/// again.
+/// again, except those Mistral converted (see [`MISTRAL_EXTRACTOR`]).
 fn extractor_id(ocr: Option<&OcrConfig>) -> String {
     match ocr {
         Some(ocr) => match xberg_backend(ocr.engine) {
@@ -997,16 +1055,18 @@ mod tests {
     async fn extract_with(
         extractor: &DocumentExtractor,
         pdf: &[u8],
-    ) -> Result<Result<Converted, String>, OcrUnavailable> {
+    ) -> Result<Extracted, OcrUnavailable> {
         extractor
             .extract(&extractor.settings(), &document(), pdf.to_vec(), PDF)
             .await
     }
 
     async fn extract(ocr: Option<&OcrConfig>, pdf: &[u8]) -> Result<Converted, String> {
-        extract_with(&DocumentExtractor::new(ocr, None), pdf)
+        let extracted = extract_with(&DocumentExtractor::new(ocr, None), pdf)
             .await
-            .unwrap()
+            .unwrap();
+        assert_eq!(extracted.converter, Converter::Xberg);
+        extracted.result
     }
 
     /// Extracts with [`OcrEngine::Mistral`], which responds with `status` and `body`, and
@@ -1015,7 +1075,7 @@ mod tests {
         status: StatusCode,
         body: serde_json::Value,
         pdf: &[u8],
-    ) -> (Result<Result<Converted, String>, OcrUnavailable>, usize) {
+    ) -> (Result<Extracted, OcrUnavailable>, usize) {
         let (mistral, requests) = mock::serve(status, body).await;
         let ocr = ocr(OcrEngine::Mistral, &["eng"]);
         let extractor = DocumentExtractor::new(Some(&ocr), Some(mistral));
@@ -1030,12 +1090,15 @@ mod tests {
         let previous = extractor.settings();
         extractor.set_ocr(Some(&ocr(OcrEngine::Paddle, &["deu"])));
         assert_eq!(previous.extractor, format!("{EXTRACTOR}/no-ocr"));
+        assert_eq!(previous.current, [format!("{EXTRACTOR}/no-ocr")]);
         assert!(previous.config.disable_ocr);
         let current = extractor.settings();
         assert_eq!(
             current.extractor,
             format!("{EXTRACTOR}/paddle-ocr:deu/scan-0.5")
         );
+        assert_eq!(current.current, std::slice::from_ref(&current.extractor));
+        assert_eq!(current.extractor_of(Converter::Xberg), current.extractor);
         assert!(!current.config.disable_ocr);
 
         // xberg only finds the scans for Mistral
@@ -1047,6 +1110,15 @@ mod tests {
         );
         assert!(current.config.disable_ocr);
         assert_eq!(current.config.ocr_strategy, xberg::OcrStrategy::Auto);
+        // Without the xberg version, so Mistral's extractions are kept when it changes
+        assert_eq!(
+            current.extractor_of(Converter::Mistral),
+            "mistral-ocr-latest"
+        );
+        assert_eq!(
+            current.current,
+            [current.extractor.clone(), "mistral-ocr-latest".to_string()]
+        );
     }
 
     #[test]
@@ -1107,7 +1179,9 @@ mod tests {
     async fn recognizes_scans_with_mistral() {
         let response = mock::pages(&["# Invoice 7731", "![img-0.jpeg](img-0.jpeg)\n\n125 USD"]);
         let (result, calls) = extract_with_mistral(StatusCode::OK, response, SAMPLE_SCAN).await;
-        let Converted { markdown, ocr } = result.unwrap().unwrap();
+        let extracted = result.unwrap();
+        assert_eq!(extracted.converter, Converter::Mistral);
+        let Converted { markdown, ocr } = extracted.result.unwrap();
         assert_eq!(markdown, "# Invoice 7731\n\n125 USD");
         assert!(ocr);
         assert_eq!(calls, 1);
@@ -1117,7 +1191,9 @@ mod tests {
     async fn sends_only_scans_to_mistral() {
         let response = mock::pages(&["Recognized"]);
         let (result, calls) = extract_with_mistral(StatusCode::OK, response, TEXT_PDF).await;
-        let Converted { markdown, ocr } = result.unwrap().unwrap();
+        let extracted = result.unwrap();
+        assert_eq!(extracted.converter, Converter::Xberg);
+        let Converted { markdown, ocr } = extracted.result.unwrap();
         assert!(markdown.contains("42 requests"), "{markdown}");
         assert!(!ocr);
         assert_eq!(calls, 0);
@@ -1128,14 +1204,18 @@ mod tests {
         let error = json!({"object": "error", "message": "Invalid document"});
         let (result, _) =
             extract_with_mistral(StatusCode::UNPROCESSABLE_ENTITY, error, SAMPLE_SCAN).await;
+        let extracted = result.unwrap();
+        assert_eq!(extracted.converter, Converter::Mistral);
         assert_eq!(
-            result.unwrap().unwrap_err(),
+            extracted.result.unwrap_err(),
             "The file could not be converted, it may be damaged or encrypted"
         );
 
         let (result, _) =
             extract_with_mistral(StatusCode::OK, mock::pages(&[" "]), SAMPLE_SCAN).await;
-        assert_eq!(result.unwrap().unwrap_err(), "The file contains no text");
+        let extracted = result.unwrap();
+        assert_eq!(extracted.converter, Converter::Mistral);
+        assert_eq!(extracted.result.unwrap_err(), "The file contains no text");
     }
 
     #[tokio::test(flavor = "multi_thread")]

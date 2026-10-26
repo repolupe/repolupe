@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT d.repository_id AS \"repository_id: Uuid\", d.path, d.blob_oid\n           FROM repository_documents d\n                    LEFT JOIN document_extractions e ON e.blob_oid = d.blob_oid AND e.extractor IN (SELECT value FROM json_each($1))\n           WHERE e.blob_oid IS NULL\n             AND d.blob_oid NOT IN (SELECT value FROM json_each($3))\n           ORDER BY COALESCE(d.repository_id <= $2, FALSE), d.repository_id, d.path\n           LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "repository_id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "path",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "blob_oid",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8f79c53c82a3384ceac13d0a6db57f31661adf3f673afdb6061ef867c3e89f3a"
+}
