@@ -188,14 +188,19 @@ class UpdateIdentityAction extends AsyncGlobalActionWithResult<String?> {
   String toString() => 'UpdateIdentityAction(userName: $userName, email: $email, field: $field)';
 }
 
+/// Which field of the profile the user changed in [UpdateProfileAction], for its messages.
+enum ProfileField { fullName, firstName, about }
+
 /// Replaces the profile of the active account, which the assistant is told about the user, after checking the
-/// lengths; an empty field is cleared. Returns why that failed, `null` if it succeeded (with a snack bar then).
+/// lengths; an empty field is cleared. From the dialog of [field]. Returns why that failed, `null` if it succeeded
+/// (with a snack bar then).
 class UpdateProfileAction extends AsyncGlobalActionWithResult<String?> {
   final String fullName;
   final String firstName;
   final String about;
+  final ProfileField field;
 
-  UpdateProfileAction({required this.fullName, required this.firstName, required this.about});
+  UpdateProfileAction({required this.fullName, required this.firstName, required this.about, required this.field});
 
   @override
   Future<String?> reduce() async {
@@ -210,16 +215,30 @@ class UpdateProfileAction extends AsyncGlobalActionWithResult<String?> {
     try {
       await ref.redux(apiProvider).dispatchAsync(ApiUpdateProfileAction(fullName: fullName, firstName: firstName, about: about));
     } on ClientError catch (e) {
-      return t.base.settings.profile.page.saveFailed(error: e.userMessage);
+      final page = t.base.settings.profile.page;
+      return switch (field) {
+        ProfileField.fullName => page.fullNameSaveFailed(error: e.userMessage),
+        ProfileField.firstName => page.firstNameSaveFailed(error: e.userMessage),
+        ProfileField.about => page.aboutSaveFailed(error: e.userMessage),
+      };
     }
 
     await ref.redux(meProvider).dispatchAsync(RefreshMeAction());
-    ref.global.dispatch(ShowSnackBarAction(message: t.base.settings.profile.page.updated));
+    final page = t.base.settings.profile.page;
+    ref.global.dispatch(
+      ShowSnackBarAction(
+        message: switch (field) {
+          ProfileField.fullName => page.fullNameSaved,
+          ProfileField.firstName => page.firstNameSaved,
+          ProfileField.about => page.aboutSaved,
+        },
+      ),
+    );
     return null;
   }
 
   @override
-  String toString() => 'UpdateProfileAction(fullName: $fullName, firstName: $firstName)';
+  String toString() => 'UpdateProfileAction(fullName: $fullName, firstName: $firstName, field: $field)';
 }
 
 /// What [SetDefaultModelAction] did.

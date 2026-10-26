@@ -304,17 +304,26 @@
       "about": "About",
       "page": {
         "description": "What the assistant is told about you, so it knows who \"I\" is in your questions.",
-        "updated": "Profile updated.",
-        "saveFailed": "Could not save the profile: {error}"
+        "fullNameSaved": "Full name saved",
+        "firstNameSaved": "First name saved",
+        "aboutSaved": "About saved",
+        "fullNameSaveFailed": "Could not save the full name: {error}",
+        "firstNameSaveFailed": "Could not save the first name: {error}",
+        "aboutSaveFailed": "Could not save the about text: {error}"
       },
-      "dialog": {
-        "title": "Edit Profile",
-        "description": "This is what the assistant is told about you, so it knows who \"I\" is in your questions.",
-        "fullNameHint": "As it appears in documents",
-        "aboutPlaceholder": "E.g. your role, the projects you work on, or how you like answers.",
-        "fullNameTooLong": "Full name must be at most {max} characters long.",
-        "firstNameTooLong": "First name must be at most {max} characters long.",
-        "aboutTooLong": "About must be at most {max} characters long."
+      "fullNameDialog": {
+        "title": "Change Full Name",
+        "hint": "As it appears in documents",
+        "tooLong": "Full name must be at most {max} characters long."
+      },
+      "firstNameDialog": {
+        "title": "Change First Name",
+        "tooLong": "First name must be at most {max} characters long."
+      },
+      "aboutDialog": {
+        "title": "Change About",
+        "placeholder": "E.g. your role, the projects you work on, or how you like answers.",
+        "tooLong": "About must be at most {max} characters long."
       }
     },
     "preferences": {

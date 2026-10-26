@@ -1312,7 +1312,13 @@ class Translations$base$settings$profile$en {
   String get about => 'About';
 
   late final Translations$base$settings$profile$page$en page = Translations$base$settings$profile$page$en.internal(_root);
-  late final Translations$base$settings$profile$dialog$en dialog = Translations$base$settings$profile$dialog$en.internal(_root);
+  late final Translations$base$settings$profile$fullNameDialog$en fullNameDialog = Translations$base$settings$profile$fullNameDialog$en.internal(
+    _root,
+  );
+  late final Translations$base$settings$profile$firstNameDialog$en firstNameDialog = Translations$base$settings$profile$firstNameDialog$en.internal(
+    _root,
+  );
+  late final Translations$base$settings$profile$aboutDialog$en aboutDialog = Translations$base$settings$profile$aboutDialog$en.internal(_root);
 }
 
 // Path: base.settings.preferences
@@ -2289,41 +2295,74 @@ class Translations$base$settings$profile$page$en {
   /// en: 'What the assistant is told about you, so it knows who "I" is in your questions.'
   String get description => 'What the assistant is told about you, so it knows who "I" is in your questions.';
 
-  /// en: 'Profile updated.'
-  String get updated => 'Profile updated.';
+  /// en: 'Full name saved'
+  String get fullNameSaved => 'Full name saved';
 
-  /// en: 'Could not save the profile: {error}'
-  String saveFailed({required Object error}) => 'Could not save the profile: ${error}';
+  /// en: 'First name saved'
+  String get firstNameSaved => 'First name saved';
+
+  /// en: 'About saved'
+  String get aboutSaved => 'About saved';
+
+  /// en: 'Could not save the full name: {error}'
+  String fullNameSaveFailed({required Object error}) => 'Could not save the full name: ${error}';
+
+  /// en: 'Could not save the first name: {error}'
+  String firstNameSaveFailed({required Object error}) => 'Could not save the first name: ${error}';
+
+  /// en: 'Could not save the about text: {error}'
+  String aboutSaveFailed({required Object error}) => 'Could not save the about text: ${error}';
 }
 
-// Path: base.settings.profile.dialog
-class Translations$base$settings$profile$dialog$en {
-  Translations$base$settings$profile$dialog$en.internal(this._root);
+// Path: base.settings.profile.fullNameDialog
+class Translations$base$settings$profile$fullNameDialog$en {
+  Translations$base$settings$profile$fullNameDialog$en.internal(this._root);
 
   final Translations _root; // ignore: unused_field
 
   // Translations
 
-  /// en: 'Edit Profile'
-  String get title => 'Edit Profile';
-
-  /// en: 'This is what the assistant is told about you, so it knows who "I" is in your questions.'
-  String get description => 'This is what the assistant is told about you, so it knows who "I" is in your questions.';
+  /// en: 'Change Full Name'
+  String get title => 'Change Full Name';
 
   /// en: 'As it appears in documents'
-  String get fullNameHint => 'As it appears in documents';
-
-  /// en: 'E.g. your role, the projects you work on, or how you like answers.'
-  String get aboutPlaceholder => 'E.g. your role, the projects you work on, or how you like answers.';
+  String get hint => 'As it appears in documents';
 
   /// en: 'Full name must be at most {max} characters long.'
-  String fullNameTooLong({required Object max}) => 'Full name must be at most ${max} characters long.';
+  String tooLong({required Object max}) => 'Full name must be at most ${max} characters long.';
+}
+
+// Path: base.settings.profile.firstNameDialog
+class Translations$base$settings$profile$firstNameDialog$en {
+  Translations$base$settings$profile$firstNameDialog$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Change First Name'
+  String get title => 'Change First Name';
 
   /// en: 'First name must be at most {max} characters long.'
-  String firstNameTooLong({required Object max}) => 'First name must be at most ${max} characters long.';
+  String tooLong({required Object max}) => 'First name must be at most ${max} characters long.';
+}
+
+// Path: base.settings.profile.aboutDialog
+class Translations$base$settings$profile$aboutDialog$en {
+  Translations$base$settings$profile$aboutDialog$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Change About'
+  String get title => 'Change About';
+
+  /// en: 'E.g. your role, the projects you work on, or how you like answers.'
+  String get placeholder => 'E.g. your role, the projects you work on, or how you like answers.';
 
   /// en: 'About must be at most {max} characters long.'
-  String aboutTooLong({required Object max}) => 'About must be at most ${max} characters long.';
+  String tooLong({required Object max}) => 'About must be at most ${max} characters long.';
 }
 
 // Path: base.settings.preferences.page

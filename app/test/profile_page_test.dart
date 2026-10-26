@@ -33,7 +33,7 @@ void main() {
     await initRustLib();
   });
 
-  testWidgets('the profile page sets and clears the profile', (tester) async {
+  testWidgets('the profile page sets and clears each field of the profile', (tester) async {
     String? fullName;
     String? firstName;
     String? about;
@@ -96,38 +96,62 @@ void main() {
     // Too long: checked before it is sent.
     await tester.tap(find.byKey(const ValueKey('profile.fullName')));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const ValueKey('profile.dialog.fullName')), 'a' * 101);
-    await tester.tap(find.byKey(const ValueKey('profile.dialog.save')));
+    await tester.enterText(find.byKey(const ValueKey('profile.fullNameDialog.fullName')), 'a' * 101);
+    await tester.tap(find.byKey(const ValueKey('profile.fullNameDialog.save')));
     await _pumpUntil(tester, find.text('Full name must be at most 100 characters long.'));
     expect(profileRequests, isEmpty);
-    expect(find.byKey(const ValueKey('profile.dialog.save')), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile.fullNameDialog.save')), findsOneWidget);
     clearSnackBars();
 
-    // Saved trimmed, the page shows the new profile.
-    await tester.enterText(find.byKey(const ValueKey('profile.dialog.fullName')), ' Ada Lovelace ');
-    await tester.enterText(find.byKey(const ValueKey('profile.dialog.firstName')), 'Ada');
-    await tester.enterText(find.byKey(const ValueKey('profile.dialog.about')), 'Likes short answers.\nWorks on engines.');
-    await tester.tap(find.byKey(const ValueKey('profile.dialog.save')));
-    await _pumpUntil(tester, find.text('Profile updated.'));
+    // Saved trimmed, the page shows the new full name.
+    await tester.enterText(find.byKey(const ValueKey('profile.fullNameDialog.fullName')), ' Ada Lovelace ');
+    await tester.tap(find.byKey(const ValueKey('profile.fullNameDialog.save')));
+    await _pumpUntil(tester, find.text('Full name saved'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('profile.dialog.save')), findsNothing);
-    expect(profileRequests.single, {'full_name': 'Ada Lovelace', 'first_name': 'Ada', 'about': 'Likes short answers.\nWorks on engines.'});
+    expect(find.byKey(const ValueKey('profile.fullNameDialog.save')), findsNothing);
+    expect(profileRequests.single, {'full_name': 'Ada Lovelace', 'first_name': null, 'about': null});
+    expect(find.text('Ada Lovelace'), findsOneWidget);
+    expect(container.read(meProvider)?.fullName, 'Ada Lovelace');
+    clearSnackBars();
+
+    // Each dialog keeps the other fields.
+    await tester.tap(find.byKey(const ValueKey('profile.firstName')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('profile.firstNameDialog.firstName')), 'Ada');
+    await tester.tap(find.byKey(const ValueKey('profile.firstNameDialog.save')));
+    await _pumpUntil(tester, find.text('First name saved'));
+    await tester.pumpAndSettle();
+    expect(profileRequests.last, {'full_name': 'Ada Lovelace', 'first_name': 'Ada', 'about': null});
+    clearSnackBars();
+
+    await tester.tap(find.byKey(const ValueKey('profile.about')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('profile.aboutDialog.about')),
+      'Likes short answers.\nWorks on engines.',
+    );
+    await tester.tap(find.byKey(const ValueKey('profile.aboutDialog.save')));
+    await _pumpUntil(tester, find.text('About saved'));
+    await tester.pumpAndSettle();
+    expect(profileRequests.last, {
+      'full_name': 'Ada Lovelace',
+      'first_name': 'Ada',
+      'about': 'Likes short answers.\nWorks on engines.',
+    });
     expect(find.text('Ada Lovelace'), findsOneWidget);
     expect(find.text('Ada'), findsOneWidget);
     expect(find.text('Likes short answers.\nWorks on engines.'), findsOneWidget);
-    expect(container.read(meProvider)?.fullName, 'Ada Lovelace');
     clearSnackBars();
 
     // Cleared: an empty field is sent as null.
     await tester.tap(find.byKey(const ValueKey('profile.about')));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const ValueKey('profile.dialog.fullName')), '');
-    await tester.enterText(find.byKey(const ValueKey('profile.dialog.about')), '  ');
-    await tester.tap(find.byKey(const ValueKey('profile.dialog.save')));
-    await _pumpUntil(tester, find.text('Profile updated.'));
+    await tester.enterText(find.byKey(const ValueKey('profile.aboutDialog.about')), '  ');
+    await tester.tap(find.byKey(const ValueKey('profile.aboutDialog.save')));
+    await _pumpUntil(tester, find.text('About saved'));
     await tester.pumpAndSettle();
-    expect(profileRequests.last, {'full_name': null, 'first_name': 'Ada', 'about': null});
-    expect(find.text('-'), findsNWidgets(2));
+    expect(profileRequests.last, {'full_name': 'Ada Lovelace', 'first_name': 'Ada', 'about': null});
+    expect(find.text('-'), findsOneWidget);
     expect(find.text('Ada'), findsOneWidget);
   });
 }

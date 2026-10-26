@@ -1124,7 +1124,11 @@ class _Translations$base$settings$profile$de extends Translations$base$settings$
   @override
   late final _Translations$base$settings$profile$page$de page = _Translations$base$settings$profile$page$de._(_root);
   @override
-  late final _Translations$base$settings$profile$dialog$de dialog = _Translations$base$settings$profile$dialog$de._(_root);
+  late final _Translations$base$settings$profile$fullNameDialog$de fullNameDialog = _Translations$base$settings$profile$fullNameDialog$de._(_root);
+  @override
+  late final _Translations$base$settings$profile$firstNameDialog$de firstNameDialog = _Translations$base$settings$profile$firstNameDialog$de._(_root);
+  @override
+  late final _Translations$base$settings$profile$aboutDialog$de aboutDialog = _Translations$base$settings$profile$aboutDialog$de._(_root);
 }
 
 // Path: base.settings.preferences
@@ -1942,32 +1946,60 @@ class _Translations$base$settings$profile$page$de extends Translations$base$sett
   @override
   String get description => 'Was der Assistent über dich erfährt, damit er weiß, wer „ich“ in deinen Fragen ist.';
   @override
-  String get updated => 'Profil aktualisiert.';
+  String get fullNameSaved => 'Vollständiger Name gespeichert';
   @override
-  String saveFailed({required Object error}) => 'Das Profil konnte nicht gespeichert werden: ${error}';
+  String get firstNameSaved => 'Vorname gespeichert';
+  @override
+  String get aboutSaved => '„Über dich“ gespeichert';
+  @override
+  String fullNameSaveFailed({required Object error}) => 'Der vollständige Name konnte nicht gespeichert werden: ${error}';
+  @override
+  String firstNameSaveFailed({required Object error}) => 'Der Vorname konnte nicht gespeichert werden: ${error}';
+  @override
+  String aboutSaveFailed({required Object error}) => '„Über dich“ konnte nicht gespeichert werden: ${error}';
 }
 
-// Path: base.settings.profile.dialog
-class _Translations$base$settings$profile$dialog$de extends Translations$base$settings$profile$dialog$en {
-  _Translations$base$settings$profile$dialog$de._(TranslationsDe root) : this._root = root, super.internal(root);
+// Path: base.settings.profile.fullNameDialog
+class _Translations$base$settings$profile$fullNameDialog$de extends Translations$base$settings$profile$fullNameDialog$en {
+  _Translations$base$settings$profile$fullNameDialog$de._(TranslationsDe root) : this._root = root, super.internal(root);
 
   final TranslationsDe _root; // ignore: unused_field
 
   // Translations
   @override
-  String get title => 'Profil bearbeiten';
+  String get title => 'Vollständigen Namen ändern';
   @override
-  String get description => 'Das erfährt der Assistent über dich, damit er weiß, wer „ich“ in deinen Fragen ist.';
+  String get hint => 'So wie er in Dokumenten steht';
   @override
-  String get fullNameHint => 'So wie er in Dokumenten steht';
+  String tooLong({required Object max}) => 'Der vollständige Name darf höchstens ${max} Zeichen lang sein.';
+}
+
+// Path: base.settings.profile.firstNameDialog
+class _Translations$base$settings$profile$firstNameDialog$de extends Translations$base$settings$profile$firstNameDialog$en {
+  _Translations$base$settings$profile$firstNameDialog$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
   @override
-  String get aboutPlaceholder => 'Z. B. deine Rolle, die Projekte, an denen du arbeitest, oder wie dir Antworten am liebsten sind.';
+  String get title => 'Vornamen ändern';
   @override
-  String fullNameTooLong({required Object max}) => 'Der vollständige Name darf höchstens ${max} Zeichen lang sein.';
+  String tooLong({required Object max}) => 'Der Vorname darf höchstens ${max} Zeichen lang sein.';
+}
+
+// Path: base.settings.profile.aboutDialog
+class _Translations$base$settings$profile$aboutDialog$de extends Translations$base$settings$profile$aboutDialog$en {
+  _Translations$base$settings$profile$aboutDialog$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
   @override
-  String firstNameTooLong({required Object max}) => 'Der Vorname darf höchstens ${max} Zeichen lang sein.';
+  String get title => '„Über dich“ ändern';
   @override
-  String aboutTooLong({required Object max}) => '„Über dich“ darf höchstens ${max} Zeichen lang sein.';
+  String get placeholder => 'Z. B. deine Rolle, die Projekte, an denen du arbeitest, oder wie dir Antworten am liebsten sind.';
+  @override
+  String tooLong({required Object max}) => '„Über dich“ darf höchstens ${max} Zeichen lang sein.';
 }
 
 // Path: base.settings.preferences.page

@@ -75,13 +75,13 @@ String? trimmedOrNull(String value) {
 /// Why the API would reject this profile (the fields trimmed, `null` if empty), `null` if it is valid.
 String? profileError({required String? fullName, required String? firstName, required String? about}) {
   if (fullName != null && fullName.runes.length > maxFullNameLength) {
-    return t.base.settings.profile.dialog.fullNameTooLong(max: maxFullNameLength);
+    return t.base.settings.profile.fullNameDialog.tooLong(max: maxFullNameLength);
   }
   if (firstName != null && firstName.runes.length > maxFirstNameLength) {
-    return t.base.settings.profile.dialog.firstNameTooLong(max: maxFirstNameLength);
+    return t.base.settings.profile.firstNameDialog.tooLong(max: maxFirstNameLength);
   }
   if (about != null && about.runes.length > maxAboutLength) {
-    return t.base.settings.profile.dialog.aboutTooLong(max: maxAboutLength);
+    return t.base.settings.profile.aboutDialog.tooLong(max: maxAboutLength);
   }
   return null;
 }

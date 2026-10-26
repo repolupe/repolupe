@@ -12,23 +12,25 @@
         <tr>
           <td>{{ $t('settings.profile.fullName') }}</td>
           <td>{{ user.full_name ?? '-' }}</td>
-          <td><v-btn @click="showProfileDialog" icon="mdi-pencil" variant="text"/></td>
+          <td><v-btn @click="showFullNameDialog" icon="mdi-pencil" variant="text"/></td>
         </tr>
         <tr>
           <td>{{ $t('settings.profile.firstName') }}</td>
           <td>{{ user.first_name ?? '-' }}</td>
-          <td><v-btn @click="showProfileDialog" icon="mdi-pencil" variant="text"/></td>
+          <td><v-btn @click="showFirstNameDialog" icon="mdi-pencil" variant="text"/></td>
         </tr>
         <tr>
           <td>{{ $t('settings.profile.about') }}</td>
           <td class="py-2" style="white-space: pre-line">{{ user.about || '-' }}</td>
-          <td><v-btn @click="showProfileDialog" icon="mdi-pencil" variant="text"/></td>
+          <td><v-btn @click="showAboutMeDialog" icon="mdi-pencil" variant="text"/></td>
         </tr>
         </tbody>
       </v-table>
     </v-card>
 
-    <ProfileDialog ref="profile-dialog" v-model="dialogProfile" :loading="loading" @submit="updateProfile"/>
+    <FullNameDialog ref="full-name-dialog" v-model="dialogFullName" :loading="loading" @submit="updateFullName"/>
+    <FirstNameDialog ref="first-name-dialog" v-model="dialogFirstName" :loading="loading" @submit="updateFirstName"/>
+    <AboutMeDialog ref="about-me-dialog" v-model="dialogAbout" :loading="loading" @submit="updateAbout"/>
   </MainContainer>
 </template>
 
@@ -39,31 +41,67 @@ import {refreshUser, useUser} from "~/composables/states";
 import {errorMessage, updateMyProfile, type UpdateProfilePayload} from "~/utils/api";
 import {showSnackbar} from "~/utils/utils";
 import MainContainer from "~/components/MainContainer.vue";
-import ProfileDialog from "~/components/settings/ProfileDialog.vue";
+import AboutMeDialog from "~/components/settings/AboutMeDialog.vue";
+import FirstNameDialog from "~/components/settings/FirstNameDialog.vue";
+import FullNameDialog from "~/components/settings/FullNameDialog.vue";
 
-const profileDialog = useTemplateRef<InstanceType<typeof ProfileDialog>>('profile-dialog');
+const fullNameDialog = useTemplateRef<InstanceType<typeof FullNameDialog>>('full-name-dialog');
+const firstNameDialog = useTemplateRef<InstanceType<typeof FirstNameDialog>>('first-name-dialog');
+const aboutMeDialog = useTemplateRef<InstanceType<typeof AboutMeDialog>>('about-me-dialog');
 
 const {t} = useI18n();
 
 const user = useUser();
 
 const loading = ref(false);
-const dialogProfile = ref(false);
+const dialogFullName = ref(false);
+const dialogFirstName = ref(false);
+const dialogAbout = ref(false);
 
-const showProfileDialog = () => {
-  profileDialog.value!.load(user.value!.full_name, user.value!.first_name, user.value!.about);
-  dialogProfile.value = true;
+const showFullNameDialog = () => {
+  fullNameDialog.value!.load(user.value!.full_name, user.value!.first_name, user.value!.about);
+  dialogFullName.value = true;
 }
 
-const updateProfile = async (data: UpdateProfilePayload) => {
+const showFirstNameDialog = () => {
+  firstNameDialog.value!.load(user.value!.full_name, user.value!.first_name, user.value!.about);
+  dialogFirstName.value = true;
+}
+
+const showAboutMeDialog = () => {
+  aboutMeDialog.value!.load(user.value!.full_name, user.value!.first_name, user.value!.about);
+  dialogAbout.value = true;
+}
+
+const updateFullName = async (data: UpdateProfilePayload) => {
+  if (await updateProfile(data, t('settings.profile.page.fullNameSaved'), (error) => t('settings.profile.page.fullNameSaveFailed', {error}))) {
+    dialogFullName.value = false;
+  }
+}
+
+const updateFirstName = async (data: UpdateProfilePayload) => {
+  if (await updateProfile(data, t('settings.profile.page.firstNameSaved'), (error) => t('settings.profile.page.firstNameSaveFailed', {error}))) {
+    dialogFirstName.value = false;
+  }
+}
+
+const updateAbout = async (data: UpdateProfilePayload) => {
+  if (await updateProfile(data, t('settings.profile.page.aboutSaved'), (error) => t('settings.profile.page.aboutSaveFailed', {error}))) {
+    dialogAbout.value = false;
+  }
+}
+
+// Saves the profile, returns whether that succeeded.
+const updateProfile = async (data: UpdateProfilePayload, saved: string, failed: (error: string) => string): Promise<boolean> => {
   loading.value = true;
   try {
     await updateMyProfile(data);
-    dialogProfile.value = false;
     await refreshUser();
-    showSnackbar(t('settings.profile.page.updated'));
+    showSnackbar(saved);
+    return true;
   } catch (e) {
-    showSnackbar(t('settings.profile.page.saveFailed', {error: errorMessage(e)}));
+    showSnackbar(failed(errorMessage(e)));
+    return false;
   } finally {
     loading.value = false;
   }

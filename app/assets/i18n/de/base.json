@@ -304,17 +304,26 @@
       "about": "Über dich",
       "page": {
         "description": "Was der Assistent über dich erfährt, damit er weiß, wer „ich“ in deinen Fragen ist.",
-        "updated": "Profil aktualisiert.",
-        "saveFailed": "Das Profil konnte nicht gespeichert werden: {error}"
+        "fullNameSaved": "Vollständiger Name gespeichert",
+        "firstNameSaved": "Vorname gespeichert",
+        "aboutSaved": "„Über dich“ gespeichert",
+        "fullNameSaveFailed": "Der vollständige Name konnte nicht gespeichert werden: {error}",
+        "firstNameSaveFailed": "Der Vorname konnte nicht gespeichert werden: {error}",
+        "aboutSaveFailed": "„Über dich“ konnte nicht gespeichert werden: {error}"
       },
-      "dialog": {
-        "title": "Profil bearbeiten",
-        "description": "Das erfährt der Assistent über dich, damit er weiß, wer „ich“ in deinen Fragen ist.",
-        "fullNameHint": "So wie er in Dokumenten steht",
-        "aboutPlaceholder": "Z. B. deine Rolle, die Projekte, an denen du arbeitest, oder wie dir Antworten am liebsten sind.",
-        "fullNameTooLong": "Der vollständige Name darf höchstens {max} Zeichen lang sein.",
-        "firstNameTooLong": "Der Vorname darf höchstens {max} Zeichen lang sein.",
-        "aboutTooLong": "„Über dich“ darf höchstens {max} Zeichen lang sein."
+      "fullNameDialog": {
+        "title": "Vollständigen Namen ändern",
+        "hint": "So wie er in Dokumenten steht",
+        "tooLong": "Der vollständige Name darf höchstens {max} Zeichen lang sein."
+      },
+      "firstNameDialog": {
+        "title": "Vornamen ändern",
+        "tooLong": "Der Vorname darf höchstens {max} Zeichen lang sein."
+      },
+      "aboutDialog": {
+        "title": "„Über dich“ ändern",
+        "placeholder": "Z. B. deine Rolle, die Projekte, an denen du arbeitest, oder wie dir Antworten am liebsten sind.",
+        "tooLong": "„Über dich“ darf höchstens {max} Zeichen lang sein."
       }
     },
     "preferences": {
