@@ -1,0 +1,41 @@
+# Checks that the server (api/Cargo.toml) and the app (app/pubspec.yaml) have the same version.
+# The app's build number (after "+") is ignored.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ci.yml"
+      - "api/Cargo.toml"
+      - "app/pubspec.yaml"
+  pull_request:
+    paths:
+      - ".github/workflows/ci.yml"
+      - "api/Cargo.toml"
+      - "app/pubspec.yaml"
+  workflow_dispatch:
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compare versions
+        run: |
+          api=$(sed -n 's/^version = "\(.*\)"$/\1/p' api/Cargo.toml | head -n 1)
+          app=$(sed -n 's/^version: *\([^+ ]*\).*$/\1/p' app/pubspec.yaml)
+          echo "api: $api"
+          echo "app: $app"
+          if [ -z "$api" ] || [ -z "$app" ]; then
+            echo "::error::Could not read the versions"
+            exit 1
+          fi
+          if [ "$api" != "$app" ]; then
+            echo "::error::api/Cargo.toml ($api) and app/pubspec.yaml ($app) have different versions"
+            exit 1
+          fi

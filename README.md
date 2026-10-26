@@ -1,10 +1,13 @@
 # Repolupe
 
-[![Docker][docker-badge]][docker-workflow]
+[![CI][ci-badge]][ci-workflow]
+[![Docker][docker-badge]][docker-image]
 [![License][license-badge]][license]
 
-[docker-badge]: https://github.com/repolupe/repolupe/actions/workflows/docker.yml/badge.svg
-[docker-workflow]: https://github.com/repolupe/repolupe/actions/workflows/docker.yml
+[ci-badge]: https://github.com/repolupe/repolupe/actions/workflows/ci.yml/badge.svg
+[ci-workflow]: https://github.com/repolupe/repolupe/actions/workflows/ci.yml
+[docker-badge]: https://img.shields.io/badge/docker-ghcr.io%2Frepolupe%2Frepolupe-blue?logo=docker&logoColor=white
+[docker-image]: https://github.com/repolupe/repolupe/pkgs/container/repolupe
 [license-badge]: https://img.shields.io/badge/license-Apache%202.0-blue.svg
 [license]: LICENSE
 
