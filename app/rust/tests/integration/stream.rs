@@ -396,6 +396,7 @@ fn start_answer(client: &Client, llm: &MockLlm) -> (Uuid, Uuid) {
     let chat = block_on(client.create_chat(CreateChatRequest {
         content: "Read it".into(),
         attachment_id: Some(attachment.id),
+        utc_offset_minutes: None,
         all_repositories: true,
         repository_ids: None,
         title: Some("Notes".into()),

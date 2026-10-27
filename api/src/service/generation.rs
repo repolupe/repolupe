@@ -10,7 +10,7 @@ use crate::service::answer;
 use crate::service::llm::{LlmConfig, Usage};
 use crate::service::llm_config::AnsweringModel;
 use crate::service::pricing::Pricing;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, FixedOffset, Utc};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -51,7 +51,7 @@ impl GenerationRegistry {
         chat_id: Uuid,
         message_id: Uuid,
         model: &AnsweringModel,
-        browser_locale: Option<String>,
+        client: ClientContext,
         created_at: DateTime<Utc>,
     ) -> Result<Arc<Generation>, AppError> {
         let mut live = self.live.lock().unwrap();
@@ -69,7 +69,7 @@ impl GenerationRegistry {
             message_id,
             chat_id,
             user_id,
-            browser_locale,
+            client,
             model_id: model.id,
             pricing: model.pricing.clone(),
             created_at,
@@ -107,12 +107,19 @@ impl GenerationRegistry {
     }
 }
 
+/// What the request that starts a generation tells about the user's device.
+pub(crate) struct ClientContext {
+    /// From the request's `Accept-Language`, used when the user has not chosen a locale.
+    pub locale: Option<String>,
+    /// `None` if the client did not send it.
+    pub utc_offset: Option<FixedOffset>,
+}
+
 pub(crate) struct Generation {
     pub message_id: Uuid,
     pub chat_id: Uuid,
     pub user_id: Uuid,
-    /// From the request's `Accept-Language`, used when the user has not chosen a locale.
-    pub browser_locale: Option<String>,
+    pub client: ClientContext,
     model_id: Uuid,
     /// Prices of the model when the message was sent, `None` if it has none.
     pricing: Option<Pricing>,

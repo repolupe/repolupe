@@ -20,7 +20,8 @@ use repolupe::dto::attachment::{AttachmentDto, UploadAttachmentQuery};
 use repolupe::dto::auth::{LoginRequest, LoginResponse};
 use repolupe::dto::chat::{
     ChatDetailDto, ChatDto, ChatPageDto, CreateChatRequest, FileDiffDto, ListChatsQuery,
-    MessageDto, ProposedCommitDto, SendMessageRequest, ToolCallDto, UpdateChatRequest,
+    MessageDto, ProposedCommitDto, RetryMessageRequest, SendMessageRequest, ToolCallDto,
+    UpdateChatRequest,
 };
 use repolupe::dto::config::ConfigEntryDto;
 use repolupe::dto::extraction::{
@@ -313,9 +314,13 @@ impl Client {
         &self,
         chat_id: Uuid,
         message_id: Uuid,
+        request: RetryMessageRequest,
     ) -> Result<MessageDto, ClientError> {
-        let path = format!("/api/v1/chats/{chat_id}/messages/{message_id}/retry");
-        self.post_json(path, empty_object()).await?.json()
+        self.post(
+            format!("/api/v1/chats/{chat_id}/messages/{message_id}/retry"),
+            &request,
+        )
+        .await
     }
 
     /// `GET /api/v1/chats/{id}/tool-calls/{tool_call_id}`, with its output.

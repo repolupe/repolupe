@@ -410,7 +410,19 @@ export interface CreateChatPayload {
  * `UNKNOWN_REPOSITORY` or `UNKNOWN_ATTACHMENT`.
  */
 export async function createChat(payload: CreateChatPayload): Promise<ChatDetailDto> {
-    return await makeRequest({route: 'chats', method: 'POST', body: payload});
+    return await makeRequest({
+        route: 'chats',
+        method: 'POST',
+        body: {...payload, utc_offset_minutes: utcOffsetMinutes()},
+    });
+}
+
+/**
+ * Minutes east of UTC right now, e.g. 60 for UTC+01:00, sent with every question so the model knows the
+ * user's local time. `getTimezoneOffset` counts the other way round.
+ */
+function utcOffsetMinutes(): number {
+    return -new Date().getTimezoneOffset();
 }
 
 /** The repositories of a chat cannot be changed. */
@@ -438,7 +450,7 @@ export async function sendMessage(chatId: string, content: string, attachmentId:
     return await makeRequest({
         route: `chats/${chatId}/messages`,
         method: 'POST',
-        body: {content, attachment_id: attachmentId},
+        body: {content, attachment_id: attachmentId, utc_offset_minutes: utcOffsetMinutes()},
     });
 }
 
@@ -484,7 +496,11 @@ export async function cancelMessage(chatId: string, messageId: string): Promise<
  * returned. Fails with `NOT_RETRYABLE`.
  */
 export async function retryMessage(chatId: string, messageId: string): Promise<MessageDto> {
-    return await makeRequest({route: `chats/${chatId}/messages/${messageId}/retry`, method: 'POST'});
+    return await makeRequest({
+        route: `chats/${chatId}/messages/${messageId}/retry`,
+        method: 'POST',
+        body: {utc_offset_minutes: utcOffsetMinutes()},
+    });
 }
 
 /** A tool call with its output. */

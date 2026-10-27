@@ -12,8 +12,8 @@ use futures_executor::block_on;
 use futures_util::StreamExt;
 use repolupe::dto::auth::LoginRequest;
 use repolupe::dto::chat::{
-    CreateChatRequest, MessageDto, MessageStatus, SendMessageRequest, ToolCallStatus,
-    UpdateChatRequest,
+    CreateChatRequest, MessageDto, MessageStatus, RetryMessageRequest, SendMessageRequest,
+    ToolCallStatus, UpdateChatRequest,
 };
 use repolupe::dto::error::ErrorCode;
 use repolupe::dto::extraction::{DocumentFilter, RetryDocumentRequest};
@@ -388,6 +388,7 @@ fn every_method_reaches_its_route() {
                 SendMessageRequest {
                     content: "Hello".into(),
                     attachment_id: None,
+                    utc_offset_minutes: None,
                 },
             ))),
         ),
@@ -397,7 +398,13 @@ fn every_method_reaches_its_route() {
         ),
         (
             "retry_message",
-            api_code(block_on(client.retry_message(id(), id()))),
+            api_code(block_on(client.retry_message(
+                id(),
+                id(),
+                RetryMessageRequest {
+                    utc_offset_minutes: None,
+                },
+            ))),
         ),
         (
             "message_events",
@@ -692,6 +699,7 @@ fn local_instance() {
     let chat = block_on(client.create_chat(CreateChatRequest {
         content: "What do my notes say?".into(),
         attachment_id: Some(attachment.id),
+        utc_offset_minutes: None,
         all_repositories: true,
         repository_ids: None,
         title: None,
@@ -720,6 +728,7 @@ fn local_instance() {
         SendMessageRequest {
             content: "Anything else?".into(),
             attachment_id: None,
+            utc_offset_minutes: None,
         },
     ))
     .unwrap();
@@ -740,7 +749,14 @@ fn local_instance() {
     };
     assert_eq!(answer.status, MessageStatus::Cancelled);
     assert_eq!(answer.content, "Let me");
-    let retried = block_on(client.retry_message(chat_id, answer.id)).unwrap();
+    let retried = block_on(client.retry_message(
+        chat_id,
+        answer.id,
+        RetryMessageRequest {
+            utc_offset_minutes: None,
+        },
+    ))
+    .unwrap();
     assert_eq!(retried.status, MessageStatus::Generating);
     let answer = wait_for_answer(client, chat_id, retried.id);
     assert_eq!(answer.content, "Nothing else.");

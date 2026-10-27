@@ -153,6 +153,10 @@ class CreateChatRequest {
   /// Not listed, and deleted a day after its last message. Cannot be changed later.
   final bool temporary;
 
+  /// The user's offset from UTC in minutes, e.g. 60 for UTC+01:00, so the model knows their
+  /// local time. Absent uses UTC.
+  final int? utcOffsetMinutes;
+
   const CreateChatRequest({
     required this.content,
     this.attachmentId,
@@ -161,6 +165,7 @@ class CreateChatRequest {
     this.title,
     this.modelId,
     required this.temporary,
+    this.utcOffsetMinutes,
   });
 
   @override
@@ -171,7 +176,8 @@ class CreateChatRequest {
       repositoryIds.hashCode ^
       title.hashCode ^
       modelId.hashCode ^
-      temporary.hashCode;
+      temporary.hashCode ^
+      utcOffsetMinutes.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -184,7 +190,8 @@ class CreateChatRequest {
           repositoryIds == other.repositoryIds &&
           title == other.title &&
           modelId == other.modelId &&
-          temporary == other.temporary;
+          temporary == other.temporary &&
+          utcOffsetMinutes == other.utcOffsetMinutes;
 }
 
 /// What a change does to its file.
@@ -510,6 +517,23 @@ enum ProposedCommitStatus {
   unknown,
 }
 
+class RetryMessageRequest {
+  /// The user's offset from UTC in minutes, e.g. 60 for UTC+01:00, so the model knows their
+  /// local time. Absent uses UTC.
+  final int? utcOffsetMinutes;
+
+  const RetryMessageRequest({
+    this.utcOffsetMinutes,
+  });
+
+  @override
+  int get hashCode => utcOffsetMinutes.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is RetryMessageRequest && runtimeType == other.runtimeType && utcOffsetMinutes == other.utcOffsetMinutes;
+}
+
 class SendMessageRequest {
   /// May be blank with an attachment.
   final String content;
@@ -517,18 +541,27 @@ class SendMessageRequest {
   /// An attachment uploaded with `POST /api/v1/attachments`, sent with the message.
   final UuidValue? attachmentId;
 
+  /// The user's offset from UTC in minutes, e.g. 60 for UTC+01:00, so the model knows their
+  /// local time. Absent uses UTC.
+  final int? utcOffsetMinutes;
+
   const SendMessageRequest({
     required this.content,
     this.attachmentId,
+    this.utcOffsetMinutes,
   });
 
   @override
-  int get hashCode => content.hashCode ^ attachmentId.hashCode;
+  int get hashCode => content.hashCode ^ attachmentId.hashCode ^ utcOffsetMinutes.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is SendMessageRequest && runtimeType == other.runtimeType && content == other.content && attachmentId == other.attachmentId;
+      other is SendMessageRequest &&
+          runtimeType == other.runtimeType &&
+          content == other.content &&
+          attachmentId == other.attachmentId &&
+          utcOffsetMinutes == other.utcOffsetMinutes;
 }
 
 class ToolCallDto {

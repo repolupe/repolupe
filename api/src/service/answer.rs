@@ -20,6 +20,7 @@ use crate::service::tools::{
     CHANGE_FILE, CommitIdentities, MOVE_FILES, PRESENT_FILE, RepositoryTools, SAVE_ATTACHMENT,
     ToolOutput, ToolRepository, describe_attachment,
 };
+use chrono::{DateTime, FixedOffset, Offset, Utc};
 use futures_util::StreamExt;
 use futures_util::future::join_all;
 use std::fmt::Write;
@@ -56,7 +57,12 @@ async fn run(
     let history = repository::message::list_messages(&state.db, generation.chat_id).await?;
     let attachments =
         repository::attachment::list_chat_attachments(&state.db, generation.chat_id).await?;
-    let mut messages = history_messages(&history, &attachments, generation.message_id);
+    let mut messages = history_messages(
+        &history,
+        &attachments,
+        generation.message_id,
+        generation.client.utc_offset,
+    );
     if messages.last().map(|m| m.role) != Some(Role::User) {
         tracing::error!(
             "History of message {} does not end with a question",
@@ -75,7 +81,7 @@ async fn run(
     let mut profile = repository::user::get_user_profile(&state.db, generation.user_id)
         .await?
         .unwrap_or_default();
-    profile.locale = profile.locale.or_else(|| generation.browser_locale.clone());
+    profile.locale = profile.locale.or_else(|| generation.client.locale.clone());
     let tools = RepositoryTools::new(
         scoped
             .iter()
@@ -99,7 +105,7 @@ async fn run(
         attachments,
     )
     .with_auto_commit(profile.auto_commit);
-    let system = system_prompt(&profile, &scoped, &tools);
+    let system = system_prompt(&profile, generation.client.utc_offset, &scoped, &tools);
     let definitions = tools.definitions();
 
     // Whether the text of the next response starts a new paragraph.
@@ -320,13 +326,18 @@ fn tool_result(tool_use: &ToolUse, content: String, is_error: bool) -> ContentBl
 }
 
 /// The messages before `answer_id` as text, with the attachments the user sent described in
-/// their messages. Earlier tool calls are left out, so the model looks things up again if it
-/// needs them. Consecutive messages of the same role are merged, e.g. around a failed answer
-/// without content.
+/// their messages and the user's messages starting with when they were sent. Earlier tool calls
+/// are left out, so the model looks things up again if it needs them. Consecutive messages of
+/// the same role are merged, e.g. around a failed answer without content.
+///
+/// The time is the user's local time, so the model knows the current date and time. It is in
+/// the messages rather than the system prompt, which would change with every question and
+/// invalidate the cached history.
 fn history_messages(
     messages: &[Message],
     attachments: &[Attachment],
     answer_id: Uuid,
+    utc_offset: Option<FixedOffset>,
 ) -> Vec<ChatMessage> {
     let mut history: Vec<ChatMessage> = Vec::new();
     for message in messages.iter().take_while(|m| m.id != answer_id) {
@@ -344,7 +355,11 @@ fn history_messages(
                     }
                     None => message.content.clone(),
                 };
-                (Role::User, text)
+                if text.trim().is_empty() {
+                    continue;
+                }
+                let sent_at = sent_at(message.created_at, utc_offset);
+                (Role::User, format!("{sent_at}\n{text}"))
             }
             (MessageRole::Assistant, MessageStatus::Completed) => {
                 (Role::Assistant, message.content.clone())
@@ -373,9 +388,19 @@ fn history_messages(
     history
 }
 
+/// Like `[Tuesday, 2026-10-27 14:32]`, in the user's time zone.
+fn sent_at(created_at: DateTime<Utc>, utc_offset: Option<FixedOffset>) -> String {
+    let offset = utc_offset.unwrap_or_else(|| Utc.fix());
+    created_at
+        .with_timezone(&offset)
+        .format("[%A, %Y-%m-%d %H:%M]")
+        .to_string()
+}
+
 /// Stays the same during the tool loop, so it can be cached.
 fn system_prompt(
     profile: &UserProfile,
+    utc_offset: Option<FixedOffset>,
     scoped: &[ScopedRepository],
     tools: &RepositoryTools,
 ) -> String {
@@ -383,12 +408,14 @@ fn system_prompt(
     if scoped.is_empty() {
         let mut prompt = String::from("You are a helpful assistant.\n\n");
         push_user_section(&mut prompt, profile, false);
+        push_time_section(&mut prompt, utc_offset);
         let _ = writeln!(prompt, "{language}, and format it with Markdown.");
         return prompt;
     }
 
     let mut prompt = String::from("You answer questions about the user's Git repositories.\n\n");
     push_user_section(&mut prompt, profile, true);
+    push_time_section(&mut prompt, utc_offset);
 
     prompt.push_str("Repositories you can read:\n");
     for repository in tools.repositories() {
@@ -515,6 +542,18 @@ fn push_user_section(prompt: &mut String, profile: &UserProfile, with_repositori
     prompt.push_str("\n\n");
 }
 
+fn push_time_section(prompt: &mut String, utc_offset: Option<FixedOffset>) {
+    let time_zone = match utc_offset {
+        Some(offset) => format!("the user's local time (UTC{offset})"),
+        None => "UTC, since the user's time zone is unknown".to_string(),
+    };
+    let _ = writeln!(
+        prompt,
+        "The user's messages start with the date and time they were sent, in {time_zone}. The \
+        last one is the current date and time.\n"
+    );
+}
+
 /// The question's language comes first, the locale only decides when it is unclear.
 fn answer_language(profile: &UserProfile) -> String {
     match &profile.locale {
@@ -599,20 +638,55 @@ mod tests {
             answer.clone(),
             message(User, Completed, "Later"),
         ];
-        let history = history_messages(&messages, &[], answer.id);
+        let sent_at = "2026-10-27T13:32:00Z".parse().unwrap();
+        let messages: Vec<Message> = messages
+            .into_iter()
+            .map(|m| Message {
+                created_at: sent_at,
+                ..m
+            })
+            .collect();
+        let history = history_messages(&messages, &[], answer.id, None);
         assert_eq!(
             texts(&history),
             vec![
-                (Role::User, vec!["First?"]),
+                (Role::User, vec!["[Tuesday, 2026-10-27 13:32]\nFirst?"]),
                 (Role::Assistant, vec!["First answer"]),
-                (Role::User, vec!["Second?", "Second again?"]),
+                (
+                    Role::User,
+                    vec![
+                        "[Tuesday, 2026-10-27 13:32]\nSecond?",
+                        "[Tuesday, 2026-10-27 13:32]\nSecond again?"
+                    ]
+                ),
                 (
                     Role::Assistant,
                     vec!["Partial\n\n[This answer was interrupted.]"]
                 ),
-                (Role::User, vec!["Third?"]),
+                (Role::User, vec!["[Tuesday, 2026-10-27 13:32]\nThird?"]),
             ]
         );
+    }
+
+    #[test]
+    fn dates_messages_in_the_users_time_zone() {
+        let question = Message {
+            created_at: "2026-10-27T23:32:00Z".parse().unwrap(),
+            ..message(MessageRole::User, MessageStatus::Completed, "Today?")
+        };
+        let answer = message(MessageRole::Assistant, MessageStatus::Generating, "");
+        let messages = vec![question, answer.clone()];
+        let offset = FixedOffset::east_opt(60 * 60);
+        let history = history_messages(&messages, &[], answer.id, offset);
+        assert_eq!(
+            texts(&history),
+            vec![(Role::User, vec!["[Wednesday, 2026-10-28 00:32]\nToday?"])]
+        );
+
+        let prompt = system_prompt(&UserProfile::default(), offset, &[], &tools_for(&[]));
+        assert!(prompt.contains("in the user's local time (UTC+01:00)."));
+        let prompt = system_prompt(&UserProfile::default(), None, &[], &tools_for(&[]));
+        assert!(prompt.contains("in UTC, since the user's time zone is unknown."));
     }
 
     fn scoped(name: &str, head_commit_sha: Option<&str>) -> ScopedRepository {
@@ -650,7 +724,7 @@ mod tests {
             scoped("handbook", Some("0123456789abcdef0123")),
             scoped("wiki", None),
         ];
-        let prompt = system_prompt(&UserProfile::default(), &scoped, &tools_for(&scoped));
+        let prompt = system_prompt(&UserProfile::default(), None, &scoped, &tools_for(&scoped));
         assert!(!prompt.contains("The user asking"));
         assert!(prompt.contains(
             "- `handbook` (branch `main`, commit 0123456789ab): Team handbook\n\
@@ -663,7 +737,12 @@ mod tests {
             can_commit: true,
             ..self::scoped("handbook", Some("0123456789abcdef0123"))
         }];
-        let prompt = system_prompt(&UserProfile::default(), &writable, &tools_for(&writable));
+        let prompt = system_prompt(
+            &UserProfile::default(),
+            None,
+            &writable,
+            &tools_for(&writable),
+        );
         assert!(prompt.contains(
             "- `handbook` (branch `main`, commit 0123456789ab, you can propose changes): Team \
             handbook\n"
@@ -676,7 +755,7 @@ mod tests {
             auto_commit: true,
             ..UserProfile::default()
         };
-        let prompt = system_prompt(&auto_commit, &writable, &tools_for(&writable));
+        let prompt = system_prompt(&auto_commit, None, &writable, &tools_for(&writable));
         assert!(prompt.contains("committed automatically once your answer is complete"));
         assert!(!prompt.contains("which the user reviews and commits"));
     }
@@ -684,11 +763,11 @@ mod tests {
     #[test]
     fn handles_missing_repositories() {
         let profile = UserProfile::default();
-        let prompt = system_prompt(&profile, &[], &tools_for(&[]));
+        let prompt = system_prompt(&profile, None, &[], &tools_for(&[]));
         assert!(prompt.starts_with("You are a helpful assistant.\n\n"));
         assert!(!prompt.contains("repositor"));
         let unsynced = vec![scoped("wiki", None)];
-        let prompt = system_prompt(&profile, &unsynced, &tools_for(&unsynced));
+        let prompt = system_prompt(&profile, None, &unsynced, &tools_for(&unsynced));
         assert!(prompt.contains("None of the repositories can be read yet"));
         assert!(!prompt.contains("How to answer:"));
     }
@@ -701,7 +780,7 @@ mod tests {
             locale: None,
             auto_commit: false,
         };
-        let prompt = system_prompt(&profile, &[], &tools_for(&[]));
+        let prompt = system_prompt(&profile, None, &[], &tools_for(&[]));
         assert!(prompt.contains(
             "The user asking is Alice Doe.\n\
             What the user says about themselves:\n\
@@ -715,14 +794,19 @@ mod tests {
             locale: None,
             auto_commit: false,
         };
-        let prompt = system_prompt(&profile, &[], &tools_for(&[]));
+        let prompt = system_prompt(&profile, None, &[], &tools_for(&[]));
         assert!(prompt.contains("About the user asking:\nWhat the user says"));
     }
 
     #[test]
     fn falls_back_to_the_locale() {
         let readable = vec![scoped("handbook", Some("0123456789abcdef0123"))];
-        let prompt = system_prompt(&UserProfile::default(), &readable, &tools_for(&readable));
+        let prompt = system_prompt(
+            &UserProfile::default(),
+            None,
+            &readable,
+            &tools_for(&readable),
+        );
         assert!(
             prompt.ends_with(
                 "- Answer in the language of the question, and format it with Markdown.\n"
@@ -733,13 +817,13 @@ mod tests {
             locale: Some("de-DE".to_string()),
             ..UserProfile::default()
         };
-        let prompt = system_prompt(&profile, &readable, &tools_for(&readable));
+        let prompt = system_prompt(&profile, None, &readable, &tools_for(&readable));
         assert!(prompt.ends_with(
             "- Answer in the language of the question, or in the language of the locale `de-DE` \
             if that is unclear, and format it with Markdown.\n"
         ));
         assert!(!prompt.contains("The user asking"));
-        let prompt = system_prompt(&profile, &[], &tools_for(&[]));
+        let prompt = system_prompt(&profile, None, &[], &tools_for(&[]));
         assert!(prompt.ends_with(
             "Answer in the language of the question, or in the language of the locale `de-DE` \
             if that is unclear, and format it with Markdown.\n"

@@ -2727,6 +2727,8 @@ fn wire__crate__api__client__Client_retry_message_impl(
             >>::sse_decode(&mut deserializer);
             let api_chat_id = <uuid::Uuid>::sse_decode(&mut deserializer);
             let api_message_id = <uuid::Uuid>::sse_decode(&mut deserializer);
+            let api_request =
+                <repolupe::dto::chat::RetryMessageRequest>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| async move {
                 transform_result_sse::<_, crate::api::error::ClientError>(
@@ -2752,6 +2754,7 @@ fn wire__crate__api__client__Client_retry_message_impl(
                             &*api_that_guard,
                             api_chat_id,
                             api_message_id,
+                            api_request,
                         )
                         .await?;
                         std::result::Result::Ok(output_ok)
@@ -4365,6 +4368,7 @@ const _: fn() = || {
         let _: Option<String> = CreateChatRequest.title;
         let _: Option<uuid::Uuid> = CreateChatRequest.model_id;
         let _: bool = CreateChatRequest.temporary;
+        let _: Option<i32> = CreateChatRequest.utc_offset_minutes;
     }
     {
         let CreateLlmProviderRequest =
@@ -4667,9 +4671,14 @@ const _: fn() = || {
         let _: String = RetryDocumentRequest.blob_oid;
     }
     {
+        let RetryMessageRequest = None::<repolupe::dto::chat::RetryMessageRequest>.unwrap();
+        let _: Option<i32> = RetryMessageRequest.utc_offset_minutes;
+    }
+    {
         let SendMessageRequest = None::<repolupe::dto::chat::SendMessageRequest>.unwrap();
         let _: String = SendMessageRequest.content;
         let _: Option<uuid::Uuid> = SendMessageRequest.attachment_id;
+        let _: Option<i32> = SendMessageRequest.utc_offset_minutes;
     }
     {
         let ServerDto = None::<repolupe::dto::server::ServerDto>.unwrap();
@@ -5147,6 +5156,7 @@ impl SseDecode for repolupe::dto::chat::CreateChatRequest {
         let mut var_title = <Option<String>>::sse_decode(deserializer);
         let mut var_modelId = <Option<uuid::Uuid>>::sse_decode(deserializer);
         let mut var_temporary = <bool>::sse_decode(deserializer);
+        let mut var_utcOffsetMinutes = <Option<i32>>::sse_decode(deserializer);
         return repolupe::dto::chat::CreateChatRequest {
             content: var_content,
             attachment_id: var_attachmentId,
@@ -5155,6 +5165,7 @@ impl SseDecode for repolupe::dto::chat::CreateChatRequest {
             title: var_title,
             model_id: var_modelId,
             temporary: var_temporary,
+            utc_offset_minutes: var_utcOffsetMinutes,
         };
     }
 }
@@ -6693,14 +6704,26 @@ impl SseDecode for repolupe::dto::extraction::RetryDocumentRequest {
     }
 }
 
+impl SseDecode for repolupe::dto::chat::RetryMessageRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_utcOffsetMinutes = <Option<i32>>::sse_decode(deserializer);
+        return repolupe::dto::chat::RetryMessageRequest {
+            utc_offset_minutes: var_utcOffsetMinutes,
+        };
+    }
+}
+
 impl SseDecode for repolupe::dto::chat::SendMessageRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_content = <String>::sse_decode(deserializer);
         let mut var_attachmentId = <Option<uuid::Uuid>>::sse_decode(deserializer);
+        let mut var_utcOffsetMinutes = <Option<i32>>::sse_decode(deserializer);
         return repolupe::dto::chat::SendMessageRequest {
             content: var_content,
             attachment_id: var_attachmentId,
+            utc_offset_minutes: var_utcOffsetMinutes,
         };
     }
 }
@@ -7677,6 +7700,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::CreateCha
             self.0.title.into_into_dart().into_dart(),
             self.0.model_id.into_into_dart().into_dart(),
             self.0.temporary.into_into_dart().into_dart(),
+            self.0.utc_offset_minutes.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -9014,11 +9038,29 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::extraction::Ret
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::RetryMessageRequest> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [self.0.utc_offset_minutes.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<repolupe::dto::chat::RetryMessageRequest>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::chat::RetryMessageRequest>>
+    for repolupe::dto::chat::RetryMessageRequest
+{
+    fn into_into_dart(self) -> FrbWrapper<repolupe::dto::chat::RetryMessageRequest> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::SendMessageRequest> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.0.content.into_into_dart().into_dart(),
             self.0.attachment_id.into_into_dart().into_dart(),
+            self.0.utc_offset_minutes.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -9742,6 +9784,7 @@ impl SseEncode for repolupe::dto::chat::CreateChatRequest {
         <Option<String>>::sse_encode(self.title, serializer);
         <Option<uuid::Uuid>>::sse_encode(self.model_id, serializer);
         <bool>::sse_encode(self.temporary, serializer);
+        <Option<i32>>::sse_encode(self.utc_offset_minutes, serializer);
     }
 }
 
@@ -10945,11 +10988,19 @@ impl SseEncode for repolupe::dto::extraction::RetryDocumentRequest {
     }
 }
 
+impl SseEncode for repolupe::dto::chat::RetryMessageRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<i32>>::sse_encode(self.utc_offset_minutes, serializer);
+    }
+}
+
 impl SseEncode for repolupe::dto::chat::SendMessageRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.content, serializer);
         <Option<uuid::Uuid>>::sse_encode(self.attachment_id, serializer);
+        <Option<i32>>::sse_encode(self.utc_offset_minutes, serializer);
     }
 }
 

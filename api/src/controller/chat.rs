@@ -3,8 +3,8 @@ use crate::config::state::AppState;
 use crate::dto::chat::MessageStatus;
 use crate::dto::chat::{
     ChatDetailDto, ChatDto, ChatPageDto, ContentDeltaDto, CreateChatRequest, FileDiffDto,
-    ListChatsQuery, MessageDto, ProposedCommitDto, SendMessageRequest, ToolCallDto,
-    ToolCallFinishedDto, ToolCallStatus, ToolCallSummaryDto, UpdateChatRequest,
+    ListChatsQuery, MessageDto, ProposedCommitDto, RetryMessageRequest, SendMessageRequest,
+    ToolCallDto, ToolCallFinishedDto, ToolCallStatus, ToolCallSummaryDto, UpdateChatRequest,
 };
 use crate::dto::error::ErrorCode;
 use crate::middleware::auth::AuthenticatedUser;
@@ -15,7 +15,7 @@ use crate::model::tool_call::{ChangedPaths, ProposedCommit, ToolCallSummary};
 use crate::repository::chat::{
     ChatChanges, ChatCursor, Exchange, NewChat, NewExchange, RepositoryScope, RetryOutcome,
 };
-use crate::service::generation::{GenerationEvent, Subscription};
+use crate::service::generation::{ClientContext, GenerationEvent, Subscription};
 use crate::service::llm_config::AnsweringModel;
 use crate::service::mirror::Snapshot;
 use crate::util::extract::{JsonBody, PathParam, QueryParams};
@@ -143,7 +143,7 @@ pub(crate) async fn create_chat(
         id,
         assistant_message_id,
         &model,
-        util::http::preferred_locale(&headers),
+        client_context(&headers, payload.utc_offset_minutes)?,
         now,
     )?;
     let created = repository::chat::create_chat(
@@ -237,7 +237,7 @@ pub(crate) async fn send_message(
         chat_id,
         assistant_message_id,
         &model,
-        util::http::preferred_locale(&headers),
+        client_context(&headers, payload.utc_offset_minutes)?,
         now,
     )?;
     let added = repository::chat::add_exchange(
@@ -368,6 +368,7 @@ pub(crate) async fn retry_message(
     Extension(auth): Extension<AuthenticatedUser>,
     PathParam((chat_id, message_id)): PathParam<(Uuid, Uuid)>,
     headers: HeaderMap,
+    JsonBody(payload): JsonBody<RetryMessageRequest>,
 ) -> Result<(StatusCode, Json<MessageDto>), AppError> {
     let model = chat_model(&state, auth.user_id, chat_id).await?;
 
@@ -379,7 +380,7 @@ pub(crate) async fn retry_message(
         chat_id,
         new_message_id,
         &model,
-        util::http::preferred_locale(&headers),
+        client_context(&headers, payload.utc_offset_minutes)?,
         now,
     )?;
     let outcome = repository::chat::retry_message(
@@ -406,6 +407,18 @@ pub(crate) async fn retry_message(
     service::generation::spawn(state.clone(), generation, model.config);
 
     Ok((StatusCode::CREATED, Json(MessageDto::new(message, vec![]))))
+}
+
+fn client_context(
+    headers: &HeaderMap,
+    utc_offset_minutes: Option<i32>,
+) -> Result<ClientContext, AppError> {
+    Ok(ClientContext {
+        locale: util::http::preferred_locale(headers),
+        utc_offset: utc_offset_minutes
+            .map(util::validation::parse_utc_offset)
+            .transpose()?,
+    })
 }
 
 pub(crate) async fn get_tool_call(

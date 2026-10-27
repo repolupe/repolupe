@@ -88,6 +88,7 @@ class ApiCreateChatAction extends AsyncReduxActionWithResult<ApiService, Account
             repositoryIds: allRepositories ? const [] : repositoryIds,
             modelId: modelId,
             temporary: temporary,
+            utcOffsetMinutes: DateTime.now().timeZoneOffset.inMinutes,
           ),
         ),
       ),
@@ -140,7 +141,11 @@ class ApiSendMessageAction extends AsyncReduxActionWithResult<ApiService, Accoun
       _ApiCallAction(
         call: (client) => client.sendMessage(
           chatId: chatId,
-          request: SendMessageRequest(content: content, attachmentId: attachmentId),
+          request: SendMessageRequest(
+            content: content,
+            attachmentId: attachmentId,
+            utcOffsetMinutes: DateTime.now().timeZoneOffset.inMinutes,
+          ),
         ),
       ),
     );

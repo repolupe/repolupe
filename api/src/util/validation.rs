@@ -1,5 +1,6 @@
 use crate::model::llm_model::ModelPrices;
 use crate::model::remote_access::RemoteAccess;
+use chrono::FixedOffset;
 use rust_decimal::Decimal;
 use url::Url;
 
@@ -18,6 +19,8 @@ const MAX_CHAT_TITLE_LENGTH: usize = 200;
 const MAX_MESSAGE_LENGTH: usize = 32_000;
 const MAX_REPOSITORIES_PER_CHAT: usize = 100;
 const MAX_LOCALE_LENGTH: usize = 35;
+/// The largest offsets in use are UTC−12:00 and UTC+14:00.
+const MAX_UTC_OFFSET_MINUTES: i32 = 14 * 60;
 const MAX_FULL_NAME_LENGTH: usize = 100;
 const MAX_FIRST_NAME_LENGTH: usize = 100;
 const MAX_ABOUT_LENGTH: usize = 1000;
@@ -342,6 +345,17 @@ pub(crate) fn validate_locale(locale: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
+/// Minutes east of UTC, e.g. 60 for UTC+01:00.
+pub(crate) fn parse_utc_offset(minutes: i32) -> Result<FixedOffset, ValidationError> {
+    if minutes.abs() > MAX_UTC_OFFSET_MINUTES {
+        return Err(ValidationError(format!(
+            "UTC offset must be between -{MAX_UTC_OFFSET_MINUTES} and {MAX_UTC_OFFSET_MINUTES} minutes"
+        )));
+    }
+    FixedOffset::east_opt(minutes * 60)
+        .ok_or_else(|| ValidationError("Invalid UTC offset".to_string()))
+}
+
 pub(crate) fn validate_full_name(full_name: &str) -> Result<(), ValidationError> {
     if full_name.chars().count() > MAX_FULL_NAME_LENGTH {
         return Err(ValidationError(format!(
@@ -572,6 +586,15 @@ mod tests {
                 "{locale} should be invalid"
             );
         }
+    }
+
+    #[test]
+    fn parses_utc_offset() {
+        assert_eq!(parse_utc_offset(60).unwrap().to_string(), "+01:00");
+        assert_eq!(parse_utc_offset(-570).unwrap().to_string(), "-09:30");
+        assert_eq!(parse_utc_offset(840).unwrap().to_string(), "+14:00");
+        assert!(parse_utc_offset(841).is_err());
+        assert!(parse_utc_offset(-841).is_err());
     }
 
     #[test]

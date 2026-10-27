@@ -2,6 +2,7 @@ use super::mock_llm::{MockLlm, text_response};
 use super::support::{self, TestApp};
 use axum::body::Body;
 use axum::http::{Method, StatusCode, header};
+use chrono::{DateTime, FixedOffset, Utc};
 use repolupe::{DEFAULT_INITIAL_ADMIN_PASSWORD, INITIAL_ADMIN_USER_NAME, Repolupe};
 use serde_json::json;
 use sqlx::SqlitePool;
@@ -123,11 +124,36 @@ async fn profile_tells_the_llm_who_is_asking(db: SqlitePool) {
     let (status, chat) = alice
         .post(
             "/api/v1/chats",
-            json!({"content": "What is my tax id?", "all_repositories": true}),
+            json!({
+                "content": "What is my tax id?",
+                "all_repositories": true,
+                "utc_offset_minutes": 60,
+            }),
         )
         .await;
     assert_eq!(status, StatusCode::CREATED, "{chat}");
     alice.wait_for_answer(chat["id"].as_str().unwrap()).await;
+    let sent_at: DateTime<Utc> = chat["messages"][0]["created_at"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    let sent_at = sent_at.with_timezone(&FixedOffset::east_opt(3600).unwrap());
+    assert_eq!(
+        llm.requests()[0]["messages"][0]["content"][0]["text"],
+        format!(
+            "{}\nWhat is my tax id?",
+            sent_at.format("[%A, %Y-%m-%d %H:%M]")
+        )
+    );
+    let (status, body) = alice
+        .post(
+            "/api/v1/chats",
+            json!({"content": "Hi", "all_repositories": true, "utc_offset_minutes": 900}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert_eq!(body["code"], "VALIDATION_ERROR");
     let commit = &repo.commit_sha[..12];
     assert_eq!(
         llm.requests()[0]["system"][0]["text"].as_str().unwrap(),
@@ -141,6 +167,8 @@ What the user says about themselves:
 Married to Bob Doe.
 </about_user>
 \"I\", \"me\" and \"my\" in the questions refer to this user. The repositories may contain information about several people: answer with the information about this user, and if it is unclear whom something belongs to, say so instead of guessing.
+
+The user's messages start with the date and time they were sent, in the user's local time (UTC+01:00). The last one is the current date and time.
 
 Repositories you can read:
 - `family` (branch `main`, commit {commit})

@@ -271,6 +271,10 @@ pub struct CreateChatRequest {
     /// Not listed, and deleted a day after its last message. Cannot be changed later.
     #[serde(default)]
     pub temporary: bool,
+    /// The user's offset from UTC in minutes, e.g. 60 for UTC+01:00, so the model knows their
+    /// local time. Absent uses UTC.
+    #[serde(default)]
+    pub utc_offset_minutes: Option<i32>,
 }
 
 /// Replaces the title and the model. `model_id` absent or `null` uses the user's model.
@@ -288,6 +292,18 @@ pub struct SendMessageRequest {
     /// An attachment uploaded with `POST /api/v1/attachments`, sent with the message.
     #[serde(default)]
     pub attachment_id: Option<Uuid>,
+    /// The user's offset from UTC in minutes, e.g. 60 for UTC+01:00, so the model knows their
+    /// local time. Absent uses UTC.
+    #[serde(default)]
+    pub utc_offset_minutes: Option<i32>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct RetryMessageRequest {
+    /// The user's offset from UTC in minutes, e.g. 60 for UTC+01:00, so the model knows their
+    /// local time. Absent uses UTC.
+    #[serde(default)]
+    pub utc_offset_minutes: Option<i32>,
 }
 
 /// The `content_delta` event of `GET .../messages/{id}/stream`.

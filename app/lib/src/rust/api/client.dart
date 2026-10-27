@@ -165,7 +165,7 @@ abstract class Client implements RustOpaqueInterface {
   Future<void> retryDocumentExtraction({required RetryDocumentRequest request});
 
   /// `POST /api/v1/chats/{id}/messages/{message_id}/retry`: the new answer being generated.
-  Future<MessageDto> retryMessage({required UuidValue chatId, required UuidValue messageId});
+  Future<MessageDto> retryMessage({required UuidValue chatId, required UuidValue messageId, required RetryMessageRequest request});
 
   /// `POST /api/v1/chats/{id}/messages`: the user message and the answer being generated.
   Future<List<MessageDto>> sendMessage({required UuidValue chatId, required SendMessageRequest request});

@@ -9,12 +9,13 @@ use std::time::Duration;
 const TEXT_PDF: &[u8] = include_bytes!("../fixtures/text.pdf");
 
 /// The text of the first message in `request`, the user's.
+/// Without the time each message starts with.
 fn first_message(request: &Value) -> String {
     request["messages"][0]["content"]
         .as_array()
         .unwrap()
         .iter()
-        .map(|block| block["text"].as_str().unwrap())
+        .map(|block| block["text"].as_str().unwrap().split_once('\n').unwrap().1)
         .collect::<Vec<_>>()
         .join("\n")
 }

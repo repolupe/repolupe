@@ -196,7 +196,12 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiClientClientRetryDocumentExtraction({required Client that, required RetryDocumentRequest request});
 
-  Future<MessageDto> crateApiClientClientRetryMessage({required Client that, required UuidValue chatId, required UuidValue messageId});
+  Future<MessageDto> crateApiClientClientRetryMessage({
+    required Client that,
+    required UuidValue chatId,
+    required UuidValue messageId,
+    required RetryMessageRequest request,
+  });
 
   Future<List<MessageDto>> crateApiClientClientSendMessage({required Client that, required UuidValue chatId, required SendMessageRequest request});
 
@@ -1506,7 +1511,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
-  Future<MessageDto> crateApiClientClientRetryMessage({required Client that, required UuidValue chatId, required UuidValue messageId}) {
+  Future<MessageDto> crateApiClientClientRetryMessage({
+    required Client that,
+    required UuidValue chatId,
+    required UuidValue messageId,
+    required RetryMessageRequest request,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
@@ -1514,6 +1524,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_Uuid(chatId, serializer);
           sse_encode_Uuid(messageId, serializer);
+          sse_encode_box_autoadd_retry_message_request(request, serializer);
           pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 47, port: port_);
         },
         codec: SseCodec(
@@ -1521,7 +1532,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           decodeErrorData: sse_decode_client_error,
         ),
         constMeta: kCrateApiClientClientRetryMessageConstMeta,
-        argValues: [that, chatId, messageId],
+        argValues: [that, chatId, messageId, request],
         apiImpl: this,
       ),
     );
@@ -1529,7 +1540,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiClientClientRetryMessageConstMeta => const TaskConstMeta(
     debugName: 'Client_retry_message',
-    argNames: ['that', 'chatId', 'messageId'],
+    argNames: ['that', 'chatId', 'messageId', 'request'],
   );
 
   @override
@@ -2650,6 +2661,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  RetryMessageRequest dco_decode_box_autoadd_retry_message_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_retry_message_request(raw);
+  }
+
+  @protected
   SendMessageRequest dco_decode_box_autoadd_send_message_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_send_message_request(raw);
@@ -2864,7 +2881,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   CreateChatRequest dco_decode_create_chat_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7) throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 8) throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return CreateChatRequest(
       content: dco_decode_String(arr[0]),
       attachmentId: dco_decode_opt_Uuid(arr[1]),
@@ -2873,6 +2890,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       title: dco_decode_opt_String(arr[4]),
       modelId: dco_decode_opt_Uuid(arr[5]),
       temporary: dco_decode_bool(arr[6]),
+      utcOffsetMinutes: dco_decode_opt_box_autoadd_i_32(arr[7]),
     );
   }
 
@@ -3848,13 +3866,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  RetryMessageRequest dco_decode_retry_message_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1) throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return RetryMessageRequest(
+      utcOffsetMinutes: dco_decode_opt_box_autoadd_i_32(arr[0]),
+    );
+  }
+
+  @protected
   SendMessageRequest dco_decode_send_message_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return SendMessageRequest(
       content: dco_decode_String(arr[0]),
       attachmentId: dco_decode_opt_Uuid(arr[1]),
+      utcOffsetMinutes: dco_decode_opt_box_autoadd_i_32(arr[2]),
     );
   }
 
@@ -4477,6 +4506,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  RetryMessageRequest sse_decode_box_autoadd_retry_message_request(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_retry_message_request(deserializer));
+  }
+
+  @protected
   SendMessageRequest sse_decode_box_autoadd_send_message_request(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_send_message_request(deserializer));
@@ -4681,6 +4716,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_title = sse_decode_opt_String(deserializer);
     var var_modelId = sse_decode_opt_Uuid(deserializer);
     var var_temporary = sse_decode_bool(deserializer);
+    var var_utcOffsetMinutes = sse_decode_opt_box_autoadd_i_32(deserializer);
     return CreateChatRequest(
       content: var_content,
       attachmentId: var_attachmentId,
@@ -4689,6 +4725,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       title: var_title,
       modelId: var_modelId,
       temporary: var_temporary,
+      utcOffsetMinutes: var_utcOffsetMinutes,
     );
   }
 
@@ -5868,11 +5905,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  RetryMessageRequest sse_decode_retry_message_request(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_utcOffsetMinutes = sse_decode_opt_box_autoadd_i_32(deserializer);
+    return RetryMessageRequest(utcOffsetMinutes: var_utcOffsetMinutes);
+  }
+
+  @protected
   SendMessageRequest sse_decode_send_message_request(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_content = sse_decode_String(deserializer);
     var var_attachmentId = sse_decode_opt_Uuid(deserializer);
-    return SendMessageRequest(content: var_content, attachmentId: var_attachmentId);
+    var var_utcOffsetMinutes = sse_decode_opt_box_autoadd_i_32(deserializer);
+    return SendMessageRequest(content: var_content, attachmentId: var_attachmentId, utcOffsetMinutes: var_utcOffsetMinutes);
   }
 
   @protected
@@ -6472,6 +6517,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_retry_message_request(RetryMessageRequest self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_retry_message_request(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_send_message_request(SendMessageRequest self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_send_message_request(self, serializer);
@@ -6655,6 +6706,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.title, serializer);
     sse_encode_opt_Uuid(self.modelId, serializer);
     sse_encode_bool(self.temporary, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.utcOffsetMinutes, serializer);
   }
 
   @protected
@@ -7602,10 +7654,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_retry_message_request(RetryMessageRequest self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_box_autoadd_i_32(self.utcOffsetMinutes, serializer);
+  }
+
+  @protected
   void sse_encode_send_message_request(SendMessageRequest self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.content, serializer);
     sse_encode_opt_Uuid(self.attachmentId, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.utcOffsetMinutes, serializer);
   }
 
   @protected
@@ -8011,8 +8070,8 @@ class ClientImpl extends RustOpaque implements Client {
       RustLib.instance.api.crateApiClientClientRetryDocumentExtraction(that: this, request: request);
 
   /// `POST /api/v1/chats/{id}/messages/{message_id}/retry`: the new answer being generated.
-  Future<MessageDto> retryMessage({required UuidValue chatId, required UuidValue messageId}) =>
-      RustLib.instance.api.crateApiClientClientRetryMessage(that: this, chatId: chatId, messageId: messageId);
+  Future<MessageDto> retryMessage({required UuidValue chatId, required UuidValue messageId, required RetryMessageRequest request}) =>
+      RustLib.instance.api.crateApiClientClientRetryMessage(that: this, chatId: chatId, messageId: messageId, request: request);
 
   /// `POST /api/v1/chats/{id}/messages`: the user message and the answer being generated.
   Future<List<MessageDto>> sendMessage({required UuidValue chatId, required SendMessageRequest request}) =>

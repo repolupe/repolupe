@@ -205,6 +205,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RetryDocumentRequest dco_decode_box_autoadd_retry_document_request(dynamic raw);
 
   @protected
+  RetryMessageRequest dco_decode_box_autoadd_retry_message_request(dynamic raw);
+
+  @protected
   SendMessageRequest dco_decode_box_autoadd_send_message_request(dynamic raw);
 
   @protected
@@ -595,6 +598,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RetryDocumentRequest dco_decode_retry_document_request(dynamic raw);
 
   @protected
+  RetryMessageRequest dco_decode_retry_message_request(dynamic raw);
+
+  @protected
   SendMessageRequest dco_decode_send_message_request(dynamic raw);
 
   @protected
@@ -829,6 +835,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   RetryDocumentRequest sse_decode_box_autoadd_retry_document_request(SseDeserializer deserializer);
+
+  @protected
+  RetryMessageRequest sse_decode_box_autoadd_retry_message_request(SseDeserializer deserializer);
 
   @protected
   SendMessageRequest sse_decode_box_autoadd_send_message_request(SseDeserializer deserializer);
@@ -1221,6 +1230,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RetryDocumentRequest sse_decode_retry_document_request(SseDeserializer deserializer);
 
   @protected
+  RetryMessageRequest sse_decode_retry_message_request(SseDeserializer deserializer);
+
+  @protected
   SendMessageRequest sse_decode_send_message_request(SseDeserializer deserializer);
 
   @protected
@@ -1459,6 +1471,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_autoadd_retry_document_request(RetryDocumentRequest self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_retry_message_request(RetryMessageRequest self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_send_message_request(SendMessageRequest self, SseSerializer serializer);
@@ -1849,6 +1864,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_retry_document_request(RetryDocumentRequest self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_retry_message_request(RetryMessageRequest self, SseSerializer serializer);
 
   @protected
   void sse_encode_send_message_request(SendMessageRequest self, SseSerializer serializer);
