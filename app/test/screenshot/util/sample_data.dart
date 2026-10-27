@@ -15,36 +15,65 @@ const passportChatId = '0199a8d4-6d5e-7c3a-9b1f-300000000002';
 
 final sampleUser = fakeUser(id: sampleUserId, userName: sampleUserName, email: 'alex@example.com', role: 'ADMIN', defaultModelId: sampleModelId);
 
-final documents = fakeRepository(
+/// The names and descriptions of the sample data in one language.
+typedef SampleTexts = ({
+  String documents,
+  String documentsDescription,
+  String notes,
+  String notesDescription,
+  String taxChat,
+  String passportChat,
+});
+
+const englishTexts = (
+  documents: 'documents',
+  documentsDescription: 'Taxes, insurance, payslips and everything else that comes on paper.',
+  notes: 'notes',
+  notesDescription: 'Things worth remembering.',
+  taxChat: 'Tax ID',
+  passportChat: 'Passport renewal',
+);
+
+const germanTexts = (
+  documents: 'dokumente',
+  documentsDescription: 'Steuern, Versicherungen, Gehaltsabrechnungen und alles andere, was auf Papier kommt.',
+  notes: 'notizen',
+  notesDescription: 'Was ich mir merken möchte.',
+  taxChat: 'Steuer-ID',
+  passportChat: 'Reisepass verlängern',
+);
+
+Map<String, dynamic> documents(SampleTexts texts) => fakeRepository(
   id: documentsId,
   ownerId: sampleUserId,
-  name: 'documents',
-  description: 'Taxes, insurance, payslips and everything else that comes on paper.',
-  url: 'https://git.example.com/alex/documents.git',
+  name: texts.documents,
+  description: texts.documentsDescription,
+  url: 'https://git.example.com/alex/${texts.documents}.git',
   hasToken: true,
   tokenHint: '7f3a',
   gitSize: 4820000,
   lfsSize: 31400000,
 );
 
-final notes = fakeRepository(
+Map<String, dynamic> notes(SampleTexts texts) => fakeRepository(
   id: notesId,
   ownerId: sampleUserId,
-  name: 'notes',
-  description: 'Things worth remembering.',
+  name: texts.notes,
+  description: texts.notesDescription,
   local: true,
 );
 
-/// What every page of a logged-in user may load: the user, the instance, the models and the repositories.
-Map<String, Object?> baseRoutes() => {
+/// What every page of a logged-in user may load: the user, the instance, the models and the repositories, named
+/// with [texts].
+Map<String, Object?> baseRoutes(SampleTexts texts) => {
   '/api/v1/me': sampleUser,
   '/api/v1/instance': {'name': 'Acme'},
   '/api/v1/models': [
     fakeModel(id: sampleModelId, displayName: ' Mistral 4 119B', providerId: sampleProviderId, providerName: 'OpenRouter', isDefault: true),
   ],
-  '/api/v1/repositories': [documents, notes],
+  '/api/v1/repositories': [documents(texts), notes(texts)],
   '/api/v1/chats': {
-    'items': [chat(passportChatId, 'Passport renewal', notesId), chat(taxChatId, 'Tax ID', documentsId)],
+    'items': [chat(passportChatId, texts.passportChat, notesId), chat(taxChatId, texts.taxChat, documentsId)],
     'next_cursor': null,
   },
 };

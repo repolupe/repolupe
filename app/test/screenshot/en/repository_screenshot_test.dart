@@ -18,8 +18,8 @@ void main() {
     description: 'Repository',
     title: 'Your knowledge,\non any git server',
     routes: {
-      ...baseRoutes(),
-      '/api/v1/repositories/$documentsId': documents,
+      ...baseRoutes(englishTexts),
+      '/api/v1/repositories/$documentsId': documents(englishTexts),
       '/api/v1/repositories/$documentsId/documents': {
         'documents': [
           fakeDocument(path: 'Finance/Payslips/2026-09.pdf'),
@@ -36,7 +36,7 @@ void main() {
     },
     home: const Scaffold(),
     pushed: RepositoryPage(id: UuidValue.fromString(documentsId)),
-    ready: find.text('documents'),
-    goldenFileName: '4_repository',
+    ready: find.text(englishTexts.documents),
+    goldenFileName: '5_repository',
   );
 }

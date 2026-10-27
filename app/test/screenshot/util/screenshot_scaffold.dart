@@ -9,8 +9,11 @@ import 'package:app/service/me_service.dart';
 import 'package:app/service/persistence_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:golden_screenshot/golden_screenshot.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
@@ -27,6 +30,13 @@ const _monospaceFontFile = '/System/Library/Fonts/SFNSMono.ttf';
 /// Whether [_monospaceFontFile] was loaded as `monospace`.
 var _hasMonospaceFont = false;
 
+/// The system's emoji font for e.g. the flags of the LLM providers, as the test engine has no font fallback.
+/// Without it (not on macOS), emojis are rendered as boxes.
+const _emojiFontFile = '/System/Library/Fonts/Apple Color Emoji.ttc';
+
+/// The family [_emojiFontFile] is loaded as, the fallback of every text style in the screenshots.
+const _emojiFontFamily = 'emoji';
+
 /// iPhone 17 Pro, labelled on App Store Connect as "iPhone with Dynamic Island (medium display)" (6.1″/6.3″), the
 /// only required iPhone size. golden_screenshot's `GoldenScreenshotDevices.iphone` is the optional 6.9″ size.
 const _iphone = ScreenshotDevice(
@@ -37,15 +47,24 @@ const _iphone = ScreenshotDevice(
   frameBuilder: ScreenshotFrame.iphone,
 );
 
-/// Call this at the top of every screenshot test's `main` before [screenshotGroup].
-void initScreenshotTest() {
+/// Call this at the top of every screenshot test's `main` before [screenshotGroup], with the [locale] of the folder
+/// the test is in. The texts, dates and numbers are in that language.
+void initScreenshotTest({AppLocale locale = AppLocale.en}) {
   setUpAll(() async {
     await initRustLib();
+    await initializeDateFormatting();
+    await LocaleSettings.setLocale(locale);
+    Intl.defaultLocale = locale.languageTag;
     final file = File(_monospaceFontFile);
     if (file.existsSync()) {
       final bytes = await file.readAsBytes();
       await (FontLoader('monospace')..addFont(Future.value(ByteData.sublistView(bytes)))).load();
       _hasMonospaceFont = true;
+    }
+    final emojiFile = File(_emojiFontFile);
+    if (emojiFile.existsSync()) {
+      final bytes = await emojiFile.readAsBytes();
+      await (FontLoader(_emojiFontFamily)..addFont(Future.value(ByteData.sublistView(bytes)))).load();
     }
   });
 
@@ -89,7 +108,10 @@ void screenshotGroup({
               child: ScreenshotApp(
                 device: device.wrapWithTitle(title: title),
                 frameColors: brightness == Brightness.dark ? ScreenshotFrameColors.light : ScreenshotFrameColors.dark,
-                theme: getTheme(brightness),
+                theme: _withEmojiFallback(getTheme(brightness)),
+                locale: LocaleSettings.currentLocale.flutterLocale,
+                supportedLocales: AppLocaleUtils.supportedLocales,
+                localizationsDelegates: GlobalMaterialLocalizations.delegates,
                 navigatorKey: container.read(navigationProvider).key,
                 scaffoldMessengerKey: container.read(snackBarProvider).key,
                 home: home,
@@ -112,6 +134,11 @@ void screenshotGroup({
       }, timeout: const Timeout(Duration(seconds: 60)));
     }
   });
+}
+
+/// [theme] with [_emojiFontFamily] as the fallback of its texts.
+ThemeData _withEmojiFallback(ThemeData theme) {
+  return theme.copyWith(textTheme: theme.textTheme.apply(fontFamilyFallback: const [_emojiFontFamily]));
 }
 
 /// Whether the golden of [device] named [goldenFileName] exists or is being written.
