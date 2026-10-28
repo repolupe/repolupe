@@ -134,13 +134,11 @@ and Leptonica (`brew install tesseract`).
 **API** (`api/`)
 
 ```bash
-cp ../.env.example ../.env   # set TOKEN_ENCRYPTION_KEY
-set -a; source ../.env; set +a
-cargo run
+cargo run      # http://localhost:3000
 cargo test
 ```
 
-**Web** (`web/`, with the API running on port `3000`)
+**Web** (`web/`)
 
 ```bash
 npm install
@@ -156,17 +154,11 @@ fvm flutter run
 fvm flutter test
 ```
 
-See [CLAUDE.md](CLAUDE.md) for the architecture, conventions and code generation steps.
-
 ## Contributing
 
-Contributions are welcome.
+This project only accepts PRs containing bug fixes.
 
-- **Bug fixes:** If you find a bug, please create a pull request with a clear description of the issue and the fix.
-- **Improvements:** Have an idea? Please [open an issue](https://github.com/repolupe/repolupe/issues) first to discuss it.
-- **Translations:** The texts are in [web/i18n/locales](web/i18n/locales) (shared with the app) and
-  [app/assets/i18n](app/assets/i18n) (app only). Every locale has the same keys in the same order, checked by
-  `npm run i18n:check`.
+For feature requests, open an issue first. Create a PR if maintainer agrees.
 
 ## License
 
