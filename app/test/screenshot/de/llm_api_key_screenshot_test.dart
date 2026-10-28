@@ -1,5 +1,6 @@
 import 'package:app/gen/strings.g.dart';
 import 'package:app/pages/settings/admin/llm_provider_form_page.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -17,17 +18,15 @@ void main() {
   screenshotGroup(
     description: 'LLM API key',
     title: 'Dein eigener\nAPI-Schlüssel',
-    routes: baseRoutes(germanTexts),
+    api: sampleApi(germanTexts),
     home: const Scaffold(),
     pushed: LlmProviderFormPage.edit(
-      provider: llmProviderOf(
-        fakeLlmProvider(
-          id: sampleProviderId,
-          name: 'OpenRouter',
-          apiFormat: 'OPENAI',
-          baseUrl: 'https://openrouter.ai/api/v1',
-          keyHint: 'x9Qa',
-        ),
+      provider: fakeLlmProvider(
+        id: sampleProviderId,
+        name: 'OpenRouter',
+        apiFormat: LlmApiFormat.openAi,
+        baseUrl: 'https://openrouter.ai/api/v1',
+        keyHint: 'x9Qa',
       ),
     ),
     ready: find.text('OpenRouter'),

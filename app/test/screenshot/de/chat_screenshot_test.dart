@@ -19,35 +19,37 @@ void main() {
   screenshotGroup(
     description: 'Chat (light)',
     title: 'Chatte mit deinem\nprivaten Wissen',
-    routes: {
-      ...baseRoutes(germanTexts),
-      '/api/v1/chats/$taxChatId': chatDetail(
-        id: taxChatId,
-        title: germanTexts.taxChat,
-        repositoryId: documentsId,
-        exchanges: [
-          (
-            question: 'Wann verlängert sich meine Kfz-Versicherung?',
-            toolCalls: [
-              ('read_file', {'repository': germanTexts.documents, 'path': 'Versicherungen/Kfz-Police.pdf'}),
-              ('present_file_to_user', {'repository': germanTexts.documents, 'path': 'Versicherungen/Kfz-Police.pdf'}),
-            ],
-            answer: 'Am **1. März**. Laut deiner Police kannst du sie bis zum **31. Januar** kündigen.',
-          ),
-          (
-            question: 'Wie lautet meine Steuer-ID?',
-            toolCalls: [
-              ('grep', {'repository': germanTexts.documents, 'pattern': 'Steuer-ID', 'path': 'Steuern'}),
-              ('present_file_to_user', {'repository': germanTexts.documents, 'path': 'Steuern/Bescheid-2024.pdf'}),
-            ],
-            answer:
-                'Deine Steuer-ID ist **83 715 692 048**. Sie steht in deinen Einkommensteuerbescheiden:\n\n'
-                '- `Steuern/Bescheid-2023.pdf`\n'
-                '- `Steuern/Bescheid-2024.pdf`',
-          ),
-        ],
-      ),
-    },
+    api: sampleApi(
+      germanTexts,
+      chatDetails: [
+        chatDetail(
+          id: taxChatId,
+          title: germanTexts.taxChat,
+          repositoryId: documentsId,
+          exchanges: [
+            (
+              question: 'Wann verlängert sich meine Kfz-Versicherung?',
+              toolCalls: [
+                ('read_file', {'repository': germanTexts.documents, 'path': 'Versicherungen/Kfz-Police.pdf'}),
+                ('present_file_to_user', {'repository': germanTexts.documents, 'path': 'Versicherungen/Kfz-Police.pdf'}),
+              ],
+              answer: 'Am **1. März**. Laut deiner Police kannst du sie bis zum **31. Januar** kündigen.',
+            ),
+            (
+              question: 'Wie lautet meine Steuer-ID?',
+              toolCalls: [
+                ('grep', {'repository': germanTexts.documents, 'pattern': 'Steuer-ID', 'path': 'Steuern'}),
+                ('present_file_to_user', {'repository': germanTexts.documents, 'path': 'Steuern/Bescheid-2024.pdf'}),
+              ],
+              answer:
+                  'Deine Steuer-ID ist **83 715 692 048**. Sie steht in deinen Einkommensteuerbescheiden:\n\n'
+                  '- `Steuern/Bescheid-2023.pdf`\n'
+                  '- `Steuern/Bescheid-2024.pdf`',
+            ),
+          ],
+        ),
+      ],
+    ),
     home: const ChatPage(),
     prepare: (container) => _open(container, taxChatId),
     ready: find.textContaining('83 715 692 048', findRichText: true),
@@ -58,37 +60,39 @@ void main() {
     description: 'Chat (dark)',
     title: 'Fragen stellen.\nWissen ergänzen.',
     brightness: Brightness.dark,
-    routes: {
-      ...baseRoutes(germanTexts),
-      '/api/v1/chats/$passportChatId': chatDetail(
-        id: passportChatId,
-        title: germanTexts.passportChat,
-        repositoryId: notesId,
-        exchanges: [
-          (
-            question: 'Wann läuft mein Reisepass ab?',
-            toolCalls: [
-              ('grep', {'repository': germanTexts.notes, 'pattern': 'Reisepass'}),
-            ],
-            answer: 'Am **14. November 2026**, also in etwa drei Wochen (`Persönlich/Ausweise.md`).',
-          ),
-          (
-            question: 'Ich habe ihn gerade verlängert. Der neue ist bis Oktober 2036 gültig.',
-            toolCalls: [
-              ('read_file', {'repository': germanTexts.notes, 'path': 'Persönlich/Ausweise.md'}),
-              ('change_file', {'repository': germanTexts.notes, 'path': 'Persönlich/Ausweise.md'}),
-              ('read_file', {'repository': germanTexts.notes, 'path': 'Erinnerungen.md'}),
-              ('change_file', {'repository': germanTexts.notes, 'path': 'Erinnerungen.md'}),
-            ],
-            answer:
-                'Super! Ich habe deine Notizen aktualisiert:\n\n'
-                '- `Persönlich/Ausweise.md`: Dein Reisepass ist jetzt bis zum **20. Oktober 2036** gültig.\n'
-                '- `Erinnerungen.md`: Ich habe die Erinnerung entfernt, ihn zu verlängern.\n\n'
-                'Prüfe die Änderungen, bevor sie übernommen werden.',
-          ),
-        ],
-      ),
-    },
+    api: sampleApi(
+      germanTexts,
+      chatDetails: [
+        chatDetail(
+          id: passportChatId,
+          title: germanTexts.passportChat,
+          repositoryId: notesId,
+          exchanges: [
+            (
+              question: 'Wann läuft mein Reisepass ab?',
+              toolCalls: [
+                ('grep', {'repository': germanTexts.notes, 'pattern': 'Reisepass'}),
+              ],
+              answer: 'Am **14. November 2026**, also in etwa drei Wochen (`Persönlich/Ausweise.md`).',
+            ),
+            (
+              question: 'Ich habe ihn gerade verlängert. Der neue ist bis Oktober 2036 gültig.',
+              toolCalls: [
+                ('read_file', {'repository': germanTexts.notes, 'path': 'Persönlich/Ausweise.md'}),
+                ('change_file', {'repository': germanTexts.notes, 'path': 'Persönlich/Ausweise.md'}),
+                ('read_file', {'repository': germanTexts.notes, 'path': 'Erinnerungen.md'}),
+                ('change_file', {'repository': germanTexts.notes, 'path': 'Erinnerungen.md'}),
+              ],
+              answer:
+                  'Super! Ich habe deine Notizen aktualisiert:\n\n'
+                  '- `Persönlich/Ausweise.md`: Dein Reisepass ist jetzt bis zum **20. Oktober 2036** gültig.\n'
+                  '- `Erinnerungen.md`: Ich habe die Erinnerung entfernt, ihn zu verlängern.\n\n'
+                  'Prüfe die Änderungen, bevor sie übernommen werden.',
+            ),
+          ],
+        ),
+      ],
+    ),
     home: const ChatPage(),
     prepare: (container) => _open(container, passportChatId),
     ready: find.textContaining('2036', findRichText: true),

@@ -1,119 +1,59 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:app/gen/strings.g.dart';
-import 'package:app/model/account.dart';
 import 'package:app/pages/settings/admin/user_page.dart';
 import 'package:app/pages/settings/admin/users_page.dart';
 import 'package:app/service/api_service.dart';
 import 'package:app/service/me_service.dart';
-import 'package:app/service/persistence_service.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/error.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
+import 'support/api.dart';
 import 'support/fake_user.dart';
-import 'support/persistence.dart';
 import 'support/rust.dart';
 
 const _adminId = '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12';
 const _bobId = '0199a8d4-6d5e-7c3a-9b1f-000000000002';
 const _carolId = '0199a8d4-6d5e-7c3a-9b1f-000000000003';
 
-/// Pumps until [finder] finds something, letting the requests to the server run meanwhile. The frames advance the
-/// clock, so that a snack bar being dismissed makes way for the next one.
-Future<void> _pumpUntil(WidgetTester tester, Finder finder) async {
-  for (var i = 0; i < 100 && finder.evaluate().isEmpty; i++) {
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
-    await tester.pump(const Duration(milliseconds: 50));
-  }
-  expect(finder, findsWidgets);
-}
+/// The API of an admin (the first of [users]) and the users; the registrations are recorded by their request.
+class _FakeApi {
+  List<UserDto> users;
+  final registers = <RegisterRequest>[];
 
-/// Pumps until the requests of the page are done (no progress indicator any more) and its animations have settled.
-Future<void> _settle(WidgetTester tester) async {
-  final progress = find.byType(CircularProgressIndicator);
-  for (var i = 0; i < 100 && progress.evaluate().isNotEmpty; i++) {
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
-    await tester.pump();
-  }
-  expect(progress, findsNothing);
-  await tester.pumpAndSettle();
-}
+  _FakeApi({required this.users});
 
-/// A server with an admin and the users; the POSTs are recorded by their path with their body.
-class _FakeServer {
-  final HttpServer server;
-  List<Map<String, dynamic>> users;
-  final requests = <(String, Map<String, dynamic>?)>[];
-
-  _FakeServer(this.server, {required this.users}) {
-    server.listen(_handle);
-  }
-
-  static Future<_FakeServer> start(WidgetTester tester, {required List<Map<String, dynamic>> users}) async {
-    final fake = (await tester.runAsync(() async {
-      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-      return _FakeServer(server, users: users);
-    }))!;
-    addTearDown(() => fake.server.close(force: true));
-    return fake;
-  }
-
-  String get apiUrl => 'http://127.0.0.1:${server.port}';
-
-  Future<void> _handle(HttpRequest request) async {
-    final bodyText = await utf8.decodeStream(request);
-    final body = request.method == 'POST' && bodyText.isNotEmpty ? jsonDecode(bodyText) as Map<String, dynamic> : null;
-    final response = request.response;
-    response.headers.contentType = ContentType.json;
-    if (request.method == 'POST') {
-      requests.add((request.uri.path, body));
-    }
-    switch ((request.method, request.uri.path)) {
-      case ('GET', '/api/v1/me'):
-        response.write(jsonEncode(users.first));
-      case ('GET', '/api/v1/users'):
-        response.write(jsonEncode(users));
-      case ('POST', '/api/v1/register') when users.any((u) => u['user_name'] == body!['user_name']):
-        response.statusCode = 409;
-        response.write(jsonEncode(fakeError('USER_NAME_TAKEN', 'taken')));
-      case ('POST', '/api/v1/register'):
-        final user = fakeUser(
-          id: _carolId,
-          userName: body!['user_name'] as String,
-          email: body['email'] as String?,
-          mustChangePassword: body['must_change_password'] as bool,
-        );
-        users = [...users, user];
-        response.statusCode = 201;
-        response.write(jsonEncode(user));
-      default:
-        response.statusCode = 404;
-        response.write(jsonEncode(fakeError('NOT_FOUND', 'Not found')));
-    }
-    await response.close();
+  /// Answers the actions of the page with this API.
+  void answer(ApiMocks mock) {
+    mock.on<ApiGetMeAction>((state, _) => (state, users.first));
+    mock.on<ApiListUsersAction>((state, _) => (state, users));
+    mock.on<ApiRegisterUserAction>((state, action) {
+      final request = action.request;
+      registers.add(request);
+      if (users.any((u) => u.userName == request.userName)) {
+        throw apiError(ErrorCode.userNameTaken, status: 409, message: 'taken');
+      }
+      final user = fakeUser(id: _carolId, userName: request.userName, email: request.email, mustChangePassword: request.mustChangePassword);
+      users = [...users, user];
+      return (state, user);
+    });
   }
 }
 
-/// Opens the page for the admin of [server], whose user is loaded. With [local], the active account is the local
-/// instance's, while the requests still go to [server].
-Future<RefenaContainer> _pumpPage(WidgetTester tester, _FakeServer server, {bool local = false}) async {
+/// Opens the page for the admin of [api], whose user is loaded. With [local], the active account is the local
+/// instance's, while the actions are answered by [api] all the same.
+Future<RefenaContainer> _pumpPage(WidgetTester tester, _FakeApi api, {bool local = false}) async {
   // Tall enough for the whole page of a user, so that its lower cards are built too.
   tester.view.physicalSize = const Size(600, 2400);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
-  final account = Account(
-    apiUrl: server.apiUrl,
-    token: 'session-token',
-    user: AccountUser(id: _adminId, userName: 'alice'),
-  );
-  final stored = local ? account.copyWith(apiUrl: null) : account;
-  final persistence = (await tester.runAsync(() => mockPersistence(account: stored)))!;
-  final container = RefenaContainer(overrides: [persistenceProvider.overrideWithValue(persistence)]);
-  container.redux(apiProvider).dispatch(ApiSetAccountAction(account));
-  await tester.runAsync(() => container.redux(meProvider).dispatchAsync(RefreshMeAction()));
+  final account = fakeAccount(userId: _adminId);
+  final container = (await tester.runAsync(
+    () => mockContainer(account: account, stored: local ? account.copyWith(apiUrl: null) : account, api: api.answer),
+  ))!;
+  await container.redux(meProvider).dispatchAsync(RefreshMeAction());
 
   await tester.pumpWidget(
     RefenaScope.withContainer(
@@ -136,10 +76,9 @@ void main() {
   });
 
   testWidgets('the users page lists, filters and opens a user, and creates one', (tester) async {
-    final server = await _FakeServer.start(
-      tester,
+    final api = _FakeApi(
       users: [
-        fakeUser(id: _adminId, userName: 'alice', role: 'ADMIN'),
+        fakeUser(id: _adminId, userName: 'alice', role: UserRole.admin),
         fakeUser(
           id: _bobId,
           userName: 'bob',
@@ -151,10 +90,11 @@ void main() {
         ),
       ],
     );
-    final container = await _pumpPage(tester, server);
+    final container = await _pumpPage(tester, api);
     void clearSnackBars() => container.read(snackBarProvider).key.currentState!.clearSnackBars();
 
-    await _pumpUntil(tester, find.text('2 Users'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 Users'), findsOneWidget);
     expect(find.text('alice'), findsOneWidget);
     expect(find.text('Admin'), findsOneWidget);
     expect(find.text('bob'), findsOneWidget);
@@ -178,7 +118,7 @@ void main() {
 
     // Opens the user's page, which offers everything for another user.
     await tester.tap(find.byKey(const ValueKey('users.$_bobId')));
-    await _settle(tester);
+    await tester.pumpAndSettle();
     expect(find.byType(UserPage), findsOneWidget);
     expect(find.text('Sets a new password for bob and signs them out everywhere.'), findsOneWidget);
     expect(find.text('Disabled (signed out everywhere)'), findsOneWidget);
@@ -186,50 +126,51 @@ void main() {
     expect(tester.widget<FilledButton>(find.byKey(const ValueKey('user.setPassword'))).enabled, isTrue);
     expect(find.byKey(const ValueKey('user.delete')), findsOneWidget);
     await tester.pageBack();
-    await _settle(tester);
+    await tester.pumpAndSettle();
     expect(find.byType(UsersPage), findsOneWidget);
 
-    // Creates a user: the password is checked first, then the server rejects the taken user name.
+    // Creates a user: the password is checked first, then the API rejects the taken user name.
     await tester.tap(find.byKey(const ValueKey('users.new')));
-    await _settle(tester);
+    await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('userForm.userName')), 'bob');
     await tester.enterText(find.byKey(const ValueKey('userForm.password')), 'short');
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('userForm.save')));
-    await _pumpUntil(tester, find.text('Password must be 8 to 128 characters long'));
-    expect(server.requests, isEmpty);
+    await tester.pump();
+    expect(find.text('Password must be 8 to 128 characters long'), findsWidgets);
+    expect(api.registers, isEmpty);
     clearSnackBars();
     await tester.enterText(find.byKey(const ValueKey('userForm.password')), 'secret-password');
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('userForm.save')));
-    await _pumpUntil(tester, find.text('A user with this user name already exists'));
+    await tester.pump();
+    expect(find.text('A user with this user name already exists'), findsWidgets);
     expect(find.byKey(const ValueKey('userForm.save')), findsOneWidget);
     clearSnackBars();
     await tester.enterText(find.byKey(const ValueKey('userForm.userName')), 'carol');
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('userForm.save')));
-    await _pumpUntil(tester, find.text('User created.'));
-    expect(server.requests.last.$1, '/api/v1/register');
-    expect(server.requests.last.$2, {
-      'user_name': 'carol',
-      'email': null,
-      'password': 'secret-password',
-      'must_change_password': true,
-    });
-    await _settle(tester);
+    await tester.pump();
+    expect(find.text('User created.'), findsWidgets);
+    expect(
+      api.registers.last,
+      const RegisterRequest(userName: 'carol', email: null, password: 'secret-password', mustChangePassword: true),
+    );
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('userForm.save')), findsNothing);
-    await _pumpUntil(tester, find.text('3 Users'));
+    await tester.pumpAndSettle();
+    expect(find.text('3 Users'), findsOneWidget);
     expect(find.text('carol'), findsOneWidget);
   });
 
   testWidgets('the users page of the local instance offers no new user', (tester) async {
-    final server = await _FakeServer.start(
-      tester,
-      users: [fakeUser(id: _adminId, userName: 'admin', role: 'ADMIN')],
+    final api = _FakeApi(
+      users: [fakeUser(id: _adminId, userName: 'admin', role: UserRole.admin)],
     );
-    await _pumpPage(tester, server, local: true);
+    await _pumpPage(tester, api, local: true);
 
-    await _pumpUntil(tester, find.text('1 User'));
+    await tester.pumpAndSettle();
+    expect(find.text('1 User'), findsOneWidget);
     expect(find.text('admin'), findsOneWidget);
     expect(
       find.text(

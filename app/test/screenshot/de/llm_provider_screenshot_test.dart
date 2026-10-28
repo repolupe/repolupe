@@ -16,7 +16,7 @@ void main() {
   screenshotGroup(
     description: 'LLM provider',
     title: 'Der LLM-Anbieter\ndeiner Wahl',
-    routes: baseRoutes(germanTexts),
+    api: sampleApi(germanTexts),
     home: const Scaffold(),
     pushed: const LlmProviderNamePickerPage(name: ''),
     ready: find.text('Anthropic'),

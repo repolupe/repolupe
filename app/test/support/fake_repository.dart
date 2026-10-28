@@ -1,6 +1,10 @@
-/// The `RepositoryDto` JSON of a fake server, like `GET /api/v1/repositories/{id}` returns it. A [local] repository
-/// has no remote; otherwise [url], [branch], [pollIntervalSeconds] and the token ([hasToken] with its [tokenHint]).
-Map<String, dynamic> fakeRepository({
+import 'package:app/src/rust/third_party/repolupe/dto/extraction.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
+import 'package:uuid/uuid.dart';
+
+/// A `RepositoryDto`, like `GET /api/v1/repositories/{id}` returns it. A [local] repository has no remote; otherwise
+/// [url], [branch], [pollIntervalSeconds] and the token ([hasToken] with its [tokenHint]).
+RepositoryDto fakeRepository({
   required String id,
   required String ownerId,
   String name = 'docs',
@@ -13,7 +17,7 @@ Map<String, dynamic> fakeRepository({
   String? tokenHint,
   bool allowCommits = true,
   bool canCommit = true,
-  String syncStatus = 'READY',
+  RepositorySyncStatus syncStatus = RepositorySyncStatus.ready,
   String? syncStartedAt,
   String? headCommitSha = '0123456789abcdef0123456789abcdef01234567',
   String? lastSyncedAt = '2026-10-21T12:00:00+00:00',
@@ -21,57 +25,79 @@ Map<String, dynamic> fakeRepository({
   int? lfsSize = 0,
   String? lastError,
   String? nextSyncAt = '2026-10-21T12:15:00+00:00',
-}) => {
-  'id': id,
-  'owner_id': ownerId,
-  'name': name,
-  'description': description,
-  'remote': local
+}) => RepositoryDto(
+  id: UuidValue.fromString(id),
+  ownerId: UuidValue.fromString(ownerId),
+  name: name,
+  description: description,
+  remote: local
       ? null
-      : {
-          'url': url,
-          'branch': branch,
-          'poll_interval_seconds': pollIntervalSeconds,
-          'token': hasToken ? {'hint': tokenHint} : null,
-        },
-  'allow_commits': allowCommits,
-  'can_commit': canCommit,
-  'sync_status': syncStatus,
-  'sync_started_at': syncStartedAt,
-  'head_commit_sha': headCommitSha,
-  'last_synced_at': lastSyncedAt,
-  'git_size': gitSize,
-  'lfs_size': lfsSize,
-  'last_error': lastError,
-  'next_sync_at': nextSyncAt,
-  'created_at': '2026-10-20T12:00:00+00:00',
-  'updated_at': '2026-10-21T12:00:00+00:00',
-};
+      : RemoteSettingsDto(
+          url: url,
+          branch: branch,
+          pollIntervalSeconds: pollIntervalSeconds,
+          token: hasToken ? RepositoryTokenDto(hint: tokenHint) : null,
+        ),
+  allowCommits: allowCommits,
+  canCommit: canCommit,
+  syncStatus: syncStatus,
+  syncStartedAt: _parse(syncStartedAt),
+  headCommitSha: headCommitSha,
+  lastSyncedAt: _parse(lastSyncedAt),
+  gitSize: gitSize,
+  lfsSize: lfsSize,
+  lastError: lastError,
+  nextSyncAt: _parse(nextSyncAt),
+  createdAt: DateTime.utc(2026, 10, 20, 12),
+  updatedAt: DateTime.utc(2026, 10, 21, 12),
+);
 
-/// The `RepositoryDocumentDto` JSON of a fake server, as `GET /api/v1/repositories/{id}/documents` lists them.
-/// [conversion] is the pending status (`WAITING`, `CONVERTING`, `SKIPPED`) or `null` once converted with the
-/// current settings; [extraction] the stored result (`COMPLETED`, `FAILED`) or `null` if never converted.
-Map<String, dynamic> fakeDocument({
+/// A `RepositoryDocumentDto`, as `GET /api/v1/repositories/{id}/documents` lists them. [conversion] is the pending
+/// status or `null` once converted with the current settings; [extraction] the stored result or `null` if never
+/// converted.
+RepositoryDocumentDto fakeDocument({
   required String path,
-  String? conversion,
+  DocumentConversionStatus? conversion,
   String? startedAt,
-  String? skipReason,
+  DocumentSkipReason? skipReason,
   String? retryAt,
-  String? extraction = 'COMPLETED',
+  DocumentExtractionStatus? extraction = DocumentExtractionStatus.completed,
   bool? ocr = false,
   String? error,
   String extractedAt = '2026-10-21T11:00:00+00:00',
-}) => {
-  'path': path,
-  'extraction': extraction == null ? null : {'status': extraction, 'ocr': ocr, 'error': error, 'extracted_at': extractedAt},
-  'conversion': conversion == null ? null : {'status': conversion, 'started_at': startedAt, 'skip_reason': skipReason, 'retry_at': retryAt},
-};
+}) => RepositoryDocumentDto(
+  path: path,
+  extraction: extraction == null
+      ? null
+      : DocumentExtractionDto(
+          status: extraction,
+          ocr: ocr,
+          error: error,
+          extractedAt: DateTime.parse(extractedAt),
+        ),
+  conversion: conversion == null
+      ? null
+      : DocumentConversionDto(
+          status: conversion,
+          startedAt: _parse(startedAt),
+          skipReason: skipReason,
+          retryAt: _parse(retryAt),
+        ),
+);
 
-/// The `RepositoryUserDto` JSON of a fake server, as `GET /api/v1/repositories/{id}/users` lists them.
-Map<String, dynamic> fakeRepositoryUser({
+/// A `RepositoryUserDto`, as `GET /api/v1/repositories/{id}/users` lists them.
+RepositoryUserDto fakeRepositoryUser({
   required String userId,
   required String userName,
   String? email,
   bool canCommit = false,
   String createdAt = '2026-10-20T12:00:00+00:00',
-}) => {'user_id': userId, 'user_name': userName, 'email': email, 'can_commit': canCommit, 'created_at': createdAt};
+}) => RepositoryUserDto(
+  userId: UuidValue.fromString(userId),
+  userName: userName,
+  email: email,
+  canCommit: canCommit,
+  createdAt: DateTime.parse(createdAt),
+);
+
+DateTime? _parse(String? timestamp) => timestamp == null ? null : DateTime.parse(timestamp);

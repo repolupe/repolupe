@@ -16,11 +16,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
-import 'support/fake_user.dart';
 import 'support/persistence.dart';
 import 'support/rust.dart';
 
 const _userId = '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12';
+
+/// The `UserDto` JSON of the server's user.
+Map<String, dynamic> _userJson({required bool mustChangePassword}) => {
+  'id': _userId,
+  'role': 'USER',
+  'user_name': 'alice',
+  'email': 'alice@example.com',
+  'can_login': true,
+  'can_manage_repositories': true,
+  'can_change_identity': true,
+  'must_change_password': mustChangePassword,
+  'auto_commit': false,
+  'created_at': '2026-10-20T12:00:00+00:00',
+};
+
+/// The `ErrorDto` JSON of the server.
+Map<String, dynamic> _errorJson(String code, String message) => {'code': code, 'message': message};
 
 /// Pumps until [finder] finds something, letting the requests to the server run meanwhile.
 Future<void> _pumpUntil(WidgetTester tester, Finder finder) async {
@@ -31,7 +47,8 @@ Future<void> _pumpUntil(WidgetTester tester, Finder finder) async {
   expect(finder, findsWidgets);
 }
 
-/// A server whose user must change their password while [mustChange] is set: then everything but `GET /me`,
+/// A server (not the mocked actions of the other tests, since the session handling of `PASSWORD_CHANGE_REQUIRED` happens
+/// below them) whose user must change their password while [mustChange] is set: then everything but `GET /me`,
 /// `/login` and `/change-password` (with the current password `old`, which clears it) fails with
 /// `PASSWORD_CHANGE_REQUIRED`.
 class _FakeServer {
@@ -60,21 +77,21 @@ class _FakeServer {
     response.headers.contentType = ContentType.json;
     switch ((request.method, request.uri.path)) {
       case ('GET', '/api/v1/me'):
-        response.write(jsonEncode(fakeUser(id: _userId, mustChangePassword: mustChange)));
+        response.write(jsonEncode(_userJson(mustChangePassword: mustChange)));
       case ('POST', '/api/v1/login'):
-        response.write(jsonEncode({'token': 'session-token', 'user': fakeUser(id: _userId, mustChangePassword: mustChange)}));
+        response.write(jsonEncode({'token': 'session-token', 'user': _userJson(mustChangePassword: mustChange)}));
       case ('POST', '/api/v1/change-password') when body!['current_password'] != 'old':
         response.statusCode = 422;
-        response.write(jsonEncode(fakeError('WRONG_PASSWORD', 'wrong')));
+        response.write(jsonEncode(_errorJson('WRONG_PASSWORD', 'wrong')));
       case ('POST', '/api/v1/change-password'):
         mustChange = false;
         response.statusCode = 204;
       case _ when mustChange:
         response.statusCode = 403;
-        response.write(jsonEncode(fakeError('PASSWORD_CHANGE_REQUIRED', 'You must change your password first')));
+        response.write(jsonEncode(_errorJson('PASSWORD_CHANGE_REQUIRED', 'You must change your password first')));
       default:
         response.statusCode = 404;
-        response.write(jsonEncode(fakeError('NOT_FOUND', 'Not found')));
+        response.write(jsonEncode(_errorJson('NOT_FOUND', 'Not found')));
     }
     await response.close();
   }

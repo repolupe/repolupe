@@ -18,35 +18,37 @@ void main() {
   screenshotGroup(
     description: 'Chat (light)',
     title: 'Chat with your\nprivate knowledge',
-    routes: {
-      ...baseRoutes(englishTexts),
-      '/api/v1/chats/$taxChatId': chatDetail(
-        id: taxChatId,
-        title: englishTexts.taxChat,
-        repositoryId: documentsId,
-        exchanges: [
-          (
-            question: 'When does my car insurance renew?',
-            toolCalls: [
-              ('read_file', {'repository': englishTexts.documents, 'path': 'Insurance/Car-Policy.pdf'}),
-              ('present_file_to_user', {'repository': englishTexts.documents, 'path': 'Insurance/Car-Policy.pdf'}),
-            ],
-            answer: 'On **March 1**. You can cancel it until **January 31**, as your policy says.',
-          ),
-          (
-            question: 'What is my tax ID?',
-            toolCalls: [
-              ('grep', {'repository': englishTexts.documents, 'pattern': 'tax ID', 'path': 'Taxes'}),
-              ('present_file_to_user', {'repository': englishTexts.documents, 'path': 'Taxes/Assessment-2024.pdf'}),
-            ],
-            answer:
-                'Your tax ID is **83 715 692 048**. It is listed in your income tax assessments:\n\n'
-                '- `Taxes/Assessment-2023.pdf`\n'
-                '- `Taxes/Assessment-2024.pdf`',
-          ),
-        ],
-      ),
-    },
+    api: sampleApi(
+      englishTexts,
+      chatDetails: [
+        chatDetail(
+          id: taxChatId,
+          title: englishTexts.taxChat,
+          repositoryId: documentsId,
+          exchanges: [
+            (
+              question: 'When does my car insurance renew?',
+              toolCalls: [
+                ('read_file', {'repository': englishTexts.documents, 'path': 'Insurance/Car-Policy.pdf'}),
+                ('present_file_to_user', {'repository': englishTexts.documents, 'path': 'Insurance/Car-Policy.pdf'}),
+              ],
+              answer: 'On **March 1**. You can cancel it until **January 31**, as your policy says.',
+            ),
+            (
+              question: 'What is my tax ID?',
+              toolCalls: [
+                ('grep', {'repository': englishTexts.documents, 'pattern': 'tax ID', 'path': 'Taxes'}),
+                ('present_file_to_user', {'repository': englishTexts.documents, 'path': 'Taxes/Assessment-2024.pdf'}),
+              ],
+              answer:
+                  'Your tax ID is **83 715 692 048**. It is listed in your income tax assessments:\n\n'
+                  '- `Taxes/Assessment-2023.pdf`\n'
+                  '- `Taxes/Assessment-2024.pdf`',
+            ),
+          ],
+        ),
+      ],
+    ),
     home: const ChatPage(),
     prepare: (container) => _open(container, taxChatId),
     ready: find.textContaining('83 715 692 048', findRichText: true),
@@ -57,37 +59,39 @@ void main() {
     description: 'Chat (dark)',
     title: 'Ask questions.\nOr add what you know.',
     brightness: Brightness.dark,
-    routes: {
-      ...baseRoutes(englishTexts),
-      '/api/v1/chats/$passportChatId': chatDetail(
-        id: passportChatId,
-        title: englishTexts.passportChat,
-        repositoryId: notesId,
-        exchanges: [
-          (
-            question: 'When does my passport expire?',
-            toolCalls: [
-              ('grep', {'repository': englishTexts.notes, 'pattern': 'passport'}),
-            ],
-            answer: 'On **November 14, 2026**, in about three weeks (`Personal/IDs.md`).',
-          ),
-          (
-            question: 'I just renewed it. The new one is valid until October 2036.',
-            toolCalls: [
-              ('read_file', {'repository': englishTexts.notes, 'path': 'Personal/IDs.md'}),
-              ('change_file', {'repository': englishTexts.notes, 'path': 'Personal/IDs.md'}),
-              ('read_file', {'repository': englishTexts.notes, 'path': 'Reminders.md'}),
-              ('change_file', {'repository': englishTexts.notes, 'path': 'Reminders.md'}),
-            ],
-            answer:
-                'Great! I updated your notes:\n\n'
-                '- `Personal/IDs.md`: your passport is now valid until **October 20, 2036**.\n'
-                '- `Reminders.md`: I removed the reminder to renew it.\n\n'
-                'Review the changes before they are applied.',
-          ),
-        ],
-      ),
-    },
+    api: sampleApi(
+      englishTexts,
+      chatDetails: [
+        chatDetail(
+          id: passportChatId,
+          title: englishTexts.passportChat,
+          repositoryId: notesId,
+          exchanges: [
+            (
+              question: 'When does my passport expire?',
+              toolCalls: [
+                ('grep', {'repository': englishTexts.notes, 'pattern': 'passport'}),
+              ],
+              answer: 'On **November 14, 2026**, in about three weeks (`Personal/IDs.md`).',
+            ),
+            (
+              question: 'I just renewed it. The new one is valid until October 2036.',
+              toolCalls: [
+                ('read_file', {'repository': englishTexts.notes, 'path': 'Personal/IDs.md'}),
+                ('change_file', {'repository': englishTexts.notes, 'path': 'Personal/IDs.md'}),
+                ('read_file', {'repository': englishTexts.notes, 'path': 'Reminders.md'}),
+                ('change_file', {'repository': englishTexts.notes, 'path': 'Reminders.md'}),
+              ],
+              answer:
+                  'Great! I updated your notes:\n\n'
+                  '- `Personal/IDs.md`: your passport is now valid until **October 20, 2036**.\n'
+                  '- `Reminders.md`: I removed the reminder to renew it.\n\n'
+                  'Review the changes before they are applied.',
+            ),
+          ],
+        ),
+      ],
+    ),
     home: const ChatPage(),
     prepare: (container) => _open(container, passportChatId),
     ready: find.textContaining('2036', findRichText: true),
