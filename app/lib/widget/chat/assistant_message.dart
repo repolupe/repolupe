@@ -7,6 +7,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/util/format.dart';
 import 'package:app/util/tool_call.dart';
 import 'package:app/widget/chat/markdown_content.dart';
+import 'package:app/widget/chat/smooth_text.dart';
 import 'package:app/widget/chat/tool_call_list.dart';
 import 'package:app/widget/chat/usage_sheet.dart';
 import 'package:flutter/material.dart';
@@ -99,22 +100,38 @@ class _AssistantMessageState extends State<AssistantMessage> {
             const SizedBox(height: 8),
           ],
 
-          if (message.content.isNotEmpty) ...[
-            MarkdownContent(content: message.content),
-            if (_generating) ...[
-              const SizedBox(height: 12),
-              const _Spinner(),
-            ],
-          ] else if (_generating)
-            Row(
-              children: [
-                const _Spinner(),
-                const SizedBox(width: 8),
-                Text(context.t.base.chat.assistantMessage.thinking, style: muted),
-              ],
-            )
-          else if (completed && files.isEmpty && changes.isEmpty)
-            Text(context.t.base.chat.assistantMessage.noAnswer, style: muted),
+          // Streamed text is revealed smoothly rather than in the batches it arrives in. Kept while the answer has no
+          // text yet, so that its first batch is revealed too.
+          SmoothText(
+            text: message.content,
+            builder: (context, content, revealing) {
+              if (message.content.isNotEmpty) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    MarkdownContent(content: content),
+                    if (_generating || revealing) ...[
+                      const SizedBox(height: 12),
+                      const _Spinner(),
+                    ],
+                  ],
+                );
+              }
+              if (_generating) {
+                return Row(
+                  children: [
+                    const _Spinner(),
+                    const SizedBox(width: 8),
+                    Text(context.t.base.chat.assistantMessage.thinking, style: muted),
+                  ],
+                );
+              }
+              if (completed && files.isEmpty && changes.isEmpty) {
+                return Text(context.t.base.chat.assistantMessage.noAnswer, style: muted);
+              }
+              return const SizedBox.shrink();
+            },
+          ),
 
           if (files.isNotEmpty || changes.isNotEmpty) ...[
             const SizedBox(height: 16),

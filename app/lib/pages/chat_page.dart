@@ -126,13 +126,7 @@ class _ChatPageState extends State<ChatPage> with Refena {
                             final message = state.messages[state.messages.length - 1 - index];
                             return switch (message.role) {
                               MessageRole.user => UserMessage(key: ValueKey(message.id), message: message),
-                              MessageRole.assistant when message.status == MessageStatus.generating => _RunningAnswer(
-                                key: ValueKey(message.id),
-                                chatId: chat.id,
-                                message: message,
-                                modelName: state.modelName(message.modelId),
-                              ),
-                              MessageRole.assistant => AssistantMessage(
+                              MessageRole.assistant => _Answer(
                                 key: ValueKey(message.id),
                                 chatId: chat.id,
                                 message: message,
@@ -153,22 +147,23 @@ class _ChatPageState extends State<ChatPage> with Refena {
   }
 }
 
-/// The answer being generated, as the [MessageService] follows it, so that its events rebuild only this answer.
-class _RunningAnswer extends StatelessWidget {
+/// An answer, while it is generated as the [MessageService] follows it, so that its events rebuild only this answer.
+/// The same widget before and after it finishes, so that the [AssistantMessage] keeps its state (the text it reveals).
+class _Answer extends StatelessWidget {
   final UuidValue chatId;
 
-  /// The answer as the chat has it, shown until the [MessageService] follows it.
+  /// The answer as the chat has it, shown until the [MessageService] follows it, and once it is finished.
   final MessageDto message;
   final String? modelName;
 
-  const _RunningAnswer({super.key, required this.chatId, required this.message, required this.modelName});
+  const _Answer({super.key, required this.chatId, required this.message, required this.modelName});
 
   @override
   Widget build(BuildContext context) {
-    final running = context.watch(messageProvider);
+    final running = context.watch(messageProvider.select((m) => m != null && m.id == message.id ? m : null));
     return AssistantMessage(
       chatId: chatId,
-      message: running != null && running.id == message.id ? running : message,
+      message: running != null && message.status == MessageStatus.generating ? running : message,
       modelName: modelName,
     );
   }
