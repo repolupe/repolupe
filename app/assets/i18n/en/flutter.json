@@ -39,7 +39,8 @@
       "commit": "Commit {sha}"
     },
     "fileContent": {
-      "cannotShow": "This file cannot be shown in the app."
+      "cannotShow": "This file cannot be shown in the app.",
+      "saveFailed": "The file could not be saved."
     },
     "proposedCommitPage": {
       "notApplied": "Not applied yet."

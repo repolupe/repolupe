@@ -78,6 +78,9 @@ class FileScaffold extends StatelessWidget {
   final String? error;
   final Widget? child;
 
+  /// In the app bar, e.g. a download button.
+  final List<Widget>? actions;
+
   /// Below the page, e.g. an action that stays visible while the content scrolls.
   final Widget? footer;
 
@@ -91,6 +94,7 @@ class FileScaffold extends StatelessWidget {
     required this.loading,
     required this.error,
     required this.child,
+    this.actions,
     this.footer,
     this.fill = false,
   });
@@ -102,6 +106,7 @@ class FileScaffold extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(title, overflow: TextOverflow.ellipsis),
+        actions: actions,
         bottom: loading ? const PreferredSize(preferredSize: Size.fromHeight(4), child: LinearProgressIndicator()) : null,
       ),
       bottomNavigationBar: footer,

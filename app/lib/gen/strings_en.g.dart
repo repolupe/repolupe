@@ -1984,6 +1984,9 @@ class Translations$flutter$chat$fileContent$en {
 
   /// en: 'This file cannot be shown in the app.'
   String get cannotShow => 'This file cannot be shown in the app.';
+
+  /// en: 'The file could not be saved.'
+  String get saveFailed => 'The file could not be saved.';
 }
 
 // Path: flutter.chat.proposedCommitPage

@@ -5,6 +5,7 @@ import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/util/tool_call.dart';
 import 'package:app/widget/chat/diff_view.dart';
+import 'package:app/widget/chat/file_content.dart';
 import 'package:app/widget/chat/tool_call_info.dart';
 import 'package:app/widget/confirm_dialog.dart';
 import 'package:flutter/material.dart';
@@ -146,11 +147,10 @@ class _ProposedCommitPageState extends State<ProposedCommitPage> with Refena {
     final change = _change;
     final applied = change?.status == ProposedCommitStatus.committed;
 
-    return ToolCallFileScaffold(
-      toolCall: widget.toolCall,
+    return FileScaffold(
+      title: message.isNotEmpty ? message : (moves.length > 1 ? context.t.base.chat.moveCount(count: moves.length) : fileName(widget.path)),
       // The moves are in the diff, the destination of the first would be misleading.
-      path: moves.length > 1 ? '' : widget.path,
-      title: message.isNotEmpty ? message : (moves.length > 1 ? context.t.base.chat.moveCount(count: moves.length) : null),
+      header: ToolCallLocation(toolCall: widget.toolCall, path: moves.length > 1 ? null : widget.path),
       loading: _loading,
       error: _error,
       footer: change == null || applied

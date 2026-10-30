@@ -292,7 +292,9 @@ class _IconText extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: style?.color),
         const SizedBox(width: 4),
-        Flexible(child: Text(text, style: style, maxLines: 1, overflow: TextOverflow.ellipsis)),
+        Flexible(
+          child: Text(text, style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
       ],
     );
   }

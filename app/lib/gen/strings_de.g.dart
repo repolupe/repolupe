@@ -1678,6 +1678,8 @@ class _Translations$flutter$chat$fileContent$de extends Translations$flutter$cha
   // Translations
   @override
   String get cannotShow => 'Diese Datei kann in der App nicht angezeigt werden.';
+  @override
+  String get saveFailed => 'Die Datei konnte nicht gespeichert werden.';
 }
 
 // Path: flutter.chat.proposedCommitPage
