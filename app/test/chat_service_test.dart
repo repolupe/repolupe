@@ -529,11 +529,17 @@ void main() {
   });
 
   test('costs and durations are formatted like the web', () {
-    expect(formatCost('0.0042', 'USD'), r'<$0.01');
+    expect(formatCost('0.0042', 'USD'), r'$0.004');
+    expect(formatCost('0.00033525', 'USD'), r'$0.0003');
+    expect(formatCost('0.0096', 'USD'), r'$0.01');
+    expect(formatCost('0.4', 'JPY'), '¥0.4');
     expect(formatCost('0.034', 'USD'), r'$0.03');
     expect(formatCost('0', 'USD'), r'$0.00');
     expect(formatCost('1.5', 'EUR'), '€1.50');
     expect(formatCost('abc', 'USD'), 'abc USD');
+    expect(formatExactCost('0.004125', 'USD'), r'$0.004125');
+    expect(formatExactCost('1.5', 'USD'), r'$1.50');
+    expect(formatExactCost('3', 'JPY'), '¥3');
     expect(formatDuration(const Duration(seconds: 42)), '42s');
     expect(formatDuration(const Duration(seconds: 185)), '3m 05s');
   });

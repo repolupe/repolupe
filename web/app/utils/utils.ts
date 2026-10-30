@@ -269,15 +269,18 @@ export function currencyOptions(current: string | null): {title: string, value: 
 }
 
 /**
- * E.g. "$0.03" in the UI's locale, rounded to the currency's minor unit. Costs below it show as
- * "<$0.01" instead of "$0.00".
+ * E.g. "$0.03" in the UI's locale, rounded to the currency's minor unit. Costs below it keep one
+ * significant digit, e.g. "$0.0003" instead of "$0.00".
  */
 export function formatCost(amount: string, currency: string): string {
     const value = Number(amount);
     try {
         const format = new Intl.NumberFormat(formatLocale(), {style: 'currency', currency});
         const smallest = 10 ** -(format.resolvedOptions().maximumFractionDigits ?? 2);
-        return value > 0 && value < smallest ? `<${format.format(smallest)}` : format.format(value);
+        if (value > 0 && value < smallest) {
+            return new Intl.NumberFormat(formatLocale(), {style: 'currency', currency, maximumSignificantDigits: 1}).format(value);
+        }
+        return format.format(value);
     } catch {
         return `${amount} ${currency}`;
     }

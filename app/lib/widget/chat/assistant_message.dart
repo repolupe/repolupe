@@ -8,6 +8,7 @@ import 'package:app/util/format.dart';
 import 'package:app/util/tool_call.dart';
 import 'package:app/widget/chat/markdown_content.dart';
 import 'package:app/widget/chat/tool_call_list.dart';
+import 'package:app/widget/chat/usage_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -196,7 +197,8 @@ class _FileButton extends StatelessWidget {
   }
 }
 
-/// The model, the duration and the cost, separated by dots. The cost's tooltip has the token usage.
+/// One line that never wraps: the model on the left (cut off when too long, in full on long press), the duration and
+/// the cost on the right. Tapping the cost shows the token usage.
 class _Footer extends StatelessWidget {
   final MessageDto message;
   final String? modelName;
@@ -207,46 +209,51 @@ class _Footer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final modelName = this.modelName;
+    final duration = this.duration;
     final cost = message.cost;
     final usage = message.usage;
-    final tabular = style?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
-    final items = [
-      if (modelName case final modelName?) _IconText(icon: Icons.smart_toy_outlined, text: modelName, style: style),
-      if (duration case final duration?) _IconText(icon: Icons.timer_outlined, text: duration, style: tabular),
-      if (cost != null)
-        if (usage == null)
-          Text(formatCost(cost.amount, cost.currency), style: tabular)
-        else
-          Tooltip(
-            message: [
-              '${context.t.base.common.input}: ${formatCount(usage.inputTokens.toInt())}',
-              '${context.t.base.common.output}: ${formatCount(usage.outputTokens.toInt())}',
-              '${context.t.base.chat.usageDialog.cacheRead}: ${formatCount(usage.cacheReadTokens.toInt())}',
-              '${context.t.base.chat.usageDialog.cacheWrite}: ${formatCount(usage.cacheWriteTokens.toInt())}',
-            ].join('\n'),
-            triggerMode: TooltipTriggerMode.tap,
-            child: Text(
-              formatCost(cost.amount, cost.currency),
-              style: tabular?.copyWith(decoration: TextDecoration.underline, decorationStyle: TextDecorationStyle.dotted),
-            ),
-          ),
-    ];
-    if (items.isEmpty) {
+    if (modelName == null && duration == null && cost == null) {
       return const SizedBox.shrink();
     }
 
+    final style = this.style?.copyWith(letterSpacing: 0.2);
+    final tabular = style?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
     return Padding(
       padding: const EdgeInsets.only(top: 12),
-      child: Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
+      child: Row(
         children: [
-          for (final (i, item) in items.indexed) ...[
-            if (i > 0)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text('·', style: style),
+          if (modelName != null)
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Tooltip(
+                  message: modelName,
+                  child: _IconText(icon: Icons.smart_toy_outlined, text: modelName, style: style),
+                ),
               ),
-            item,
+            )
+          else
+            const Spacer(),
+          if (duration != null) ...[
+            const SizedBox(width: 12),
+            Text(duration, style: tabular),
+          ],
+          // A cost is only computed from a usage, so an answer with one always has the other.
+          if ((cost, usage) case (final cost?, final usage?)) ...[
+            if (duration != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Text('·', style: style),
+              )
+            else
+              const SizedBox(width: 12),
+            GestureDetector(
+              key: ValueKey('chat.message.${message.id}.cost'),
+              behavior: HitTestBehavior.opaque,
+              onTap: () => UsageSheet.show(context, usage: usage, cost: cost, modelName: modelName),
+              child: Text(formatCost(cost.amount, cost.currency), style: tabular),
+            ),
           ],
         ],
       ),
@@ -268,7 +275,7 @@ class _IconText extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: style?.color),
         const SizedBox(width: 4),
-        Text(text, style: style),
+        Flexible(child: Text(text, style: style, maxLines: 1, overflow: TextOverflow.ellipsis)),
       ],
     );
   }

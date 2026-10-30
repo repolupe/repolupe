@@ -36,17 +36,19 @@
         <IconText icon="mdi-cancel">{{ $t('chat.assistantMessage.cancelled') }}</IconText>
       </div>
 
-      <div v-if="props.modelName || duration || cost" class="d-flex align-center text-caption text-medium-emphasis mt-3">
-        <IconText v-if="props.modelName" icon="mdi-robot-outline">{{ props.modelName }}</IconText>
-        <span v-if="props.modelName && duration" class="mx-2">·</span>
-        <IconText v-if="duration" icon="mdi-timer-outline">
-          <span class="tabular">{{ duration }}</span>
+      <!-- One line that never wraps: the model on the left (cut off when too long), the duration and the cost on the right -->
+      <div v-if="props.modelName || duration || cost" class="footer d-flex align-center text-caption text-medium-emphasis mt-3">
+        <IconText v-if="props.modelName" icon="mdi-robot-outline" class="footer-model" :title="props.modelName">
+          <span class="text-truncate">{{ props.modelName }}</span>
         </IconText>
-        <span v-if="(props.modelName || duration) && cost" class="mx-2">·</span>
-        <button v-if="cost" type="button" class="usage-link tabular" :title="$t('chat.assistantMessage.showUsage')"
-                @click="emit('open-usage')">
-          {{ cost }}
-        </button>
+        <span class="d-flex align-center flex-shrink-0 ms-auto ps-3">
+          <span v-if="duration" class="tabular">{{ duration }}</span>
+          <span v-if="duration && cost" class="mx-2">·</span>
+          <button v-if="cost" type="button" class="usage-link tabular" :title="$t('chat.assistantMessage.showUsage')"
+                  @click="emit('open-usage')">
+            {{ cost }}
+          </button>
+        </span>
       </div>
 
       <v-btn v-if="props.canRetry" class="mt-3" size="small" variant="tonal" prepend-icon="mdi-refresh"
@@ -160,7 +162,8 @@ const duration = computed(() => {
           {minutes: Math.floor(seconds / 60), seconds: String(seconds % 60).padStart(2, '0')});
 });
 
-const cost = computed(() => props.message.cost ? formatCost(props.message.cost.amount, props.message.cost.currency) : null);
+// A cost is only computed from a usage, so an answer with one always has the other.
+const cost = computed(() => props.message.cost && props.message.usage ? formatCost(props.message.cost.amount, props.message.cost.currency) : null);
 
 </script>
 
@@ -169,14 +172,20 @@ const cost = computed(() => props.message.cost ? formatCost(props.message.cost.a
   font-variant-numeric: tabular-nums;
 }
 
+.footer {
+  letter-spacing: 0.2px !important;
+}
+
+.footer-model {
+  min-width: 0;
+}
+
 .usage-link {
   padding: 0;
   border: 0;
   background: none;
   font: inherit;
   color: inherit;
-  text-decoration: underline dotted;
-  text-underline-offset: 2px;
   cursor: pointer;
 }
 

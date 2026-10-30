@@ -3,7 +3,8 @@ import 'dart:math';
 import 'package:app/gen/strings.g.dart';
 import 'package:intl/intl.dart';
 
-/// E.g. `$0.03`, rounded to the currency's minor unit. Costs below it show as `<$0.01` instead of `$0.00`.
+/// E.g. `$0.03`, rounded to the currency's minor unit. Costs below it keep one significant digit, e.g. `$0.0003`
+/// instead of `$0.00`.
 String formatCost(String amount, String currency) {
   final value = double.tryParse(amount);
   if (value == null) {
@@ -11,7 +12,24 @@ String formatCost(String amount, String currency) {
   }
   final format = NumberFormat.simpleCurrency(name: currency);
   final smallest = pow(10, -(format.decimalDigits ?? 2)).toDouble();
-  return value > 0 && value < smallest ? '<${format.format(smallest)}' : format.format(value);
+  if (value > 0 && value < smallest) {
+    // the exponent of the value rounded to one significant digit, e.g. `-4` for `3e-4`
+    // (intl's maximumSignificantDigits is capped by the currency's decimals)
+    final exponent = int.parse(value.toStringAsExponential(0).split('e').last);
+    return NumberFormat.simpleCurrency(name: currency, decimalDigits: -exponent).format(value);
+  }
+  return format.format(value);
+}
+
+/// E.g. `$0.004125`, with all the decimals of the amount (but at least those of the currency's minor unit).
+String formatExactCost(String amount, String currency) {
+  final value = double.tryParse(amount);
+  if (value == null) {
+    return '$amount $currency';
+  }
+  final decimals = amount.contains('.') ? amount.split('.').last.length : 0;
+  final minimum = NumberFormat.simpleCurrency(name: currency).decimalDigits ?? 2;
+  return NumberFormat.simpleCurrency(name: currency, decimalDigits: max(decimals, minimum)).format(value);
 }
 
 /// E.g. `42s` or `3m 05s`.
