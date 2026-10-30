@@ -1,3 +1,10 @@
+## 1.0.2 (2026-10-30)
+
+- feat: the model knows the user's local date and time
+- feat: model name, duration and cost below an answer fit on one line
+- feat(app): smooth text animation while an answer streams
+- feat(app): download button for presented files
+
 ## 1.0.1 (2026-10-26)
 
 - feat: server information page for admins
