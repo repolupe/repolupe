@@ -184,6 +184,11 @@
       "failed": "The answer could not be generated.",
       "cancelled": "Cancelled",
       "showUsage": "Show token usage",
+      "showToolCalls": "Show tool calls",
+      "toolCount": {
+        "one": "{count} Tool",
+        "other": "{count} Tools"
+      },
       "durationSeconds": "{seconds}s",
       "durationMinutes": "{minutes}m {seconds}s"
     },
@@ -193,11 +198,7 @@
     "toolCallList": {
       "running": "Using tools",
       "readingAttachments": "Reading the attachments",
-      "calculating": "Calculating",
-      "used": {
-        "one": "Used {count} tool",
-        "other": "Used {count} tools"
-      }
+      "calculating": "Calculating"
     },
     "toolCallLabel": {
       "grepPatternIn": "\"{pattern}\" in {where}",

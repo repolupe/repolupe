@@ -989,6 +989,16 @@ class Translations$base$chat$assistantMessage$en {
   /// en: 'Show token usage'
   String get showUsage => 'Show token usage';
 
+  /// en: 'Show tool calls'
+  String get showToolCalls => 'Show tool calls';
+
+  /// en: '(one) {{count} Tool} (other) {{count} Tools}'
+  String toolCount({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
+    count,
+    one: '${count} Tool',
+    other: '${count} Tools',
+  );
+
   /// en: '{seconds}s'
   String durationSeconds({required Object seconds}) => '${seconds}s';
 
@@ -1024,13 +1034,6 @@ class Translations$base$chat$toolCallList$en {
 
   /// en: 'Calculating'
   String get calculating => 'Calculating';
-
-  /// en: '(one) {Used {count} tool} (other) {Used {count} tools}'
-  String used({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
-    count,
-    one: 'Used ${count} tool',
-    other: 'Used ${count} tools',
-  );
 }
 
 // Path: base.chat.toolCallLabel

@@ -40,7 +40,7 @@
             <AssistantMessage v-else :message="message" :model-name="modelNames.get(message.model_id ?? '')"
                               :can-retry="message.id === retryableId"
                               :retrying="retryingId === message.id" @retry="doRetry(message)"
-                              @open-tool-call="showToolCallDialog"
+                              @open-tool-calls="showToolCallListDialog(message)"
                               @open-file="(t) => presentedFile = t"
                               @open-usage="showUsageDialog(message)"/>
           </template>
@@ -69,6 +69,9 @@
                            @delete="doDelete">
         {{ $t('chat.page.deleteConfirm', {title: chat?.title}) }}
       </GenericDeleteDialog>
+
+      <ToolCallListDialog v-model="dialogToolCallList" :tool-calls="toolCallListMessage?.tool_calls ?? []"
+                          @open="showToolCallDialog"/>
 
       <ToolCallDialog v-if="chat" ref="tool-call-dialog" v-model="dialogToolCall"
                       :chat-id="chat.id" :repositories="repositories"/>
@@ -134,6 +137,7 @@ import IconText from "~/components/IconText.vue";
 import UserMessage from "~/components/chat/UserMessage.vue";
 import AssistantMessage from "~/components/chat/AssistantMessage.vue";
 import ToolCallDialog from "~/components/chat/ToolCallDialog.vue";
+import ToolCallListDialog from "~/components/chat/ToolCallListDialog.vue";
 import PresentedFilePanel from "~/components/chat/panel/PresentedFilePanel.vue";
 import ProposedCommitPanel from "~/components/chat/panel/ProposedCommitPanel.vue";
 import UsageDialog from "~/components/chat/UsageDialog.vue";
@@ -174,6 +178,10 @@ const retryingId = ref<string | null>(null);
 
 const dialogRename = ref(false);
 const dialogDelete = ref(false);
+const dialogToolCallList = ref(false);
+/** The answer whose tool calls are listed, by id, so the list follows the chat as it is refreshed and streamed. */
+const toolCallListId = ref<string | null>(null);
+const toolCallListMessage = computed(() => chat.value?.messages.find(m => m.id === toolCallListId.value) ?? null);
 const dialogToolCall = ref(false);
 const dialogUsage = ref(false);
 
@@ -391,6 +399,7 @@ watch(() => route.params.id, async (id) => {
   attachment.value = null;
   dialogRename.value = false;
   dialogDelete.value = false;
+  dialogToolCallList.value = false;
   dialogToolCall.value = false;
   presentedFile.value = null;
   dialogUsage.value = false;
@@ -520,6 +529,11 @@ const doRetry = async (message: MessageDto) => {
 };
 
 // --- tool calls ---
+
+const showToolCallListDialog = (message: MessageDto) => {
+  toolCallListId.value = message.id;
+  dialogToolCallList.value = true;
+};
 
 const showToolCallDialog = (toolCall: ToolCallSummaryDto) => {
   toolCallDialog.value!.load(toolCall);

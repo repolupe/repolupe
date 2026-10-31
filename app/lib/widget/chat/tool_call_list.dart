@@ -10,7 +10,7 @@ import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-/// E.g. "Used 3 tools", or what the latest running one does, e.g. "Calculating".
+/// E.g. "3 Tools", or what the latest running one does, e.g. "Calculating".
 String _summary(BuildContext context, List<ToolCallSummaryDto> toolCalls) {
   final texts = context.t.base.chat.toolCallList;
   switch (toolCalls.reversed.where((t) => t.status == ToolCallStatus.running).firstOrNull?.name) {
@@ -23,7 +23,7 @@ String _summary(BuildContext context, List<ToolCallSummaryDto> toolCalls) {
     default:
       return texts.running;
   }
-  return texts.used(count: toolCalls.length);
+  return context.t.base.chat.assistantMessage.toolCount(count: toolCalls.length);
 }
 
 /// The tool calls of an answer, collapsed into how many there were; tapping it lists them in a [ToolCallSheet].

@@ -1,14 +1,17 @@
 <template>
   <div>
-    <ToolCallList v-if="props.message.tool_calls.length > 0" :tool-calls="props.message.tool_calls"
-                  class="mb-2" @open="(t) => emit('open-tool-call', t)"/>
+    <div v-if="runningLabel" class="d-flex align-center text-medium-emphasis"
+         :class="{'mb-4': props.message.content}">
+      <TypingDots class="mr-2"/>
+      {{ runningLabel }}
+    </div>
 
     <template v-if="props.message.content">
       <MarkdownContent :content="content" class="text-body-1"/>
-      <TypingDots v-if="generating || revealing" class="text-medium-emphasis mt-4"/>
+      <TypingDots v-if="(generating || revealing) && !runningLabel" class="text-medium-emphasis mt-4"/>
     </template>
 
-    <div v-else-if="generating" class="d-flex align-center text-medium-emphasis">
+    <div v-else-if="generating && !runningLabel" class="d-flex align-center text-medium-emphasis">
       <TypingDots class="mr-2"/>
       {{ $t('chat.assistantMessage.thinking') }}
     </div>
@@ -36,16 +39,21 @@
     </div>
 
     <!-- One line on the left that never wraps, the model cut off when too long -->
-    <div v-if="props.modelName || duration || cost"
+    <div v-if="props.modelName || toolCount || duration || cost"
          class="footer d-flex align-center text-caption text-medium-emphasis mt-3">
       <IconText v-if="props.modelName" icon="mdi-robot-outline" class="footer-model" :title="props.modelName">
         <span class="text-truncate">{{ props.modelName }}</span>
       </IconText>
-      <span v-if="props.modelName && (duration || cost)" class="mx-2">•</span>
+      <span v-if="props.modelName && (toolCount || duration || cost)" class="mx-2">•</span>
       <span class="d-flex align-center flex-shrink-0">
+        <button v-if="toolCount" type="button" class="footer-link tabular"
+                :title="$t('chat.assistantMessage.showToolCalls')" @click="emit('open-tool-calls')">
+          {{ $t('chat.assistantMessage.toolCount', toolCount) }}
+        </button>
+        <span v-if="toolCount && (duration || cost)" class="mx-2">•</span>
         <span v-if="duration" class="tabular">{{ duration }}</span>
         <span v-if="duration && cost" class="mx-2">•</span>
-        <button v-if="cost" type="button" class="usage-link tabular" :title="$t('chat.assistantMessage.showUsage')"
+        <button v-if="cost" type="button" class="footer-link tabular" :title="$t('chat.assistantMessage.showUsage')"
                 @click="emit('open-usage')">
           {{ cost }}
         </button>
@@ -60,7 +68,7 @@
 <script setup lang="ts">
 import {computed, onBeforeUnmount, ref, watch} from "vue";
 import {useI18n} from "#i18n";
-import {MessageStatus, type MessageDto, type ToolCallSummaryDto} from "~/utils/model";
+import {MessageStatus, ToolCallStatus, type MessageDto, type ToolCallSummaryDto} from "~/utils/model";
 import {
   CHANGE_ICONS,
   fileName,
@@ -70,7 +78,6 @@ import {
   toolCallMoves,
 } from "~/utils/utils";
 import MarkdownContent from "~/components/chat/MarkdownContent.vue";
-import ToolCallList from "~/components/chat/ToolCallList.vue";
 import IconText from "~/components/IconText.vue";
 import TypingDots from "~/components/chat/TypingDots.vue";
 import {useSmoothText} from "~/composables/smoothText";
@@ -88,13 +95,32 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'retry'): void,
-  (e: 'open-tool-call', toolCall: ToolCallSummaryDto): void,
+  (e: 'open-tool-calls'): void,
   (e: 'open-usage'): void,
   /** A `present_file_to_user`, `change_file`, `move_files` or `save_attachment` call. */
   (e: 'open-file', toolCall: ToolCallSummaryDto): void,
 }>();
 
 const generating = computed(() => props.message.status === MessageStatus.GENERATING);
+
+const toolCount = computed(() => props.message.tool_calls.length);
+
+/** What the latest running tool call does, e.g. "Calculating…". */
+const runningLabel = computed(() => {
+  if (!generating.value) {
+    return null;
+  }
+  switch (props.message.tool_calls.findLast(t => t.status === ToolCallStatus.RUNNING)?.name) {
+    case undefined:
+      return null;
+    case 'run_script':
+      return `${t('chat.toolCallList.calculating')}…`;
+    case 'read_attachment':
+      return `${t('chat.toolCallList.readingAttachments')}…`;
+    default:
+      return `${t('chat.toolCallList.running')}…`;
+  }
+});
 
 /** Streamed text is revealed smoothly rather than in the batches it arrives in. */
 const {text: content, revealing} = useSmoothText(() => props.message.content);
@@ -180,7 +206,7 @@ const cost = computed(() => props.message.cost && props.message.usage ? formatCo
   min-width: 0;
 }
 
-.usage-link {
+.footer-link {
   padding: 0;
   border: 0;
   background: none;
@@ -189,7 +215,7 @@ const cost = computed(() => props.message.cost && props.message.usage ? formatCo
   cursor: pointer;
 }
 
-.usage-link:hover {
+.footer-link:hover {
   color: rgb(var(--v-theme-on-surface));
 }
 </style>

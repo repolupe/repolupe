@@ -177,6 +177,8 @@
       "failed": "The answer could not be generated.",
       "cancelled": "Cancelled",
       "showUsage": "Show token usage",
+      "showToolCalls": "Show tool calls",
+      "toolCount": "{count} Tool | {count} Tools",
       "durationSeconds": "{seconds}s",
       "durationMinutes": "{minutes}m {seconds}s"
     },
@@ -186,8 +188,7 @@
     "toolCallList": {
       "running": "Using tools",
       "readingAttachments": "Reading the attachments",
-      "calculating": "Calculating",
-      "used": "Used {count} tool | Used {count} tools"
+      "calculating": "Calculating"
     },
     "toolCallLabel": {
       "grepPatternIn": "\"{pattern}\" in {where}",

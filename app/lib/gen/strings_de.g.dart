@@ -873,6 +873,14 @@ class _Translations$base$chat$assistantMessage$de extends Translations$base$chat
   @override
   String get showUsage => 'Token-Verbrauch anzeigen';
   @override
+  String get showToolCalls => 'Tool-Aufrufe anzeigen';
+  @override
+  String toolCount({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
+    count,
+    one: '${count} Tool',
+    other: '${count} Tools',
+  );
+  @override
   String durationSeconds({required Object seconds}) => '${seconds} s';
   @override
   String durationMinutes({required Object minutes, required Object seconds}) => '${minutes} min ${seconds} s';
@@ -902,12 +910,6 @@ class _Translations$base$chat$toolCallList$de extends Translations$base$chat$too
   String get readingAttachments => 'Liest die Anhänge';
   @override
   String get calculating => 'Rechnet';
-  @override
-  String used({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
-    count,
-    one: '${count} Tool verwendet',
-    other: '${count} Tools verwendet',
-  );
 }
 
 // Path: base.chat.toolCallLabel

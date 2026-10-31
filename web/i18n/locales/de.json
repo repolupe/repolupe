@@ -177,6 +177,8 @@
       "failed": "Die Antwort konnte nicht erstellt werden.",
       "cancelled": "Abgebrochen",
       "showUsage": "Token-Verbrauch anzeigen",
+      "showToolCalls": "Tool-Aufrufe anzeigen",
+      "toolCount": "{count} Tool | {count} Tools",
       "durationSeconds": "{seconds} s",
       "durationMinutes": "{minutes} min {seconds} s"
     },
@@ -186,8 +188,7 @@
     "toolCallList": {
       "running": "Verwendet Tools",
       "readingAttachments": "Liest die Anhänge",
-      "calculating": "Rechnet",
-      "used": "{count} Tool verwendet | {count} Tools verwendet"
+      "calculating": "Rechnet"
     },
     "toolCallLabel": {
       "grepPatternIn": "\"{pattern}\" in {where}",
