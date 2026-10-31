@@ -283,6 +283,111 @@ async fn reads_attachments(db: SqlitePool) {
 }
 
 #[sqlx::test]
+async fn passes_attachments_to_scripts(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let sum = "attachments[1].trim().split('\\n').slice(1)\
+        .map((line) => Number(line.split(',')[1])).reduce((a, b) => a + b, 0).toFixed(2)";
+    let llm = MockLlm::start(vec![
+        tool_use_response(
+            "toolu_1",
+            "run_script",
+            json!({"code": sum, "attachments": [1]}),
+        ),
+        text_response("The total is 2.05."),
+        tool_use_response(
+            "toolu_2",
+            "run_script",
+            json!({"code": "attachments[2].includes('42 requests')", "attachments": [2]}),
+        ),
+        text_response("It mentions the limit."),
+        tool_use_response(
+            "toolu_3",
+            "run_script",
+            json!({"code": "1", "attachments": [3]}),
+        ),
+        tool_use_response(
+            "toolu_4",
+            "run_script",
+            json!({"code": "1", "attachments": [9]}),
+        ),
+        text_response("It is an image."),
+    ])
+    .await;
+    app.configure_llm(&llm).await;
+    let tasks = app.start_background_tasks().await;
+    let alice = app.user("alice@example.com").await.on(&tasks);
+
+    let send = async |chat_id: Option<&str>, file_name: &str, content: &[u8]| {
+        let (status, attachment) = alice.upload(file_name, content).await;
+        assert_eq!(status, StatusCode::CREATED, "{attachment}");
+        let (status, body) = match chat_id {
+            // Without repositories, the user has none
+            None => {
+                alice
+                    .post(
+                        "/api/v1/chats",
+                        json!({
+                            "content": "Calculate",
+                            "attachment_id": attachment["id"],
+                            "all_repositories": true,
+                        }),
+                    )
+                    .await
+            }
+            Some(chat_id) => {
+                alice
+                    .post(
+                        &format!("/api/v1/chats/{chat_id}/messages"),
+                        json!({"content": "Calculate", "attachment_id": attachment["id"]}),
+                    )
+                    .await
+            }
+        };
+        assert_eq!(status, StatusCode::CREATED, "{body}");
+        let chat_id = chat_id.map_or_else(|| body["id"].as_str().unwrap().to_string(), Into::into);
+        let answer = alice.wait_for_answer(&chat_id).await;
+        assert_eq!(answer["status"], "COMPLETED", "{answer}");
+        chat_id
+    };
+
+    let chat_id = send(None, "prices.csv", b"item,price\napple,1.20\npear,0.85\n").await;
+    // Probably still converting when the script is called, which waits for it
+    send(Some(&chat_id), "manual.pdf", TEXT_PDF).await;
+    send(Some(&chat_id), "logo.png", b"\x89PNG\r\n\x1a\n\0logo").await;
+
+    let requests = llm.requests();
+    let run_script = requests[0]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|tool| tool["name"] == "run_script")
+        .unwrap();
+    assert_eq!(
+        run_script["input_schema"]["properties"]["attachments"]["items"]["enum"],
+        json!([1])
+    );
+    let sum = tool_result(&requests[1]);
+    assert_eq!(sum["is_error"], false, "{sum}");
+    assert_eq!(sum["content"], "Result: 2.05");
+    let manual = tool_result(&requests[3]);
+    assert_eq!(manual["is_error"], false, "{manual}");
+    assert_eq!(manual["content"], "Result: true");
+    let logo = tool_result(&requests[5]);
+    assert_eq!(logo["is_error"], true, "{logo}");
+    assert_eq!(
+        logo["content"],
+        "`logo.png` is a binary file and can't be shown."
+    );
+    let missing = tool_result(&requests[6]);
+    assert_eq!(missing["is_error"], true, "{missing}");
+    assert_eq!(
+        missing["content"],
+        "There is no attachment 9. Attachments: 1 (`prices.csv`), 2 (`manual.pdf`), \
+        3 (`logo.png`)."
+    );
+}
+
+#[sqlx::test]
 async fn serves_proposed_documents(db: SqlitePool) {
     let app = TestApp::new(db).await;
     let alice = app.user("alice@example.com").await;

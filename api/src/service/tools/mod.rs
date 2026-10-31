@@ -5,7 +5,7 @@
 //! the repository is synced. [`READ_ATTACHMENT`] reads the files attached to the chat, so it is
 //! bound to no repository and also offered in chats without one, like [`RUN_SCRIPT`], which
 //! runs JavaScript the model writes to calculate, and only reads a repository for the files it
-//! passes to the script.
+//! passes to the script (besides attachments).
 //!
 //! Each tool is a module of its own, with its `definition` for the model, `parse`, which turns
 //! the model's input into a [`Call`], and `run`. What several tools need is in [`support`]. A
@@ -79,8 +79,8 @@ pub(crate) struct RepositoryTools {
     auto_commit: bool,
 }
 
-/// The files sent in the chat, which [`READ_ATTACHMENT`] reads and [`SAVE_ATTACHMENT`] stores
-/// in a repository.
+/// The files sent in the chat, which [`READ_ATTACHMENT`] reads, [`RUN_SCRIPT`] passes to
+/// scripts and [`SAVE_ATTACHMENT`] stores in a repository.
 #[derive(Default)]
 struct ChatAttachments {
     store: Option<Arc<AttachmentStore>>,
@@ -91,6 +91,11 @@ struct ChatAttachments {
 }
 
 impl ChatAttachments {
+    /// The numbers the model can refer to the attachments by.
+    fn numbers(&self) -> Vec<i32> {
+        self.sent.iter().filter_map(|a| a.number).collect()
+    }
+
     /// Attachment `number`, an error for the model that lists the others if there is none.
     fn find(&self, number: i32) -> Result<&Attachment, ToolError> {
         self.sent

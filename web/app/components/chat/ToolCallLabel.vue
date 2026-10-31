@@ -28,7 +28,7 @@ const ICONS: Record<string, string> = {
   move_files: 'mdi-file-move-outline',
   save_attachment: 'mdi-paperclip',
   read_attachment: 'mdi-paperclip',
-  run_script: 'mdi-calculator-variant-outline',
+  run_script: 'mdi-calculator',
 };
 
 const icon = computed(() => ICONS[props.toolCall.name] ?? 'mdi-wrench-outline');

@@ -36,6 +36,11 @@ const TOOL_LIMIT_REACHED: &str =
 /// Appended to answers in the history that did not finish.
 const INTERRUPTED_NOTE: &str = "[This answer was interrupted.]";
 
+/// For prompts without readable repositories, where run_script is still offered.
+const CALCULATION_INSTRUCTION: &str = "For calculations, e.g. totals, percentages or date \
+    differences, run a script with run_script instead of working them out in your head. The \
+    user does not see your tool calls, so present the result in plain words.";
+
 /// Generates the answer of `generation`. Stops as soon as the generation is cancelled, which
 /// aborts the LLM request and running tools.
 pub(crate) async fn generate(
@@ -411,10 +416,7 @@ fn system_prompt(
         push_time_section(&mut prompt, utc_offset);
         let _ = writeln!(
             prompt,
-            "For calculations, e.g. totals, percentages or date differences, run a script with \
-            run_script instead of working them out in your head. The user does not see your \
-            tool calls, so present the result in plain words.\n\n\
-            {language}, and format it with Markdown."
+            "{CALCULATION_INSTRUCTION}\n\n{language}, and format it with Markdown."
         );
         return prompt;
     }
@@ -463,8 +465,9 @@ fn system_prompt(
     if tools.repositories().is_empty() {
         let _ = writeln!(
             prompt,
-            "\nNone of the repositories can be read yet, so you cannot look anything up. Tell \
-            the user to wait for the sync to finish. {language}."
+            "\nNone of the repositories can be read yet, so you cannot look anything up in \
+            them. If the question needs them, tell the user to wait for the sync to finish. \
+            {CALCULATION_INSTRUCTION} {language}."
         );
         return prompt;
     }
@@ -691,11 +694,6 @@ mod tests {
             texts(&history),
             vec![(Role::User, vec!["[Wednesday, 2026-10-28 00:32]\nToday?"])]
         );
-
-        let prompt = system_prompt(&UserProfile::default(), offset, &[], &tools_for(&[]));
-        assert!(prompt.contains("in the user's local time (UTC+01:00)."));
-        let prompt = system_prompt(&UserProfile::default(), None, &[], &tools_for(&[]));
-        assert!(prompt.contains("in UTC, since the user's time zone is unknown."));
     }
 
     fn scoped(name: &str, head_commit_sha: Option<&str>) -> ScopedRepository {
@@ -728,114 +726,120 @@ mod tests {
     }
 
     #[test]
-    fn lists_repositories_in_the_system_prompt() {
-        let scoped = vec![
-            scoped("handbook", Some("0123456789abcdef0123")),
-            scoped("wiki", None),
-        ];
-        let prompt = system_prompt(&UserProfile::default(), None, &scoped, &tools_for(&scoped));
-        assert!(!prompt.contains("The user asking"));
-        assert!(prompt.contains(
-            "- `handbook` (branch `main`, commit 0123456789ab): Team handbook\n\
-            Not available yet, since they were not synced: `wiki`.\n"
-        ));
-        assert!(prompt.contains("How to answer:"));
-        assert!(!prompt.contains("change_file"));
-
-        let writable = vec![ScopedRepository {
-            can_commit: true,
-            ..self::scoped("handbook", Some("0123456789abcdef0123"))
-        }];
-        let prompt = system_prompt(
-            &UserProfile::default(),
-            None,
-            &writable,
-            &tools_for(&writable),
-        );
-        assert!(prompt.contains(
-            "- `handbook` (branch `main`, commit 0123456789ab, you can propose changes): Team \
-            handbook\n"
-        ));
-        assert!(prompt.contains("propose the changes with change_file"));
-        assert!(prompt.contains("which the user reviews and commits"));
-        assert!(prompt.ends_with("and format it with Markdown.\n"));
-
-        let auto_commit = UserProfile {
-            auto_commit: true,
-            ..UserProfile::default()
-        };
-        let prompt = system_prompt(&auto_commit, None, &writable, &tools_for(&writable));
-        assert!(prompt.contains("committed automatically once your answer is complete"));
-        assert!(!prompt.contains("which the user reviews and commits"));
-    }
-
-    #[test]
-    fn handles_missing_repositories() {
-        let profile = UserProfile::default();
-        let prompt = system_prompt(&profile, None, &[], &tools_for(&[]));
-        assert!(prompt.starts_with("You are a helpful assistant.\n\n"));
-        assert!(!prompt.contains("repositor"));
-        let unsynced = vec![scoped("wiki", None)];
-        let prompt = system_prompt(&profile, None, &unsynced, &tools_for(&unsynced));
-        assert!(prompt.contains("None of the repositories can be read yet"));
-        assert!(!prompt.contains("How to answer:"));
-    }
-
-    #[test]
-    fn describes_the_user_in_the_system_prompt() {
+    fn builds_the_system_prompt_without_repositories() {
         let profile = UserProfile {
             full_name: Some("Alice Doe".to_string()),
             about: Some("Married to Bob Doe.\nMy documents are in /alice.".to_string()),
-            locale: None,
+            locale: Some("de-DE".to_string()),
             auto_commit: false,
         };
-        let prompt = system_prompt(&profile, None, &[], &tools_for(&[]));
-        assert!(prompt.contains(
-            "The user asking is Alice Doe.\n\
-            What the user says about themselves:\n\
-            <about_user>\nMarried to Bob Doe.\nMy documents are in /alice.\n</about_user>\n\
-            \"I\", \"me\" and \"my\" in the questions refer to this user."
-        ));
+        let offset = FixedOffset::east_opt(60 * 60);
+        assert_eq!(
+            system_prompt(&profile, offset, &[], &tools_for(&[])),
+            "\
+You are a helpful assistant.
 
-        let profile = UserProfile {
-            full_name: None,
-            about: Some("I am the oldest daughter.".to_string()),
-            locale: None,
-            auto_commit: false,
-        };
-        let prompt = system_prompt(&profile, None, &[], &tools_for(&[]));
-        assert!(prompt.contains("About the user asking:\nWhat the user says"));
+The user asking is Alice Doe.
+What the user says about themselves:
+<about_user>
+Married to Bob Doe.
+My documents are in /alice.
+</about_user>
+\"I\", \"me\" and \"my\" in the questions refer to this user.
+
+The user's messages start with the date and time they were sent, in the user's local time (UTC+01:00). The last one is the current date and time.
+
+For calculations, e.g. totals, percentages or date differences, run a script with run_script instead of working them out in your head. The user does not see your tool calls, so present the result in plain words.
+
+Answer in the language of the question, or in the language of the locale `de-DE` if that is unclear, and format it with Markdown.
+"
+        );
     }
 
     #[test]
-    fn falls_back_to_the_locale() {
-        let readable = vec![scoped("handbook", Some("0123456789abcdef0123"))];
-        let prompt = system_prompt(
-            &UserProfile::default(),
-            None,
-            &readable,
-            &tools_for(&readable),
-        );
-        assert!(
-            prompt.ends_with(
-                "- Answer in the language of the question, and format it with Markdown.\n"
-            )
-        );
+    fn builds_the_system_prompt_with_unsynced_repositories() {
+        let unsynced = vec![scoped("wiki", None)];
+        assert_eq!(
+            system_prompt(
+                &UserProfile::default(),
+                None,
+                &unsynced,
+                &tools_for(&unsynced)
+            ),
+            "\
+You answer questions about the user's Git repositories.
 
+The user's messages start with the date and time they were sent, in UTC, since the user's time zone is unknown. The last one is the current date and time.
+
+Repositories you can read:
+Not available yet, since they were not synced: `wiki`.
+
+None of the repositories can be read yet, so you cannot look anything up in them. If the question needs them, tell the user to wait for the sync to finish. For calculations, e.g. totals, percentages or date differences, run a script with run_script instead of working them out in your head. The user does not see your tool calls, so present the result in plain words. Answer in the language of the question.
+"
+        );
+    }
+
+    #[test]
+    fn builds_the_system_prompt_with_repositories() {
+        let scoped = vec![
+            ScopedRepository {
+                can_commit: true,
+                ..scoped("handbook", Some("0123456789abcdef0123"))
+            },
+            scoped("wiki", None),
+        ];
+        assert_eq!(
+            system_prompt(&UserProfile::default(), None, &scoped, &tools_for(&scoped)),
+            "\
+You answer questions about the user's Git repositories.
+
+The user's messages start with the date and time they were sent, in UTC, since the user's time zone is unknown. The last one is the current date and time.
+
+Repositories you can read:
+- `handbook` (branch `main`, commit 0123456789ab, you can propose changes): Team handbook
+Not available yet, since they were not synced: `wiki`.
+
+How to answer:
+- Look things up with the tools instead of answering from memory. Search for the terms of the question with grep, which also searches the text converted from PDFs, or get an overview with list_files. For long Markdown files, use outline and read only the relevant sections with read_file. Read PDFs with read_file.
+- Base your answer on what you read. If the repositories do not cover the question, say so instead of guessing.
+- Name the files your answer is based on, e.g. `docs/setup.md`, with the repository if there are several.
+- When the user wants to see a file, or a file is what they are looking for, show it with present_file_to_user instead of copying its content into the answer.
+- For calculations, e.g. totals, percentages or date differences, run a script with run_script instead of working them out in your head, and pass it the files with the data.
+- The user may not be technical and does not see your tool calls. Describe what you looked at in plain words, e.g. \"I searched all files\", without naming the tools or terms like grep, regular expression, Markdown or OCR.
+- Only when the user asks you to change, fix or add something in a repository you can propose changes to, read the files concerned, then propose the changes with change_file, one call per file. To move or rename files or folders, use move_files, with all moves in one call. They appear below your answer as proposed commits, which the user reviews and commits, so don't say they are committed. Summarize what you changed.
+- Answer in the language of the question, and format it with Markdown.
+"
+        );
+    }
+
+    #[test]
+    fn mentions_auto_commit_in_the_system_prompt() {
+        let writable = vec![ScopedRepository {
+            can_commit: true,
+            ..scoped("handbook", Some("0123456789abcdef0123"))
+        }];
         let profile = UserProfile {
-            locale: Some("de-DE".to_string()),
+            auto_commit: true,
             ..UserProfile::default()
         };
-        let prompt = system_prompt(&profile, None, &readable, &tools_for(&readable));
-        assert!(prompt.ends_with(
-            "- Answer in the language of the question, or in the language of the locale `de-DE` \
-            if that is unclear, and format it with Markdown.\n"
+        let prompt = system_prompt(&profile, None, &writable, &tools_for(&writable));
+        assert!(prompt.contains(
+            "They appear below your answer as commits, which are committed automatically once \
+            your answer is complete. Summarize what you changed.\n"
         ));
-        assert!(!prompt.contains("The user asking"));
+    }
+
+    #[test]
+    fn describes_the_user_without_a_name() {
+        let profile = UserProfile {
+            about: Some("I am the oldest daughter.".to_string()),
+            ..UserProfile::default()
+        };
         let prompt = system_prompt(&profile, None, &[], &tools_for(&[]));
-        assert!(prompt.ends_with(
-            "Answer in the language of the question, or in the language of the locale `de-DE` \
-            if that is unclear, and format it with Markdown.\n"
+        assert!(prompt.contains(
+            "About the user asking:\n\
+            What the user says about themselves:\n\
+            <about_user>\nI am the oldest daughter.\n</about_user>\n"
         ));
     }
 }
