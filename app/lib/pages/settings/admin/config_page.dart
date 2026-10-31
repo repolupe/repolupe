@@ -218,9 +218,7 @@ class _EntryTile extends StatelessWidget {
         ],
       ),
       isThreeLine: override != null,
-      trailing: entry.runtime
-          ? StatusChip(label: t.flutter.admin.config.page.runtime, color: theme.colorScheme.primary, icon: Icons.bolt)
-          : null,
+      trailing: entry.runtime ? StatusChip(label: t.flutter.admin.config.page.runtime, color: theme.colorScheme.primary, icon: Icons.bolt) : null,
       onTap: onTap,
     );
   }

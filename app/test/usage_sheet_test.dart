@@ -28,7 +28,11 @@ Future<void> _openSheet(WidgetTester tester, {CostDto? cost, String? modelName})
 
 void main() {
   testWidgets('shows the tokens by type, their total and the exact cost', (tester) async {
-    await _openSheet(tester, cost: const CostDto(amount: '0.00033525', currency: 'USD'), modelName: 'Claude');
+    await _openSheet(
+      tester,
+      cost: const CostDto(amount: '0.00033525', currency: 'USD'),
+      modelName: 'Claude',
+    );
 
     expect(find.text('Token usage'), findsOneWidget);
     expect(find.text('Claude'), findsOneWidget);
