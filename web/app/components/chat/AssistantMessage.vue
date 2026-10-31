@@ -36,12 +36,16 @@
         <IconText icon="mdi-cancel">{{ $t('chat.assistantMessage.cancelled') }}</IconText>
       </div>
 
-      <!-- One line that never wraps: the model on the left (cut off when too long), the duration and the cost on the right -->
-      <div v-if="props.modelName || duration || cost" class="footer d-flex align-center text-caption text-medium-emphasis mt-3">
+      <!-- On mobile one line that never wraps: the model on the left (cut off when too long), the duration and the cost
+           on the right. Otherwise all of it on the left. -->
+      <div v-if="props.modelName || duration || cost"
+           class="footer d-flex align-center text-caption text-medium-emphasis mt-3"
+           :class="{'flex-wrap': !display.xs.value}">
         <IconText v-if="props.modelName" icon="mdi-robot-outline" class="footer-model" :title="props.modelName">
-          <span class="text-truncate">{{ props.modelName }}</span>
+          <span :class="{'text-truncate': display.xs.value}">{{ props.modelName }}</span>
         </IconText>
-        <span class="d-flex align-center flex-shrink-0 ms-auto ps-3">
+        <span v-if="props.modelName && !display.xs.value && (duration || cost)" class="mx-2">·</span>
+        <span class="d-flex align-center flex-shrink-0" :class="{'ms-auto ps-3': display.xs.value}">
           <span v-if="duration" class="tabular">{{ duration }}</span>
           <span v-if="duration && cost" class="mx-2">·</span>
           <button v-if="cost" type="button" class="usage-link tabular" :title="$t('chat.assistantMessage.showUsage')"
@@ -60,6 +64,7 @@
 <script setup lang="ts">
 import {computed, onBeforeUnmount, ref, watch} from "vue";
 import {useI18n} from "#i18n";
+import {useDisplay} from "vuetify";
 import {MessageStatus, type MessageDto, type ToolCallSummaryDto} from "~/utils/model";
 import {
   CHANGE_ICONS,
@@ -76,6 +81,7 @@ import TypingDots from "~/components/chat/TypingDots.vue";
 import {useSmoothText} from "~/composables/smoothText";
 
 const {t} = useI18n();
+const display = useDisplay();
 
 const props = defineProps<{
   message: MessageDto,

@@ -214,8 +214,9 @@ class _FileButton extends StatelessWidget {
   }
 }
 
-/// One line that never wraps: the model on the left (cut off when too long, in full on long press), the duration and
-/// the cost on the right. Tapping the cost shows the token usage.
+/// On a phone one line that never wraps: the model on the left (cut off when too long, in full on long press), the
+/// duration and the cost on the right. Otherwise all of it on the left, wrapping when too long (like the web's).
+/// Tapping the cost shows the token usage.
 class _Footer extends StatelessWidget {
   final MessageDto message;
   final String? modelName;
@@ -236,6 +237,38 @@ class _Footer extends StatelessWidget {
 
     final style = this.style?.copyWith(letterSpacing: 0.2);
     final tabular = style?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
+    // A cost is only computed from a usage, so an answer with one always has the other.
+    final costLink = switch ((cost, usage)) {
+      (final cost?, final usage?) => GestureDetector(
+        key: ValueKey('chat.message.${message.id}.cost'),
+        behavior: HitTestBehavior.opaque,
+        onTap: () => UsageSheet.show(context, usage: usage, cost: cost, modelName: modelName),
+        child: Text(formatCost(cost.amount, cost.currency), style: tabular),
+      ),
+      _ => null,
+    };
+    final separator = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Text('·', style: style),
+    );
+
+    // the web's xs breakpoint
+    if (MediaQuery.sizeOf(context).width >= 600) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            if (modelName != null) _IconText(icon: Icons.smart_toy_outlined, text: modelName, style: style, truncate: false),
+            if (modelName != null && (duration != null || costLink != null)) separator,
+            if (duration != null) Text(duration, style: tabular),
+            if (duration != null && costLink != null) separator,
+            ?costLink,
+          ],
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Row(
@@ -256,21 +289,9 @@ class _Footer extends StatelessWidget {
             const SizedBox(width: 12),
             Text(duration, style: tabular),
           ],
-          // A cost is only computed from a usage, so an answer with one always has the other.
-          if ((cost, usage) case (final cost?, final usage?)) ...[
-            if (duration != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Text('·', style: style),
-              )
-            else
-              const SizedBox(width: 12),
-            GestureDetector(
-              key: ValueKey('chat.message.${message.id}.cost'),
-              behavior: HitTestBehavior.opaque,
-              onTap: () => UsageSheet.show(context, usage: usage, cost: cost, modelName: modelName),
-              child: Text(formatCost(cost.amount, cost.currency), style: tabular),
-            ),
+          if (costLink != null) ...[
+            if (duration != null) separator else const SizedBox(width: 12),
+            costLink,
           ],
         ],
       ),
@@ -283,7 +304,10 @@ class _IconText extends StatelessWidget {
   final String text;
   final TextStyle? style;
 
-  const _IconText({required this.icon, required this.text, required this.style});
+  /// Cut off at the end of the line, or wrapped.
+  final bool truncate;
+
+  const _IconText({required this.icon, required this.text, required this.style, this.truncate = true});
 
   @override
   Widget build(BuildContext context) {
@@ -293,7 +317,7 @@ class _IconText extends StatelessWidget {
         Icon(icon, size: 14, color: style?.color),
         const SizedBox(width: 4),
         Flexible(
-          child: Text(text, style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
+          child: truncate ? Text(text, style: style, maxLines: 1, overflow: TextOverflow.ellipsis) : Text(text, style: style),
         ),
       ],
     );
