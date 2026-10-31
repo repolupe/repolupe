@@ -191,14 +191,12 @@
       "download": "Download {name}"
     },
     "toolCallList": {
-      "running": "Reading the repositories",
+      "running": "Using tools",
+      "readingAttachments": "Reading the attachments",
+      "calculating": "Calculating",
       "used": {
         "one": "Used {count} tool",
         "other": "Used {count} tools"
-      },
-      "usedWithFailed": {
-        "one": "Used {count} tool ({failed} failed)",
-        "other": "Used {count} tools ({failed} failed)"
       }
     },
     "toolCallLabel": {

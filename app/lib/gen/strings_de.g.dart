@@ -897,18 +897,16 @@ class _Translations$base$chat$toolCallList$de extends Translations$base$chat$too
 
   // Translations
   @override
-  String get running => 'Liest die Repositories';
+  String get running => 'Verwendet Tools';
+  @override
+  String get readingAttachments => 'Liest die Anhänge';
+  @override
+  String get calculating => 'Rechnet';
   @override
   String used({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
     count,
     one: '${count} Tool verwendet',
     other: '${count} Tools verwendet',
-  );
-  @override
-  String usedWithFailed({required num count, required Object failed}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
-    count,
-    one: '${count} Tool verwendet (${failed} fehlgeschlagen)',
-    other: '${count} Tools verwendet (${failed} fehlgeschlagen)',
   );
 }
 

@@ -184,9 +184,10 @@
       "download": "Download {name}"
     },
     "toolCallList": {
-      "running": "Reading the repositories",
-      "used": "Used {count} tool | Used {count} tools",
-      "usedWithFailed": "Used {count} tool ({failed} failed) | Used {count} tools ({failed} failed)"
+      "running": "Using tools",
+      "readingAttachments": "Reading the attachments",
+      "calculating": "Calculating",
+      "used": "Used {count} tool | Used {count} tools"
     },
     "toolCallLabel": {
       "grepPatternIn": "\"{pattern}\" in {where}",

@@ -39,15 +39,21 @@ const emit = defineEmits<{
 /** Collapsed until the user opens it, also while the answer is generating. */
 const expanded = ref(false);
 
-const running = computed(() => props.toolCalls.some(t => t.status === ToolCallStatus.RUNNING));
+/** The latest tool call that is still running. */
+const running = computed(() => props.toolCalls.findLast(t => t.status === ToolCallStatus.RUNNING));
 
 const summary = computed(() => {
-  const count = props.toolCalls.length;
-  const failed = props.toolCalls.filter(t => t.status === ToolCallStatus.FAILED).length;
-  if (running.value) {
-    return t('chat.toolCallList.running');
+  switch (running.value?.name) {
+    case undefined:
+      break;
+    case 'run_script':
+      return t('chat.toolCallList.calculating');
+    case 'read_attachment':
+      return t('chat.toolCallList.readingAttachments');
+    default:
+      return t('chat.toolCallList.running');
   }
-  return failed > 0 ? t('chat.toolCallList.usedWithFailed', {count, failed}, count) : t('chat.toolCallList.used', count);
+  return t('chat.toolCallList.used', props.toolCalls.length);
 });
 </script>
 

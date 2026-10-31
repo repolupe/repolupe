@@ -10,15 +10,20 @@ import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-/// E.g. "Used 3 tools (1 failed)", or "Reading the repositories" while one is running.
+/// E.g. "Used 3 tools", or what the latest running one does, e.g. "Calculating".
 String _summary(BuildContext context, List<ToolCallSummaryDto> toolCalls) {
   final texts = context.t.base.chat.toolCallList;
-  if (toolCalls.any((t) => t.status == ToolCallStatus.running)) {
-    return texts.running;
+  switch (toolCalls.reversed.where((t) => t.status == ToolCallStatus.running).firstOrNull?.name) {
+    case null:
+      break;
+    case 'run_script':
+      return texts.calculating;
+    case 'read_attachment':
+      return texts.readingAttachments;
+    default:
+      return texts.running;
   }
-  final count = toolCalls.length;
-  final failed = toolCalls.where((t) => t.status == ToolCallStatus.failed).length;
-  return failed > 0 ? texts.usedWithFailed(count: count, failed: failed) : texts.used(count: count);
+  return texts.used(count: toolCalls.length);
 }
 
 /// The tool calls of an answer, collapsed into how many there were; tapping it lists them in a [ToolCallSheet].

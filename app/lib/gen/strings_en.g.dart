@@ -1016,21 +1016,20 @@ class Translations$base$chat$toolCallList$en {
 
   // Translations
 
-  /// en: 'Reading the repositories'
-  String get running => 'Reading the repositories';
+  /// en: 'Using tools'
+  String get running => 'Using tools';
+
+  /// en: 'Reading the attachments'
+  String get readingAttachments => 'Reading the attachments';
+
+  /// en: 'Calculating'
+  String get calculating => 'Calculating';
 
   /// en: '(one) {Used {count} tool} (other) {Used {count} tools}'
   String used({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
     count,
     one: 'Used ${count} tool',
     other: 'Used ${count} tools',
-  );
-
-  /// en: '(one) {Used {count} tool ({failed} failed)} (other) {Used {count} tools ({failed} failed)}'
-  String usedWithFailed({required num count, required Object failed}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
-    count,
-    one: 'Used ${count} tool (${failed} failed)',
-    other: 'Used ${count} tools (${failed} failed)',
   );
 }
 
