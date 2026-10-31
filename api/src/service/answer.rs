@@ -409,7 +409,13 @@ fn system_prompt(
         let mut prompt = String::from("You are a helpful assistant.\n\n");
         push_user_section(&mut prompt, profile, false);
         push_time_section(&mut prompt, utc_offset);
-        let _ = writeln!(prompt, "{language}, and format it with Markdown.");
+        let _ = writeln!(
+            prompt,
+            "For calculations, e.g. totals, percentages or date differences, run a script with \
+            run_script instead of working them out in your head. The user does not see your \
+            tool calls, so present the result in plain words.\n\n\
+            {language}, and format it with Markdown."
+        );
         return prompt;
     }
 
@@ -476,6 +482,9 @@ fn system_prompt(
         there are several.\n\
         - When the user wants to see a file, or a file is what they are looking for, show it with \
         present_file_to_user instead of copying its content into the answer.\n\
+        - For calculations, e.g. totals, percentages or date differences, run a script with \
+        run_script instead of working them out in your head, and pass it the files with the \
+        data.\n\
         - The user may not be technical and does not see your tool calls. Describe what you \
         looked at in plain words, e.g. \"I searched all files\", without naming the tools or \
         terms like grep, regular expression, Markdown or OCR."

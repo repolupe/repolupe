@@ -411,7 +411,7 @@ export enum ToolCallStatus {
 /** A tool call without its output, see {@link ToolCallDto}. */
 export interface ToolCallSummaryDto {
     id: string;
-    /** `list_files`, `read_file`, `grep`, `outline`, `present_file_to_user`, `change_file`, `move_files`, `save_attachment` or `read_attachment`. */
+    /** `list_files`, `read_file`, `grep`, `outline`, `present_file_to_user`, `change_file`, `move_files`, `save_attachment`, `read_attachment` or `run_script`. */
     name: string;
     input: Record<string, unknown>;
     /** `null` for tools not bound to one repository, or if the repository was deleted. */

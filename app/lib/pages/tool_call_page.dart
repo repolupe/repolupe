@@ -1,9 +1,8 @@
-import 'dart:convert';
-
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/api_service.dart';
 import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
+import 'package:app/util/tool_call.dart';
 import 'package:app/widget/chat/code_block.dart';
 import 'package:app/widget/chat/tool_call_info.dart';
 import 'package:flutter/material.dart';
@@ -95,7 +94,7 @@ class _ToolCallPageState extends State<ToolCallPage> with Refena {
             const SizedBox(height: 16),
             Text(context.t.base.common.input.toUpperCase(), style: heading),
             const SizedBox(height: 8),
-            CodeBlock(text: _prettyJson(summary.input)),
+            CodeBlock(text: summary.displayedInput),
             const SizedBox(height: 16),
             Text(context.t.base.common.output.toUpperCase(), style: heading),
             const SizedBox(height: 8),
@@ -111,14 +110,5 @@ class _ToolCallPageState extends State<ToolCallPage> with Refena {
         ),
       ),
     );
-  }
-}
-
-/// [json] indented, as it is if it is not JSON.
-String _prettyJson(String json) {
-  try {
-    return const JsonEncoder.withIndent('  ').convert(jsonDecode(json));
-  } on FormatException {
-    return json;
   }
 }

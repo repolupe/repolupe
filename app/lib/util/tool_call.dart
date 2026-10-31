@@ -61,8 +61,27 @@ extension ToolCallInput on ToolCallSummaryDto {
     'move_files' => Icons.drive_file_move_outline,
     'save_attachment' => Icons.upload_file_outlined,
     'read_attachment' => Icons.attach_file,
+    'run_script' => Icons.calculate_outlined,
     _ => Icons.build_outlined,
   };
+
+  /// The input as shown to the user: the code of `run_script`, which would be unreadable as JSON, other inputs as
+  /// indented JSON, or as they are if they are not JSON.
+  String get displayedInput {
+    final input = inputMap;
+    if (input['code'] case final String code when name == 'run_script') {
+      final files = switch (input['files']) {
+        final List<dynamic> files => files.whereType<String>().toList(),
+        _ => const <String>[],
+      };
+      return files.isEmpty ? code : '// files: ${files.join(', ')}\n$code';
+    }
+    try {
+      return const JsonEncoder.withIndent('  ').convert(jsonDecode(this.input));
+    } on FormatException {
+      return this.input;
+    }
+  }
 
   /// The most telling part of the input, e.g. the path that was read or the pattern that was searched.
   String get detail {
@@ -88,6 +107,9 @@ extension ToolCallInput on ToolCallSummaryDto {
       case 'save_attachment':
         final attachment = str(input['attachment']);
         return [if (attachment != null) '#$attachment', if (path != null) '→ $path'].join(' ');
+      case 'run_script':
+        final code = str(input['code']) ?? '';
+        return code.split('\n').map((line) => line.trim()).firstWhere((line) => line.isNotEmpty, orElse: () => '');
       case 'grep':
         final pattern = str(input['pattern']);
         final where = [?path, ?glob].join(' ');

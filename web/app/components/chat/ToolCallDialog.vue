@@ -18,7 +18,7 @@
 
       <v-card-text>
         <p class="text-overline">{{ $t('common.input') }}</p>
-        <pre class="tool-call-block">{{ inputJson }}</pre>
+        <pre class="tool-call-block">{{ inputText }}</pre>
 
         <p class="text-overline mt-4">{{ $t('common.output') }}</p>
         <pre v-if="toolCall?.output" class="tool-call-block tool-call-output">{{ toolCall.output }}</pre>
@@ -78,7 +78,15 @@ const repositoryName = computed(() => {
   return repository?.name ?? (typeof named === 'string' ? named : null);
 });
 
-const inputJson = computed(() => JSON.stringify(summary.value?.input ?? {}, null, 2));
+/** The code of `run_script`, which would be unreadable as JSON, other inputs as JSON. */
+const inputText = computed(() => {
+  const input = summary.value?.input ?? {};
+  if (summary.value?.name === 'run_script' && typeof input.code === 'string') {
+    const files = Array.isArray(input.files) ? input.files.filter(f => typeof f === 'string') : [];
+    return files.length ? `// files: ${files.join(', ')}\n${input.code}` : input.code;
+  }
+  return JSON.stringify(input, null, 2);
+});
 
 const fetchToolCall = async () => {
   if (!summary.value) {

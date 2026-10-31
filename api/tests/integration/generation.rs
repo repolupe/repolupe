@@ -801,3 +801,72 @@ async fn proposes_changes_where_commits_are_allowed(db: SqlitePool) {
     let (status, _) = bob.get(&diff_url).await;
     assert_eq!(status, StatusCode::NOT_FOUND);
 }
+
+#[sqlx::test]
+async fn runs_scripts_with_and_without_repositories(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let alice = app.user("alice@example.com").await;
+    let sum = "files['prices.csv'].trim().split('\\n').slice(1)\
+        .map((line) => Number(line.split(',')[1])).reduce((a, b) => a + b, 0).toFixed(2)";
+    let llm = MockLlm::start(vec![
+        tool_use_response("toolu_1", "run_script", json!({"code": "6 * 7"})),
+        text_response("It is 42."),
+        tool_use_response(
+            "toolu_2",
+            "run_script",
+            json!({"code": sum, "files": ["prices.csv"]}),
+        ),
+        text_response("They cost 2.05."),
+    ])
+    .await;
+    app.configure_llm(&llm).await;
+
+    // Without repositories, the script is the only tool.
+    let (status, chat) = alice
+        .post(
+            "/api/v1/chats",
+            json!({"content": "What is 6 times 7?", "all_repositories": true}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{chat}");
+    let answer = alice.wait_for_answer(chat["id"].as_str().unwrap()).await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    assert_eq!(answer["content"], "It is 42.");
+    let tool_call = &answer["tool_calls"][0];
+    assert_eq!(tool_call["name"], "run_script");
+    assert_eq!(tool_call["status"], "COMPLETED");
+    assert_eq!(tool_call["repository_id"], json!(null));
+    let requests = llm.requests();
+    let tools = requests[0]["tools"].as_array().unwrap();
+    assert_eq!(tools.len(), 1, "{tools:?}");
+    assert_eq!(tools[0]["name"], "run_script");
+    assert_eq!(tool_result(&requests[1])["content"], "Result: 42");
+
+    // With one, it reads its files from the pinned commit.
+    let repo = app
+        .seed_repository(
+            alice.user_id,
+            "shop",
+            &[("prices.csv", "item,price\napple,1.20\npear,0.85\n")],
+        )
+        .await;
+    let (status, chat) = alice
+        .post(
+            "/api/v1/chats",
+            json!({
+                "content": "What do all items cost together?",
+                "all_repositories": false,
+                "repository_ids": [repo.id],
+            }),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{chat}");
+    let answer = alice.wait_for_answer(chat["id"].as_str().unwrap()).await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    let tool_call = &answer["tool_calls"][0];
+    assert_eq!(tool_call["repository_id"], json!(repo.id));
+    assert_eq!(tool_call["commit_sha"], repo.commit_sha);
+    let result = tool_result(&llm.requests()[3]);
+    assert_eq!(result["is_error"], false, "{result}");
+    assert_eq!(result["content"], "Result: 2.05");
+}

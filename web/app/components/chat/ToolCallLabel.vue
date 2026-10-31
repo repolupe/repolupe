@@ -28,6 +28,7 @@ const ICONS: Record<string, string> = {
   move_files: 'mdi-file-move-outline',
   save_attachment: 'mdi-paperclip',
   read_attachment: 'mdi-paperclip',
+  run_script: 'mdi-calculator-variant-outline',
 };
 
 const icon = computed(() => ICONS[props.toolCall.name] ?? 'mdi-wrench-outline');
@@ -66,6 +67,10 @@ const detail = computed(() => {
     case 'save_attachment': {
       const attachment = str(input.attachment);
       return [attachment ? `#${attachment}` : null, path ? `→ ${path}` : null].filter(Boolean).join(' ');
+    }
+    case 'run_script': {
+      const code = str(input.code);
+      return code?.split('\n').map(line => line.trim()).find(Boolean) ?? '';
     }
     case 'grep': {
       const pattern = str(input.pattern);

@@ -47,6 +47,13 @@ fancy-regex = "0.19.2"
 bytes = "1"
 gix-pack = { version = "0.77", default-features = false, features = ["generate"] }
 similar = "3"
+# The interpreter of the `run_script` tool, see `service::tools::run_script`.
+rquickjs = { version = "0.14", features = ["allocator"] }
+
+# rquickjs ships the bindings of QuickJS for desktop targets only, so mobile generates them,
+# which needs libclang (Xcode, the Android NDK).
+[target.'cfg(any(target_os = "ios", target_os = "android"))'.dependencies]
+rquickjs = { version = "0.14", features = ["allocator", "bindgen"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 # The roots for HTTPS on Android, see `util::http::client_builder`.

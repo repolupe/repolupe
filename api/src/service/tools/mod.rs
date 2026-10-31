@@ -3,7 +3,9 @@
 //! [`SAVE_ATTACHMENT`] for the files attached to the chat). They read the git objects of
 //! one commit per repository, so all tool calls of an answer see the same version, even while
 //! the repository is synced. [`READ_ATTACHMENT`] reads the files attached to the chat, so it is
-//! bound to no repository and also offered in chats without one.
+//! bound to no repository and also offered in chats without one, like [`RUN_SCRIPT`], which
+//! runs JavaScript the model writes to calculate, and only reads a repository for the files it
+//! passes to the script.
 //!
 //! Each tool is a module of its own, with its `definition` for the model, `parse`, which turns
 //! the model's input into a [`Call`], and `run`. What several tools need is in [`support`]. A
@@ -20,6 +22,7 @@ mod outline;
 mod present_file;
 mod read_attachment;
 mod read_file;
+mod run_script;
 mod save_attachment;
 mod support;
 
@@ -51,6 +54,7 @@ pub(crate) const CHANGE_FILE: &str = "change_file";
 pub(crate) const MOVE_FILES: &str = "move_files";
 pub(crate) const SAVE_ATTACHMENT: &str = "save_attachment";
 pub(crate) const READ_ATTACHMENT: &str = "read_attachment";
+pub(crate) const RUN_SCRIPT: &str = "run_script";
 
 /// A repository the tools can read, at the commit the answer refers to.
 pub(crate) struct ToolRepository {
@@ -62,7 +66,8 @@ pub(crate) struct ToolRepository {
     pub(crate) can_commit: bool,
 }
 
-/// The tools for a set of repositories. Without repositories there are no tools.
+/// The tools for a set of repositories. Without repositories, the model only gets the tools
+/// bound to no repository.
 pub(crate) struct RepositoryTools {
     repositories: Vec<ToolRepository>,
     /// For the Markdown converted from documents, see [`crate::service::extraction`].
@@ -133,6 +138,7 @@ enum Call {
     MoveFiles(move_files::Args),
     SaveAttachment(save_attachment::Args),
     ReadAttachment(read_attachment::Args),
+    RunScript(run_script::Args),
 }
 
 /// The result to send back to the model.
@@ -274,6 +280,7 @@ impl RepositoryTools {
         if self.can_read_attachments() {
             definitions.push(read_attachment::definition(self));
         }
+        definitions.push(run_script::definition(self));
         definitions
     }
 
@@ -294,10 +301,12 @@ impl RepositoryTools {
             MOVE_FILES if self.can_change_files() => move_files::parse(input)?,
             SAVE_ATTACHMENT if self.can_save_attachments() => save_attachment::parse(input)?,
             READ_ATTACHMENT if self.can_read_attachments() => read_attachment::parse(input)?,
+            RUN_SCRIPT => run_script::parse(input)?,
             name => return Err(format!("There is no tool named `{name}`.")),
         };
         let repository = match call {
             Call::ReadAttachment(_) => None,
+            Call::RunScript(ref args) if !args.reads_files() => None,
             _ => Some(self.repository(repository.as_deref())?),
         };
         if let Some(repository) = repository
@@ -384,6 +393,7 @@ impl Invocation<'_> {
                 return self.proposal(save_attachment::run(self, args).await);
             }
             Call::ReadAttachment(args) => read_attachment::run(self, args).await,
+            Call::RunScript(args) => run_script::run(self, args).await,
         };
         match result {
             Ok(content) => ToolOutput {
@@ -546,12 +556,14 @@ mod tests {
                 })
                 .is_err()
         );
-        assert_eq!(tools.definitions().len(), 5);
-        assert!(
-            RepositoryTools::new(Vec::new(), unused_db(), identities())
-                .definitions()
-                .is_empty()
-        );
+        assert_eq!(tools.definitions().len(), 6);
+        // Only the tools bound to no repository.
+        let names: Vec<String> = RepositoryTools::new(Vec::new(), unused_db(), identities())
+            .definitions()
+            .into_iter()
+            .map(|d| d.name)
+            .collect();
+        assert_eq!(names, [RUN_SCRIPT]);
     }
 
     #[test]
@@ -570,7 +582,7 @@ mod tests {
         };
         let read_only =
             RepositoryTools::new(vec![repository("docs", false)], unused_db(), identities());
-        assert_eq!(read_only.definitions().len(), 5);
+        assert_eq!(read_only.definitions().len(), 6);
         assert_eq!(
             read_only.parse(&call("docs")).err().unwrap(),
             "There is no tool named `change_file`."
@@ -582,7 +594,7 @@ mod tests {
             identities(),
         );
         let definitions = mixed.definitions();
-        assert_eq!(definitions.len(), 7);
+        assert_eq!(definitions.len(), 8);
         assert_eq!(
             definitions[5].input_schema["properties"]["repository"]["enum"],
             json!(["wiki"])
@@ -596,7 +608,7 @@ mod tests {
         let manual = &definitions[5].description;
         assert!(manual.contains("the user decides whether to commit it"));
         let auto_commit = mixed.with_auto_commit(true).definitions();
-        for definition in &auto_commit[5..] {
+        for definition in &auto_commit[5..7] {
             assert!(
                 definition
                     .description

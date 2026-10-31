@@ -266,7 +266,7 @@ async fn reads_attachments(db: SqlitePool) {
     send(Some(&chat_id), "logo.png", b"\x89PNG\r\n\x1a\n\0logo").await;
 
     let requests = llm.requests();
-    assert_eq!(tool_names(&requests[0]), ["read_attachment"]);
+    assert_eq!(tool_names(&requests[0]), ["read_attachment", "run_script"]);
     let manual = tool_result(&requests[1]);
     assert_eq!(manual["is_error"], false, "{manual}");
     let markdown = manual["content"].as_str().unwrap();
