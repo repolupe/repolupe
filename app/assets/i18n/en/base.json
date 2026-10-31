@@ -689,13 +689,14 @@
         "fetching": "Asking the server for its models…",
         "addByNameHint": "You can still add the models by name.",
         "noModels": "The server lists no models.",
-        "intro": "Choose the models to add. They must support streaming and tool calling. Prices and max output tokens can be set afterwards by editing each model.",
+        "intro": "Choose the models to add.",
         "selectAll": "Select all",
         "selectAllMatches": "Select all {count} matches",
         "noMatch": "No model matches “{query}”.",
         "becomesDefault": "There is no default model yet, so the first model added becomes the default.",
         "addByName": "Add by name",
         "addModels": {
+          "zero": "Add models",
           "one": "Add 1 model",
           "other": "Add {count} models"
         }

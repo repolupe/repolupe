@@ -1,6 +1,6 @@
 <template>
   <v-text-field ref="search-field" v-model="name"
-                type="text" append-inner-icon="mdi-magnify" :placeholder="$t('common.search')" variant="solo" hide-details/>
+                type="text" append-inner-icon="mdi-magnify" :placeholder="$t('common.search')" :variant="props.variant ?? 'solo'" hide-details/>
 </template>
 
 <script lang="ts" setup>
@@ -9,7 +9,9 @@ import {computed, useTemplateRef} from "vue";
 const searchField = useTemplateRef('search-field');
 
 const props = defineProps<{
-  modelValue: string
+  modelValue: string,
+  /** `outlined` inside dialogs and cards, where a raised field stands out. */
+  variant?: 'solo' | 'outlined',
 }>();
 
 const emit = defineEmits<{

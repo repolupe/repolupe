@@ -17,38 +17,47 @@
         <template v-else>
           <p class="text-medium-emphasis mb-4">
             {{ $t('admin.llm.remoteModelsDialog.intro') }}
+            <template v-if="props.becomesDefault">{{ $t('admin.llm.remoteModelsDialog.becomesDefault') }}</template>
           </p>
 
-          <SearchField v-model="query" class="mb-2" />
+          <SearchField v-model="query" variant="outlined" density="compact" class="mb-4" />
 
-          <v-checkbox v-if="selectable.length !== 0" :model-value="allSelected" :indeterminate="someSelected"
-                      @update:model-value="toggleAll" :disabled="props.loading" hide-details density="compact"
-                      :label="query.trim() ? $t('admin.llm.remoteModelsDialog.selectAllMatches', {count: selectable.length}) : $t('admin.llm.remoteModelsDialog.selectAll')" />
+          <div class="border rounded overflow-hidden">
+            <!-- The header of the list, it stays in place while the models scroll. -->
+            <template v-if="selectable.length !== 0">
+              <v-list-item density="compact" class="list-header font-weight-medium" :disabled="props.loading"
+                           @click="toggleAll">
+                <template v-slot:prepend>
+                  <v-checkbox-btn :model-value="allSelected" :indeterminate="someSelected" :disabled="props.loading"
+                                  tabindex="-1" />
+                </template>
+                <v-list-item-title>
+                  {{ query.trim() ? $t('admin.llm.remoteModelsDialog.selectAllMatches', {count: selectable.length}) : $t('admin.llm.remoteModelsDialog.selectAll') }}
+                </v-list-item-title>
+              </v-list-item>
+              <v-divider />
+            </template>
 
-          <v-list density="compact" max-height="400" class="border rounded">
-            <v-list-item v-for="model in filtered" :key="model.api_name" :disabled="props.loading || added.has(model.api_name)"
-                         @click="toggle(model.api_name)">
-              <template v-slot:prepend>
-                <v-checkbox-btn :model-value="added.has(model.api_name) || selected.has(model.api_name)"
-                                :disabled="props.loading || added.has(model.api_name)" tabindex="-1" />
-              </template>
-              <v-list-item-title>{{ model.display_name ?? model.api_name }}</v-list-item-title>
-              <v-list-item-subtitle v-if="model.display_name !== null">
-                <code>{{ model.api_name }}</code>
-              </v-list-item-subtitle>
-              <template v-if="added.has(model.api_name)" v-slot:append>
-                <v-chip size="small" :text="$t('common.added')" />
-              </template>
-            </v-list-item>
-            <v-list-item v-if="filtered.length === 0" class="text-medium-emphasis">
-              {{ $t('admin.llm.remoteModelsDialog.noMatch', {query: query.trim()}) }}
-            </v-list-item>
-          </v-list>
-
-          <v-alert v-if="props.becomesDefault && selected.size !== 0" type="info" variant="tonal" density="compact"
-                   class="mt-4">
-            {{ $t('admin.llm.remoteModelsDialog.becomesDefault') }}
-          </v-alert>
+            <v-list density="compact" max-height="400">
+              <v-list-item v-for="model in filtered" :key="model.api_name" :disabled="props.loading || added.has(model.api_name)"
+                           @click="toggle(model.api_name)">
+                <template v-slot:prepend>
+                  <v-checkbox-btn :model-value="added.has(model.api_name) || selected.has(model.api_name)"
+                                  :disabled="props.loading || added.has(model.api_name)" tabindex="-1" />
+                </template>
+                <v-list-item-title>{{ model.display_name ?? model.api_name }}</v-list-item-title>
+                <v-list-item-subtitle v-if="model.display_name !== null">
+                  <code>{{ model.api_name }}</code>
+                </v-list-item-subtitle>
+                <template v-if="added.has(model.api_name)" v-slot:append>
+                  <v-chip size="small" :text="$t('common.added')" />
+                </template>
+              </v-list-item>
+              <v-list-item v-if="filtered.length === 0" class="text-medium-emphasis">
+                {{ $t('admin.llm.remoteModelsDialog.noMatch', {query: query.trim()}) }}
+              </v-list-item>
+            </v-list>
+          </div>
         </template>
       </template>
 
@@ -194,3 +203,10 @@ defineExpose({
   },
 });
 </script>
+
+<style scoped>
+/* A tint of the primary color, so it matches the bluish surfaces of the theme. */
+.list-header {
+  background-color: rgba(var(--v-theme-primary), 0.08);
+}
+</style>

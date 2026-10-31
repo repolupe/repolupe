@@ -654,13 +654,13 @@
         "fetching": "Der Server wird nach seinen Modellen gefragt…",
         "addByNameHint": "Du kannst die Modelle trotzdem über ihren Namen hinzufügen.",
         "noModels": "Der Server listet keine Modelle auf.",
-        "intro": "Wähle die Modelle aus, die hinzugefügt werden sollen. Sie müssen Streaming und Tool-Aufrufe unterstützen. Preise und max. Ausgabe-Tokens kannst du danach festlegen, indem du jedes Modell bearbeitest.",
+        "intro": "Wähle die Modelle aus, die hinzugefügt werden sollen.",
         "selectAll": "Alle auswählen",
         "selectAllMatches": "Alle {count} Treffer auswählen",
         "noMatch": "Kein Modell passt zu „{query}“.",
         "becomesDefault": "Es gibt noch kein Standardmodell, daher wird das erste hinzugefügte Modell zum Standard.",
         "addByName": "Über Namen hinzufügen",
-        "addModels": "1 Modell hinzufügen | {count} Modelle hinzufügen"
+        "addModels": "Modelle hinzufügen | 1 Modell hinzufügen | {count} Modelle hinzufügen"
       }
     },
     "config": {

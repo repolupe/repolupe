@@ -2489,8 +2489,7 @@ class _Translations$base$admin$llm$remoteModelsDialog$de extends Translations$ba
   @override
   String get noModels => 'Der Server listet keine Modelle auf.';
   @override
-  String get intro =>
-      'Wähle die Modelle aus, die hinzugefügt werden sollen. Sie müssen Streaming und Tool-Aufrufe unterstützen. Preise und max. Ausgabe-Tokens kannst du danach festlegen, indem du jedes Modell bearbeitest.';
+  String get intro => 'Wähle die Modelle aus, die hinzugefügt werden sollen.';
   @override
   String get selectAll => 'Alle auswählen';
   @override
@@ -2504,6 +2503,7 @@ class _Translations$base$admin$llm$remoteModelsDialog$de extends Translations$ba
   @override
   String addModels({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
     count,
+    zero: 'Modelle hinzufügen',
     one: '1 Modell hinzufügen',
     other: '${count} Modelle hinzufügen',
   );

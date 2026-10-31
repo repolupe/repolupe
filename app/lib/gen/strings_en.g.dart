@@ -2987,9 +2987,8 @@ class Translations$base$admin$llm$remoteModelsDialog$en {
   /// en: 'The server lists no models.'
   String get noModels => 'The server lists no models.';
 
-  /// en: 'Choose the models to add. They must support streaming and tool calling. Prices and max output tokens can be set afterwards by editing each model.'
-  String get intro =>
-      'Choose the models to add. They must support streaming and tool calling. Prices and max output tokens can be set afterwards by editing each model.';
+  /// en: 'Choose the models to add.'
+  String get intro => 'Choose the models to add.';
 
   /// en: 'Select all'
   String get selectAll => 'Select all';
@@ -3006,9 +3005,10 @@ class Translations$base$admin$llm$remoteModelsDialog$en {
   /// en: 'Add by name'
   String get addByName => 'Add by name';
 
-  /// en: '(one) {Add 1 model} (other) {Add {count} models}'
+  /// en: '(zero) {Add models} (one) {Add 1 model} (other) {Add {count} models}'
   String addModels({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
     count,
+    zero: 'Add models',
     one: 'Add 1 model',
     other: 'Add ${count} models',
   );

@@ -227,11 +227,11 @@ class _RemoteModelsSheetState extends State<RemoteModelsSheet> with Refena {
             )
           else ...[
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text(dialog.intro, style: muted),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Text(widget.becomesDefault ? '${dialog.intro} ${dialog.becomesDefault}' : dialog.intro, style: muted),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: TextField(
                 key: const ValueKey('remoteModels.search'),
                 decoration: InputDecoration(
@@ -247,60 +247,83 @@ class _RemoteModelsSheetState extends State<RemoteModelsSheet> with Refena {
                 },
               ),
             ),
-            if (selectable.isNotEmpty)
-              CheckboxListTile(
-                key: const ValueKey('remoteModels.selectAll'),
-                value: _allSelected ? true : (_someSelected ? null : false),
-                tristate: true,
-                dense: true,
-                controlAffinity: ListTileControlAffinity.leading,
-                title: Text(_query.trim().isEmpty ? dialog.selectAll : dialog.selectAllMatches(count: selectable.length)),
-                onChanged: _adding ? null : (_) => _toggleAll(),
-              ),
             Flexible(
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  for (final model in filtered)
-                    CheckboxListTile(
-                      key: ValueKey('remoteModels.${model.apiName}'),
-                      value: _added.contains(model.apiName) || _selected.contains(model.apiName),
-                      enabled: !_adding && !_added.contains(model.apiName),
-                      controlAffinity: ListTileControlAffinity.leading,
-                      title: Text(model.displayName ?? model.apiName, maxLines: 1, overflow: TextOverflow.ellipsis),
-                      subtitle: model.displayName == null
-                          ? null
-                          : Text(
-                              model.apiName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(fontFamily: 'monospace', fontFamilyFallback: const ['Menlo', 'Courier']),
-                            ),
-                      secondary: _added.contains(model.apiName) ? Chip(label: Text(t.base.common.added), visualDensity: VisualDensity.compact) : null,
-                      onChanged: (_) {
-                        setState(() {
-                          if (!_selected.remove(model.apiName)) {
-                            _selected.add(model.apiName);
-                          }
-                        });
-                      },
-                    ),
-                  if (filtered.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Text(dialog.noMatch(query: _query.trim()), style: muted),
-                    ),
-                ],
-              ),
-            ),
-            if (widget.becomesDefault && _selected.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: Text(
-                  dialog.becomesDefault,
-                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                // A Material of its own so the ink of the tiles is clipped to the rounded border.
+                child: Material(
+                  color: Colors.transparent,
+                  clipBehavior: Clip.antiAlias,
+                  shape: RoundedRectangleBorder(
+                    side: BorderSide(color: theme.colorScheme.outlineVariant),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // The header of the list, it stays in place while the models scroll.
+                      if (selectable.isNotEmpty) ...[
+                        CheckboxListTile(
+                          key: const ValueKey('remoteModels.selectAll'),
+                          value: _allSelected ? true : (_someSelected ? null : false),
+                          tristate: true,
+                          tileColor: theme.colorScheme.surfaceContainerHigh,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          title: Text(
+                            _query.trim().isEmpty ? dialog.selectAll : dialog.selectAllMatches(count: selectable.length),
+                            style: theme.textTheme.titleSmall,
+                          ),
+                          onChanged: _adding ? null : (_) => _toggleAll(),
+                        ),
+                        Divider(height: 1, color: theme.colorScheme.outlineVariant),
+                      ],
+                      Flexible(
+                        child: ListView(
+                          shrinkWrap: true,
+                          children: [
+                            for (final model in filtered)
+                              CheckboxListTile(
+                                key: ValueKey('remoteModels.${model.apiName}'),
+                                value: _added.contains(model.apiName) || _selected.contains(model.apiName),
+                                enabled: !_adding && !_added.contains(model.apiName),
+                                controlAffinity: ListTileControlAffinity.leading,
+                                title: Text(model.displayName ?? model.apiName, maxLines: 1, overflow: TextOverflow.ellipsis),
+                                subtitle: model.displayName == null
+                                    ? null
+                                    : Text(
+                                        model.apiName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          fontFamily: 'monospace',
+                                          fontFamilyFallback: const ['Menlo', 'Courier'],
+                                        ),
+                                      ),
+                                secondary: _added.contains(model.apiName)
+                                    ? Chip(label: Text(t.base.common.added), visualDensity: VisualDensity.compact)
+                                    : null,
+                                onChanged: (_) {
+                                  setState(() {
+                                    if (!_selected.remove(model.apiName)) {
+                                      _selected.add(model.apiName);
+                                    }
+                                  });
+                                },
+                              ),
+                            if (filtered.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Text(dialog.noMatch(query: _query.trim()), style: muted),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
+            ),
           ],
           if (_addError case final addError?)
             Padding(

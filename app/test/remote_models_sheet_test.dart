@@ -150,6 +150,7 @@ void main() {
     expect(find.text('Added'), findsOneWidget);
     final add = find.byKey(const ValueKey('remoteModels.add'));
     expect(tester.widget<FilledButton>(add).enabled, isFalse);
+    expect(find.textContaining('the first model added becomes the default'), findsOneWidget);
 
     // The search narrows the list, "select all" takes the matches.
     await tester.enterText(find.byKey(const ValueKey('remoteModels.search')), 'gpt');
@@ -159,7 +160,6 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('remoteModels.selectAll')));
     await tester.pumpAndSettle();
     expect(find.text('Add 2 models'), findsOneWidget);
-    expect(find.textContaining('the first model added becomes the default'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('remoteModels.gpt-b')));
     await tester.pumpAndSettle();
     expect(find.text('Add 1 model'), findsOneWidget);
