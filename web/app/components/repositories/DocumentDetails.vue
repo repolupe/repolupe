@@ -29,7 +29,7 @@
         {{ formatRelative(document.extraction.extracted_at) }}
       </span>
       <template v-if="document.extraction.ocr">
-        · OCR
+        • OCR
       </template>
     </template>
   </div>

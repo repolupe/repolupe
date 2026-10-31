@@ -110,9 +110,9 @@ void main() {
     await _pumpPage(tester, local: false, fullName: 'Ada Admin', locale: 'de-CH');
     await tester.pump();
     expect(find.text('2 repositories'), findsOneWidget);
-    expect(_subtitle(tester, 'settings.account'), 'admin · alice@example.com');
+    expect(_subtitle(tester, 'settings.account'), 'admin • alice@example.com');
     expect(_subtitle(tester, 'settings.profile'), 'Ada Admin');
-    expect(_subtitle(tester, 'settings.preferences'), 'Fast · de-CH');
+    expect(_subtitle(tester, 'settings.preferences'), 'Fast • de-CH');
   });
 
   testWidgets('an empty profile says so', (tester) async {

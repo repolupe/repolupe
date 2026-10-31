@@ -119,9 +119,9 @@ class _ChatPageState extends State<ChatPage> with Refena {
                           key: const ValueKey('chat.messages'),
                           // Starts at the bottom and stays there while the answer grows.
                           reverse: true,
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                           itemCount: state.messages.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 16),
+                          separatorBuilder: (_, _) => const SizedBox(height: 24),
                           itemBuilder: (context, index) {
                             final message = state.messages[state.messages.length - 1 - index];
                             return switch (message.role) {
@@ -228,7 +228,7 @@ class _MessageInputState extends State<_MessageInput> with Refena {
         margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          // A shade darker than the answers' surfaceContainerLow,
+          // A shade darker than the page's background,
           // but white on the light temporary background, which is about as dark.
           color: state.isTemporary && colors.brightness == Brightness.light ? colors.surfaceContainerLowest : colors.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(16),

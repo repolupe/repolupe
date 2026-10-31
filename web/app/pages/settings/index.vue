@@ -88,7 +88,7 @@ const pages = computed(() => [
   {
     route: '/settings/account',
     label: t('settings.account.title'),
-    state: [user.value?.user_name, user.value?.email].filter(Boolean).join(' · '),
+    state: [user.value?.user_name, user.value?.email].filter(Boolean).join(' • '),
     icon: 'mdi-account-key',
   },
   {
@@ -101,7 +101,7 @@ const pages = computed(() => [
     route: '/settings/preferences',
     label: t('settings.preferences.title'),
     // the server uses the browser's language for users without one
-    state: [modelName.value, user.value?.locale ?? navigator.language].filter(Boolean).join(' · '),
+    state: [modelName.value, user.value?.locale ?? navigator.language].filter(Boolean).join(' • '),
     icon: 'mdi-tune',
   },
 ]);

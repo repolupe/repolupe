@@ -85,90 +85,82 @@ class _AssistantMessageState extends State<AssistantMessage> {
     final files = completed ? presentedFiles(message) : const <ToolCallFile>[];
     final changes = completed ? proposedChanges(message) : const <ToolCallFile>[];
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (message.toolCalls.isNotEmpty) ...[
-            ToolCallList(chatId: widget.chatId, messageId: message.id, toolCalls: message.toolCalls),
-            const SizedBox(height: 8),
-          ],
-
-          // Streamed text is revealed smoothly rather than in the batches it arrives in. Kept while the answer has no
-          // text yet, so that its first batch is revealed too.
-          SmoothText(
-            text: message.content,
-            builder: (context, content, revealing) {
-              if (message.content.isNotEmpty) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    MarkdownContent(content: content),
-                    if (_generating || revealing) ...[
-                      const SizedBox(height: 12),
-                      const _Spinner(),
-                    ],
-                  ],
-                );
-              }
-              if (_generating) {
-                return Row(
-                  children: [
-                    const _Spinner(),
-                    const SizedBox(width: 8),
-                    Text(context.t.base.chat.assistantMessage.thinking, style: muted),
-                  ],
-                );
-              }
-              if (completed && files.isEmpty && changes.isEmpty) {
-                return Text(context.t.base.chat.assistantMessage.noAnswer, style: muted);
-              }
-              return const SizedBox.shrink();
-            },
-          ),
-
-          if (files.isNotEmpty || changes.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final change in changes) _ChangeButton(chatId: widget.chatId, change: change),
-                for (final file in files) _FileButton(chatId: widget.chatId, file: file),
-              ],
-            ),
-          ],
-
-          if (message.status == MessageStatus.failed) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.errorContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                message.error ?? context.t.base.chat.assistantMessage.failed,
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onErrorContainer),
-              ),
-            ),
-          ],
-
-          if (message.status == MessageStatus.cancelled) ...[
-            const SizedBox(height: 12),
-            _IconText(icon: Icons.cancel_outlined, text: context.t.base.chat.assistantMessage.cancelled, style: caption),
-          ],
-
-          _Footer(message: message, modelName: widget.modelName, duration: _duration, style: caption),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (message.toolCalls.isNotEmpty) ...[
+          ToolCallList(chatId: widget.chatId, messageId: message.id, toolCalls: message.toolCalls),
+          const SizedBox(height: 8),
         ],
-      ),
+
+        // Streamed text is revealed smoothly rather than in the batches it arrives in. Kept while the answer has no
+        // text yet, so that its first batch is revealed too.
+        SmoothText(
+          text: message.content,
+          builder: (context, content, revealing) {
+            if (message.content.isNotEmpty) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  MarkdownContent(content: content),
+                  if (_generating || revealing) ...[
+                    const SizedBox(height: 12),
+                    const _Spinner(),
+                  ],
+                ],
+              );
+            }
+            if (_generating) {
+              return Row(
+                children: [
+                  const _Spinner(),
+                  const SizedBox(width: 8),
+                  Text(context.t.base.chat.assistantMessage.thinking, style: muted),
+                ],
+              );
+            }
+            if (completed && files.isEmpty && changes.isEmpty) {
+              return Text(context.t.base.chat.assistantMessage.noAnswer, style: muted);
+            }
+            return const SizedBox.shrink();
+          },
+        ),
+
+        if (files.isNotEmpty || changes.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final change in changes) _ChangeButton(chatId: widget.chatId, change: change),
+              for (final file in files) _FileButton(chatId: widget.chatId, file: file),
+            ],
+          ),
+        ],
+
+        if (message.status == MessageStatus.failed) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              message.error ?? context.t.base.chat.assistantMessage.failed,
+              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onErrorContainer),
+            ),
+          ),
+        ],
+
+        if (message.status == MessageStatus.cancelled) ...[
+          const SizedBox(height: 12),
+          _IconText(icon: Icons.cancel_outlined, text: context.t.base.chat.assistantMessage.cancelled, style: caption),
+        ],
+
+        _Footer(message: message, modelName: widget.modelName, duration: _duration, style: caption),
+      ],
     );
   }
 }
@@ -214,8 +206,7 @@ class _FileButton extends StatelessWidget {
   }
 }
 
-/// On a phone one line that never wraps: the model on the left (cut off when too long, in full on long press), the
-/// duration and the cost on the right. Otherwise all of it on the left, wrapping when too long (like the web's).
+/// One line on the left: the model (cut off when too long, in full on long press), the duration and the cost.
 /// Tapping the cost shows the token usage.
 class _Footer extends StatelessWidget {
   final MessageDto message;
@@ -249,50 +240,24 @@ class _Footer extends StatelessWidget {
     };
     final separator = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: Text('·', style: style),
+      child: Text('•', style: style),
     );
-
-    // the web's xs breakpoint
-    if (MediaQuery.sizeOf(context).width >= 600) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 12),
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            if (modelName != null) _IconText(icon: Icons.smart_toy_outlined, text: modelName, style: style, truncate: false),
-            if (modelName != null && (duration != null || costLink != null)) separator,
-            if (duration != null) Text(duration, style: tabular),
-            if (duration != null && costLink != null) separator,
-            ?costLink,
-          ],
-        ),
-      );
-    }
 
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Row(
         children: [
           if (modelName != null)
-            Expanded(
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Tooltip(
-                  message: modelName,
-                  child: _IconText(icon: Icons.smart_toy_outlined, text: modelName, style: style),
-                ),
+            Flexible(
+              child: Tooltip(
+                message: modelName,
+                child: _IconText(icon: Icons.smart_toy_outlined, text: modelName, style: style),
               ),
-            )
-          else
-            const Spacer(),
-          if (duration != null) ...[
-            const SizedBox(width: 12),
-            Text(duration, style: tabular),
-          ],
-          if (costLink != null) ...[
-            if (duration != null) separator else const SizedBox(width: 12),
-            costLink,
-          ],
+            ),
+          if (modelName != null && (duration != null || costLink != null)) separator,
+          if (duration != null) Text(duration, style: tabular),
+          if (duration != null && costLink != null) separator,
+          ?costLink,
         ],
       ),
     );
@@ -304,10 +269,7 @@ class _IconText extends StatelessWidget {
   final String text;
   final TextStyle? style;
 
-  /// Cut off at the end of the line, or wrapped.
-  final bool truncate;
-
-  const _IconText({required this.icon, required this.text, required this.style, this.truncate = true});
+  const _IconText({required this.icon, required this.text, required this.style});
 
   @override
   Widget build(BuildContext context) {
@@ -317,7 +279,7 @@ class _IconText extends StatelessWidget {
         Icon(icon, size: 14, color: style?.color),
         const SizedBox(width: 4),
         Flexible(
-          child: truncate ? Text(text, style: style, maxLines: 1, overflow: TextOverflow.ellipsis) : Text(text, style: style),
+          child: Text(text, style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
       ],
     );

@@ -60,7 +60,7 @@ List<SettingsSection> _sections(Translations t, UserDto? user, {required int? re
     key: 'settings.account',
     icon: Icons.key,
     title: t.base.settings.account.title,
-    subtitle: user != null ? [user.userName, ?user.email].join(' · ') : null,
+    subtitle: user != null ? [user.userName, ?user.email].join(' • ') : null,
     page: () => const AccountPage(),
   ),
   SettingsSection(
@@ -76,7 +76,7 @@ List<SettingsSection> _sections(Translations t, UserDto? user, {required int? re
     title: t.base.settings.preferences.title,
     subtitle: user != null
         // The server uses the device's language for users without one.
-        ? [?_modelName(user, models), user.locale ?? deviceLocaleTag()].join(' · ')
+        ? [?_modelName(user, models), user.locale ?? deviceLocaleTag()].join(' • ')
         : null,
     page: () => const PreferencesPage(),
   ),
@@ -225,7 +225,7 @@ class _AccountChip extends StatelessWidget {
     final label = switch (account) {
       null => t.flutter.settings.accountSheet.accounts,
       _ when local => account.server,
-      _ => '${userName ?? account.user.userName} · ${account.server}',
+      _ => '${userName ?? account.user.userName} • ${account.server}',
     };
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),

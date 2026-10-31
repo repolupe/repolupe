@@ -34,7 +34,7 @@
         </div>
 
         <!-- messages -->
-        <div v-if="chat" class="d-flex flex-column ga-4">
+        <div v-if="chat" class="d-flex flex-column ga-6">
           <template v-for="message in chat.messages" :key="message.id">
             <UserMessage v-if="message.role === MessageRole.USER" :message="message"/>
             <AssistantMessage v-else :message="message" :model-name="modelNames.get(message.model_id ?? '')"

@@ -1,70 +1,65 @@
 <template>
-  <v-card class="assistant-message" variant="flat" rounded="lg">
-    <v-card-text class="pa-4">
-      <ToolCallList v-if="props.message.tool_calls.length > 0" :tool-calls="props.message.tool_calls"
-                    class="mb-2" @open="(t) => emit('open-tool-call', t)"/>
+  <div>
+    <ToolCallList v-if="props.message.tool_calls.length > 0" :tool-calls="props.message.tool_calls"
+                  class="mb-2" @open="(t) => emit('open-tool-call', t)"/>
 
-      <template v-if="props.message.content">
-        <MarkdownContent :content="content" class="text-body-1"/>
-        <TypingDots v-if="generating || revealing" class="text-medium-emphasis mt-4"/>
-      </template>
+    <template v-if="props.message.content">
+      <MarkdownContent :content="content" class="text-body-1"/>
+      <TypingDots v-if="generating || revealing" class="text-medium-emphasis mt-4"/>
+    </template>
 
-      <div v-else-if="generating" class="d-flex align-center text-medium-emphasis">
-        <TypingDots class="mr-2"/>
-        {{ $t('chat.assistantMessage.thinking') }}
-      </div>
+    <div v-else-if="generating" class="d-flex align-center text-medium-emphasis">
+      <TypingDots class="mr-2"/>
+      {{ $t('chat.assistantMessage.thinking') }}
+    </div>
 
-      <p v-else-if="props.message.status === MessageStatus.COMPLETED && presentedFiles.length === 0
-                    && changes.length === 0"
-         class="text-medium-emphasis">
-        {{ $t('chat.assistantMessage.noAnswer') }}
-      </p>
+    <p v-else-if="props.message.status === MessageStatus.COMPLETED && presentedFiles.length === 0
+                  && changes.length === 0"
+       class="text-medium-emphasis">
+      {{ $t('chat.assistantMessage.noAnswer') }}
+    </p>
 
-      <div v-if="presentedFiles.length > 0 || changes.length > 0" class="d-flex flex-wrap ga-2 mt-6">
-        <v-btn v-for="change in changes" :key="change.toolCall.id" variant="tonal" size="large" class="text-none"
-               color="primary" :prepend-icon="CHANGE_ICONS[change.toolCall.name]" :text="changeLabel(change)"
-               :title="changeTitle(change)" @click="emit('open-file', change.toolCall)"/>
-        <v-btn v-for="file in presentedFiles" :key="file.toolCall.id" variant="tonal" size="large" class="text-none"
-               prepend-icon="mdi-file-document-outline" :text="fileName(file.path)" :title="file.path"
-               @click="emit('open-file', file.toolCall)"/>
-      </div>
+    <div v-if="presentedFiles.length > 0 || changes.length > 0" class="d-flex flex-wrap ga-2 mt-6">
+      <v-btn v-for="change in changes" :key="change.toolCall.id" variant="tonal" size="large" class="text-none"
+             color="primary" :prepend-icon="CHANGE_ICONS[change.toolCall.name]" :text="changeLabel(change)"
+             :title="changeTitle(change)" @click="emit('open-file', change.toolCall)"/>
+      <v-btn v-for="file in presentedFiles" :key="file.toolCall.id" variant="tonal" size="large" class="text-none"
+             prepend-icon="mdi-file-document-outline" :text="fileName(file.path)" :title="file.path"
+             @click="emit('open-file', file.toolCall)"/>
+    </div>
 
-      <v-alert v-if="props.message.status === MessageStatus.FAILED" type="error" variant="tonal" density="compact"
-               class="mt-3" :text="props.message.error ?? $t('chat.assistantMessage.failed')"/>
+    <v-alert v-if="props.message.status === MessageStatus.FAILED" type="error" variant="tonal" density="compact"
+             class="mt-3" :text="props.message.error ?? $t('chat.assistantMessage.failed')"/>
 
-      <div v-if="props.message.status === MessageStatus.CANCELLED" class="text-caption text-medium-emphasis mt-3">
-        <IconText icon="mdi-cancel">{{ $t('chat.assistantMessage.cancelled') }}</IconText>
-      </div>
+    <div v-if="props.message.status === MessageStatus.CANCELLED" class="text-caption text-medium-emphasis mt-3">
+      <IconText icon="mdi-cancel">{{ $t('chat.assistantMessage.cancelled') }}</IconText>
+    </div>
 
-      <!-- On mobile one line that never wraps: the model on the left (cut off when too long), the duration and the cost
-           on the right. Otherwise all of it on the left. -->
-      <div v-if="props.modelName || duration || cost"
-           class="footer d-flex align-center text-caption text-medium-emphasis mt-3"
-           :class="{'flex-wrap': !display.xs.value}">
-        <IconText v-if="props.modelName" icon="mdi-robot-outline" class="footer-model" :title="props.modelName">
-          <span :class="{'text-truncate': display.xs.value}">{{ props.modelName }}</span>
-        </IconText>
-        <span v-if="props.modelName && !display.xs.value && (duration || cost)" class="mx-2">·</span>
-        <span class="d-flex align-center flex-shrink-0" :class="{'ms-auto ps-3': display.xs.value}">
-          <span v-if="duration" class="tabular">{{ duration }}</span>
-          <span v-if="duration && cost" class="mx-2">·</span>
-          <button v-if="cost" type="button" class="usage-link tabular" :title="$t('chat.assistantMessage.showUsage')"
-                  @click="emit('open-usage')">
-            {{ cost }}
-          </button>
-        </span>
-      </div>
+    <!-- One line on the left that never wraps, the model cut off when too long -->
+    <div v-if="props.modelName || duration || cost"
+         class="footer d-flex align-center text-caption text-medium-emphasis mt-3">
+      <IconText v-if="props.modelName" icon="mdi-robot-outline" class="footer-model" :title="props.modelName">
+        <span class="text-truncate">{{ props.modelName }}</span>
+      </IconText>
+      <span v-if="props.modelName && (duration || cost)" class="mx-2">•</span>
+      <span class="d-flex align-center flex-shrink-0">
+        <span v-if="duration" class="tabular">{{ duration }}</span>
+        <span v-if="duration && cost" class="mx-2">•</span>
+        <button v-if="cost" type="button" class="usage-link tabular" :title="$t('chat.assistantMessage.showUsage')"
+                @click="emit('open-usage')">
+          {{ cost }}
+        </button>
+      </span>
+    </div>
 
-      <v-btn v-if="props.canRetry" class="mt-3" size="small" variant="tonal" prepend-icon="mdi-refresh"
-             :text="$t('common.retry')" :loading="props.retrying" @click="emit('retry')"/>
-    </v-card-text>
-  </v-card>
+    <v-btn v-if="props.canRetry" class="mt-3" size="small" variant="tonal" prepend-icon="mdi-refresh"
+           :text="$t('common.retry')" :loading="props.retrying" @click="emit('retry')"/>
+  </div>
 </template>
 
 <script setup lang="ts">
 import {computed, onBeforeUnmount, ref, watch} from "vue";
 import {useI18n} from "#i18n";
-import {useDisplay} from "vuetify";
 import {MessageStatus, type MessageDto, type ToolCallSummaryDto} from "~/utils/model";
 import {
   CHANGE_ICONS,
@@ -81,7 +76,6 @@ import TypingDots from "~/components/chat/TypingDots.vue";
 import {useSmoothText} from "~/composables/smoothText";
 
 const {t} = useI18n();
-const display = useDisplay();
 
 const props = defineProps<{
   message: MessageDto,
