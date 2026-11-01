@@ -34,46 +34,37 @@ class _AssistantMessageState extends State<AssistantMessage> {
   /// Ticks every second while generating, so the duration counts up.
   Timer? _timer;
 
-  /// The latest tool that ran while generating, kept after its call finishes so that a brief one doesn't flicker back
-  /// to "Thinking…".
-  String? _lastRunningTool;
-
   bool get _generating => widget.message.status == MessageStatus.generating;
 
   @override
   void initState() {
     super.initState();
     _updateTimer();
-    _updateLastRunningTool();
   }
 
   @override
   void didUpdateWidget(AssistantMessage oldWidget) {
     super.didUpdateWidget(oldWidget);
     _updateTimer();
-    if (oldWidget.message.status != widget.message.status) {
-      _lastRunningTool = null;
-    }
-    _updateLastRunningTool();
   }
 
-  void _updateLastRunningTool() {
-    _lastRunningTool = runningToolName(widget.message.toolCalls) ?? _lastRunningTool;
-  }
-
-  /// What the answer is doing while generating: the running tool, or, before it has text, the last one that ran.
+  /// What the answer is doing while generating: the running tool, or, before it has text, the last one that ran, so
+  /// that a brief one doesn't flicker back to "Thinking…". Taken from the calls rather than from the running ones seen
+  /// in a build, since a brief call (e.g. `run_script`) often starts and finishes between two frames.
   String? _statusLabel(BuildContext context) {
     if (!_generating) {
       return null;
     }
-    final running = runningToolName(widget.message.toolCalls);
+    final toolCalls = widget.message.toolCalls;
+    final running = runningToolName(toolCalls);
     if (running != null) {
       return runningToolLabel(context, running);
     }
     if (widget.message.content.isNotEmpty) {
       return null;
     }
-    return _lastRunningTool != null ? runningToolLabel(context, _lastRunningTool!) : context.t.base.chat.assistantMessage.thinking;
+    final last = toolCalls.lastOrNull?.name;
+    return last != null ? runningToolLabel(context, last) : context.t.base.chat.assistantMessage.thinking;
   }
 
   @override

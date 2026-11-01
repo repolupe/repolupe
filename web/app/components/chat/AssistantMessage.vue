@@ -100,14 +100,9 @@ const generating = computed(() => props.message.status === MessageStatus.GENERAT
 
 const toolCount = computed(() => props.message.tool_calls.length);
 
-/** What the latest running tool call does, e.g. "Calculating…". */
-const runningLabel = computed(() => {
-  if (!generating.value) {
-    return null;
-  }
-  switch (props.message.tool_calls.findLast(t => t.status === ToolCallStatus.RUNNING)?.name) {
-    case undefined:
-      return null;
+/** What a running call of the tool `name` does, e.g. "Calculating…". */
+const runningToolLabel = (name: string) => {
+  switch (name) {
     case 'run_script':
       return `${t('chat.toolCallList.calculating')}…`;
     case 'read_attachment':
@@ -120,32 +115,28 @@ const runningLabel = computed(() => {
     default:
       return `${t('chat.toolCallList.running')}…`;
   }
-});
+};
 
-/** The last running label, kept after its tool call finishes so a brief one doesn't flicker back to "Thinking…". */
-const lastRunningLabel = ref<string | null>(null);
-
-watch(generating, () => lastRunningLabel.value = null);
-
-watch(runningLabel, (label) => {
-  if (label) {
-    lastRunningLabel.value = label;
-  }
-});
-
-/** What the answer is doing while generating, shown above the content (if there is any yet). */
+/**
+ * What the answer is doing while generating, shown above the content (if there is any yet): the latest running
+ * tool call, or, before there is content, the last call, so a brief one doesn't flicker back to "Thinking…" (also
+ * when the chat is opened while the answer is generated)
+ */
 const statusLabel = computed(() => {
   if (!generating.value) {
     return null;
   }
-  if (runningLabel.value) {
-    return runningLabel.value;
+  const toolCalls = props.message.tool_calls;
+  const running = toolCalls.findLast(t => t.status === ToolCallStatus.RUNNING);
+  if (running) {
+    return runningToolLabel(running.name);
   }
   if (props.message.content) {
     // the dots below the content show progress instead
     return null;
   }
-  return lastRunningLabel.value ?? t('chat.assistantMessage.thinking');
+  const last = toolCalls.at(-1);
+  return last ? runningToolLabel(last.name) : t('chat.assistantMessage.thinking');
 });
 
 /** Streamed text is revealed smoothly rather than in the batches it arrives in. */
