@@ -7,7 +7,9 @@
     </v-app-bar>
 
     <v-navigation-drawer v-if="user && !user.must_change_password" class="bg-navigation" v-model="drawerVisible" :rail="railActive">
-      <div class="pt-6 pb-4 px-4" :class="{'header-rail': railActive}" style="display: flex; align-items: center;">
+      <!-- on mobile, the app bar already shows the instance -->
+      <div v-if="!display.mobile.value" class="pt-6 pb-4 px-4" :class="{'header-rail': railActive}"
+           style="display: flex; align-items: center;">
         <div class="logo">
           <!-- smaller when collapsed, so it lines up with the icons below instead of filling the width -->
           <v-img src="/logo-512-white.webp" :alt="$t('app.logoAlt')" :width="logoSize" :height="logoSize"/>
@@ -23,8 +25,7 @@
             <p class="text-body-1 font-weight-bold mb-0 fade-overflow"><InstanceTitle/></p>
             <p class="mb-0 fade-overflow">{{ user.first_name || user.full_name || user.user_name }}</p>
           </div>
-          <!-- on mobile, the drawer is an overlay that is closed instead -->
-          <v-btn v-if="!display.mobile.value" class="collapse-btn ml-1 mr-n2" icon variant="text"
+          <v-btn class="collapse-btn ml-1 mr-n2" icon variant="text"
                  size="small" :aria-label="$t('app.navigation.collapseNavigation')" @click="toggleRail">
             <v-icon icon="mdi-dock-left"/>
             <v-tooltip activator="parent" location="bottom" :text="$t('app.navigation.collapse')"/>
