@@ -1,3 +1,11 @@
+## 1.0.3 (2026-11-01)
+
+- feat: the model can run JavaScript in a sandbox with repository files and attachments
+- feat: answers are no longer shown in a card, with the model, duration and cost left aligned below
+- feat: replace "Thinking" with actual tool calls ("Looking things up", "Calculating")
+- feat: improved dialog for the models fetched from an LLM provider
+- feat(web): no logo in the navigation drawer on mobile
+
 ## 1.0.2 (2026-10-30)
 
 - feat: the model knows the user's local date and time
