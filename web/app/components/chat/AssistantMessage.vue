@@ -1,20 +1,15 @@
 <template>
   <div>
-    <div v-if="runningLabel" class="d-flex align-center text-medium-emphasis"
+    <div v-if="statusLabel" class="d-flex align-center text-medium-emphasis"
          :class="{'mb-4': props.message.content}">
       <TypingDots class="mr-2"/>
-      {{ runningLabel }}
+      {{ statusLabel }}
     </div>
 
     <template v-if="props.message.content">
       <MarkdownContent :content="content" class="text-body-1"/>
-      <TypingDots v-if="(generating || revealing) && !runningLabel" class="text-medium-emphasis mt-4"/>
+      <TypingDots v-if="(generating || revealing) && !statusLabel" class="text-medium-emphasis mt-4"/>
     </template>
-
-    <div v-else-if="generating && !runningLabel" class="d-flex align-center text-medium-emphasis">
-      <TypingDots class="mr-2"/>
-      {{ $t('chat.assistantMessage.thinking') }}
-    </div>
 
     <p v-else-if="props.message.status === MessageStatus.COMPLETED && presentedFiles.length === 0
                   && changes.length === 0"
@@ -117,9 +112,40 @@ const runningLabel = computed(() => {
       return `${t('chat.toolCallList.calculating')}…`;
     case 'read_attachment':
       return `${t('chat.toolCallList.readingAttachments')}…`;
+    case 'grep':
+    case 'list_files':
+    case 'read_file':
+    case 'outline':
+      return `${t('chat.toolCallList.lookingUp')}…`;
     default:
       return `${t('chat.toolCallList.running')}…`;
   }
+});
+
+/** The last running label, kept after its tool call finishes so a brief one doesn't flicker back to "Thinking…". */
+const lastRunningLabel = ref<string | null>(null);
+
+watch(generating, () => lastRunningLabel.value = null);
+
+watch(runningLabel, (label) => {
+  if (label) {
+    lastRunningLabel.value = label;
+  }
+});
+
+/** What the answer is doing while generating, shown above the content (if there is any yet). */
+const statusLabel = computed(() => {
+  if (!generating.value) {
+    return null;
+  }
+  if (runningLabel.value) {
+    return runningLabel.value;
+  }
+  if (props.message.content) {
+    // the dots below the content show progress instead
+    return null;
+  }
+  return lastRunningLabel.value ?? t('chat.assistantMessage.thinking');
 });
 
 /** Streamed text is revealed smoothly rather than in the batches it arrives in. */

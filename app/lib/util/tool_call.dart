@@ -160,3 +160,18 @@ List<ToolCallFile> proposedChanges(MessageDto message) {
   }
   return changes.values.toList();
 }
+
+/// The name of the latest running tool call in [toolCalls], if any.
+String? runningToolName(List<ToolCallSummaryDto> toolCalls) => toolCalls.reversed.where((t) => t.status == ToolCallStatus.running).firstOrNull?.name;
+
+/// What a running call of the tool [name] does, e.g. "Calculating…".
+String runningToolLabel(BuildContext context, String name) {
+  final texts = context.t.base.chat.toolCallList;
+  final label = switch (name) {
+    'run_script' => texts.calculating,
+    'read_attachment' => texts.readingAttachments,
+    'grep' || 'list_files' || 'read_file' || 'outline' => texts.lookingUp,
+    _ => texts.running,
+  };
+  return '$label…';
+}

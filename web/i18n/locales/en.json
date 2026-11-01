@@ -188,6 +188,7 @@
     "toolCallList": {
       "running": "Using tools",
       "readingAttachments": "Reading the attachments",
+      "lookingUp": "Looking things up",
       "calculating": "Calculating"
     },
     "toolCallLabel": {

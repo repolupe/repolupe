@@ -1032,6 +1032,9 @@ class Translations$base$chat$toolCallList$en {
   /// en: 'Reading the attachments'
   String get readingAttachments => 'Reading the attachments';
 
+  /// en: 'Looking things up'
+  String get lookingUp => 'Looking things up';
+
   /// en: 'Calculating'
   String get calculating => 'Calculating';
 }

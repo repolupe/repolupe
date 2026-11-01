@@ -34,18 +34,46 @@ class _AssistantMessageState extends State<AssistantMessage> {
   /// Ticks every second while generating, so the duration counts up.
   Timer? _timer;
 
+  /// The latest tool that ran while generating, kept after its call finishes so that a brief one doesn't flicker back
+  /// to "Thinking…".
+  String? _lastRunningTool;
+
   bool get _generating => widget.message.status == MessageStatus.generating;
 
   @override
   void initState() {
     super.initState();
     _updateTimer();
+    _updateLastRunningTool();
   }
 
   @override
   void didUpdateWidget(AssistantMessage oldWidget) {
     super.didUpdateWidget(oldWidget);
     _updateTimer();
+    if (oldWidget.message.status != widget.message.status) {
+      _lastRunningTool = null;
+    }
+    _updateLastRunningTool();
+  }
+
+  void _updateLastRunningTool() {
+    _lastRunningTool = runningToolName(widget.message.toolCalls) ?? _lastRunningTool;
+  }
+
+  /// What the answer is doing while generating: the running tool, or, before it has text, the last one that ran.
+  String? _statusLabel(BuildContext context) {
+    if (!_generating) {
+      return null;
+    }
+    final running = runningToolName(widget.message.toolCalls);
+    if (running != null) {
+      return runningToolLabel(context, running);
+    }
+    if (widget.message.content.isNotEmpty) {
+      return null;
+    }
+    return _lastRunningTool != null ? runningToolLabel(context, _lastRunningTool!) : context.t.base.chat.assistantMessage.thinking;
   }
 
   @override
@@ -84,6 +112,7 @@ class _AssistantMessageState extends State<AssistantMessage> {
     final completed = message.status == MessageStatus.completed;
     final files = completed ? presentedFiles(message) : const <ToolCallFile>[];
     final changes = completed ? proposedChanges(message) : const <ToolCallFile>[];
+    final status = _statusLabel(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,19 +134,13 @@ class _AssistantMessageState extends State<AssistantMessage> {
                   MarkdownContent(content: content),
                   if (_generating || revealing) ...[
                     const SizedBox(height: 12),
-                    const _Spinner(),
+                    if (status != null) _Status(label: status, style: muted) else const _Spinner(),
                   ],
                 ],
               );
             }
-            if (_generating) {
-              return Row(
-                children: [
-                  const _Spinner(),
-                  const SizedBox(width: 8),
-                  Text(context.t.base.chat.assistantMessage.thinking, style: muted),
-                ],
-              );
+            if (status != null) {
+              return _Status(label: status, style: muted);
             }
             if (completed && files.isEmpty && changes.isEmpty) {
               return Text(context.t.base.chat.assistantMessage.noAnswer, style: muted);
@@ -295,6 +318,25 @@ class _Spinner extends StatelessWidget {
       width: 14,
       height: 14,
       child: CircularProgressIndicator(strokeWidth: 2),
+    );
+  }
+}
+
+/// A spinner with what the answer is doing, e.g. "Thinking…".
+class _Status extends StatelessWidget {
+  final String label;
+  final TextStyle? style;
+
+  const _Status({required this.label, required this.style});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const _Spinner(),
+        const SizedBox(width: 8),
+        Flexible(child: Text(label, style: style)),
+      ],
     );
   }
 }

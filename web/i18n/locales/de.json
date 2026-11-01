@@ -169,7 +169,7 @@
       "oneFileOnly": "An eine Nachricht kann nur eine Datei angehängt werden."
     },
     "assistantMessage": {
-      "thinking": "Denkt nach…",
+      "thinking": "Denke nach…",
       "noAnswer": "(Keine Antwort)",
       "proposedStore": "Speichern als {path} vorgeschlagen",
       "proposedChange": "Vorgeschlagene Änderung an {path}",
@@ -186,9 +186,10 @@
       "download": "{name} herunterladen"
     },
     "toolCallList": {
-      "running": "Verwendet Tools",
-      "readingAttachments": "Liest die Anhänge",
-      "calculating": "Rechnet"
+      "running": "Verwende Tools",
+      "readingAttachments": "Lese Anhänge",
+      "lookingUp": "Schlage nach",
+      "calculating": "Rechne"
     },
     "toolCallLabel": {
       "grepPatternIn": "\"{pattern}\" in {where}",

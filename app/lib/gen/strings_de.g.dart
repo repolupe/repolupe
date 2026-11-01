@@ -857,7 +857,7 @@ class _Translations$base$chat$assistantMessage$de extends Translations$base$chat
 
   // Translations
   @override
-  String get thinking => 'Denkt nach…';
+  String get thinking => 'Denke nach…';
   @override
   String get noAnswer => '(Keine Antwort)';
   @override
@@ -905,11 +905,13 @@ class _Translations$base$chat$toolCallList$de extends Translations$base$chat$too
 
   // Translations
   @override
-  String get running => 'Verwendet Tools';
+  String get running => 'Verwende Tools';
   @override
-  String get readingAttachments => 'Liest die Anhänge';
+  String get readingAttachments => 'Lese Anhänge';
   @override
-  String get calculating => 'Rechnet';
+  String get lookingUp => 'Schlage nach';
+  @override
+  String get calculating => 'Rechne';
 }
 
 // Path: base.chat.toolCallLabel

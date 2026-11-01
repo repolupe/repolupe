@@ -10,22 +10,6 @@ import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-/// E.g. "3 Tools", or what the latest running one does, e.g. "Calculating".
-String _summary(BuildContext context, List<ToolCallSummaryDto> toolCalls) {
-  final texts = context.t.base.chat.toolCallList;
-  switch (toolCalls.reversed.where((t) => t.status == ToolCallStatus.running).firstOrNull?.name) {
-    case null:
-      break;
-    case 'run_script':
-      return texts.calculating;
-    case 'read_attachment':
-      return texts.readingAttachments;
-    default:
-      return texts.running;
-  }
-  return context.t.base.chat.assistantMessage.toolCount(count: toolCalls.length);
-}
-
 /// The tool calls of an answer, collapsed into how many there were; tapping it lists them in a [ToolCallSheet].
 class ToolCallList extends StatelessWidget {
   final UuidValue chatId;
@@ -52,7 +36,7 @@ class ToolCallList extends StatelessWidget {
         children: [
           if (running) const ToolCallStatusIcon(status: ToolCallStatus.running) else Icon(Icons.handyman_outlined, size: 16, color: muted),
           const SizedBox(width: 8),
-          Text(_summary(context, toolCalls)),
+          Text(context.t.base.chat.assistantMessage.toolCount(count: toolCalls.length)),
         ],
       ),
     );
@@ -98,7 +82,7 @@ class ToolCallSheet extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Text(_summary(context, toolCalls), style: theme.textTheme.titleSmall),
+            child: Text(context.t.base.chat.assistantMessage.toolCount(count: toolCalls.length), style: theme.textTheme.titleSmall),
           ),
           Flexible(
             child: ListView(
