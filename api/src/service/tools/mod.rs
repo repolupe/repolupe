@@ -1,18 +1,13 @@
-//! The tools the model uses to look into the repositories in scope of a chat, and to propose
-//! commits to the ones the user lets it change ([`CHANGE_FILE`], [`MOVE_FILES`], and
-//! [`SAVE_ATTACHMENT`] for the files attached to the chat). They read the git objects of
-//! one commit per repository, so all tool calls of an answer see the same version, even while
-//! the repository is synced. [`READ_ATTACHMENT`] reads the files attached to the chat, so it is
-//! bound to no repository and also offered in chats without one, like [`RUN_SCRIPT`], which
-//! runs JavaScript the model writes to calculate, and only reads a repository for the files it
-//! passes to the script (besides attachments).
+//! The tools the model uses to read the repositories of a chat and to propose commits
+//! ([`CHANGE_FILE`], [`MOVE_FILES`], [`SAVE_ATTACHMENT`]). Each repository is pinned to one
+//! commit, so all tool calls of an answer see the same version, even during a sync.
+//! [`READ_ATTACHMENT`] and [`RUN_SCRIPT`] need no repository, so chats without one get them too.
 //!
-//! Each tool is a module of its own, with its `definition` for the model, `parse`, which turns
-//! the model's input into a [`Call`], and `run`. What several tools need is in [`support`]. A
-//! new tool also needs a name below, a variant of [`Call`], and an arm in
-//! [`RepositoryTools::definitions`], [`RepositoryTools::parse`] and [`Invocation::run`]. The
-//! answer drops the text before calls that look things up, see `answer.rs`; tools that
-//! don't must be listed there.
+//! Each tool is a module with a `definition`, a `parse` into a [`Call`], and a `run`; shared
+//! code is in [`support`]. A new tool also needs a name below, a variant of [`Call`], and an
+//! arm in [`RepositoryTools::definitions`], [`RepositoryTools::parse`] and [`Invocation::run`].
+//! Tools that don't look things up must be listed in `answer.rs`, which drops the text before
+//! the other calls.
 
 mod change_file;
 mod grep;
