@@ -42,7 +42,7 @@
 import {computed, ref} from "vue";
 import {ToolCallStatus, type RepositoryDto, type ToolCallDto, type ToolCallSummaryDto} from "~/utils/model";
 import {errorMessage, getToolCall} from "~/utils/api";
-import {formatDateTime, shortSha, showSnackbar} from "~/utils/utils";
+import {formatDateTime, parseMcpToolName, shortSha, showSnackbar} from "~/utils/utils";
 import ToolCallLabel from "~/components/chat/ToolCallLabel.vue";
 import ToolCallStatusIcon from "~/components/chat/ToolCallStatusIcon.vue";
 import IconText from "~/components/IconText.vue";
@@ -74,7 +74,8 @@ const repositoryName = computed(() => {
     return null;
   }
   const repository = props.repositories.find(r => r.id === summary.value!.repository_id);
-  const named = summary.value.input?.repository;
+  // the `repository` input of an MCP tool means something on the server, not one of ours
+  const named = parseMcpToolName(summary.value.name) ? null : summary.value.input?.repository;
   return repository?.name ?? (typeof named === 'string' ? named : null);
 });
 

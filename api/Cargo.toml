@@ -19,6 +19,10 @@ reqwest = { version = "0.13", default-features = false, features = ["rustls", "h
 # wrapped by rig-reqwest.
 rig-core = { version = "=0.45.0", default-features = false }
 rig-reqwest = { version = "=0.45.0", default-features = false }
+# The MCP client, see `service::mcp`. Without its TLS features: requests go through our clients.
+rmcp = { version = "3.8", default-features = false, features = ["client", "auth", "transport-streamable-http-client-reqwest"] }
+# For implementing rmcp's `CredentialStore`.
+async-trait = "0.1"
 rust_decimal = "1.43.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -66,6 +70,8 @@ default = ["local-ocr"]
 local-ocr = ["xberg/ocr", "xberg/tesseract-dynamic", "xberg/paddle-ocr", "dep:xberg-tesseract", "dep:xberg-paddle-ocr", "dep:ort"]
 
 [dev-dependencies]
+# An MCP server for the tests of the MCP client.
+rmcp = { version = "3.8", default-features = false, features = ["server", "transport-streamable-http-server"] }
 tempfile = "3"
 tower = { version = "0.5", features = ["util"] }
 

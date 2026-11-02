@@ -1,7 +1,7 @@
 <template>
   <span class="tool-call-label">
     <v-icon :icon="icon" size="16" class="mr-2"/>
-    <span class="tool-call-name">{{ props.toolCall.name }}</span>
+    <span class="tool-call-name">{{ name }}</span>
     <span v-if="detail" class="tool-call-detail ml-2">{{ detail }}</span>
   </span>
 </template>
@@ -10,7 +10,7 @@
 import {computed} from "vue";
 import {useI18n} from "#i18n";
 import type {ToolCallSummaryDto} from "~/utils/model";
-import {toolCallMoves} from "~/utils/utils";
+import {parseMcpToolName, toolCallMoves} from "~/utils/utils";
 
 const {t} = useI18n();
 
@@ -31,7 +31,12 @@ const ICONS: Record<string, string> = {
   run_script: 'mdi-calculator',
 };
 
-const icon = computed(() => ICONS[props.toolCall.name] ?? 'mdi-wrench-outline');
+/** Set for a tool of an MCP server, which is shown by its own name with the server as the detail. */
+const mcp = computed(() => parseMcpToolName(props.toolCall.name));
+
+const icon = computed(() => mcp.value ? 'mdi-puzzle-outline' : ICONS[props.toolCall.name] ?? 'mdi-wrench-outline');
+
+const name = computed(() => mcp.value?.tool ?? props.toolCall.name);
 
 const str = (value: unknown): string | null => {
   if (typeof value === 'string' && value) {
@@ -43,8 +48,14 @@ const str = (value: unknown): string | null => {
   return null;
 };
 
-/** The most telling part of the input, e.g. the path that was read or the pattern that was searched. */
+/**
+ * The most telling part of the input, e.g. the path that was read or the pattern that was searched, or the server of
+ * an MCP tool, whose input could be anything.
+ */
 const detail = computed(() => {
+  if (mcp.value) {
+    return mcp.value.server;
+  }
   const input = props.toolCall.input ?? {};
   const path = str(input.path);
   const glob = str(input.glob);

@@ -3,6 +3,7 @@ pub(crate) mod chat;
 pub(crate) mod document_extraction;
 pub(crate) mod llm_model;
 pub(crate) mod llm_provider;
+pub(crate) mod mcp_server;
 pub(crate) mod message;
 pub(crate) mod remote_access;
 pub(crate) mod repository;

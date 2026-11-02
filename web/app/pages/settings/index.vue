@@ -44,7 +44,7 @@ import {computed, onMounted, ref} from "vue";
 import {useTheme} from "vuetify";
 import {useI18n} from "#i18n";
 import {useUser} from "~/composables/states";
-import {getModels, getRepositories, logout} from "~/utils/api";
+import {getMcpServers, getModels, getRepositories, logout} from "~/utils/api";
 import {type ModelDto, UserRole} from "~/utils/model";
 import {THEME_MODE_ICONS, ThemeMode, writeThemeMode} from "~/utils/theme";
 import MainContainer from "~/components/MainContainer.vue";
@@ -68,6 +68,7 @@ const setThemeMode = (mode: ThemeMode) => {
 
 // For the states of the pages, `null` until loaded (or if loading failed, then the state is left out).
 const repositoryCount = ref<number | null>(null);
+const mcpServerCount = ref<number | null>(null);
 const models = ref<ModelDto[] | null>(null);
 
 // The model the user's chats use: their own, else the default one. `undefined` if there is none.
@@ -84,6 +85,12 @@ const pages = computed(() => [
     state: repositoryCount.value !== null ? t('settings.page.repositoryCount', repositoryCount.value) : undefined,
     icon: 'mdi-source-repository',
     requiresRepositoryManagement: true,
+  },
+  {
+    route: '/settings/mcp-servers',
+    label: t('mcpServers.title'),
+    state: mcpServerCount.value !== null ? t('settings.page.mcpServerCount', mcpServerCount.value) : undefined,
+    icon: 'mdi-puzzle',
   },
   {
     route: '/settings/account',
@@ -143,6 +150,7 @@ onMounted(() => {
   if (user.value?.can_manage_repositories) {
     getRepositories().then(r => repositoryCount.value = r.length).catch(() => {});
   }
+  getMcpServers().then(s => mcpServerCount.value = s.length).catch(() => {});
   getModels().then(m => models.value = m).catch(() => {});
 });
 

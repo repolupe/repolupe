@@ -280,6 +280,11 @@
         "one": "1 repository",
         "other": "{count} repositories"
       },
+      "mcpServerCount": {
+        "zero": "No servers",
+        "one": "1 server",
+        "other": "{count} servers"
+      },
       "profileEmpty": "Not filled in yet"
     },
     "account": {
@@ -524,6 +529,106 @@
       "new": "New"
     },
     "loadFailed": "Could not load the documents: {error}"
+  },
+  "mcpServers": {
+    "title": "MCP Servers",
+    "newServer": "New Server",
+    "unreachable": "Could not connect to the MCP server. Check the URL: it must point to the server's MCP endpoint (Streamable HTTP), which often ends in /mcp.",
+    "status": {
+      "authorizationRequired": "Sign-in required",
+      "unknown": "Unknown"
+    },
+    "page": {
+      "count": {
+        "zero": "{count} Servers",
+        "one": "{count} Server",
+        "other": "{count} Servers"
+      },
+      "intro": "MCP servers give the model more tools, e.g. to search the web or to work with other services. The tools of enabled servers are available in all your chats.",
+      "privacy": "The model decides on its own when to use them, and may send content from your chats and repositories to the servers. Only add servers you trust.",
+      "authIntro": "If a server supports it, you sign in with your account there. For others, you can enter a token.",
+      "emptyTitle": "No MCP servers yet",
+      "emptyText": "Add an MCP server by its URL, so the model can use its tools in your chats.",
+      "editServer": "Edit server",
+      "deleteServer": "Delete server",
+      "authNone": "No authentication",
+      "authToken": "Token",
+      "authTokenHint": "Token •••• {hint}",
+      "authOAuth": "Signed in with OAuth",
+      "checked": "Checked {relative}",
+      "lastError": "The last connection failed: {error}",
+      "signInRequired": "The server asks you to sign in before its tools can be used. If it does not support sign-in, delete it and add it again with a token.",
+      "toolCount": {
+        "zero": "No tools",
+        "one": "1 tool",
+        "other": "{count} tools"
+      },
+      "toolCountEnabled": {
+        "one": "{enabled} of {count} tool enabled",
+        "other": "{enabled} of {count} tools enabled"
+      },
+      "noTools": "The server offers no tools.",
+      "allTools": "All tools",
+      "signIn": "Sign in",
+      "signInAgain": "Sign in again",
+      "useInChats": "Use in chats",
+      "notUsed": "Not used in chats",
+      "signInTitle": "Sign in to {name}?",
+      "signInText": "{name} asks you to sign in before its tools can be used. You will be taken to its sign-in page and brought back here afterwards.",
+      "deleteTitle": "Delete MCP Server",
+      "deleteText": "The MCP server {name} will be deleted. Its tools will no longer be available in your chats.",
+      "created": "Server added.",
+      "updated": "Server updated.",
+      "deleted": "Server deleted.",
+      "enabled": "{name} enabled.",
+      "disabled": "{name} disabled.",
+      "toolEnabled": "Tool {name} enabled.",
+      "toolDisabled": "Tool {name} disabled.",
+      "allToolsEnabled": "All tools of {name} enabled.",
+      "allToolsDisabled": "All tools of {name} disabled.",
+      "allToolsOff": "All tools are off, so {name} is no longer used in chats.",
+      "usedAgain": "{name} is used in chats again.",
+      "refreshed": {
+        "zero": "Connected, the server offers no tools.",
+        "one": "Connected, the server offers 1 tool.",
+        "other": "Connected, the server offers {count} tools."
+      },
+      "refreshedSignIn": "{name} asks you to sign in.",
+      "refreshedFailed": "Could not connect to {name}.",
+      "loadFailed": "Could not load the MCP servers: {error}",
+      "createFailed": "Could not add the server: {error}",
+      "saveFailed": "Could not save the server: {error}",
+      "deleteFailed": "Could not delete the server: {error}",
+      "toggleFailed": "Could not change the server: {error}",
+      "toggleToolFailed": "Could not change the tool: {error}",
+      "toggleAllToolsFailed": "Could not change the tools: {error}",
+      "refreshFailed": "Could not refresh the server: {error}",
+      "signInFailed": "Could not start the sign-in: {error}"
+    },
+    "dialog": {
+      "editTitle": "Edit Server",
+      "url": "URL",
+      "urlHintAdmin": "The server's MCP endpoint. As an admin, you may also use http:// and internal hosts.",
+      "urlHintUser": "The server's MCP endpoint. Must use https:// and a host that resolves to a public address.",
+      "tokenOptional": "Token (optional)",
+      "tokenHint": "Only for servers that require one and do not support sign-in. Sent as a bearer token.",
+      "fixedConnection": "The URL and the token can't be changed. To change them, delete the server and add it again.",
+      "connecting": "Connecting to the server, this can take a few seconds…",
+      "missingUrl": "Missing URL"
+    },
+    "callback": {
+      "title": "Sign-in",
+      "completing": "Completing the sign-in…",
+      "failedTitle": "Sign-in failed",
+      "denied": "The sign-in was cancelled or denied.",
+      "serverError": "The server reported an error: {error}",
+      "incomplete": "The response to the sign-in is incomplete. Please sign in again.",
+      "expired": "The sign-in has expired or was already completed. Please sign in again.",
+      "failed": "Could not complete the sign-in: {error}",
+      "signedIn": "Signed in to {name}.",
+      "signedInNotReady": "Signed in to {name}, but connecting to it failed.",
+      "back": "Back to MCP servers"
+    }
   },
   "admin": {
     "users": {

@@ -64,6 +64,7 @@ class Translations$base$en {
   late final Translations$base$settings$en settings = Translations$base$settings$en.internal(_root);
   late final Translations$base$repositories$en repositories = Translations$base$repositories$en.internal(_root);
   late final Translations$base$documents$en documents = Translations$base$documents$en.internal(_root);
+  late final Translations$base$mcpServers$en mcpServers = Translations$base$mcpServers$en.internal(_root);
   late final Translations$base$admin$en admin = Translations$base$admin$en.internal(_root);
 }
 
@@ -590,6 +591,30 @@ class Translations$base$documents$en {
 
   /// en: 'Could not load the documents: {error}'
   String loadFailed({required Object error}) => 'Could not load the documents: ${error}';
+}
+
+// Path: base.mcpServers
+class Translations$base$mcpServers$en {
+  Translations$base$mcpServers$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'MCP Servers'
+  String get title => 'MCP Servers';
+
+  /// en: 'New Server'
+  String get newServer => 'New Server';
+
+  /// en: 'Could not connect to the MCP server. Check the URL: it must point to the server's MCP endpoint (Streamable HTTP), which often ends in /mcp.'
+  String get unreachable =>
+      'Could not connect to the MCP server. Check the URL: it must point to the server\'s MCP endpoint (Streamable HTTP), which often ends in /mcp.';
+
+  late final Translations$base$mcpServers$status$en status = Translations$base$mcpServers$status$en.internal(_root);
+  late final Translations$base$mcpServers$page$en page = Translations$base$mcpServers$page$en.internal(_root);
+  late final Translations$base$mcpServers$dialog$en dialog = Translations$base$mcpServers$dialog$en.internal(_root);
+  late final Translations$base$mcpServers$callback$en callback = Translations$base$mcpServers$callback$en.internal(_root);
 }
 
 // Path: base.admin
@@ -1279,6 +1304,14 @@ class Translations$base$settings$page$en {
     other: '${count} repositories',
   );
 
+  /// en: '(zero) {No servers} (one) {1 server} (other) {{count} servers}'
+  String mcpServerCount({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
+    count,
+    zero: 'No servers',
+    one: '1 server',
+    other: '${count} servers',
+  );
+
   /// en: 'Not filled in yet'
   String get profileEmpty => 'Not filled in yet';
 }
@@ -1800,6 +1833,281 @@ class Translations$base$documents$details$en {
 
   /// en: 'New'
   String get kNew => 'New';
+}
+
+// Path: base.mcpServers.status
+class Translations$base$mcpServers$status$en {
+  Translations$base$mcpServers$status$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Sign-in required'
+  String get authorizationRequired => 'Sign-in required';
+
+  /// en: 'Unknown'
+  String get unknown => 'Unknown';
+}
+
+// Path: base.mcpServers.page
+class Translations$base$mcpServers$page$en {
+  Translations$base$mcpServers$page$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: '(zero) {{count} Servers} (one) {{count} Server} (other) {{count} Servers}'
+  String count({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
+    count,
+    zero: '${count} Servers',
+    one: '${count} Server',
+    other: '${count} Servers',
+  );
+
+  /// en: 'MCP servers give the model more tools, e.g. to search the web or to work with other services. The tools of enabled servers are available in all your chats.'
+  String get intro =>
+      'MCP servers give the model more tools, e.g. to search the web or to work with other services. The tools of enabled servers are available in all your chats.';
+
+  /// en: 'The model decides on its own when to use them, and may send content from your chats and repositories to the servers. Only add servers you trust.'
+  String get privacy =>
+      'The model decides on its own when to use them, and may send content from your chats and repositories to the servers. Only add servers you trust.';
+
+  /// en: 'If a server supports it, you sign in with your account there. For others, you can enter a token.'
+  String get authIntro => 'If a server supports it, you sign in with your account there. For others, you can enter a token.';
+
+  /// en: 'No MCP servers yet'
+  String get emptyTitle => 'No MCP servers yet';
+
+  /// en: 'Add an MCP server by its URL, so the model can use its tools in your chats.'
+  String get emptyText => 'Add an MCP server by its URL, so the model can use its tools in your chats.';
+
+  /// en: 'Edit server'
+  String get editServer => 'Edit server';
+
+  /// en: 'Delete server'
+  String get deleteServer => 'Delete server';
+
+  /// en: 'No authentication'
+  String get authNone => 'No authentication';
+
+  /// en: 'Token'
+  String get authToken => 'Token';
+
+  /// en: 'Token •••• {hint}'
+  String authTokenHint({required Object hint}) => 'Token •••• ${hint}';
+
+  /// en: 'Signed in with OAuth'
+  String get authOAuth => 'Signed in with OAuth';
+
+  /// en: 'Checked {relative}'
+  String checked({required Object relative}) => 'Checked ${relative}';
+
+  /// en: 'The last connection failed: {error}'
+  String lastError({required Object error}) => 'The last connection failed: ${error}';
+
+  /// en: 'The server asks you to sign in before its tools can be used. If it does not support sign-in, delete it and add it again with a token.'
+  String get signInRequired =>
+      'The server asks you to sign in before its tools can be used. If it does not support sign-in, delete it and add it again with a token.';
+
+  /// en: '(zero) {No tools} (one) {1 tool} (other) {{count} tools}'
+  String toolCount({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
+    count,
+    zero: 'No tools',
+    one: '1 tool',
+    other: '${count} tools',
+  );
+
+  /// en: '(one) {{enabled} of {count} tool enabled} (other) {{enabled} of {count} tools enabled}'
+  String toolCountEnabled({required num count, required Object enabled}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
+    count,
+    one: '${enabled} of ${count} tool enabled',
+    other: '${enabled} of ${count} tools enabled',
+  );
+
+  /// en: 'The server offers no tools.'
+  String get noTools => 'The server offers no tools.';
+
+  /// en: 'All tools'
+  String get allTools => 'All tools';
+
+  /// en: 'Sign in'
+  String get signIn => 'Sign in';
+
+  /// en: 'Sign in again'
+  String get signInAgain => 'Sign in again';
+
+  /// en: 'Use in chats'
+  String get useInChats => 'Use in chats';
+
+  /// en: 'Not used in chats'
+  String get notUsed => 'Not used in chats';
+
+  /// en: 'Sign in to {name}?'
+  String signInTitle({required Object name}) => 'Sign in to ${name}?';
+
+  /// en: '{name} asks you to sign in before its tools can be used. You will be taken to its sign-in page and brought back here afterwards.'
+  String signInText({required Object name}) =>
+      '${name} asks you to sign in before its tools can be used. You will be taken to its sign-in page and brought back here afterwards.';
+
+  /// en: 'Delete MCP Server'
+  String get deleteTitle => 'Delete MCP Server';
+
+  /// en: 'The MCP server {name} will be deleted. Its tools will no longer be available in your chats.'
+  String deleteText({required Object name}) => 'The MCP server ${name} will be deleted. Its tools will no longer be available in your chats.';
+
+  /// en: 'Server added.'
+  String get created => 'Server added.';
+
+  /// en: 'Server updated.'
+  String get updated => 'Server updated.';
+
+  /// en: 'Server deleted.'
+  String get deleted => 'Server deleted.';
+
+  /// en: '{name} enabled.'
+  String enabled({required Object name}) => '${name} enabled.';
+
+  /// en: '{name} disabled.'
+  String disabled({required Object name}) => '${name} disabled.';
+
+  /// en: 'Tool {name} enabled.'
+  String toolEnabled({required Object name}) => 'Tool ${name} enabled.';
+
+  /// en: 'Tool {name} disabled.'
+  String toolDisabled({required Object name}) => 'Tool ${name} disabled.';
+
+  /// en: 'All tools of {name} enabled.'
+  String allToolsEnabled({required Object name}) => 'All tools of ${name} enabled.';
+
+  /// en: 'All tools of {name} disabled.'
+  String allToolsDisabled({required Object name}) => 'All tools of ${name} disabled.';
+
+  /// en: 'All tools are off, so {name} is no longer used in chats.'
+  String allToolsOff({required Object name}) => 'All tools are off, so ${name} is no longer used in chats.';
+
+  /// en: '{name} is used in chats again.'
+  String usedAgain({required Object name}) => '${name} is used in chats again.';
+
+  /// en: '(zero) {Connected, the server offers no tools.} (one) {Connected, the server offers 1 tool.} (other) {Connected, the server offers {count} tools.}'
+  String refreshed({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
+    count,
+    zero: 'Connected, the server offers no tools.',
+    one: 'Connected, the server offers 1 tool.',
+    other: 'Connected, the server offers ${count} tools.',
+  );
+
+  /// en: '{name} asks you to sign in.'
+  String refreshedSignIn({required Object name}) => '${name} asks you to sign in.';
+
+  /// en: 'Could not connect to {name}.'
+  String refreshedFailed({required Object name}) => 'Could not connect to ${name}.';
+
+  /// en: 'Could not load the MCP servers: {error}'
+  String loadFailed({required Object error}) => 'Could not load the MCP servers: ${error}';
+
+  /// en: 'Could not add the server: {error}'
+  String createFailed({required Object error}) => 'Could not add the server: ${error}';
+
+  /// en: 'Could not save the server: {error}'
+  String saveFailed({required Object error}) => 'Could not save the server: ${error}';
+
+  /// en: 'Could not delete the server: {error}'
+  String deleteFailed({required Object error}) => 'Could not delete the server: ${error}';
+
+  /// en: 'Could not change the server: {error}'
+  String toggleFailed({required Object error}) => 'Could not change the server: ${error}';
+
+  /// en: 'Could not change the tool: {error}'
+  String toggleToolFailed({required Object error}) => 'Could not change the tool: ${error}';
+
+  /// en: 'Could not change the tools: {error}'
+  String toggleAllToolsFailed({required Object error}) => 'Could not change the tools: ${error}';
+
+  /// en: 'Could not refresh the server: {error}'
+  String refreshFailed({required Object error}) => 'Could not refresh the server: ${error}';
+
+  /// en: 'Could not start the sign-in: {error}'
+  String signInFailed({required Object error}) => 'Could not start the sign-in: ${error}';
+}
+
+// Path: base.mcpServers.dialog
+class Translations$base$mcpServers$dialog$en {
+  Translations$base$mcpServers$dialog$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Edit Server'
+  String get editTitle => 'Edit Server';
+
+  /// en: 'URL'
+  String get url => 'URL';
+
+  /// en: 'The server's MCP endpoint. As an admin, you may also use http:// and internal hosts.'
+  String get urlHintAdmin => 'The server\'s MCP endpoint. As an admin, you may also use http:// and internal hosts.';
+
+  /// en: 'The server's MCP endpoint. Must use https:// and a host that resolves to a public address.'
+  String get urlHintUser => 'The server\'s MCP endpoint. Must use https:// and a host that resolves to a public address.';
+
+  /// en: 'Token (optional)'
+  String get tokenOptional => 'Token (optional)';
+
+  /// en: 'Only for servers that require one and do not support sign-in. Sent as a bearer token.'
+  String get tokenHint => 'Only for servers that require one and do not support sign-in. Sent as a bearer token.';
+
+  /// en: 'The URL and the token can't be changed. To change them, delete the server and add it again.'
+  String get fixedConnection => 'The URL and the token can\'t be changed. To change them, delete the server and add it again.';
+
+  /// en: 'Connecting to the server, this can take a few seconds…'
+  String get connecting => 'Connecting to the server, this can take a few seconds…';
+
+  /// en: 'Missing URL'
+  String get missingUrl => 'Missing URL';
+}
+
+// Path: base.mcpServers.callback
+class Translations$base$mcpServers$callback$en {
+  Translations$base$mcpServers$callback$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Sign-in'
+  String get title => 'Sign-in';
+
+  /// en: 'Completing the sign-in…'
+  String get completing => 'Completing the sign-in…';
+
+  /// en: 'Sign-in failed'
+  String get failedTitle => 'Sign-in failed';
+
+  /// en: 'The sign-in was cancelled or denied.'
+  String get denied => 'The sign-in was cancelled or denied.';
+
+  /// en: 'The server reported an error: {error}'
+  String serverError({required Object error}) => 'The server reported an error: ${error}';
+
+  /// en: 'The response to the sign-in is incomplete. Please sign in again.'
+  String get incomplete => 'The response to the sign-in is incomplete. Please sign in again.';
+
+  /// en: 'The sign-in has expired or was already completed. Please sign in again.'
+  String get expired => 'The sign-in has expired or was already completed. Please sign in again.';
+
+  /// en: 'Could not complete the sign-in: {error}'
+  String failed({required Object error}) => 'Could not complete the sign-in: ${error}';
+
+  /// en: 'Signed in to {name}.'
+  String signedIn({required Object name}) => 'Signed in to ${name}.';
+
+  /// en: 'Signed in to {name}, but connecting to it failed.'
+  String signedInNotReady({required Object name}) => 'Signed in to ${name}, but connecting to it failed.';
+
+  /// en: 'Back to MCP servers'
+  String get back => 'Back to MCP servers';
 }
 
 // Path: base.admin.users

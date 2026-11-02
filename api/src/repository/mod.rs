@@ -4,6 +4,7 @@ pub(crate) mod config;
 pub(crate) mod debug;
 pub(crate) mod document;
 pub(crate) mod llm;
+pub(crate) mod mcp;
 pub(crate) mod message;
 #[allow(clippy::module_inception)]
 pub(crate) mod repository;

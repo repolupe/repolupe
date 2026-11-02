@@ -150,6 +150,23 @@ export interface PendingAttachment {
     uploaded: AttachmentDto | null;
 }
 
+/** A tool of an MCP server in a tool call, see {@link parseMcpToolName}. */
+export interface McpToolName {
+    /** The slug of the server's name: lowercase letters, digits and single `_`. */
+    server: string;
+    /** As the server names it, may contain `__` itself. */
+    tool: string;
+}
+
+/**
+ * The server and tool of a tool call's `name` if it is a tool of an MCP server (`mcp__{server}__{tool}`), `null` for
+ * the built-in tools. The server's slug never contains `__`, so the first one after it ends it.
+ */
+export function parseMcpToolName(name: string): McpToolName | null {
+    const match = /^mcp__(.+?)__(.+)$/.exec(name);
+    return match ? {server: match[1]!, tool: match[2]!} : null;
+}
+
 /** The tools that propose commits, shown with `ProposedCommitPanel`. */
 export const CHANGE_TOOLS = ['change_file', 'move_files', 'save_attachment'];
 

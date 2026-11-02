@@ -8,10 +8,12 @@
 //! - [`support`]: the app on such a database, with clients for users and seeded repositories.
 //!   Uses only the public API of the crate, apart from inserting seeded repositories.
 //! - [`mock_llm`]: a local server answering in the Anthropic format with scripted responses.
+//! - [`mock_mcp`]: a local MCP server, optionally with its own OAuth authorization server.
 //! - [`local_remote`]: a git remote on localhost, served by `git http-backend`.
 
 mod local_remote;
 mod mock_llm;
+mod mock_mcp;
 mod support;
 
 mod access;
@@ -22,6 +24,7 @@ mod config;
 mod documents;
 mod generation;
 mod local_repositories;
+mod mcp;
 mod remote_access;
 mod sharing;
 mod user;

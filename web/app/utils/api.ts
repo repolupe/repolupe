@@ -1,6 +1,7 @@
 import {
     ErrorCode,
     type AttachmentDto,
+    type AuthorizationUrlDto,
     type ChatDetailDto,
     type InstanceDto,
     type ChatDto,
@@ -16,6 +17,7 @@ import {
     type LlmModelDto,
     type LlmProviderDto,
     type LlmProviderSuggestionDto,
+    type McpServerDto,
     type RemoteModelDto,
     type MessageDto,
     type MessageStreamEvent,
@@ -603,6 +605,84 @@ export function streamMessage(
     };
 
     return () => source.close();
+}
+
+// --- MCP servers ---
+
+/** The user's own servers. */
+export async function getMcpServers(): Promise<McpServerDto[]> {
+    return await makeRequest({route: 'mcp-servers', method: 'GET'});
+}
+
+export interface CreateMcpServerPayload {
+    /** Unique among the user's servers, ignoring case. */
+    name: string;
+    /** The Streamable HTTP endpoint, e.g. `https://mcp.example.com/mcp`. `https://` and a public host, except for admins. */
+    url: string;
+    /** `null` or blank without one. */
+    token: string | null;
+}
+
+/**
+ * Connects to the server and lists its tools before saving. Fails with `REMOTE_UNREACHABLE` if it cannot be reached or
+ * is no MCP server, `AUTH_FAILED` if it rejects `token`, and `NAME_TAKEN`. A server that asks for authentication
+ * without a token is saved as `AUTHORIZATION_REQUIRED`.
+ */
+export async function createMcpServer(payload: CreateMcpServerPayload): Promise<McpServerDto> {
+    return await makeRequest({route: 'mcp-servers', method: 'POST', body: payload});
+}
+
+export interface UpdateMcpServerPayload {
+    name: string;
+    enabled: boolean;
+    /** The names of the tools to turn off, as the server names them. Names it doesn't list are kept. */
+    disabled_tools: string[];
+}
+
+/**
+ * Replaces all fields, without connecting. The URL and the token can't be changed: the server is deleted and added
+ * again instead. Fails with `NAME_TAKEN`.
+ */
+export async function updateMcpServer(id: string, payload: UpdateMcpServerPayload): Promise<McpServerDto> {
+    return await makeRequest({route: `mcp-servers/${id}/update`, method: 'POST', body: payload});
+}
+
+export async function deleteMcpServer(id: string): Promise<void> {
+    await makeRequest({route: `mcp-servers/${id}/delete`, method: 'POST'});
+}
+
+/** Connects again and lists the tools. A failed connection is returned in `status` and `last_error`, not thrown. */
+export async function refreshMcpServer(id: string): Promise<McpServerDto> {
+    return await makeRequest({route: `mcp-servers/${id}/refresh`, method: 'POST'});
+}
+
+/**
+ * Starts signing in to the server with OAuth: returns the URL to send the user to, valid for 10 minutes. The
+ * authorization server sends them back to `redirectUri` (absolute) with `code`, `state` and maybe `iss`, which go to
+ * {@link completeMcpAuthorization}, or with `error` and `error_description`.
+ */
+export async function authorizeMcpServer(id: string, redirectUri: string): Promise<string> {
+    const response = await makeRequest<AuthorizationUrlDto>({
+        route: `mcp-servers/${id}/authorize`,
+        method: 'POST',
+        body: {redirect_uri: redirectUri},
+    });
+    return response.authorization_url;
+}
+
+export interface McpAuthorizationCallbackPayload {
+    state: string;
+    code: string;
+    /** The `iss` parameter, if the authorization server sent it. */
+    iss: string | null;
+}
+
+/**
+ * Completes signing in with the query parameters the authorization server sent the user back with, then connects
+ * again. Fails with `NOT_FOUND` if `state` is unknown or expired (also after a restart of the server).
+ */
+export async function completeMcpAuthorization(payload: McpAuthorizationCallbackPayload): Promise<McpServerDto> {
+    return await makeRequest({route: 'mcp-servers/authorize/callback', method: 'POST', body: payload});
 }
 
 // --- Admin: users ---

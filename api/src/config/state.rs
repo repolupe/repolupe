@@ -2,6 +2,7 @@ use crate::service::attachment::AttachmentStore;
 use crate::service::extraction::DocumentExtractor;
 use crate::service::generation::GenerationRegistry;
 use crate::service::llm::LlmClient;
+use crate::service::mcp::{McpClient, McpHttp};
 use crate::service::mirror::MirrorStore;
 use crate::service::mistral_ocr::MistralOcr;
 use crate::service::runtime_config::LiveConfig;
@@ -28,6 +29,8 @@ pub struct AppState {
     pub db: DatabasePool,
     pub token_cipher: Arc<TokenCipher>,
     pub llm: Arc<LlmClient>,
+    /// Connects to the MCP servers of users.
+    pub mcp: Arc<McpClient>,
     /// The repositories cloned to `REPOS_DIR`.
     pub mirrors: Arc<MirrorStore>,
     /// The files users attached to chats, in `ATTACHMENTS_DIR`.
@@ -52,6 +55,7 @@ impl AppState {
         db: DatabasePool,
         token_cipher: TokenCipher,
         llm: LlmClient,
+        mcp: McpHttp,
         mirrors: MirrorStore,
         attachments: AttachmentStore,
         mistral: Option<MistralOcr>,
@@ -59,9 +63,11 @@ impl AppState {
         runtime_config: LiveConfig,
         env: BTreeMap<String, Option<String>>,
     ) -> Self {
+        let token_cipher = Arc::new(token_cipher);
         Self {
+            mcp: Arc::new(McpClient::new(mcp, db.clone(), token_cipher.clone())),
             db,
-            token_cipher: Arc::new(token_cipher),
+            token_cipher,
             llm: Arc::new(llm),
             mirrors: Arc::new(mirrors),
             attachments: Arc::new(attachments),

@@ -2,6 +2,7 @@ use crate::model::llm_model::ModelPrices;
 use crate::model::remote_access::RemoteAccess;
 use chrono::FixedOffset;
 use rust_decimal::Decimal;
+use std::collections::BTreeSet;
 use url::Url;
 
 const MIN_PASSWORD_LENGTH: usize = 8;
@@ -13,6 +14,9 @@ const MAX_DESCRIPTION_LENGTH: usize = 2000;
 const MAX_REMOTE_URL_LENGTH: usize = 2048;
 const MAX_BRANCH_LENGTH: usize = 255;
 const MAX_TOKEN_LENGTH: usize = 1024;
+/// Several times the tools an MCP server may list, for the ones it no longer lists.
+const MAX_DISABLED_TOOLS: usize = 500;
+const MAX_TOOL_NAME_LENGTH: usize = 1024;
 const MAX_MODEL_API_NAME_LENGTH: usize = 200;
 pub(crate) const MIN_POLL_INTERVAL_SECONDS: i32 = 60;
 const MAX_CHAT_TITLE_LENGTH: usize = 200;
@@ -285,6 +289,77 @@ pub(crate) fn parse_llm_base_url(base_url: &str) -> Result<String, ValidationErr
         return Err(invalid("Base URL must not contain a query or fragment"));
     }
     Ok(base_url.trim_end_matches('/').to_string())
+}
+
+/// The Streamable HTTP endpoint of an MCP server. Like remote URLs, https only unless the
+/// access is unrestricted, and whether the host is public is checked when it is resolved.
+/// Unlike them, a query is allowed, since some servers take their settings there.
+pub(crate) fn parse_mcp_url(url: &str, access: RemoteAccess) -> Result<Url, ValidationError> {
+    let invalid = |msg: &str| ValidationError(msg.to_string());
+
+    if url.len() > MAX_REMOTE_URL_LENGTH {
+        return Err(invalid("URL is too long"));
+    }
+    let url = Url::parse(url).map_err(|_| invalid("URL is not a valid URL"))?;
+    match (access, url.scheme()) {
+        (_, "https") | (RemoteAccess::Unrestricted, "http") => {}
+        (RemoteAccess::Public, _) => return Err(invalid("URL must use https://")),
+        (RemoteAccess::Unrestricted, _) => {
+            return Err(invalid("URL must use https:// or http://"));
+        }
+    }
+    if url.host_str().is_none_or(str::is_empty) {
+        return Err(invalid("URL must have a host"));
+    }
+    if !url.username().is_empty() || url.password().is_some() {
+        return Err(invalid(
+            "URL must not contain credentials, set a token instead",
+        ));
+    }
+    if url.fragment().is_some() {
+        return Err(invalid("URL must not contain a fragment"));
+    }
+    Ok(url)
+}
+
+/// Where an authorization server sends the user back to after signing in to an MCP server:
+/// a page of the frontend, which knows its own address.
+pub(crate) fn parse_redirect_uri(uri: &str) -> Result<Url, ValidationError> {
+    let invalid = || ValidationError("Invalid redirect URI".to_string());
+
+    if uri.len() > MAX_REMOTE_URL_LENGTH {
+        return Err(invalid());
+    }
+    let url = Url::parse(uri).map_err(|_| invalid())?;
+    if !matches!(url.scheme(), "http" | "https")
+        || url.host_str().is_none_or(str::is_empty)
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.fragment().is_some()
+    {
+        return Err(invalid());
+    }
+    Ok(url)
+}
+
+/// The names of the tools of an MCP server the user turned off, sorted and without duplicates.
+/// Not trimmed, they are compared with the names the server lists.
+pub(crate) fn parse_disabled_tools(names: &[String]) -> Result<Vec<String>, ValidationError> {
+    if names
+        .iter()
+        .any(|name| name.is_empty() || name.len() > MAX_TOOL_NAME_LENGTH)
+    {
+        return Err(ValidationError(format!(
+            "Tool names must be 1 to {MAX_TOOL_NAME_LENGTH} bytes long"
+        )));
+    }
+    let names: BTreeSet<&String> = names.iter().collect();
+    if names.len() > MAX_DISABLED_TOOLS {
+        return Err(ValidationError(format!(
+            "At most {MAX_DISABLED_TOOLS} tools can be turned off"
+        )));
+    }
+    Ok(names.into_iter().cloned().collect())
 }
 
 pub(crate) fn validate_chat_title(title: &str) -> Result<(), ValidationError> {
@@ -595,6 +670,25 @@ mod tests {
         assert_eq!(parse_utc_offset(840).unwrap().to_string(), "+14:00");
         assert!(parse_utc_offset(841).is_err());
         assert!(parse_utc_offset(-841).is_err());
+    }
+
+    #[test]
+    fn parses_disabled_tools() {
+        let names = |names: &[&str]| names.iter().map(|n| n.to_string()).collect::<Vec<_>>();
+        assert_eq!(
+            parse_disabled_tools(&names(&["search", "echo", "search", " echo"])).unwrap(),
+            names(&[" echo", "echo", "search"])
+        );
+        assert!(parse_disabled_tools(&[]).unwrap().is_empty());
+        assert!(parse_disabled_tools(&names(&[""])).is_err());
+        assert!(parse_disabled_tools(&["a".repeat(MAX_TOOL_NAME_LENGTH + 1)]).is_err());
+        let many: Vec<String> = (0..=MAX_DISABLED_TOOLS)
+            .map(|i| format!("tool_{i}"))
+            .collect();
+        assert!(parse_disabled_tools(&many).is_err());
+        // Duplicates don't count.
+        let repeated = vec!["echo".to_string(); MAX_DISABLED_TOOLS + 1];
+        assert_eq!(parse_disabled_tools(&repeated).unwrap(), names(&["echo"]));
     }
 
     #[test]

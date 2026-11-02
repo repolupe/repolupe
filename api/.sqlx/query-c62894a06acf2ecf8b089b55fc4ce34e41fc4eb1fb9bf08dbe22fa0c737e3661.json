@@ -1,0 +1,104 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE mcp_servers\n           SET name           = $3,\n               enabled        = $4,\n               disabled_tools = $5,\n               updated_at     = $6\n           WHERE id = $1 AND user_id = $2\n           RETURNING id AS \"id: Uuid\", user_id AS \"user_id: Uuid\", name, url, enabled, token_encrypted,\n                     token_hint, oauth_encrypted, status AS \"status: McpServerStatus\", last_error,\n                     tools AS \"tools: Json<Vec<McpTool>>\", disabled_tools AS \"disabled_tools: Json<Vec<String>>\",\n                     checked_at AS \"checked_at: DateTime<Utc>\", created_at AS \"created_at: DateTime<Utc>\",\n                     updated_at AS \"updated_at: DateTime<Utc>\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "user_id: Uuid",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "url",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "enabled",
+        "ordinal": 4,
+        "type_info": "Bool"
+      },
+      {
+        "name": "token_encrypted",
+        "ordinal": 5,
+        "type_info": "Blob"
+      },
+      {
+        "name": "token_hint",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "oauth_encrypted",
+        "ordinal": 7,
+        "type_info": "Blob"
+      },
+      {
+        "name": "status: McpServerStatus",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "last_error",
+        "ordinal": 9,
+        "type_info": "Text"
+      },
+      {
+        "name": "tools: Json<Vec<McpTool>>",
+        "ordinal": 10,
+        "type_info": "Text"
+      },
+      {
+        "name": "disabled_tools: Json<Vec<String>>",
+        "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "checked_at: DateTime<Utc>",
+        "ordinal": 12,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 13,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "updated_at: DateTime<Utc>",
+        "ordinal": 14,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c62894a06acf2ecf8b089b55fc4ce34e41fc4eb1fb9bf08dbe22fa0c737e3661"
+}

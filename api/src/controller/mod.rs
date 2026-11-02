@@ -9,6 +9,7 @@ pub(crate) mod debug;
 pub(crate) mod extraction;
 pub(crate) mod instance;
 pub(crate) mod llm;
+pub(crate) mod mcp;
 pub(crate) mod repository;
 pub(crate) mod server;
 pub(crate) mod user;
@@ -25,6 +26,7 @@ use crate::dto::extraction::{
     RepositoryDocumentDto, RepositoryDocumentsDto, RepositoryLabelDto,
 };
 use crate::dto::llm::{ApiKeyDto, LlmModelDto, LlmProviderDto, ModelDto, RemoteModelDto};
+use crate::dto::mcp::{McpServerAuth, McpServerDto, McpToolDto};
 use crate::dto::repository::{
     RemoteSettingsDto, RepositoryDto, RepositoryTokenDto, RepositoryUserDto,
 };
@@ -238,6 +240,36 @@ impl LlmProviderDto {
             models,
             created_at: provider.created_at,
             updated_at: provider.updated_at,
+        }
+    }
+}
+
+impl From<model::mcp_server::McpServer> for McpServerDto {
+    fn from(server: model::mcp_server::McpServer) -> Self {
+        let auth = server.auth();
+        McpServerDto {
+            id: server.id,
+            name: server.name,
+            url: server.url,
+            enabled: server.enabled,
+            auth,
+            token_hint: server.token_hint.filter(|_| auth == McpServerAuth::Token),
+            status: server.status,
+            last_error: server.last_error,
+            tools: server
+                .tools
+                .0
+                .into_iter()
+                .map(|tool| McpToolDto {
+                    name: tool.name,
+                    title: tool.title,
+                    description: tool.description,
+                })
+                .collect(),
+            disabled_tools: server.disabled_tools.0,
+            checked_at: server.checked_at,
+            created_at: server.created_at,
+            updated_at: server.updated_at,
         }
     }
 }

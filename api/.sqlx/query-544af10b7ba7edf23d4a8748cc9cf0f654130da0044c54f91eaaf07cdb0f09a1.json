@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT oauth_encrypted FROM mcp_servers WHERE id = $1 AND url = $2",
+  "describe": {
+    "columns": [
+      {
+        "name": "oauth_encrypted",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "544af10b7ba7edf23d4a8748cc9cf0f654130da0044c54f91eaaf07cdb0f09a1"
+}

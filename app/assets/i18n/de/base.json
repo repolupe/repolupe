@@ -280,6 +280,11 @@
         "one": "1 Repository",
         "other": "{count} Repositories"
       },
+      "mcpServerCount": {
+        "zero": "Keine Server",
+        "one": "1 Server",
+        "other": "{count} Server"
+      },
       "profileEmpty": "Noch nicht ausgefüllt"
     },
     "account": {
@@ -524,6 +529,106 @@
       "new": "Neu"
     },
     "loadFailed": "Die Dokumente konnten nicht geladen werden: {error}"
+  },
+  "mcpServers": {
+    "title": "MCP-Server",
+    "newServer": "Neuer Server",
+    "unreachable": "Keine Verbindung zum MCP-Server möglich. Prüfe die URL: Sie muss auf den MCP-Endpunkt des Servers (Streamable HTTP) zeigen, der oft auf /mcp endet.",
+    "status": {
+      "authorizationRequired": "Anmeldung erforderlich",
+      "unknown": "Unbekannt"
+    },
+    "page": {
+      "count": {
+        "zero": "{count} Server",
+        "one": "{count} Server",
+        "other": "{count} Server"
+      },
+      "intro": "MCP-Server geben dem Modell weitere Tools, z. B. um im Web zu suchen oder mit anderen Diensten zu arbeiten. Die Tools aktivierter Server stehen in all deinen Chats zur Verfügung.",
+      "privacy": "Das Modell entscheidet selbst, wann es sie verwendet, und kann dabei Inhalte aus deinen Chats und Repositories an die Server senden. Füge nur Server hinzu, denen du vertraust.",
+      "authIntro": "Unterstützt ein Server es, meldest du dich mit deinem Konto dort an. Bei anderen kannst du einen Token eingeben.",
+      "emptyTitle": "Noch keine MCP-Server",
+      "emptyText": "Füge einen MCP-Server über seine URL hinzu, damit das Modell seine Tools in deinen Chats verwenden kann.",
+      "editServer": "Server bearbeiten",
+      "deleteServer": "Server löschen",
+      "authNone": "Keine Authentifizierung",
+      "authToken": "Token",
+      "authTokenHint": "Token •••• {hint}",
+      "authOAuth": "Mit OAuth angemeldet",
+      "checked": "Geprüft {relative}",
+      "lastError": "Die letzte Verbindung ist fehlgeschlagen: {error}",
+      "signInRequired": "Der Server verlangt eine Anmeldung, bevor seine Tools verwendet werden können. Unterstützt er keine Anmeldung, lösche ihn und füge ihn mit einem Token neu hinzu.",
+      "toolCount": {
+        "zero": "Keine Tools",
+        "one": "1 Tool",
+        "other": "{count} Tools"
+      },
+      "toolCountEnabled": {
+        "one": "{enabled} von {count} Tool aktiviert",
+        "other": "{enabled} von {count} Tools aktiviert"
+      },
+      "noTools": "Der Server bietet keine Tools an.",
+      "allTools": "Alle Tools",
+      "signIn": "Anmelden",
+      "signInAgain": "Erneut anmelden",
+      "useInChats": "In Chats verwenden",
+      "notUsed": "Nicht in Chats verwendet",
+      "signInTitle": "Bei {name} anmelden?",
+      "signInText": "{name} verlangt eine Anmeldung, bevor seine Tools verwendet werden können. Du wirst zur Anmeldeseite weitergeleitet und danach hierher zurückgebracht.",
+      "deleteTitle": "MCP-Server löschen",
+      "deleteText": "Der MCP-Server {name} wird gelöscht. Seine Tools stehen danach in deinen Chats nicht mehr zur Verfügung.",
+      "created": "Server hinzugefügt.",
+      "updated": "Server aktualisiert.",
+      "deleted": "Server gelöscht.",
+      "enabled": "{name} aktiviert.",
+      "disabled": "{name} deaktiviert.",
+      "toolEnabled": "Tool {name} aktiviert.",
+      "toolDisabled": "Tool {name} deaktiviert.",
+      "allToolsEnabled": "Alle Tools von {name} aktiviert.",
+      "allToolsDisabled": "Alle Tools von {name} deaktiviert.",
+      "allToolsOff": "Alle Tools sind deaktiviert, daher wird {name} nicht mehr in Chats verwendet.",
+      "usedAgain": "{name} wird wieder in Chats verwendet.",
+      "refreshed": {
+        "zero": "Verbunden, der Server bietet keine Tools an.",
+        "one": "Verbunden, der Server bietet 1 Tool an.",
+        "other": "Verbunden, der Server bietet {count} Tools an."
+      },
+      "refreshedSignIn": "{name} verlangt eine Anmeldung.",
+      "refreshedFailed": "Keine Verbindung zu {name} möglich.",
+      "loadFailed": "Die MCP-Server konnten nicht geladen werden: {error}",
+      "createFailed": "Der Server konnte nicht hinzugefügt werden: {error}",
+      "saveFailed": "Der Server konnte nicht gespeichert werden: {error}",
+      "deleteFailed": "Der Server konnte nicht gelöscht werden: {error}",
+      "toggleFailed": "Der Server konnte nicht geändert werden: {error}",
+      "toggleToolFailed": "Das Tool konnte nicht geändert werden: {error}",
+      "toggleAllToolsFailed": "Die Tools konnten nicht geändert werden: {error}",
+      "refreshFailed": "Der Server konnte nicht aktualisiert werden: {error}",
+      "signInFailed": "Die Anmeldung konnte nicht gestartet werden: {error}"
+    },
+    "dialog": {
+      "editTitle": "Server bearbeiten",
+      "url": "URL",
+      "urlHintAdmin": "Der MCP-Endpunkt des Servers. Als Admin kannst du auch http:// und interne Hosts verwenden.",
+      "urlHintUser": "Der MCP-Endpunkt des Servers. Muss https:// und einen Host mit öffentlicher Adresse verwenden.",
+      "tokenOptional": "Token (optional)",
+      "tokenHint": "Nur für Server, die einen verlangen und keine Anmeldung unterstützen. Wird als Bearer-Token gesendet.",
+      "fixedConnection": "URL und Token lassen sich nicht ändern. Lösche den Server dafür und füge ihn neu hinzu.",
+      "connecting": "Verbindung zum Server wird hergestellt, das kann einige Sekunden dauern…",
+      "missingUrl": "URL fehlt"
+    },
+    "callback": {
+      "title": "Anmeldung",
+      "completing": "Anmeldung wird abgeschlossen…",
+      "failedTitle": "Anmeldung fehlgeschlagen",
+      "denied": "Die Anmeldung wurde abgebrochen oder abgelehnt.",
+      "serverError": "Der Server hat einen Fehler gemeldet: {error}",
+      "incomplete": "Die Antwort auf die Anmeldung ist unvollständig. Bitte melde dich erneut an.",
+      "expired": "Die Anmeldung ist abgelaufen oder wurde bereits abgeschlossen. Bitte melde dich erneut an.",
+      "failed": "Die Anmeldung konnte nicht abgeschlossen werden: {error}",
+      "signedIn": "Bei {name} angemeldet.",
+      "signedInNotReady": "Bei {name} angemeldet, aber die Verbindung ist fehlgeschlagen.",
+      "back": "Zurück zu den MCP-Servern"
+    }
   },
   "admin": {
     "users": {

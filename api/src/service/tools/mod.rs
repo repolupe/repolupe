@@ -1,7 +1,8 @@
 //! The tools the model uses to read the repositories of a chat and to propose commits
 //! ([`CHANGE_FILE`], [`MOVE_FILES`], [`SAVE_ATTACHMENT`]). Each repository is pinned to one
 //! commit, so all tool calls of an answer see the same version, even during a sync.
-//! [`READ_ATTACHMENT`] and [`RUN_SCRIPT`] need no repository, so chats without one get them too.
+//! [`READ_ATTACHMENT`] and [`RUN_SCRIPT`] need no repository, so chats without one get them too,
+//! and so do the tools of the user's MCP servers ([`mcp`]).
 //!
 //! Each tool is a module with a `definition`, a `parse` into a [`Call`], and a `run`; shared
 //! code is in [`support`]. A new tool also needs a name below, a variant of [`Call`], and an
@@ -12,6 +13,7 @@
 mod change_file;
 mod grep;
 mod list_files;
+mod mcp;
 mod move_files;
 mod outline;
 mod present_file;
@@ -28,6 +30,7 @@ use crate::model::tool_call::ProposedChange;
 use crate::service::attachment::AttachmentStore;
 use crate::service::extraction::DocumentExtractor;
 use crate::service::llm::{ToolDefinition, ToolUse};
+use crate::service::mcp::McpClient;
 use crate::service::mirror::Snapshot;
 use serde_json::Value;
 use std::collections::BTreeSet;
@@ -35,6 +38,7 @@ use std::sync::Arc;
 use support::format_size;
 use uuid::Uuid;
 
+pub(crate) use mcp::{McpServerTools, PREFIX as MCP_PREFIX};
 pub(crate) use present_file::{PresentedFile, read_presented_file};
 pub(crate) use support::commit::{
     CommitIdentities, read_proposed_commit_diff, read_proposed_commit_patch,
@@ -72,6 +76,7 @@ pub(crate) struct RepositoryTools {
     /// Whether the proposed commits are committed once the answer is complete, see
     /// [`Self::with_auto_commit`].
     auto_commit: bool,
+    mcp: mcp::McpTools,
 }
 
 /// The files sent in the chat, which [`READ_ATTACHMENT`] reads, [`RUN_SCRIPT`] passes to
@@ -124,6 +129,7 @@ pub(crate) struct Invocation<'a> {
     identities: &'a CommitIdentities,
     attachments: &'a ChatAttachments,
     auto_commit: bool,
+    mcp: &'a mcp::McpTools,
     call: Call,
 }
 
@@ -139,6 +145,7 @@ enum Call {
     SaveAttachment(save_attachment::Args),
     ReadAttachment(read_attachment::Args),
     RunScript(run_script::Args),
+    Mcp(mcp::Args),
 }
 
 /// The result to send back to the model.
@@ -196,6 +203,7 @@ impl RepositoryTools {
             identities,
             attachments: ChatAttachments::default(),
             auto_commit: false,
+            mcp: mcp::McpTools::default(),
         }
     }
 
@@ -224,6 +232,21 @@ impl RepositoryTools {
                 .collect(),
         };
         self
+    }
+
+    /// Lets the model call the tools of the user's MCP `servers`, connecting with `client`.
+    pub(crate) fn with_mcp_servers(
+        mut self,
+        client: Arc<McpClient>,
+        servers: Vec<McpServerTools>,
+    ) -> Self {
+        self.mcp = mcp::McpTools::new(client, servers);
+        self
+    }
+
+    /// The MCP servers whose tools the model gets.
+    pub(crate) fn mcp_server_names(&self) -> Vec<&str> {
+        self.mcp.server_names()
     }
 
     pub(crate) fn repositories(&self) -> &[ToolRepository] {
@@ -281,6 +304,7 @@ impl RepositoryTools {
             definitions.push(read_attachment::definition(self));
         }
         definitions.push(run_script::definition(self));
+        definitions.extend(self.mcp.definitions());
         definitions
     }
 
@@ -302,10 +326,13 @@ impl RepositoryTools {
             SAVE_ATTACHMENT if self.can_save_attachments() => save_attachment::parse(input)?,
             READ_ATTACHMENT if self.can_read_attachments() => read_attachment::parse(input)?,
             RUN_SCRIPT => run_script::parse(input)?,
-            name => return Err(format!("There is no tool named `{name}`.")),
+            name => match self.mcp.parse(name, input) {
+                Some(call) => (None, call?),
+                None => return Err(format!("There is no tool named `{name}`.")),
+            },
         };
         let repository = match call {
-            Call::ReadAttachment(_) => None,
+            Call::ReadAttachment(_) | Call::Mcp(_) => None,
             Call::RunScript(ref args) if !args.reads_files() => None,
             _ => Some(self.repository(repository.as_deref())?),
         };
@@ -327,6 +354,7 @@ impl RepositoryTools {
             identities: &self.identities,
             attachments: &self.attachments,
             auto_commit: self.auto_commit,
+            mcp: &self.mcp,
             call,
         })
     }
@@ -394,6 +422,7 @@ impl Invocation<'_> {
             }
             Call::ReadAttachment(args) => read_attachment::run(self, args).await,
             Call::RunScript(args) => run_script::run(self, args).await,
+            Call::Mcp(args) => self.mcp.run(args).await,
         };
         match result {
             Ok(content) => ToolOutput {

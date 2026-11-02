@@ -7,6 +7,7 @@ use crate::repository;
 use crate::service;
 use crate::service::attachment::AttachmentStore;
 use crate::service::llm::LlmClient;
+use crate::service::mcp::McpHttp;
 use crate::service::mirror::MirrorStore;
 use crate::service::mistral_ocr::{self, MistralOcr};
 use crate::service::runtime_config::LiveConfig;
@@ -206,6 +207,7 @@ pub(crate) async fn init(config: Config, db: DatabasePool) -> Result<AppState, I
         .transpose()
         .map_err(InitError::HttpClient)?;
     let llm = LlmClient::new().map_err(InitError::HttpClient)?;
+    let mcp = McpHttp::new().map_err(InitError::HttpClient)?;
     let repos_dir = prepare_repos_dir(config.repos_dir)?;
     let mirrors = MirrorStore::new(&repos_dir).map_err(InitError::HttpClient)?;
     let attachments_dir = prepare_attachments_dir(config.attachments_dir)?;
@@ -244,6 +246,7 @@ pub(crate) async fn init(config: Config, db: DatabasePool) -> Result<AppState, I
         db,
         token_cipher,
         llm,
+        mcp,
         mirrors,
         AttachmentStore::new(attachments_dir),
         mistral,

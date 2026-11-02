@@ -75,6 +75,8 @@ class _Translations$base$de extends Translations$base$en {
   @override
   late final _Translations$base$documents$de documents = _Translations$base$documents$de._(_root);
   @override
+  late final _Translations$base$mcpServers$de mcpServers = _Translations$base$mcpServers$de._(_root);
+  @override
   late final _Translations$base$admin$de admin = _Translations$base$admin$de._(_root);
 }
 
@@ -515,6 +517,30 @@ class _Translations$base$documents$de extends Translations$base$documents$en {
   late final _Translations$base$documents$details$de details = _Translations$base$documents$details$de._(_root);
   @override
   String loadFailed({required Object error}) => 'Die Dokumente konnten nicht geladen werden: ${error}';
+}
+
+// Path: base.mcpServers
+class _Translations$base$mcpServers$de extends Translations$base$mcpServers$en {
+  _Translations$base$mcpServers$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'MCP-Server';
+  @override
+  String get newServer => 'Neuer Server';
+  @override
+  String get unreachable =>
+      'Keine Verbindung zum MCP-Server möglich. Prüfe die URL: Sie muss auf den MCP-Endpunkt des Servers (Streamable HTTP) zeigen, der oft auf /mcp endet.';
+  @override
+  late final _Translations$base$mcpServers$status$de status = _Translations$base$mcpServers$status$de._(_root);
+  @override
+  late final _Translations$base$mcpServers$page$de page = _Translations$base$mcpServers$page$de._(_root);
+  @override
+  late final _Translations$base$mcpServers$dialog$de dialog = _Translations$base$mcpServers$dialog$de._(_root);
+  @override
+  late final _Translations$base$mcpServers$callback$de callback = _Translations$base$mcpServers$callback$de._(_root);
 }
 
 // Path: base.admin
@@ -1101,6 +1127,13 @@ class _Translations$base$settings$page$de extends Translations$base$settings$pag
     other: '${count} Repositories',
   );
   @override
+  String mcpServerCount({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
+    count,
+    zero: 'Keine Server',
+    one: '1 Server',
+    other: '${count} Server',
+  );
+  @override
   String get profileEmpty => 'Noch nicht ausgefüllt';
 }
 
@@ -1504,6 +1537,210 @@ class _Translations$base$documents$details$de extends Translations$base$document
   String get settingsChanged => 'Geänderte Einstellungen';
   @override
   String get kNew => 'Neu';
+}
+
+// Path: base.mcpServers.status
+class _Translations$base$mcpServers$status$de extends Translations$base$mcpServers$status$en {
+  _Translations$base$mcpServers$status$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get authorizationRequired => 'Anmeldung erforderlich';
+  @override
+  String get unknown => 'Unbekannt';
+}
+
+// Path: base.mcpServers.page
+class _Translations$base$mcpServers$page$de extends Translations$base$mcpServers$page$en {
+  _Translations$base$mcpServers$page$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String count({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
+    count,
+    zero: '${count} Server',
+    one: '${count} Server',
+    other: '${count} Server',
+  );
+  @override
+  String get intro =>
+      'MCP-Server geben dem Modell weitere Tools, z. B. um im Web zu suchen oder mit anderen Diensten zu arbeiten. Die Tools aktivierter Server stehen in all deinen Chats zur Verfügung.';
+  @override
+  String get privacy =>
+      'Das Modell entscheidet selbst, wann es sie verwendet, und kann dabei Inhalte aus deinen Chats und Repositories an die Server senden. Füge nur Server hinzu, denen du vertraust.';
+  @override
+  String get authIntro => 'Unterstützt ein Server es, meldest du dich mit deinem Konto dort an. Bei anderen kannst du einen Token eingeben.';
+  @override
+  String get emptyTitle => 'Noch keine MCP-Server';
+  @override
+  String get emptyText => 'Füge einen MCP-Server über seine URL hinzu, damit das Modell seine Tools in deinen Chats verwenden kann.';
+  @override
+  String get editServer => 'Server bearbeiten';
+  @override
+  String get deleteServer => 'Server löschen';
+  @override
+  String get authNone => 'Keine Authentifizierung';
+  @override
+  String get authToken => 'Token';
+  @override
+  String authTokenHint({required Object hint}) => 'Token •••• ${hint}';
+  @override
+  String get authOAuth => 'Mit OAuth angemeldet';
+  @override
+  String checked({required Object relative}) => 'Geprüft ${relative}';
+  @override
+  String lastError({required Object error}) => 'Die letzte Verbindung ist fehlgeschlagen: ${error}';
+  @override
+  String get signInRequired =>
+      'Der Server verlangt eine Anmeldung, bevor seine Tools verwendet werden können. Unterstützt er keine Anmeldung, lösche ihn und füge ihn mit einem Token neu hinzu.';
+  @override
+  String toolCount({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
+    count,
+    zero: 'Keine Tools',
+    one: '1 Tool',
+    other: '${count} Tools',
+  );
+  @override
+  String toolCountEnabled({required num count, required Object enabled}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
+    count,
+    one: '${enabled} von ${count} Tool aktiviert',
+    other: '${enabled} von ${count} Tools aktiviert',
+  );
+  @override
+  String get noTools => 'Der Server bietet keine Tools an.';
+  @override
+  String get allTools => 'Alle Tools';
+  @override
+  String get signIn => 'Anmelden';
+  @override
+  String get signInAgain => 'Erneut anmelden';
+  @override
+  String get useInChats => 'In Chats verwenden';
+  @override
+  String get notUsed => 'Nicht in Chats verwendet';
+  @override
+  String signInTitle({required Object name}) => 'Bei ${name} anmelden?';
+  @override
+  String signInText({required Object name}) =>
+      '${name} verlangt eine Anmeldung, bevor seine Tools verwendet werden können. Du wirst zur Anmeldeseite weitergeleitet und danach hierher zurückgebracht.';
+  @override
+  String get deleteTitle => 'MCP-Server löschen';
+  @override
+  String deleteText({required Object name}) =>
+      'Der MCP-Server ${name} wird gelöscht. Seine Tools stehen danach in deinen Chats nicht mehr zur Verfügung.';
+  @override
+  String get created => 'Server hinzugefügt.';
+  @override
+  String get updated => 'Server aktualisiert.';
+  @override
+  String get deleted => 'Server gelöscht.';
+  @override
+  String enabled({required Object name}) => '${name} aktiviert.';
+  @override
+  String disabled({required Object name}) => '${name} deaktiviert.';
+  @override
+  String toolEnabled({required Object name}) => 'Tool ${name} aktiviert.';
+  @override
+  String toolDisabled({required Object name}) => 'Tool ${name} deaktiviert.';
+  @override
+  String allToolsEnabled({required Object name}) => 'Alle Tools von ${name} aktiviert.';
+  @override
+  String allToolsDisabled({required Object name}) => 'Alle Tools von ${name} deaktiviert.';
+  @override
+  String allToolsOff({required Object name}) => 'Alle Tools sind deaktiviert, daher wird ${name} nicht mehr in Chats verwendet.';
+  @override
+  String usedAgain({required Object name}) => '${name} wird wieder in Chats verwendet.';
+  @override
+  String refreshed({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
+    count,
+    zero: 'Verbunden, der Server bietet keine Tools an.',
+    one: 'Verbunden, der Server bietet 1 Tool an.',
+    other: 'Verbunden, der Server bietet ${count} Tools an.',
+  );
+  @override
+  String refreshedSignIn({required Object name}) => '${name} verlangt eine Anmeldung.';
+  @override
+  String refreshedFailed({required Object name}) => 'Keine Verbindung zu ${name} möglich.';
+  @override
+  String loadFailed({required Object error}) => 'Die MCP-Server konnten nicht geladen werden: ${error}';
+  @override
+  String createFailed({required Object error}) => 'Der Server konnte nicht hinzugefügt werden: ${error}';
+  @override
+  String saveFailed({required Object error}) => 'Der Server konnte nicht gespeichert werden: ${error}';
+  @override
+  String deleteFailed({required Object error}) => 'Der Server konnte nicht gelöscht werden: ${error}';
+  @override
+  String toggleFailed({required Object error}) => 'Der Server konnte nicht geändert werden: ${error}';
+  @override
+  String toggleToolFailed({required Object error}) => 'Das Tool konnte nicht geändert werden: ${error}';
+  @override
+  String toggleAllToolsFailed({required Object error}) => 'Die Tools konnten nicht geändert werden: ${error}';
+  @override
+  String refreshFailed({required Object error}) => 'Der Server konnte nicht aktualisiert werden: ${error}';
+  @override
+  String signInFailed({required Object error}) => 'Die Anmeldung konnte nicht gestartet werden: ${error}';
+}
+
+// Path: base.mcpServers.dialog
+class _Translations$base$mcpServers$dialog$de extends Translations$base$mcpServers$dialog$en {
+  _Translations$base$mcpServers$dialog$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get editTitle => 'Server bearbeiten';
+  @override
+  String get url => 'URL';
+  @override
+  String get urlHintAdmin => 'Der MCP-Endpunkt des Servers. Als Admin kannst du auch http:// und interne Hosts verwenden.';
+  @override
+  String get urlHintUser => 'Der MCP-Endpunkt des Servers. Muss https:// und einen Host mit öffentlicher Adresse verwenden.';
+  @override
+  String get tokenOptional => 'Token (optional)';
+  @override
+  String get tokenHint => 'Nur für Server, die einen verlangen und keine Anmeldung unterstützen. Wird als Bearer-Token gesendet.';
+  @override
+  String get fixedConnection => 'URL und Token lassen sich nicht ändern. Lösche den Server dafür und füge ihn neu hinzu.';
+  @override
+  String get connecting => 'Verbindung zum Server wird hergestellt, das kann einige Sekunden dauern…';
+  @override
+  String get missingUrl => 'URL fehlt';
+}
+
+// Path: base.mcpServers.callback
+class _Translations$base$mcpServers$callback$de extends Translations$base$mcpServers$callback$en {
+  _Translations$base$mcpServers$callback$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'Anmeldung';
+  @override
+  String get completing => 'Anmeldung wird abgeschlossen…';
+  @override
+  String get failedTitle => 'Anmeldung fehlgeschlagen';
+  @override
+  String get denied => 'Die Anmeldung wurde abgebrochen oder abgelehnt.';
+  @override
+  String serverError({required Object error}) => 'Der Server hat einen Fehler gemeldet: ${error}';
+  @override
+  String get incomplete => 'Die Antwort auf die Anmeldung ist unvollständig. Bitte melde dich erneut an.';
+  @override
+  String get expired => 'Die Anmeldung ist abgelaufen oder wurde bereits abgeschlossen. Bitte melde dich erneut an.';
+  @override
+  String failed({required Object error}) => 'Die Anmeldung konnte nicht abgeschlossen werden: ${error}';
+  @override
+  String signedIn({required Object name}) => 'Bei ${name} angemeldet.';
+  @override
+  String signedInNotReady({required Object name}) => 'Bei ${name} angemeldet, aber die Verbindung ist fehlgeschlagen.';
+  @override
+  String get back => 'Zurück zu den MCP-Servern';
 }
 
 // Path: base.admin.users

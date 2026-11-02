@@ -312,6 +312,66 @@ export interface ModelDto {
     is_default: boolean;
 }
 
+export enum McpServerStatus {
+    /** The last connection succeeded. While enabled, its tools are offered in chats. */
+    READY = "READY",
+    /**
+     * The server asks for authentication: the user signs in with OAuth (see `authorizeMcpServer`), or sets a token if
+     * it does not support it.
+     */
+    AUTHORIZATION_REQUIRED = "AUTHORIZATION_REQUIRED",
+    /** The last connection failed, see `last_error`. */
+    FAILED = "FAILED",
+}
+
+/** How requests to an MCP server are authenticated. */
+export enum McpServerAuth {
+    NONE = "NONE",
+    /** A token the user entered, sent as `Authorization: Bearer <token>`. */
+    TOKEN = "TOKEN",
+    /** The user signed in with OAuth. */
+    OAUTH = "OAUTH",
+}
+
+/** A remote MCP server whose tools the model can use in the chats of the user who added it. */
+export interface McpServerDto {
+    id: string;
+    name: string;
+    url: string;
+    /** Whether its tools are offered in the user's chats (once it is `READY`). */
+    enabled: boolean;
+    auth: McpServerAuth;
+    /** The last 4 characters of the token with `TOKEN`, `null` for short tokens and otherwise. */
+    token_hint: string | null;
+    status: McpServerStatus;
+    /** Why the last connection failed, with `FAILED`. */
+    last_error: string | null;
+    /** The tools as of the last successful connection, in the server's order. */
+    tools: McpToolDto[];
+    /**
+     * The names of the tools the user turned off, which the model doesn't get, sorted. May include tools the server no
+     * longer lists, so they stay off if they return.
+     */
+    disabled_tools: string[];
+    /** When the server was last connected to, successfully or not. */
+    checked_at: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface McpToolDto {
+    /** As the server names it. */
+    name: string;
+    title: string | null;
+    description: string | null;
+}
+
+/** Where to send the user to sign in to an MCP server, see {@link McpServerAuth.OAUTH}. */
+export interface AuthorizationUrlDto {
+    /** Valid for 10 minutes. */
+    authorization_url: string;
+}
+
 export interface ChatDto {
     id: string;
     title: string;
@@ -411,7 +471,10 @@ export enum ToolCallStatus {
 /** A tool call without its output, see {@link ToolCallDto}. */
 export interface ToolCallSummaryDto {
     id: string;
-    /** `list_files`, `read_file`, `grep`, `outline`, `present_file_to_user`, `change_file`, `move_files`, `save_attachment`, `read_attachment` or `run_script`. */
+    /**
+     * `list_files`, `read_file`, `grep`, `outline`, `present_file_to_user`, `change_file`, `move_files`, `save_attachment`,
+     * `read_attachment` or `run_script`, or `mcp__{server}__{tool}` for a tool of an MCP server (see `parseMcpToolName`).
+     */
     name: string;
     input: Record<string, unknown>;
     /** `null` for tools not bound to one repository, or if the repository was deleted. */
