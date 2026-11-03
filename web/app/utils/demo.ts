@@ -373,11 +373,15 @@ function finishAnswer(message: MessageDto, status: MessageStatus) {
 
 function createChat(body: Record<string, any>): ChatDetailDto {
     const now = new Date().toISOString();
+    // absent means all, like in the API; the demo has no MCP servers anyway, see `route`
+    const allMcpServers = body.all_mcp_servers ?? true;
     const chat: ChatDetailDto = {
         id: crypto.randomUUID(),
         title: '',
         all_repositories: !!body.all_repositories,
         repository_ids: body.all_repositories ? [] : body.repository_ids ?? [],
+        all_mcp_servers: allMcpServers,
+        mcp_server_ids: allMcpServers ? [] : body.mcp_server_ids ?? [],
         model_id: body.model_id ?? null,
         temporary: !!body.temporary,
         created_at: now,
@@ -545,6 +549,7 @@ async function route(method: 'GET' | 'POST', route: string, body: Record<string,
         if (route === 'me') return USER;
         if (route === 'models') return MODELS;
         if (route === 'repositories') return REPOSITORIES;
+        if (route === 'mcp-servers') return [];
         if (match('repositories/*')) {
             const repository = REPOSITORIES.find(r => r.id === parts[1]);
             if (!repository) {

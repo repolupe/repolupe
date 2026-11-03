@@ -463,6 +463,13 @@ export interface ChatDto {
     all_repositories: boolean;
     /** Empty if `all_repositories` is true. */
     repository_ids: string[];
+    /** Whether the model gets the tools of all MCP servers the user can use, including ones added later. */
+    all_mcp_servers: boolean;
+    /**
+     * Empty if `all_mcp_servers` is true. Only the ones that are enabled and connected (and, if shared, turned on) give
+     * the model tools.
+     */
+    mcp_server_ids: string[];
     /** `null` uses the user's model. */
     model_id: string | null;
     /** Not listed in `GET /api/v1/chats`, and deleted a day after its last message. */
@@ -476,6 +483,13 @@ export interface RepositoryScope {
     all_repositories: boolean;
     /** Ignored if `all_repositories`. */
     repository_ids: string[];
+}
+
+/** Which MCP servers give the model tools in a chat, as sent to the API. */
+export interface McpServerScope {
+    all_mcp_servers: boolean;
+    /** Ignored if `all_mcp_servers`. */
+    mcp_server_ids: string[];
 }
 
 export interface ChatPageDto {
@@ -702,6 +716,7 @@ export enum ErrorCode {
     TOKEN_REQUIRED = "TOKEN_REQUIRED",
     REMOTE_UNREACHABLE = "REMOTE_UNREACHABLE",
     UNKNOWN_REPOSITORY = "UNKNOWN_REPOSITORY",
+    UNKNOWN_MCP_SERVER = "UNKNOWN_MCP_SERVER",
     UNKNOWN_USER = "UNKNOWN_USER",
     GENERATION_IN_PROGRESS = "GENERATION_IN_PROGRESS",
     NOT_RETRYABLE = "NOT_RETRYABLE",

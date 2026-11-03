@@ -1,7 +1,11 @@
 import {
+    McpServerStatus,
     ToolCallStatus,
     type AttachmentDto,
     type FileMoveDto,
+    type McpServerDto,
+    type McpServerScope,
+    type McpToolDto,
     type MessageDto,
     type ModelDto,
     type RepositoryDto,
@@ -20,19 +24,65 @@ export function showSnackbar(text: string) {
     snackbarFunc(text);
 }
 
-/** E.g. "All Repositories". */
-export function allRepositoriesTitle(): string {
-    return t('chat.allRepositories');
-}
-
 /** E.g. "All Repositories", the name of the only repository, or "3 repositories". */
 export function repositoryScopeSummary(scope: RepositoryScope, repositories: RepositoryDto[]): string {
     if (scope.all_repositories) {
-        return allRepositoriesTitle();
+        return t('chat.allRepositories');
     }
     const ids = scope.repository_ids;
     const name = ids.length === 1 ? repositories.find(r => r.id === ids[0])?.name : undefined;
     return name ?? t('chat.repositoryCount', ids.length);
+}
+
+/** Turned on by its owner, and by the user if it is shared with them. Only then its tools may be used in chats. */
+export function isMcpServerOn(server: McpServerDto): boolean {
+    return server.enabled && (server.shared?.enabled ?? true);
+}
+
+export function isMcpToolEnabled(server: McpServerDto, tool: McpToolDto): boolean {
+    return !server.disabled_tools.includes(tool.name);
+}
+
+export function enabledMcpToolCount(server: McpServerDto): number {
+    return server.tools.filter(tool => isMcpToolEnabled(server, tool)).length;
+}
+
+/** Whether the model gets the server's tools in chats, see `list_usable_mcp_servers` in the API. */
+export function isMcpServerUsed(server: McpServerDto): boolean {
+    return isMcpServerOn(server) && server.status === McpServerStatus.READY && enabledMcpToolCount(server) !== 0;
+}
+
+/** E.g. "3 tools", or "1 of 3 tools enabled". */
+export function mcpToolCountLabel(server: McpServerDto): string {
+    const count = server.tools.length;
+    const enabled = enabledMcpToolCount(server);
+    return enabled === count
+        ? t('mcpServers.page.toolCount', count)
+        : t('mcpServers.page.toolCountEnabled', {enabled, count}, count);
+}
+
+export function mcpServerStatusLabel(status: McpServerStatus): string {
+    switch (status) {
+        case McpServerStatus.READY:
+            return t('status.ready');
+        case McpServerStatus.AUTHORIZATION_REQUIRED:
+            return t('mcpServers.status.authorizationRequired');
+        case McpServerStatus.FAILED:
+            return t('status.failed');
+        default:
+            // from a newer server
+            return t('mcpServers.status.unknown');
+    }
+}
+
+/** E.g. "All MCP Servers", the name of the only server, or "3 MCP servers". */
+export function mcpServerScopeSummary(scope: McpServerScope, servers: McpServerDto[]): string {
+    if (scope.all_mcp_servers) {
+        return t('chat.allMcpServers');
+    }
+    const ids = scope.mcp_server_ids;
+    const name = ids.length === 1 ? servers.find(s => s.id === ids[0])?.name : undefined;
+    return name ?? t('chat.mcpServerCount', ids.length);
 }
 
 /**

@@ -27,11 +27,15 @@
       <MessageInput v-model="content" v-model:attachment="attachment" :placeholder="$t('chat.placeholder')"
                     :can-send="canSubmit" :sending="loading" :disabled="loading" @send="submit"/>
 
-      <!-- hidden but taking its space while loading, so the (vertically centered) input does not jump -->
-      <div class="fade-in mt-4 d-flex align-center flex-wrap ga-3" :class="{'fade-in-hidden': !showSelects}">
+      <!-- hidden but taking its space while loading, so the (vertically centered) input does not jump;
+           the padding lines the first icon up with the attach icon in the input -->
+      <div class="fade-in mt-4 ps-4 d-flex align-center flex-wrap ga-3" :class="{'fade-in-hidden': !showSelects}">
         <ChatModelSelect v-if="fetching" :model-value="null" :models="[]"/>
         <template v-else>
-          <RepositoryScopeSelect v-if="repositories.length > 0" v-model="scope" :repositories="repositories" :disabled="loading"/>
+          <RepositoryScopeSelect v-if="repositories.length > 0" v-model="repositoryScope" :repositories="repositories"
+                                 :disabled="loading"/>
+          <McpServerScopeSelect v-if="mcpServers.length > 0" v-model="mcpServerScope" :servers="mcpServers"
+                                :disabled="loading"/>
           <ChatModelSelect v-if="models.length > 0" v-model="modelId" :models="models" :disabled="loading"/>
         </template>
       </div>
@@ -46,11 +50,20 @@ import {computed, onBeforeUnmount, onMounted, ref, watch} from "vue";
 import {navigateTo, useRoute} from "#app";
 import {useI18n} from "#i18n";
 import {NuxtLink} from "#components";
-import {ApiError, createChat, errorMessage, getModels, getRepositories} from "~/utils/api";
-import {ErrorCode, type ModelDto, type RepositoryDto, type RepositoryScope, UserRole} from "~/utils/model";
-import {showSnackbar, type PendingAttachment} from "~/utils/utils";
+import {ApiError, createChat, errorMessage, getMcpServers, getModels, getRepositories} from "~/utils/api";
+import {
+  ErrorCode,
+  type McpServerDto,
+  type McpServerScope,
+  type ModelDto,
+  type RepositoryDto,
+  type RepositoryScope,
+  UserRole,
+} from "~/utils/model";
+import {isMcpServerOn, showSnackbar, type PendingAttachment} from "~/utils/utils";
 import {PRODUCT_NAME, refreshChats, useInstanceName, useUser} from "~/composables/states";
 import MessageInput from "~/components/chat/MessageInput.vue";
+import McpServerScopeSelect from "~/components/chat/McpServerScopeSelect.vue";
 import RepositoryScopeSelect from "~/components/chat/RepositoryScopeSelect.vue";
 import ChatModelSelect from "~/components/chat/ChatModelSelect.vue";
 import InstanceHero from "~/components/chat/InstanceHero.vue";
@@ -72,7 +85,10 @@ const models = ref<ModelDto[]>([]);
 const content = ref('');
 /** Sent with the first message once uploaded. */
 const attachment = ref<PendingAttachment | null>(null);
-const scope = ref<RepositoryScope>({all_repositories: true, repository_ids: []});
+const repositoryScope = ref<RepositoryScope>({all_repositories: true, repository_ids: []});
+/** The MCP servers that are on, the others give no tools in any chat. */
+const mcpServers = ref<McpServerDto[]>([]);
+const mcpServerScope = ref<McpServerScope>({all_mcp_servers: true, mcp_server_ids: []});
 /** Chosen for this chat, `null` uses the user's model. */
 const modelId = ref<string | null>(null);
 /** Not listed in the history, and deleted a day after its last message. */
@@ -93,11 +109,11 @@ const applyRepositoryQuery = () => {
   const id = route.query.repository;
   if (repositories.value.length === 0) {
     // without repositories, "all" would be misleading
-    scope.value = {all_repositories: false, repository_ids: []};
+    repositoryScope.value = {all_repositories: false, repository_ids: []};
   } else if (typeof id === 'string' && repositories.value.some(r => r.id === id)) {
-    scope.value = {all_repositories: false, repository_ids: [id]};
+    repositoryScope.value = {all_repositories: false, repository_ids: [id]};
   } else {
-    scope.value = {all_repositories: true, repository_ids: []};
+    repositoryScope.value = {all_repositories: true, repository_ids: []};
   }
 };
 
@@ -119,8 +135,10 @@ const submit = async () => {
     const created = await createChat({
       content: content.value.trim(),
       attachment_id: attachment.value?.uploaded?.id ?? null,
-      all_repositories: scope.value.all_repositories,
-      repository_ids: scope.value.all_repositories ? [] : scope.value.repository_ids,
+      all_repositories: repositoryScope.value.all_repositories,
+      repository_ids: repositoryScope.value.all_repositories ? [] : repositoryScope.value.repository_ids,
+      all_mcp_servers: mcpServerScope.value.all_mcp_servers,
+      mcp_server_ids: mcpServerScope.value.all_mcp_servers ? [] : mcpServerScope.value.mcp_server_ids,
       title: null,
       model_id: modelId.value,
       temporary: temporary.value,
@@ -134,6 +152,9 @@ const submit = async () => {
     } else if (e instanceof ApiError && e.code === ErrorCode.UNKNOWN_REPOSITORY) {
       showSnackbar(t('chat.startPage.unknownRepository'));
       await fetchRepositories();
+    } else if (e instanceof ApiError && e.code === ErrorCode.UNKNOWN_MCP_SERVER) {
+      showSnackbar(t('chat.startPage.unknownMcpServer'));
+      await fetchMcpServers();
     } else if (e instanceof ApiError && e.code === ErrorCode.UNKNOWN_MODEL) {
       showSnackbar(t('chat.unknownModel'));
       modelId.value = null;
@@ -155,9 +176,33 @@ const fetchRepositories = async () => {
   try {
     repositories.value = await getRepositories();
     const ids = new Set(repositories.value.map(r => r.id));
-    scope.value = {...scope.value, repository_ids: scope.value.repository_ids.filter(id => ids.has(id))};
+    repositoryScope.value = {
+      ...repositoryScope.value,
+      repository_ids: repositoryScope.value.repository_ids.filter(id => ids.has(id)),
+    };
   } catch (e) {
     showSnackbar(t('repositories.listPage.loadFailed', {error: errorMessage(e)}));
+  }
+};
+
+/**
+ * Keeps the selected servers that are still on. Without any, they are not offered and the chat gets all servers, so
+ * turning one on later applies to it, like before servers could be selected.
+ */
+const setMcpServers = (servers: McpServerDto[]) => {
+  mcpServers.value = servers.filter(isMcpServerOn);
+  const ids = new Set(mcpServers.value.map(s => s.id));
+  mcpServerScope.value = ids.size === 0
+      ? {all_mcp_servers: true, mcp_server_ids: []}
+      : {...mcpServerScope.value, mcp_server_ids: mcpServerScope.value.mcp_server_ids.filter(id => ids.has(id))};
+};
+
+/** On failure they are not offered: the servers are optional, the chat gets all of them. */
+const fetchMcpServers = async () => {
+  try {
+    setMcpServers(await getMcpServers());
+  } catch {
+    setMcpServers([]);
   }
 };
 
@@ -174,7 +219,11 @@ watch(() => route.query.repository, () => applyRepositoryQuery());
 const load = async () => {
   fetching.value = true;
   loadFailed.value = false;
-  const [repositoriesResult, modelsResult] = await Promise.allSettled([getRepositories(), getModels()]);
+  // the MCP servers are optional, `fetchMcpServers` handles a failure itself
+  const [[repositoriesResult, modelsResult]] = await Promise.all([
+    Promise.allSettled([getRepositories(), getModels()]),
+    fetchMcpServers(),
+  ]);
   if (repositoriesResult.status === 'fulfilled') {
     repositories.value = repositoriesResult.value;
   } else {

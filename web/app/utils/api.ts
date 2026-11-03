@@ -79,6 +79,7 @@ const ERROR_TEXTS: Record<ErrorCode, string> = {
     [ErrorCode.TOKEN_REQUIRED]: 'errors.tokenRequired',
     [ErrorCode.REMOTE_UNREACHABLE]: 'errors.remoteUnreachable',
     [ErrorCode.UNKNOWN_REPOSITORY]: 'errors.unknownRepository',
+    [ErrorCode.UNKNOWN_MCP_SERVER]: 'errors.unknownMcpServer',
     [ErrorCode.UNKNOWN_USER]: 'errors.unknownUser',
     [ErrorCode.GENERATION_IN_PROGRESS]: 'errors.generationInProgress',
     [ErrorCode.NOT_RETRYABLE]: 'errors.notRetryable',
@@ -412,6 +413,10 @@ export interface CreateChatPayload {
     all_repositories: boolean;
     /** Ignored if `all_repositories`. */
     repository_ids: string[];
+    /** Absent means true. Cannot be changed later. */
+    all_mcp_servers?: boolean;
+    /** MCP servers the user owns or that are shared with them. Ignored if `all_mcp_servers`. */
+    mcp_server_ids?: string[];
     /** Derived from `content` if absent or blank. */
     title?: string | null;
     /** Absent or `null` uses the user's model. */
@@ -423,7 +428,7 @@ export interface CreateChatPayload {
 /**
  * Creates the chat with its first message and starts generating the answer, which is the
  * last message (status `GENERATING`). Fails with `NO_MODEL_CONFIGURED`, `UNKNOWN_MODEL`,
- * `UNKNOWN_REPOSITORY` or `UNKNOWN_ATTACHMENT`.
+ * `UNKNOWN_REPOSITORY`, `UNKNOWN_MCP_SERVER` or `UNKNOWN_ATTACHMENT`.
  */
 export async function createChat(payload: CreateChatPayload): Promise<ChatDetailDto> {
     return await makeRequest({

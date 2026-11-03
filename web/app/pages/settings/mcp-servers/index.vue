@@ -45,7 +45,7 @@
             <v-chip :color="statusInfo(server).color" :prepend-icon="statusInfo(server).icon" size="small" label>
               {{ statusInfo(server).label }}
             </v-chip>
-            <v-chip v-if="server.status === McpServerStatus.READY && !isUsed(server)" color="grey"
+            <v-chip v-if="server.status === McpServerStatus.READY && !isMcpServerUsed(server)" color="grey"
                     prepend-icon="mdi-chat-remove-outline" size="small" label>
               {{ $t('mcpServers.page.notUsed') }}
             </v-chip>
@@ -82,13 +82,13 @@
           <v-expansion-panels v-if="server.tools.length !== 0" class="mt-4" variant="accordion" static>
             <v-expansion-panel elevation="0" class="tools-panel">
               <v-expansion-panel-title class="py-2">
-                <IconText icon="mdi-puzzle-outline" :size="16">{{ toolCountLabel(server) }}</IconText>
+                <IconText icon="mdi-puzzle-outline" :size="16">{{ mcpToolCountLabel(server) }}</IconText>
               </v-expansion-panel-title>
-              <v-expansion-panel-text :class="{'server-off': !isOn(server)}">
+              <v-expansion-panel-text :class="{'server-off': !isMcpServerOn(server)}">
                 <div class="d-flex align-center ga-4">
                   <div class="tool-text flex-grow-1 text-medium-emphasis">{{ $t('mcpServers.page.allTools') }}</div>
-                  <v-checkbox :model-value="enabledToolCount(server) === server.tools.length"
-                              :indeterminate="enabledToolCount(server) !== 0 && enabledToolCount(server) !== server.tools.length"
+                  <v-checkbox :model-value="enabledMcpToolCount(server) === server.tools.length"
+                              :indeterminate="enabledMcpToolCount(server) !== 0 && enabledMcpToolCount(server) !== server.tools.length"
                               @update:model-value="doToggleAllTools(server, !!$event)"
                               :aria-label="$t('mcpServers.page.allTools')" :disabled="busy !== null || !manages(server)"
                               color="primary" density="compact" hide-details class="flex-grow-0 flex-shrink-0" />
@@ -105,7 +105,7 @@
                       {{ tool.description }}
                     </div>
                   </div>
-                  <v-checkbox :model-value="isToolEnabled(server, tool)"
+                  <v-checkbox :model-value="isMcpToolEnabled(server, tool)"
                               @update:model-value="doToggleTool(server, tool, !!$event)" :aria-label="tool.name"
                               :disabled="busy !== null || !manages(server)" color="primary" density="compact"
                               hide-details class="flex-grow-0 flex-shrink-0" />
@@ -184,7 +184,17 @@ import {
   updateMcpServer,
   updateMcpServerUser,
 } from "~/utils/api";
-import {formatDateTime, formatRelative, showSnackbar} from "~/utils/utils";
+import {
+  enabledMcpToolCount,
+  formatDateTime,
+  formatRelative,
+  isMcpServerOn,
+  isMcpServerUsed,
+  isMcpToolEnabled,
+  mcpServerStatusLabel,
+  mcpToolCountLabel,
+  showSnackbar,
+} from "~/utils/utils";
 import {useUser} from "~/composables/states";
 import MainContainer from "~/components/MainContainer.vue";
 import EmptyState from "~/components/EmptyState.vue";
@@ -223,43 +233,24 @@ const isOwner = (server: McpServerDto) => server.owner_id === user.value?.id;
 
 const manages = (server: McpServerDto) => isOwner(server) && canManage.value;
 
-/** Turned on by its owner, and by the user if it is shared with them. */
-const isOn = (server: McpServerDto) => server.enabled && (server.shared?.enabled ?? true);
-
 const isBusy = (server: McpServerDto, action: BusyAction) =>
     busy.value?.id === server.id && busy.value.action === action;
-
-const isToolEnabled = (server: McpServerDto, tool: McpToolDto) => !server.disabled_tools.includes(tool.name);
-
-const enabledToolCount = (server: McpServerDto) => server.tools.filter(tool => isToolEnabled(server, tool)).length;
-
-/** Whether the model gets the server's tools in chats, see `list_usable_mcp_servers` in the API. */
-const isUsed = (server: McpServerDto) =>
-    isOn(server) && server.status === McpServerStatus.READY && enabledToolCount(server) !== 0;
 
 /** `disabled_tools` with every tool the server lists turned on, keeping the names it no longer lists. */
 const withAllToolsOn = (server: McpServerDto) =>
     server.disabled_tools.filter(name => !server.tools.some(tool => tool.name === name));
 
-const toolCountLabel = (server: McpServerDto) => {
-  const count = server.tools.length;
-  const enabled = enabledToolCount(server);
-  return enabled === count
-      ? t('mcpServers.page.toolCount', count)
-      : t('mcpServers.page.toolCountEnabled', {enabled, count}, count);
-};
-
 const statusInfo = (server: McpServerDto) => {
+  const label = mcpServerStatusLabel(server.status);
   switch (server.status) {
     case McpServerStatus.READY:
-      return {label: t('status.ready'), color: 'green', icon: 'mdi-check-circle'};
+      return {label, color: 'green', icon: 'mdi-check-circle'};
     case McpServerStatus.AUTHORIZATION_REQUIRED:
-      return {label: t('mcpServers.status.authorizationRequired'), color: 'orange', icon: 'mdi-account-lock'};
+      return {label, color: 'orange', icon: 'mdi-account-lock'};
     case McpServerStatus.FAILED:
-      return {label: t('status.failed'), color: 'red', icon: 'mdi-alert-circle'};
+      return {label, color: 'red', icon: 'mdi-alert-circle'};
     default:
-      // from a newer server
-      return {label: t('mcpServers.status.unknown'), color: 'grey', icon: 'mdi-help-circle'};
+      return {label, color: 'grey', icon: 'mdi-help-circle'};
   }
 };
 
@@ -393,7 +384,7 @@ const doLeave = async () => {
 const doToggle = async (server: McpServerDto, enabled: boolean) => {
   busy.value = {id: server.id, action: 'toggle'};
   try {
-    const allOff = server.tools.length !== 0 && enabledToolCount(server) === 0;
+    const allOff = server.tools.length !== 0 && enabledMcpToolCount(server) === 0;
     replaceServer(await updateMcpServer(server.id, {
       name: server.name,
       enabled,

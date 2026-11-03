@@ -7,9 +7,15 @@
           <div class="flex-grow-1" style="min-width: 0">
             <div class="d-flex align-baseline flex-wrap" style="column-gap: 12px">
               <h1 class="text-h6 chat-title">{{ chat.title }}</h1>
-              <IconText v-if="chat.all_repositories || chat.repository_ids.length > 0" icon="mdi-folder"
+              <IconText v-if="chat.all_repositories || chat.repository_ids.length > 0" icon="mdi-folder-outline"
                         class="text-body-2 text-medium-emphasis">
                 {{ repositoryScopeSummary(chat, repositories) }}
+              </IconText>
+              <!-- only if not all, which most chats use -->
+              <IconText v-if="!chat.all_mcp_servers"
+                        :icon="chat.mcp_server_ids.length === 0 ? 'mdi-puzzle-remove-outline' : 'mdi-puzzle-outline'"
+                        class="text-body-2 text-medium-emphasis">
+                {{ mcpServerScopeSummary(chat, mcpServers) }}
               </IconText>
             </div>
             <IconText v-if="chat.temporary" icon="mdi-progress-clock" class="text-body-2 text-medium-emphasis mt-1">
@@ -104,6 +110,7 @@ import {
   MessageRole,
   MessageStatus,
   type ChatDetailDto,
+  type McpServerDto,
   type MessageDto,
   type MessageStreamEvent,
   type ModelDto,
@@ -116,6 +123,7 @@ import {
   deleteChat,
   errorMessage,
   getChat,
+  getMcpServers,
   getModels,
   getRepositories,
   retryMessage,
@@ -125,6 +133,7 @@ import {
 } from "~/utils/api";
 import {
   CHANGE_TOOLS,
+  mcpServerScopeSummary,
   presentedFiles,
   proposedChanges,
   repositoryScopeSummary,
@@ -164,6 +173,8 @@ const chatBody = useTemplateRef<HTMLElement>('chat-body');
 
 const chat = ref<ChatDetailDto | null>(null);
 const repositories = ref<RepositoryDto[]>([]);
+/** For the name of the chat's only server, see `needsMcpServers`. */
+const mcpServers = ref<McpServerDto[]>([]);
 const models = ref<ModelDto[]>([]);
 const modelsLoaded = ref(false);
 const fetching = ref(false);
@@ -375,6 +386,29 @@ const fetchRepositories = async () => {
     showSnackbar(t('repositories.listPage.loadFailed', {error: errorMessage(e)}));
   }
 };
+
+/** Only chats with a single server show its name, most chats use all servers. */
+const needsMcpServers = computed(() =>
+    !!chat.value && !chat.value.all_mcp_servers && chat.value.mcp_server_ids.length === 1);
+
+/** Once per page, like the repositories. */
+let mcpServersRequested = false;
+
+/** On failure the header shows "1 MCP server" instead of its name, which is not worth an error. */
+const fetchMcpServers = async () => {
+  mcpServersRequested = true;
+  try {
+    mcpServers.value = await getMcpServers();
+  } catch {
+    // see above
+  }
+};
+
+watch(needsMcpServers, (needed) => {
+  if (needed && !mcpServersRequested) {
+    fetchMcpServers();
+  }
+});
 
 const fetchModels = async () => {
   try {
