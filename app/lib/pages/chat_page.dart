@@ -247,7 +247,7 @@ class _MessageInputState extends State<_MessageInput> with Refena {
                 IconButton(
                   key: const ValueKey('chat.attach'),
                   icon: const Icon(Icons.attach_file),
-                  tooltip: context.t.flutter.chat.messageInput.attach,
+                  tooltip: context.t.base.chat.messageInput.attach,
                   onPressed: state.loading || state.sending ? null : _attach,
                 ),
                 Expanded(

@@ -22,9 +22,6 @@
     "sessionExpired": "Your session on {server} has ended. Please log in again."
   },
   "chat": {
-    "messageInput": {
-      "attach": "Attach file"
-    },
     "page": {
       "temporaryOff": "Turn off temporary chat"
     },

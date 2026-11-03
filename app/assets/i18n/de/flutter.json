@@ -22,9 +22,6 @@
     "sessionExpired": "Deine Sitzung auf {server} ist abgelaufen. Bitte melde dich erneut an."
   },
   "chat": {
-    "messageInput": {
-      "attach": "Datei anhängen"
-    },
     "page": {
       "temporaryOff": "Temporären Chat ausschalten"
     },

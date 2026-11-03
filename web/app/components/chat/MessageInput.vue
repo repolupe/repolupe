@@ -15,6 +15,10 @@
     <v-textarea ref="textarea" v-model="content" class="message-input" :placeholder="props.placeholder" rows="1" max-rows="8"
                 auto-grow variant="solo" bg-color="surface" rounded="lg" hide-details autofocus
                 :maxlength="MAX_LENGTH" :disabled="props.disabled" @keydown.enter="onEnter">
+      <template v-slot:prepend-inner>
+        <v-btn icon="mdi-paperclip" variant="plain" :disabled="props.disabled || props.sending"
+               :aria-label="$t('chat.messageInput.attach')" :title="$t('chat.messageInput.attach')" @click="fileInput?.click()"/>
+      </template>
       <template v-slot:append-inner>
         <v-btn v-if="props.generating" icon="mdi-stop" color="primary" variant="tonal"
                :loading="props.stopping" :aria-label="$t('chat.messageInput.stop')" :title="$t('chat.messageInput.stop')" @click="emit('stop')"/>
@@ -22,6 +26,8 @@
                :loading="props.sending" :aria-label="$t('chat.messageInput.send')" :title="$t('chat.messageInput.send')" @click="emit('send')"/>
       </template>
     </v-textarea>
+    <!-- outside the field, which prevents the default of clicks in it, so the picker would not open -->
+    <input ref="file-input" type="file" hidden @change="onFileSelected">
 
     <Teleport to="body">
       <div v-if="dragging" class="drop-overlay">
@@ -52,7 +58,7 @@ const props = defineProps<{
   /** Shows a stop button instead of the send button. */
   generating?: boolean,
   stopping?: boolean,
-  /** The file dropped anywhere on the page, uploaded right away to be sent with the message. */
+  /** The file chosen or dropped anywhere on the page, uploaded right away to be sent with the message. */
   attachment?: PendingAttachment | null,
 }>();
 
@@ -66,6 +72,7 @@ const emit = defineEmits<{
 const {t} = useI18n();
 
 const textarea = useTemplateRef<HTMLTextAreaElement>('textarea');
+const fileInput = useTemplateRef<HTMLInputElement>('file-input');
 
 /** Whether files are dragged over the page. */
 const dragging = ref(false);
@@ -106,6 +113,15 @@ const attach = async (file: File) => {
       emit('update:attachment', null);
     }
     showSnackbar(t('chat.messageInput.uploadFailed', {error: errorMessage(e)}));
+  }
+};
+
+const onFileSelected = () => {
+  const file = fileInput.value?.files?.[0];
+  // so choosing the same file again fires `change` again
+  fileInput.value!.value = '';
+  if (file) {
+    attach(file);
   }
 };
 
@@ -180,13 +196,21 @@ defineExpose({
 .message-input {
   /* moves from the middle of the new chat page to the bottom of the chat page */
   view-transition-name: message-input;
+  /* the space around the 48px buttons in the 56px single-line field */
+  --button-inset: 4px;
 }
 
+.message-input :deep(.v-field__prepend-inner),
 .message-input :deep(.v-field__append-inner) {
-  /* centers the 48px button in the 56px single-line field and keeps it at the bottom as the field grows */
+  /* centers the button in the single-line field and keeps it at the bottom as the field grows */
   align-self: flex-end;
   padding-top: 0;
-  padding-bottom: 4px;
+  padding-bottom: var(--button-inset);
+}
+
+.message-input :deep(.v-field--prepended) {
+  /* as far from the left edge as from the bottom, instead of Vuetify's 12px */
+  padding-inline-start: var(--button-inset);
 }
 
 .attachment-chip {

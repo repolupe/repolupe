@@ -702,7 +702,6 @@ class Translations$flutter$chat$en {
   final Translations _root; // ignore: unused_field
 
   // Translations
-  late final Translations$flutter$chat$messageInput$en messageInput = Translations$flutter$chat$messageInput$en.internal(_root);
   late final Translations$flutter$chat$page$en page = Translations$flutter$chat$page$en.internal(_root);
   late final Translations$flutter$chat$markdownContent$en markdownContent = Translations$flutter$chat$markdownContent$en.internal(_root);
   late final Translations$flutter$chat$repositorySheet$en repositorySheet = Translations$flutter$chat$repositorySheet$en.internal(_root);
@@ -974,6 +973,9 @@ class Translations$base$chat$messageInput$en {
 
   /// en: 'Send'
   String get send => 'Send';
+
+  /// en: 'Attach file'
+  String get attach => 'Attach file';
 
   /// en: 'Drop a file to attach it'
   String get dropHint => 'Drop a file to attach it';
@@ -2389,18 +2391,6 @@ class Translations$flutter$common$unsavedChanges$en {
 
   /// en: 'Discard'
   String get discard => 'Discard';
-}
-
-// Path: flutter.chat.messageInput
-class Translations$flutter$chat$messageInput$en {
-  Translations$flutter$chat$messageInput$en.internal(this._root);
-
-  final Translations _root; // ignore: unused_field
-
-  // Translations
-
-  /// en: 'Attach file'
-  String get attach => 'Attach file';
 }
 
 // Path: flutter.chat.page

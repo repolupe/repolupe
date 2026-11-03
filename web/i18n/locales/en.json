@@ -164,6 +164,7 @@
     "messageInput": {
       "stop": "Stop",
       "send": "Send",
+      "attach": "Attach file",
       "dropHint": "Drop a file to attach it",
       "fileTooLarge": "The file is too large, it may be at most {max}.",
       "uploadFailed": "Could not upload the file: {error}",

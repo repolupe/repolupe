@@ -627,8 +627,6 @@ class _Translations$flutter$chat$de extends Translations$flutter$chat$en {
 
   // Translations
   @override
-  late final _Translations$flutter$chat$messageInput$de messageInput = _Translations$flutter$chat$messageInput$de._(_root);
-  @override
   late final _Translations$flutter$chat$page$de page = _Translations$flutter$chat$page$de._(_root);
   @override
   late final _Translations$flutter$chat$markdownContent$de markdownContent = _Translations$flutter$chat$markdownContent$de._(_root);
@@ -873,6 +871,8 @@ class _Translations$base$chat$messageInput$de extends Translations$base$chat$mes
   String get stop => 'Stoppen';
   @override
   String get send => 'Senden';
+  @override
+  String get attach => 'Datei anhängen';
   @override
   String get dropHint => 'Datei hier ablegen, um sie anzuhängen';
   @override
@@ -1975,17 +1975,6 @@ class _Translations$flutter$common$unsavedChanges$de extends Translations$flutte
   String get keepEditing => 'Weiter bearbeiten';
   @override
   String get discard => 'Verwerfen';
-}
-
-// Path: flutter.chat.messageInput
-class _Translations$flutter$chat$messageInput$de extends Translations$flutter$chat$messageInput$en {
-  _Translations$flutter$chat$messageInput$de._(TranslationsDe root) : this._root = root, super.internal(root);
-
-  final TranslationsDe _root; // ignore: unused_field
-
-  // Translations
-  @override
-  String get attach => 'Datei anhängen';
 }
 
 // Path: flutter.chat.page
