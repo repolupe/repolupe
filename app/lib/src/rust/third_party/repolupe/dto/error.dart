@@ -28,6 +28,7 @@ enum ErrorCode {
   tokenRequired,
   remoteUnreachable,
   unknownRepository,
+  unknownMcpServer,
   unknownUser,
   generationInProgress,
   notRetryable,

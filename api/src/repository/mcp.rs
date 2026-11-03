@@ -93,29 +93,35 @@ pub(crate) async fn list_mcp_servers(
         .collect())
 }
 
-/// The servers whose tools the model gets in the user's chats: their own and the ones shared
-/// with them that they turned on, enabled by the owner and connected at the last check. In the
-/// order they were added, so the tools stay in the same order. With the schemas of the tools,
-/// unlike the other queries.
+/// The servers whose tools the model gets in the chat: those of its user that it allows, their
+/// own and the ones shared with them that they turned on, enabled by the owner and connected at
+/// the last check. In the order they were added, so the tools stay in the same order. With the
+/// schemas of the tools, unlike the other queries. Empty if the chat does not exist.
 pub(crate) async fn list_usable_mcp_servers(
     db: &DatabasePool,
-    user_id: Uuid,
+    chat_id: Uuid,
 ) -> Result<Vec<UsableMcpServer>, AppError> {
     let servers = sqlx::query_as!(
         UsableMcpServer,
         r#"SELECT s.id AS "id: Uuid", s.name, s.url, s.token_encrypted, s.oauth_encrypted,
                   u.role AS "owner_role: UserRole",
-                  CASE WHEN s.user_id = $1 THEN NULL ELSE u.user_name END AS "shared_by?: String",
+                  CASE WHEN s.user_id = c.user_id THEN NULL ELSE u.user_name END AS "shared_by?: String",
                   s.tools AS "tools: Json<Vec<McpTool>>",
                   s.disabled_tools AS "disabled_tools: Json<Vec<String>>",
                   s.updated_at AS "updated_at: DateTime<Utc>"
-           FROM mcp_servers s
+           FROM chats c
+           JOIN mcp_servers s
+                ON s.user_id = c.user_id
+                    OR s.id IN (SELECT mcp_server_id FROM mcp_server_users WHERE user_id = c.user_id AND enabled)
            JOIN users u ON u.id = s.user_id
-           WHERE (s.user_id = $1
-                  OR s.id IN (SELECT mcp_server_id FROM mcp_server_users WHERE user_id = $1 AND enabled))
+           WHERE c.id = $1
              AND s.enabled AND s.status = 'READY'
+             AND (c.all_mcp_servers
+                  OR EXISTS (SELECT 1
+                             FROM chat_mcp_servers cm
+                             WHERE cm.chat_id = c.id AND cm.mcp_server_id = s.id))
            ORDER BY s.id"#,
-        user_id,
+        chat_id,
     )
     .fetch_all(db)
     .await?;
@@ -384,14 +390,16 @@ async fn check_mcp_server_limit(
     Ok(())
 }
 
-/// Stops sharing the server with the user, for its owner or the user themselves (`acting_id`).
-/// Returns `false` if nothing changed: it was not shared with them, or `acting_id` is neither.
+/// Stops sharing the server with the user, for its owner or the user themselves (`acting_id`),
+/// and removes it from the user's chats. Returns `false` if nothing changed: it was not shared
+/// with them, or `acting_id` is neither.
 pub(crate) async fn remove_mcp_server_user(
     db: &DatabasePool,
     acting_id: Uuid,
     id: Uuid,
     user_id: Uuid,
 ) -> Result<bool, AppError> {
+    let mut tx = begin_write(db).await?;
     let result = sqlx::query!(
         r#"DELETE FROM mcp_server_users
            WHERE mcp_server_id = $1 AND user_id = $2
@@ -400,9 +408,21 @@ pub(crate) async fn remove_mcp_server_user(
         user_id,
         acting_id,
     )
-    .execute(db)
+    .execute(&mut *tx)
     .await?;
-    Ok(result.rows_affected() > 0)
+    if result.rows_affected() == 0 {
+        return Ok(false);
+    }
+    sqlx::query!(
+        r#"DELETE FROM chat_mcp_servers
+           WHERE mcp_server_id = $1 AND chat_id IN (SELECT id FROM chats WHERE user_id = $2)"#,
+        id,
+        user_id,
+    )
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(true)
 }
 
 /// The encrypted OAuth credentials of the server.

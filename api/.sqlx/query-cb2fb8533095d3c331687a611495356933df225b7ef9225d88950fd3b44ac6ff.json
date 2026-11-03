@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO chats (id, user_id, title, all_repositories, all_mcp_servers, model_id, temporary, created_at,\n                                  updated_at)\n               VALUES ($1, $2, $3, $4, TRUE, $5, FALSE, $6, $7)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 7
+    },
+    "nullable": []
+  },
+  "hash": "cb2fb8533095d3c331687a611495356933df225b7ef9225d88950fd3b44ac6ff"
+}

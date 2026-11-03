@@ -86,6 +86,7 @@ class ApiCreateChatAction extends AsyncReduxActionWithResult<ApiService, Account
             attachmentId: attachmentId,
             allRepositories: allRepositories,
             repositoryIds: allRepositories ? const [] : repositoryIds,
+            allMcpServers: true,
             modelId: modelId,
             temporary: temporary,
             utcOffsetMinutes: DateTime.now().timeZoneOffset.inMinutes,

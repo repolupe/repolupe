@@ -36,8 +36,9 @@ pub(crate) async fn insert_dummy_chats(
     let mut tx = begin_write(db).await?;
     for chat in chats {
         sqlx::query!(
-            r#"INSERT INTO chats (id, user_id, title, all_repositories, model_id, temporary, created_at, updated_at)
-               VALUES ($1, $2, $3, $4, $5, FALSE, $6, $7)"#,
+            r#"INSERT INTO chats (id, user_id, title, all_repositories, all_mcp_servers, model_id, temporary, created_at,
+                                  updated_at)
+               VALUES ($1, $2, $3, $4, TRUE, $5, FALSE, $6, $7)"#,
             chat.id,
             chat.user_id,
             chat.title,

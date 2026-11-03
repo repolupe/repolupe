@@ -14,9 +14,9 @@ use sqlx::types::Json;
 use sqlx::{SqliteConnection, SqliteExecutor};
 use uuid::Uuid;
 
-/// Which repositories a chat can read from.
-pub(crate) enum RepositoryScope {
-    /// Every repository of the user, including ones added later.
+/// Which repositories a chat can read from, or which MCP servers it gets the tools of.
+pub(crate) enum Scope {
+    /// All the user can use, including ones added later.
     All,
     /// Deduplicated, may be empty.
     Selected(Vec<Uuid>),
@@ -32,7 +32,8 @@ pub(crate) struct NewChat<'a> {
     pub id: Uuid,
     pub user_id: Uuid,
     pub title: &'a str,
-    pub scope: &'a RepositoryScope,
+    pub repositories: &'a Scope,
+    pub mcp_servers: &'a Scope,
     /// Chosen for the chat, `None` uses the user's model.
     pub model_id: Option<Uuid>,
     pub temporary: bool,
@@ -46,7 +47,7 @@ pub(crate) struct NewChat<'a> {
     pub created_at: DateTime<Utc>,
 }
 
-/// The repositories of a chat cannot be changed.
+/// The repositories and MCP servers of a chat cannot be changed.
 pub(crate) struct ChatChanges<'a> {
     pub title: &'a str,
     pub model_id: Option<Uuid>,
@@ -93,6 +94,10 @@ pub(crate) async fn list_chats(
                   (SELECT json_group_array(lower(hex(cr.repository_id)) ORDER BY cr.repository_id)
                    FROM chat_repositories cr
                    WHERE cr.chat_id = c.id) AS "repository_ids!: Json<Vec<Uuid>>",
+                  c.all_mcp_servers,
+                  (SELECT json_group_array(lower(hex(cm.mcp_server_id)) ORDER BY cm.mcp_server_id)
+                   FROM chat_mcp_servers cm
+                   WHERE cm.chat_id = c.id) AS "mcp_server_ids!: Json<Vec<Uuid>>",
                   c.model_id AS "model_id: Uuid", c.temporary, c.created_at AS "created_at: DateTime<Utc>",
                   c.updated_at AS "updated_at: DateTime<Utc>"
            FROM chats c
@@ -125,15 +130,18 @@ pub(crate) async fn create_chat(
     db: &DatabasePool,
     new: NewChat<'_>,
 ) -> Result<(Chat, Exchange), AppError> {
-    let all_repositories = matches!(new.scope, RepositoryScope::All);
+    let all_repositories = matches!(new.repositories, Scope::All);
+    let all_mcp_servers = matches!(new.mcp_servers, Scope::All);
     let mut tx = begin_write(db).await?;
     sqlx::query!(
-        r#"INSERT INTO chats (id, user_id, title, all_repositories, model_id, temporary, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $7)"#,
+        r#"INSERT INTO chats (id, user_id, title, all_repositories, all_mcp_servers, model_id, temporary, created_at,
+                              updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8)"#,
         new.id,
         new.user_id,
         new.title,
         all_repositories,
+        all_mcp_servers,
         new.model_id,
         new.temporary,
         new.created_at,
@@ -141,8 +149,11 @@ pub(crate) async fn create_chat(
     .execute(&mut *tx)
     .await
     .map_err(map_unknown_model)?;
-    if let RepositoryScope::Selected(ids) = new.scope {
+    if let Scope::Selected(ids) = new.repositories {
         link_repositories(&mut tx, new.user_id, new.id, ids).await?;
+    }
+    if let Scope::Selected(ids) = new.mcp_servers {
+        link_mcp_servers(&mut tx, new.user_id, new.id, ids).await?;
     }
 
     let exchange = insert_exchange(
@@ -317,6 +328,10 @@ async fn fetch_chat<'e>(
                   (SELECT json_group_array(lower(hex(cr.repository_id)) ORDER BY cr.repository_id)
                    FROM chat_repositories cr
                    WHERE cr.chat_id = c.id) AS "repository_ids!: Json<Vec<Uuid>>",
+                  c.all_mcp_servers,
+                  (SELECT json_group_array(lower(hex(cm.mcp_server_id)) ORDER BY cm.mcp_server_id)
+                   FROM chat_mcp_servers cm
+                   WHERE cm.chat_id = c.id) AS "mcp_server_ids!: Json<Vec<Uuid>>",
                   c.model_id AS "model_id: Uuid", c.temporary, c.created_at AS "created_at: DateTime<Utc>",
                   c.updated_at AS "updated_at: DateTime<Utc>"
            FROM chats c
@@ -368,6 +383,37 @@ async fn link_repositories(
         return Err(AppError::Unprocessable(
             ErrorCode::UnknownRepository,
             "One or more repositories do not exist".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+/// Fails with `UNKNOWN_MCP_SERVER` unless every id is an MCP server the user owns or that is
+/// shared with them, turned on or not.
+async fn link_mcp_servers(
+    conn: &mut SqliteConnection,
+    user_id: Uuid,
+    chat_id: Uuid,
+    mcp_server_ids: &[Uuid],
+) -> Result<(), AppError> {
+    let mcp_server_ids_json = Json(mcp_server_ids);
+    let result = sqlx::query!(
+        r#"INSERT INTO chat_mcp_servers (chat_id, mcp_server_id)
+           SELECT $1, s.id
+           FROM mcp_servers s
+           WHERE s.id IN (SELECT unhex(value, '-') FROM json_each($3))
+             AND (s.user_id = $2
+                  OR s.id IN (SELECT mcp_server_id FROM mcp_server_users WHERE user_id = $2))"#,
+        chat_id,
+        user_id,
+        mcp_server_ids_json,
+    )
+    .execute(conn)
+    .await?;
+    if result.rows_affected() != mcp_server_ids.len() as u64 {
+        return Err(AppError::Unprocessable(
+            ErrorCode::UnknownMcpServer,
+            "One or more MCP servers do not exist".to_string(),
         ));
     }
     Ok(())

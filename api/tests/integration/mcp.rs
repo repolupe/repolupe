@@ -40,6 +40,25 @@ async fn ask(client: &TestClient, question: &str) -> Value {
     client.wait_for_answer(chat["id"].as_str().unwrap()).await
 }
 
+/// Creates a chat without repositories that gets the tools of only the servers `ids`.
+async fn create_chat_with(
+    client: &TestClient,
+    question: &str,
+    ids: &[&str],
+) -> (StatusCode, Value) {
+    client
+        .post(
+            "/api/v1/chats",
+            json!({
+                "content": question,
+                "all_repositories": true,
+                "all_mcp_servers": false,
+                "mcp_server_ids": ids,
+            }),
+        )
+        .await
+}
+
 /// Signs in to the server `id` with OAuth and returns it.
 async fn sign_in(client: &TestClient, mcp: &MockMcp, id: &str) -> Value {
     let (status, body) = client
@@ -503,6 +522,97 @@ async fn leaves_out_the_tools_the_user_turned_off(db: SqlitePool) {
 }
 
 #[sqlx::test]
+async fn answers_with_the_tools_of_the_servers_the_chat_allows(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let admin = app.admin();
+    let alice = app.user("alice@example.com").await;
+    let mcp = MockMcp::start(McpAuth::None).await;
+    let llm = MockLlm::start(vec![
+        text_response("One."),
+        text_response("Still one."),
+        text_response("None."),
+        text_response("Both."),
+    ])
+    .await;
+    app.configure_llm(&llm).await;
+    let one = create(&admin, "One", &mcp.url, None).await;
+    let one = one["id"].as_str().unwrap();
+    create(&admin, "Two", &mcp.url, None).await;
+
+    let (status, chat) = create_chat_with(&admin, "Anything?", &[one, one]).await;
+    assert_eq!(status, StatusCode::CREATED, "{chat}");
+    assert_eq!(chat["all_mcp_servers"], false);
+    assert_eq!(chat["mcp_server_ids"], json!([one]));
+    let id = chat["id"].as_str().unwrap();
+    let answer = admin.wait_for_answer(id).await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    assert_eq!(
+        offered(&llm.requests()[0]),
+        ["run_script", "mcp__one__echo"]
+    );
+    // The next answers too.
+    let (status, body) = admin
+        .post(
+            &format!("/api/v1/chats/{id}/messages"),
+            json!({"content": "And now?"}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    let answer = admin.wait_for_answer(id).await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    assert_eq!(
+        offered(&llm.requests()[1]),
+        ["run_script", "mcp__one__echo"]
+    );
+
+    let (status, chat) = create_chat_with(&admin, "Anything?", &[]).await;
+    assert_eq!(status, StatusCode::CREATED, "{chat}");
+    let answer = admin.wait_for_answer(chat["id"].as_str().unwrap()).await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    assert_eq!(offered(&llm.requests()[2]), ["run_script"]);
+
+    // Without a selection, the chat gets them all.
+    let (status, chat) = admin
+        .post(
+            "/api/v1/chats",
+            json!({"content": "Anything?", "all_repositories": true}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{chat}");
+    assert_eq!(chat["all_mcp_servers"], true);
+    assert_eq!(chat["mcp_server_ids"], json!([]));
+    let answer = admin.wait_for_answer(chat["id"].as_str().unwrap()).await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    assert_eq!(
+        offered(&llm.requests()[3]),
+        ["run_script", "mcp__one__echo", "mcp__two__echo"]
+    );
+
+    let (status, error) = admin
+        .post(
+            "/api/v1/chats",
+            json!({
+                "content": "Anything?",
+                "all_repositories": true,
+                "all_mcp_servers": true,
+                "mcp_server_ids": [one],
+            }),
+        )
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{error}");
+    assert_eq!(error["code"], "VALIDATION_ERROR");
+    let missing = "0190f6a8-0000-7000-8000-000000000000";
+    let (status, error) = create_chat_with(&admin, "Anything?", &[one, missing]).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{error}");
+    assert_eq!(error["code"], "UNKNOWN_MCP_SERVER");
+    // Servers of others that aren't shared with the user are unknown too.
+    let (status, error) = create_chat_with(&alice, "Anything?", &[one]).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{error}");
+    assert_eq!(error["code"], "UNKNOWN_MCP_SERVER");
+    assert_eq!(llm.requests().len(), 4);
+}
+
+#[sqlx::test]
 async fn shares_servers_but_only_the_owner_manages_them(db: SqlitePool) {
     let app = TestApp::new(db).await;
     let admin = app.admin();
@@ -849,6 +959,70 @@ async fn answers_with_the_tools_of_shared_servers_the_user_turned_on(db: SqliteP
     let answer = ask(&alice, "And now?").await;
     assert_eq!(answer["status"], "COMPLETED", "{answer}");
     assert_eq!(offered(&llm.requests()[5]), ["run_script"]);
+}
+
+#[sqlx::test]
+async fn removes_servers_no_longer_shared_from_chats(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let admin = app.admin();
+    let alice = app.user("alice@example.com").await;
+    let mcp = MockMcp::start(McpAuth::None).await;
+    let llm = MockLlm::start(vec![
+        text_response("Off."),
+        text_response("On."),
+        text_response("Mine."),
+    ])
+    .await;
+    app.configure_llm(&llm).await;
+    let server = create(&admin, "Echo Server", &mcp.url, None).await;
+    let id = server["id"].as_str().unwrap();
+    share(&admin, id, "alice").await;
+
+    // She can select it while it's off, and gets its tools once she turns it on.
+    let (status, chat) = create_chat_with(&alice, "Anything?", &[id]).await;
+    assert_eq!(status, StatusCode::CREATED, "{chat}");
+    let chat_id = chat["id"].as_str().unwrap();
+    let answer = alice.wait_for_answer(chat_id).await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    assert_eq!(offered(&llm.requests()[0]), ["run_script"]);
+    let (status, body) = turn_on(&alice, id, true).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+    let (status, body) = alice
+        .post(
+            &format!("/api/v1/chats/{chat_id}/messages"),
+            json!({"content": "And now?"}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    let answer = alice.wait_for_answer(chat_id).await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    assert_eq!(
+        offered(&llm.requests()[1]),
+        ["run_script", "mcp__echo_server__echo"]
+    );
+
+    let (status, owner_chat) = create_chat_with(&admin, "Mine?", &[id]).await;
+    assert_eq!(status, StatusCode::CREATED, "{owner_chat}");
+    let owner_chat_id = owner_chat["id"].as_str().unwrap();
+    let answer = admin.wait_for_answer(owner_chat_id).await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+
+    let (status, _) = admin
+        .post(
+            &format!("/api/v1/mcp-servers/{id}/users/{}/delete", alice.user_id),
+            json!({}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    let (_, chat) = alice.get(&format!("/api/v1/chats/{chat_id}")).await;
+    assert_eq!(chat["all_mcp_servers"], false);
+    assert_eq!(chat["mcp_server_ids"], json!([]));
+    let (status, error) = create_chat_with(&alice, "Again?", &[id]).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{error}");
+    assert_eq!(error["code"], "UNKNOWN_MCP_SERVER");
+    // The owner keeps it in their chats.
+    let (_, owner_chat) = admin.get(&format!("/api/v1/chats/{owner_chat_id}")).await;
+    assert_eq!(owner_chat["mcp_server_ids"], json!([id]));
 }
 
 #[sqlx::test]

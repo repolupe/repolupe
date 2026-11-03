@@ -21,6 +21,8 @@ ChatDto _chat(int index) => ChatDto(
   title: 'Chat $index',
   allRepositories: true,
   repositoryIds: const [],
+  allMcpServers: true,
+  mcpServerIds: const [],
   temporary: false,
   createdAt: DateTime.utc(2026, 10, 21, 12),
   updatedAt: DateTime.utc(2026, 10, 21, 12),

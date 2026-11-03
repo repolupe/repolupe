@@ -276,10 +276,10 @@ pub(crate) async fn update_mcp_server_user(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// Stops sharing the server with the user, whose chats no longer get its tools. Allowed for
-/// its owner, and for the user themselves to leave it, also without the permission to manage
-/// MCP servers. Removing a user it is not shared with also succeeds, so the request is safe to
-/// retry.
+/// Stops sharing the server with the user, whose chats no longer get its tools, and removes it
+/// from the ones that selected it. Allowed for its owner, and for the user themselves to leave
+/// it, also without the permission to manage MCP servers. Removing a user it is not shared with
+/// also succeeds, so the request is safe to retry.
 pub(crate) async fn remove_mcp_server_user(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthenticatedUser>,

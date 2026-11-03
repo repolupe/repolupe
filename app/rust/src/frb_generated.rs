@@ -4324,6 +4324,8 @@ const _: fn() = || {
         let _: String = ChatDto.title;
         let _: bool = ChatDto.all_repositories;
         let _: Vec<uuid::Uuid> = ChatDto.repository_ids;
+        let _: bool = ChatDto.all_mcp_servers;
+        let _: Vec<uuid::Uuid> = ChatDto.mcp_server_ids;
         let _: Option<uuid::Uuid> = ChatDto.model_id;
         let _: bool = ChatDto.temporary;
         let _: chrono::DateTime<chrono::Utc> = ChatDto.created_at;
@@ -4365,6 +4367,8 @@ const _: fn() = || {
         let _: Option<uuid::Uuid> = CreateChatRequest.attachment_id;
         let _: bool = CreateChatRequest.all_repositories;
         let _: Option<Vec<uuid::Uuid>> = CreateChatRequest.repository_ids;
+        let _: bool = CreateChatRequest.all_mcp_servers;
+        let _: Option<Vec<uuid::Uuid>> = CreateChatRequest.mcp_server_ids;
         let _: Option<String> = CreateChatRequest.title;
         let _: Option<uuid::Uuid> = CreateChatRequest.model_id;
         let _: bool = CreateChatRequest.temporary;
@@ -5030,6 +5034,8 @@ impl SseDecode for repolupe::dto::chat::ChatDto {
         let mut var_title = <String>::sse_decode(deserializer);
         let mut var_allRepositories = <bool>::sse_decode(deserializer);
         let mut var_repositoryIds = <Vec<uuid::Uuid>>::sse_decode(deserializer);
+        let mut var_allMcpServers = <bool>::sse_decode(deserializer);
+        let mut var_mcpServerIds = <Vec<uuid::Uuid>>::sse_decode(deserializer);
         let mut var_modelId = <Option<uuid::Uuid>>::sse_decode(deserializer);
         let mut var_temporary = <bool>::sse_decode(deserializer);
         let mut var_createdAt = <chrono::DateTime<chrono::Utc>>::sse_decode(deserializer);
@@ -5039,6 +5045,8 @@ impl SseDecode for repolupe::dto::chat::ChatDto {
             title: var_title,
             all_repositories: var_allRepositories,
             repository_ids: var_repositoryIds,
+            all_mcp_servers: var_allMcpServers,
+            mcp_server_ids: var_mcpServerIds,
             model_id: var_modelId,
             temporary: var_temporary,
             created_at: var_createdAt,
@@ -5155,6 +5163,8 @@ impl SseDecode for repolupe::dto::chat::CreateChatRequest {
         let mut var_attachmentId = <Option<uuid::Uuid>>::sse_decode(deserializer);
         let mut var_allRepositories = <bool>::sse_decode(deserializer);
         let mut var_repositoryIds = <Option<Vec<uuid::Uuid>>>::sse_decode(deserializer);
+        let mut var_allMcpServers = <bool>::sse_decode(deserializer);
+        let mut var_mcpServerIds = <Option<Vec<uuid::Uuid>>>::sse_decode(deserializer);
         let mut var_title = <Option<String>>::sse_decode(deserializer);
         let mut var_modelId = <Option<uuid::Uuid>>::sse_decode(deserializer);
         let mut var_temporary = <bool>::sse_decode(deserializer);
@@ -5164,6 +5174,8 @@ impl SseDecode for repolupe::dto::chat::CreateChatRequest {
             attachment_id: var_attachmentId,
             all_repositories: var_allRepositories,
             repository_ids: var_repositoryIds,
+            all_mcp_servers: var_allMcpServers,
+            mcp_server_ids: var_mcpServerIds,
             title: var_title,
             model_id: var_modelId,
             temporary: var_temporary,
@@ -5406,18 +5418,19 @@ impl SseDecode for repolupe::dto::error::ErrorCode {
             14 => repolupe::dto::error::ErrorCode::TokenRequired,
             15 => repolupe::dto::error::ErrorCode::RemoteUnreachable,
             16 => repolupe::dto::error::ErrorCode::UnknownRepository,
-            17 => repolupe::dto::error::ErrorCode::UnknownUser,
-            18 => repolupe::dto::error::ErrorCode::GenerationInProgress,
-            19 => repolupe::dto::error::ErrorCode::NotRetryable,
-            20 => repolupe::dto::error::ErrorCode::WrongPassword,
-            21 => repolupe::dto::error::ErrorCode::SamePassword,
-            22 => repolupe::dto::error::ErrorCode::PasswordChangeRequired,
-            23 => repolupe::dto::error::ErrorCode::UnknownModel,
-            24 => repolupe::dto::error::ErrorCode::NoModelConfigured,
-            25 => repolupe::dto::error::ErrorCode::Unavailable,
-            26 => repolupe::dto::error::ErrorCode::FileUnavailable,
-            27 => repolupe::dto::error::ErrorCode::UnknownAttachment,
-            28 => repolupe::dto::error::ErrorCode::Unknown,
+            17 => repolupe::dto::error::ErrorCode::UnknownMcpServer,
+            18 => repolupe::dto::error::ErrorCode::UnknownUser,
+            19 => repolupe::dto::error::ErrorCode::GenerationInProgress,
+            20 => repolupe::dto::error::ErrorCode::NotRetryable,
+            21 => repolupe::dto::error::ErrorCode::WrongPassword,
+            22 => repolupe::dto::error::ErrorCode::SamePassword,
+            23 => repolupe::dto::error::ErrorCode::PasswordChangeRequired,
+            24 => repolupe::dto::error::ErrorCode::UnknownModel,
+            25 => repolupe::dto::error::ErrorCode::NoModelConfigured,
+            26 => repolupe::dto::error::ErrorCode::Unavailable,
+            27 => repolupe::dto::error::ErrorCode::FileUnavailable,
+            28 => repolupe::dto::error::ErrorCode::UnknownAttachment,
+            29 => repolupe::dto::error::ErrorCode::Unknown,
             _ => unreachable!("Invalid variant for ErrorCode: {}", inner),
         };
     }
@@ -7528,6 +7541,8 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::ChatDto> 
             self.0.title.into_into_dart().into_dart(),
             self.0.all_repositories.into_into_dart().into_dart(),
             self.0.repository_ids.into_into_dart().into_dart(),
+            self.0.all_mcp_servers.into_into_dart().into_dart(),
+            self.0.mcp_server_ids.into_into_dart().into_dart(),
             self.0.model_id.into_into_dart().into_dart(),
             self.0.temporary.into_into_dart().into_dart(),
             self.0.created_at.into_into_dart().into_dart(),
@@ -7703,6 +7718,8 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::CreateCha
             self.0.attachment_id.into_into_dart().into_dart(),
             self.0.all_repositories.into_into_dart().into_dart(),
             self.0.repository_ids.into_into_dart().into_dart(),
+            self.0.all_mcp_servers.into_into_dart().into_dart(),
+            self.0.mcp_server_ids.into_into_dart().into_dart(),
             self.0.title.into_into_dart().into_dart(),
             self.0.model_id.into_into_dart().into_dart(),
             self.0.temporary.into_into_dart().into_dart(),
@@ -8090,18 +8107,19 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::error::ErrorCod
             repolupe::dto::error::ErrorCode::TokenRequired => 14.into_dart(),
             repolupe::dto::error::ErrorCode::RemoteUnreachable => 15.into_dart(),
             repolupe::dto::error::ErrorCode::UnknownRepository => 16.into_dart(),
-            repolupe::dto::error::ErrorCode::UnknownUser => 17.into_dart(),
-            repolupe::dto::error::ErrorCode::GenerationInProgress => 18.into_dart(),
-            repolupe::dto::error::ErrorCode::NotRetryable => 19.into_dart(),
-            repolupe::dto::error::ErrorCode::WrongPassword => 20.into_dart(),
-            repolupe::dto::error::ErrorCode::SamePassword => 21.into_dart(),
-            repolupe::dto::error::ErrorCode::PasswordChangeRequired => 22.into_dart(),
-            repolupe::dto::error::ErrorCode::UnknownModel => 23.into_dart(),
-            repolupe::dto::error::ErrorCode::NoModelConfigured => 24.into_dart(),
-            repolupe::dto::error::ErrorCode::Unavailable => 25.into_dart(),
-            repolupe::dto::error::ErrorCode::FileUnavailable => 26.into_dart(),
-            repolupe::dto::error::ErrorCode::UnknownAttachment => 27.into_dart(),
-            repolupe::dto::error::ErrorCode::Unknown => 28.into_dart(),
+            repolupe::dto::error::ErrorCode::UnknownMcpServer => 17.into_dart(),
+            repolupe::dto::error::ErrorCode::UnknownUser => 18.into_dart(),
+            repolupe::dto::error::ErrorCode::GenerationInProgress => 19.into_dart(),
+            repolupe::dto::error::ErrorCode::NotRetryable => 20.into_dart(),
+            repolupe::dto::error::ErrorCode::WrongPassword => 21.into_dart(),
+            repolupe::dto::error::ErrorCode::SamePassword => 22.into_dart(),
+            repolupe::dto::error::ErrorCode::PasswordChangeRequired => 23.into_dart(),
+            repolupe::dto::error::ErrorCode::UnknownModel => 24.into_dart(),
+            repolupe::dto::error::ErrorCode::NoModelConfigured => 25.into_dart(),
+            repolupe::dto::error::ErrorCode::Unavailable => 26.into_dart(),
+            repolupe::dto::error::ErrorCode::FileUnavailable => 27.into_dart(),
+            repolupe::dto::error::ErrorCode::UnknownAttachment => 28.into_dart(),
+            repolupe::dto::error::ErrorCode::Unknown => 29.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -9699,6 +9717,8 @@ impl SseEncode for repolupe::dto::chat::ChatDto {
         <String>::sse_encode(self.title, serializer);
         <bool>::sse_encode(self.all_repositories, serializer);
         <Vec<uuid::Uuid>>::sse_encode(self.repository_ids, serializer);
+        <bool>::sse_encode(self.all_mcp_servers, serializer);
+        <Vec<uuid::Uuid>>::sse_encode(self.mcp_server_ids, serializer);
         <Option<uuid::Uuid>>::sse_encode(self.model_id, serializer);
         <bool>::sse_encode(self.temporary, serializer);
         <chrono::DateTime<chrono::Utc>>::sse_encode(self.created_at, serializer);
@@ -9789,6 +9809,8 @@ impl SseEncode for repolupe::dto::chat::CreateChatRequest {
         <Option<uuid::Uuid>>::sse_encode(self.attachment_id, serializer);
         <bool>::sse_encode(self.all_repositories, serializer);
         <Option<Vec<uuid::Uuid>>>::sse_encode(self.repository_ids, serializer);
+        <bool>::sse_encode(self.all_mcp_servers, serializer);
+        <Option<Vec<uuid::Uuid>>>::sse_encode(self.mcp_server_ids, serializer);
         <Option<String>>::sse_encode(self.title, serializer);
         <Option<uuid::Uuid>>::sse_encode(self.model_id, serializer);
         <bool>::sse_encode(self.temporary, serializer);
@@ -10008,18 +10030,19 @@ impl SseEncode for repolupe::dto::error::ErrorCode {
                 repolupe::dto::error::ErrorCode::TokenRequired => 14,
                 repolupe::dto::error::ErrorCode::RemoteUnreachable => 15,
                 repolupe::dto::error::ErrorCode::UnknownRepository => 16,
-                repolupe::dto::error::ErrorCode::UnknownUser => 17,
-                repolupe::dto::error::ErrorCode::GenerationInProgress => 18,
-                repolupe::dto::error::ErrorCode::NotRetryable => 19,
-                repolupe::dto::error::ErrorCode::WrongPassword => 20,
-                repolupe::dto::error::ErrorCode::SamePassword => 21,
-                repolupe::dto::error::ErrorCode::PasswordChangeRequired => 22,
-                repolupe::dto::error::ErrorCode::UnknownModel => 23,
-                repolupe::dto::error::ErrorCode::NoModelConfigured => 24,
-                repolupe::dto::error::ErrorCode::Unavailable => 25,
-                repolupe::dto::error::ErrorCode::FileUnavailable => 26,
-                repolupe::dto::error::ErrorCode::UnknownAttachment => 27,
-                repolupe::dto::error::ErrorCode::Unknown => 28,
+                repolupe::dto::error::ErrorCode::UnknownMcpServer => 17,
+                repolupe::dto::error::ErrorCode::UnknownUser => 18,
+                repolupe::dto::error::ErrorCode::GenerationInProgress => 19,
+                repolupe::dto::error::ErrorCode::NotRetryable => 20,
+                repolupe::dto::error::ErrorCode::WrongPassword => 21,
+                repolupe::dto::error::ErrorCode::SamePassword => 22,
+                repolupe::dto::error::ErrorCode::PasswordChangeRequired => 23,
+                repolupe::dto::error::ErrorCode::UnknownModel => 24,
+                repolupe::dto::error::ErrorCode::NoModelConfigured => 25,
+                repolupe::dto::error::ErrorCode::Unavailable => 26,
+                repolupe::dto::error::ErrorCode::FileUnavailable => 27,
+                repolupe::dto::error::ErrorCode::UnknownAttachment => 28,
+                repolupe::dto::error::ErrorCode::Unknown => 29,
                 _ => {
                     unimplemented!("");
                 }

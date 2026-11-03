@@ -131,6 +131,8 @@ ChatDto chat(String id, String title, String repositoryId) => ChatDto(
   title: title,
   allRepositories: false,
   repositoryIds: [UuidValue.fromString(repositoryId)],
+  allMcpServers: true,
+  mcpServerIds: const [],
   modelId: UuidValue.fromString(sampleModelId),
   temporary: false,
   createdAt: DateTime.utc(2026, 10, 21, 9, 12),

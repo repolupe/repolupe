@@ -137,6 +137,8 @@ extension on ErrorCode {
       ErrorCode.tokenRequired => errors.tokenRequired,
       ErrorCode.remoteUnreachable => errors.remoteUnreachable,
       ErrorCode.unknownRepository => errors.unknownRepository,
+      // The app doesn't select MCP servers for chats yet.
+      ErrorCode.unknownMcpServer => null,
       ErrorCode.unknownUser => errors.unknownUser,
       ErrorCode.generationInProgress => errors.generationInProgress,
       ErrorCode.notRetryable => errors.notRetryable,

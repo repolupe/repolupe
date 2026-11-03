@@ -23,6 +23,7 @@ pub enum ErrorCode {
     TokenRequired,
     RemoteUnreachable,
     UnknownRepository,
+    UnknownMcpServer,
     UnknownUser,
     GenerationInProgress,
     NotRetryable,

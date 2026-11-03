@@ -399,6 +399,8 @@ fn start_answer(client: &Client, llm: &MockLlm) -> (Uuid, Uuid) {
         utc_offset_minutes: None,
         all_repositories: true,
         repository_ids: None,
+        all_mcp_servers: true,
+        mcp_server_ids: None,
         title: Some("Notes".into()),
         model_id: None,
         temporary: false,

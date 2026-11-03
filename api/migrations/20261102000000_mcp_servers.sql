@@ -86,3 +86,47 @@ ALTER TABLE users_new RENAME TO users;
 CREATE UNIQUE INDEX idx_users_user_name ON users (lower(user_name));
 CREATE UNIQUE INDEX idx_users_email ON users (lower(email));
 CREATE INDEX idx_users_default_model_id ON users (default_model_id);
+
+CREATE TABLE chats_new
+(
+    id               BLOB PRIMARY KEY NOT NULL,
+    user_id          BLOB      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    title            TEXT      NOT NULL,
+    all_repositories BOOLEAN   NOT NULL,
+    all_mcp_servers  BOOLEAN   NOT NULL,
+    model_id         BLOB REFERENCES llm_models (id) ON DELETE SET NULL,
+    temporary        BOOLEAN   NOT NULL,
+    created_at       TIMESTAMP NOT NULL,
+    updated_at       TIMESTAMP NOT NULL
+);
+
+INSERT INTO chats_new (id, user_id, title, all_repositories, all_mcp_servers, model_id, temporary, created_at,
+                       updated_at)
+SELECT id,
+       user_id,
+       title,
+       all_repositories,
+       true,
+       model_id,
+       temporary,
+       created_at,
+       updated_at
+FROM chats;
+
+DROP TABLE chats;
+ALTER TABLE chats_new RENAME TO chats;
+
+CREATE INDEX idx_chats_user_updated_at ON chats (user_id, updated_at DESC) WHERE NOT temporary;
+CREATE INDEX idx_chats_temporary_updated_at ON chats (updated_at) WHERE temporary;
+CREATE INDEX idx_chats_model_id ON chats (model_id);
+
+-- only used if all_mcp_servers is false
+CREATE TABLE chat_mcp_servers
+(
+    chat_id       BLOB NOT NULL REFERENCES chats (id) ON DELETE CASCADE,
+    mcp_server_id BLOB NOT NULL REFERENCES mcp_servers (id) ON DELETE CASCADE,
+
+    PRIMARY KEY (chat_id, mcp_server_id)
+) WITHOUT ROWID;
+
+CREATE INDEX idx_chat_mcp_servers_mcp_server_id ON chat_mcp_servers (mcp_server_id);

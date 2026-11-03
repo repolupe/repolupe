@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO chat_mcp_servers (chat_id, mcp_server_id)\n           SELECT $1, s.id\n           FROM mcp_servers s\n           WHERE s.id IN (SELECT unhex(value, '-') FROM json_each($3))\n             AND (s.user_id = $2\n                  OR s.id IN (SELECT mcp_server_id FROM mcp_server_users WHERE user_id = $2))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "da1a8281d493ff172d8ac34672801770070fa7fcaa65278de9893476b808d304"
+}

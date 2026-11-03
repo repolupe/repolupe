@@ -36,6 +36,14 @@ class ChatDto {
   /// Empty if `all_repositories` is true.
   final List<UuidValue> repositoryIds;
 
+  /// Whether the model gets the tools of all MCP servers the user can use, including ones added
+  /// later.
+  final bool allMcpServers;
+
+  /// Empty if `all_mcp_servers` is true. Only the ones that are enabled and connected (and,
+  /// if shared, turned on) give the model tools.
+  final List<UuidValue> mcpServerIds;
+
   /// `null` uses the user's model.
   final UuidValue? modelId;
 
@@ -49,6 +57,8 @@ class ChatDto {
     required this.title,
     required this.allRepositories,
     required this.repositoryIds,
+    required this.allMcpServers,
+    required this.mcpServerIds,
     this.modelId,
     required this.temporary,
     required this.createdAt,
@@ -61,6 +71,8 @@ class ChatDto {
       title.hashCode ^
       allRepositories.hashCode ^
       repositoryIds.hashCode ^
+      allMcpServers.hashCode ^
+      mcpServerIds.hashCode ^
       modelId.hashCode ^
       temporary.hashCode ^
       createdAt.hashCode ^
@@ -75,6 +87,8 @@ class ChatDto {
           title == other.title &&
           allRepositories == other.allRepositories &&
           repositoryIds == other.repositoryIds &&
+          allMcpServers == other.allMcpServers &&
+          mcpServerIds == other.mcpServerIds &&
           modelId == other.modelId &&
           temporary == other.temporary &&
           createdAt == other.createdAt &&
@@ -144,6 +158,13 @@ class CreateChatRequest {
   final bool allRepositories;
   final List<UuidValue>? repositoryIds;
 
+  /// Absent means true.
+  final bool allMcpServers;
+
+  /// MCP servers the user owns or that are shared with them. Must be absent or empty if
+  /// `all_mcp_servers` is true.
+  final List<UuidValue>? mcpServerIds;
+
   /// Derived from `content` if absent or blank.
   final String? title;
 
@@ -162,6 +183,8 @@ class CreateChatRequest {
     this.attachmentId,
     required this.allRepositories,
     this.repositoryIds,
+    required this.allMcpServers,
+    this.mcpServerIds,
     this.title,
     this.modelId,
     required this.temporary,
@@ -174,6 +197,8 @@ class CreateChatRequest {
       attachmentId.hashCode ^
       allRepositories.hashCode ^
       repositoryIds.hashCode ^
+      allMcpServers.hashCode ^
+      mcpServerIds.hashCode ^
       title.hashCode ^
       modelId.hashCode ^
       temporary.hashCode ^
@@ -188,6 +213,8 @@ class CreateChatRequest {
           attachmentId == other.attachmentId &&
           allRepositories == other.allRepositories &&
           repositoryIds == other.repositoryIds &&
+          allMcpServers == other.allMcpServers &&
+          mcpServerIds == other.mcpServerIds &&
           title == other.title &&
           modelId == other.modelId &&
           temporary == other.temporary &&

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM chat_mcp_servers\n           WHERE mcp_server_id = $1 AND chat_id IN (SELECT id FROM chats WHERE user_id = $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "4be3e638999be3fb3862f7d850304269b91bacd5603125e8072f8c81084acbfb"
+}

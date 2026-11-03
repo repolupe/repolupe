@@ -355,6 +355,8 @@ impl From<model::chat::Chat> for ChatDto {
             title: chat.title,
             all_repositories: chat.all_repositories,
             repository_ids: chat.repository_ids.0,
+            all_mcp_servers: chat.all_mcp_servers,
+            mcp_server_ids: chat.mcp_server_ids.0,
             model_id: chat.model_id,
             temporary: chat.temporary,
             created_at: chat.created_at,

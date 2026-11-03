@@ -273,14 +273,14 @@ async fn stream_response(
     ))
 }
 
-/// The MCP servers whose tools the model gets, the user's own and the ones shared with them that
-/// they turned on, without the tools the owner turned off. One whose token cannot be decrypted is
+/// The MCP servers whose tools the model gets, those the chat allows of the user's own and the
+/// ones shared with them that they turned on, without the tools the owner turned off. One whose token cannot be decrypted is
 /// left out.
 async fn mcp_servers(
     state: &AppState,
     generation: &Generation,
 ) -> Result<Vec<McpServerTools>, GenerationError> {
-    let servers = repository::mcp::list_usable_mcp_servers(&state.db, generation.user_id).await?;
+    let servers = repository::mcp::list_usable_mcp_servers(&state.db, generation.chat_id).await?;
     Ok(servers
         .into_iter()
         .filter_map(

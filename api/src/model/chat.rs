@@ -9,6 +9,9 @@ pub struct Chat {
     pub all_repositories: bool,
     /// Empty if `all_repositories` is true.
     pub repository_ids: Json<Vec<Uuid>>,
+    pub all_mcp_servers: bool,
+    /// Empty if `all_mcp_servers` is true.
+    pub mcp_server_ids: Json<Vec<Uuid>>,
     /// `None` uses the user's model.
     pub model_id: Option<Uuid>,
     /// Not listed, and deleted a while after its last message.

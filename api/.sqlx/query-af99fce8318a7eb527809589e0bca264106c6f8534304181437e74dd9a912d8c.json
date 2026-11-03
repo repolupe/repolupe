@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT s.id AS \"id: Uuid\", s.name, s.url, s.token_encrypted, s.oauth_encrypted,\n                  u.role AS \"owner_role: UserRole\",\n                  CASE WHEN s.user_id = $1 THEN NULL ELSE u.user_name END AS \"shared_by?: String\",\n                  s.tools AS \"tools: Json<Vec<McpTool>>\",\n                  s.disabled_tools AS \"disabled_tools: Json<Vec<String>>\",\n                  s.updated_at AS \"updated_at: DateTime<Utc>\"\n           FROM mcp_servers s\n           JOIN users u ON u.id = s.user_id\n           WHERE (s.user_id = $1\n                  OR s.id IN (SELECT mcp_server_id FROM mcp_server_users WHERE user_id = $1 AND enabled))\n             AND s.enabled AND s.status = 'READY'\n           ORDER BY s.id",
+  "query": "SELECT s.id AS \"id: Uuid\", s.name, s.url, s.token_encrypted, s.oauth_encrypted,\n                  u.role AS \"owner_role: UserRole\",\n                  CASE WHEN s.user_id = c.user_id THEN NULL ELSE u.user_name END AS \"shared_by?: String\",\n                  s.tools AS \"tools: Json<Vec<McpTool>>\",\n                  s.disabled_tools AS \"disabled_tools: Json<Vec<String>>\",\n                  s.updated_at AS \"updated_at: DateTime<Utc>\"\n           FROM chats c\n           JOIN mcp_servers s\n                ON s.user_id = c.user_id\n                    OR s.id IN (SELECT mcp_server_id FROM mcp_server_users WHERE user_id = c.user_id AND enabled)\n           JOIN users u ON u.id = s.user_id\n           WHERE c.id = $1\n             AND s.enabled AND s.status = 'READY'\n             AND (c.all_mcp_servers\n                  OR EXISTS (SELECT 1\n                             FROM chat_mcp_servers cm\n                             WHERE cm.chat_id = c.id AND cm.mcp_server_id = s.id))\n           ORDER BY s.id",
   "describe": {
     "columns": [
       {
@@ -70,5 +70,5 @@
       false
     ]
   },
-  "hash": "6901cb9e94868cfb98641bcbe9adcc9a80cb2c7825537f51a78fc53c9533ff90"
+  "hash": "af99fce8318a7eb527809589e0bca264106c6f8534304181437e74dd9a912d8c"
 }

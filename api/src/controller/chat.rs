@@ -13,7 +13,7 @@ use crate::model::chat::Chat;
 use crate::model::message::Message;
 use crate::model::tool_call::{ChangedPaths, ProposedCommit, ToolCallSummary};
 use crate::repository::chat::{
-    ChatChanges, ChatCursor, Exchange, NewChat, NewExchange, RepositoryScope, RetryOutcome,
+    ChatChanges, ChatCursor, Exchange, NewChat, NewExchange, RetryOutcome, Scope,
 };
 use crate::service::generation::{ClientContext, GenerationEvent, Subscription};
 use crate::service::llm_config::AnsweringModel;
@@ -126,9 +126,15 @@ pub(crate) async fn create_chat(
         _ => derive_title(&payload.content),
     };
     util::validation::validate_chat_title(&title)?;
-    let scope = parse_scope(
+    let repositories = parse_scope(
+        ScopeKind::Repositories,
         payload.all_repositories,
         payload.repository_ids.unwrap_or_default(),
+    )?;
+    let mcp_servers = parse_scope(
+        ScopeKind::McpServers,
+        payload.all_mcp_servers,
+        payload.mcp_server_ids.unwrap_or_default(),
     )?;
 
     let model = service::llm_config::resolve(&state, auth.user_id, payload.model_id).await?;
@@ -152,7 +158,8 @@ pub(crate) async fn create_chat(
             id,
             user_id: auth.user_id,
             title: &title,
-            scope: &scope,
+            repositories: &repositories,
+            mcp_servers: &mcp_servers,
             model_id: payload.model_id,
             temporary: payload.temporary,
             content: &payload.content,
@@ -709,22 +716,46 @@ fn parse_title(title: &str) -> Result<&str, ValidationError> {
     Ok(title)
 }
 
-fn parse_scope(
-    all_repositories: bool,
-    mut repository_ids: Vec<Uuid>,
-) -> Result<RepositoryScope, ValidationError> {
-    if all_repositories {
-        if !repository_ids.is_empty() {
-            return Err(ValidationError(
-                "`repository_ids` must be empty if `all_repositories` is true".to_string(),
-            ));
+/// What a [`Scope`] of `CreateChatRequest` selects.
+#[derive(Clone, Copy)]
+enum ScopeKind {
+    Repositories,
+    McpServers,
+}
+
+impl ScopeKind {
+    /// The names of its fields in the request: whether all are selected, and which ones if not.
+    fn fields(self) -> (&'static str, &'static str) {
+        match self {
+            ScopeKind::Repositories => ("all_repositories", "repository_ids"),
+            ScopeKind::McpServers => ("all_mcp_servers", "mcp_server_ids"),
         }
-        return Ok(RepositoryScope::All);
     }
-    repository_ids.sort();
-    repository_ids.dedup();
-    util::validation::validate_repository_selection(&repository_ids)?;
-    Ok(RepositoryScope::Selected(repository_ids))
+
+    /// Checks the deduplicated selection.
+    fn validate(self, ids: &[Uuid]) -> Result<(), ValidationError> {
+        match self {
+            ScopeKind::Repositories => util::validation::validate_repository_selection(ids),
+            ScopeKind::McpServers => util::validation::validate_mcp_server_selection(ids),
+        }
+    }
+}
+
+/// `ids` must be empty if `all` is true.
+fn parse_scope(kind: ScopeKind, all: bool, mut ids: Vec<Uuid>) -> Result<Scope, ValidationError> {
+    if all {
+        if !ids.is_empty() {
+            let (all_field, ids_field) = kind.fields();
+            return Err(ValidationError(format!(
+                "`{ids_field}` must be empty if `{all_field}` is true"
+            )));
+        }
+        return Ok(Scope::All);
+    }
+    ids.sort();
+    ids.dedup();
+    kind.validate(&ids)?;
+    Ok(Scope::Selected(ids))
 }
 
 /// The first words of the message on one line.
@@ -812,6 +843,8 @@ mod tests {
             title: String::new(),
             all_repositories: true,
             repository_ids: Json(vec![]),
+            all_mcp_servers: true,
+            mcp_server_ids: Json(vec![]),
             model_id: None,
             temporary: false,
             created_at: Utc::now(),
@@ -829,18 +862,31 @@ mod tests {
     fn parses_scope() {
         let a = Uuid::now_v7();
         let b = Uuid::now_v7();
-        assert!(matches!(
-            parse_scope(true, vec![]),
-            Ok(RepositoryScope::All)
-        ));
-        assert!(parse_scope(true, vec![a]).is_err());
-        assert!(matches!(
-            parse_scope(false, vec![]),
-            Ok(RepositoryScope::Selected(ids)) if ids.is_empty()
-        ));
-        match parse_scope(false, vec![b, a, b]) {
-            Ok(RepositoryScope::Selected(ids)) => assert_eq!(ids, vec![a, b]),
-            _ => panic!("expected a selection"),
+        let many = (0..101).map(|_| Uuid::now_v7()).collect::<Vec<_>>();
+        for kind in [ScopeKind::Repositories, ScopeKind::McpServers] {
+            assert!(matches!(parse_scope(kind, true, vec![]), Ok(Scope::All)));
+            assert!(matches!(
+                parse_scope(kind, false, vec![]),
+                Ok(Scope::Selected(ids)) if ids.is_empty()
+            ));
+            match parse_scope(kind, false, vec![b, a, b]) {
+                Ok(Scope::Selected(ids)) => assert_eq!(ids, vec![a, b]),
+                _ => panic!("expected a selection"),
+            }
+            // The limit applies after deduplication.
+            assert!(parse_scope(kind, false, many.clone()).is_err());
+            let twice = [&many[..100], &many[..100]].concat();
+            assert!(parse_scope(kind, false, twice).is_ok());
         }
+
+        let error = |kind| parse_scope(kind, true, vec![a]).err().unwrap().0;
+        assert_eq!(
+            error(ScopeKind::Repositories),
+            "`repository_ids` must be empty if `all_repositories` is true"
+        );
+        assert_eq!(
+            error(ScopeKind::McpServers),
+            "`mcp_server_ids` must be empty if `all_mcp_servers` is true"
+        );
     }
 }

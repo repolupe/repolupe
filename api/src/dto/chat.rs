@@ -50,6 +50,12 @@ pub struct ChatDto {
     pub all_repositories: bool,
     /// Empty if `all_repositories` is true.
     pub repository_ids: Vec<Uuid>,
+    /// Whether the model gets the tools of all MCP servers the user can use, including ones added
+    /// later.
+    pub all_mcp_servers: bool,
+    /// Empty if `all_mcp_servers` is true. Only the ones that are enabled and connected (and,
+    /// if shared, turned on) give the model tools.
+    pub mcp_server_ids: Vec<Uuid>,
     /// `null` uses the user's model.
     pub model_id: Option<Uuid>,
     /// Not listed in `GET /api/v1/chats`, and deleted a day after its last message.
@@ -263,6 +269,13 @@ pub struct CreateChatRequest {
     pub all_repositories: bool,
     #[serde(default)]
     pub repository_ids: Option<Vec<Uuid>>,
+    /// Absent means true.
+    #[serde(default = "all_mcp_servers_default")]
+    pub all_mcp_servers: bool,
+    /// MCP servers the user owns or that are shared with them. Must be absent or empty if
+    /// `all_mcp_servers` is true.
+    #[serde(default)]
+    pub mcp_server_ids: Option<Vec<Uuid>>,
     /// Derived from `content` if absent or blank.
     pub title: Option<String>,
     /// Absent or `null` uses the user's model.
@@ -275,6 +288,10 @@ pub struct CreateChatRequest {
     /// local time. Absent uses UTC.
     #[serde(default)]
     pub utc_offset_minutes: Option<i32>,
+}
+
+fn all_mcp_servers_default() -> bool {
+    true
 }
 
 /// Replaces the title and the model. `model_id` absent or `null` uses the user's model.

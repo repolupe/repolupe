@@ -81,7 +81,7 @@ void main() {
       providerId: provider.id,
       request: const LlmModelRequest(apiName: 'mock-model'),
     );
-    final chat = await client.createChat(request: const CreateChatRequest(content: 'Hello', allRepositories: true, temporary: false));
+    final chat = await client.createChat(request: const CreateChatRequest(content: 'Hello', allRepositories: true, allMcpServers: true, temporary: false));
     final chatId = chat.chat.id;
     final answerId = chat.messages.last.id;
 

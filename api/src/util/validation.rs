@@ -22,6 +22,8 @@ pub(crate) const MIN_POLL_INTERVAL_SECONDS: i32 = 60;
 const MAX_CHAT_TITLE_LENGTH: usize = 200;
 const MAX_MESSAGE_LENGTH: usize = 32_000;
 const MAX_REPOSITORIES_PER_CHAT: usize = 100;
+/// More than a user gets tools from, since shares they turned off can be selected too.
+const MAX_MCP_SERVERS_PER_CHAT: usize = 100;
 const MAX_LOCALE_LENGTH: usize = 35;
 /// The largest offsets in use are UTC−12:00 and UTC+14:00.
 const MAX_UTC_OFFSET_MINUTES: i32 = 14 * 60;
@@ -398,6 +400,15 @@ pub(crate) fn validate_repository_selection(ids: &[uuid::Uuid]) -> Result<(), Va
     if ids.len() > MAX_REPOSITORIES_PER_CHAT {
         return Err(ValidationError(format!(
             "At most {MAX_REPOSITORIES_PER_CHAT} repositories can be selected"
+        )));
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_mcp_server_selection(ids: &[uuid::Uuid]) -> Result<(), ValidationError> {
+    if ids.len() > MAX_MCP_SERVERS_PER_CHAT {
+        return Err(ValidationError(format!(
+            "At most {MAX_MCP_SERVERS_PER_CHAT} MCP servers can be selected"
         )));
     }
     Ok(())

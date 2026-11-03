@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT c.id AS \"id: Uuid\", c.title, c.all_repositories,\n                  (SELECT json_group_array(lower(hex(cr.repository_id)) ORDER BY cr.repository_id)\n                   FROM chat_repositories cr\n                   WHERE cr.chat_id = c.id) AS \"repository_ids!: Json<Vec<Uuid>>\",\n                  c.all_mcp_servers,\n                  (SELECT json_group_array(lower(hex(cm.mcp_server_id)) ORDER BY cm.mcp_server_id)\n                   FROM chat_mcp_servers cm\n                   WHERE cm.chat_id = c.id) AS \"mcp_server_ids!: Json<Vec<Uuid>>\",\n                  c.model_id AS \"model_id: Uuid\", c.temporary, c.created_at AS \"created_at: DateTime<Utc>\",\n                  c.updated_at AS \"updated_at: DateTime<Utc>\"\n           FROM chats c\n           WHERE c.id = $1 AND c.user_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "title",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "all_repositories",
+        "ordinal": 2,
+        "type_info": "Bool"
+      },
+      {
+        "name": "repository_ids!: Json<Vec<Uuid>>",
+        "ordinal": 3,
+        "type_info": "Null"
+      },
+      {
+        "name": "all_mcp_servers",
+        "ordinal": 4,
+        "type_info": "Bool"
+      },
+      {
+        "name": "mcp_server_ids!: Json<Vec<Uuid>>",
+        "ordinal": 5,
+        "type_info": "Null"
+      },
+      {
+        "name": "model_id: Uuid",
+        "ordinal": 6,
+        "type_info": "Blob"
+      },
+      {
+        "name": "temporary",
+        "ordinal": 7,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 8,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "updated_at: DateTime<Utc>",
+        "ordinal": 9,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      false,
+      null,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "12e5ca6fdcbb3507e875a77376277b8111836ced94ec8f6a7a3d68aedfe5ed04"
+}
