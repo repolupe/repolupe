@@ -233,6 +233,9 @@ class Translations$base$errors$en {
   /// en: 'A repository no longer exists.'
   String get unknownRepository => 'A repository no longer exists.';
 
+  /// en: 'An MCP server no longer exists.'
+  String get unknownMcpServer => 'An MCP server no longer exists.';
+
   /// en: 'There is no user with this user name or email.'
   String get unknownUser => 'There is no user with this user name or email.';
 
@@ -455,6 +458,17 @@ class Translations$base$chat$en {
     zero: 'No repository',
     one: '1 repository',
     other: '${count} repositories',
+  );
+
+  /// en: 'All MCP Servers'
+  String get allMcpServers => 'All MCP Servers';
+
+  /// en: '(zero) {No MCP servers} (one) {1 MCP server} (other) {{count} MCP servers}'
+  String mcpServerCount({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
+    count,
+    zero: 'No MCP servers',
+    one: '1 MCP server',
+    other: '${count} MCP servers',
   );
 
   /// en: '(one) {1 move} (other) {{count} moves}'
@@ -904,6 +918,9 @@ class Translations$base$chat$startPage$en {
 
   /// en: 'A selected repository is no longer available.'
   String get unknownRepository => 'A selected repository is no longer available.';
+
+  /// en: 'A selected MCP server is no longer available.'
+  String get unknownMcpServer => 'A selected MCP server is no longer available.';
 }
 
 // Path: base.chat.page
@@ -976,6 +993,9 @@ class Translations$base$chat$messageInput$en {
 
   /// en: 'Attach file'
   String get attach => 'Attach file';
+
+  /// en: 'Options'
+  String get options => 'Options';
 
   /// en: 'Drop a file to attach it'
   String get dropHint => 'Drop a file to attach it';
@@ -1931,9 +1951,9 @@ class Translations$base$mcpServers$page$en {
     other: '${count} Servers',
   );
 
-  /// en: 'MCP servers give the model more tools, e.g. to search the web or to work with other services. The tools of enabled servers are available in all your chats.'
+  /// en: 'MCP servers give the model more tools, e.g. to search the web or to work with other services. The tools of enabled servers are available in your chats, unless you pick other servers when starting a chat.'
   String get intro =>
-      'MCP servers give the model more tools, e.g. to search the web or to work with other services. The tools of enabled servers are available in all your chats.';
+      'MCP servers give the model more tools, e.g. to search the web or to work with other services. The tools of enabled servers are available in your chats, unless you pick other servers when starting a chat.';
 
   /// en: 'The model decides on its own when to use them, and may send content from your chats and repositories to the servers. Only add servers you trust.'
   String get privacy =>

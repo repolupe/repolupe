@@ -1,16 +1,19 @@
 <template>
-  <v-menu :close-on-content-click="false">
+  <v-menu v-if="props.variant === 'item' || !props.modelValue.all" :close-on-content-click="false"
+          :submenu="props.variant === 'item'" :disabled="props.disabled">
     <template v-slot:activator="{ props: menuProps }">
-      <!-- only icons and the number of selected items, so the row of selects stays short -->
-      <button v-bind="menuProps" v-ripple type="button" class="activator" :disabled="props.disabled"
-              :title="props.title" :aria-label="props.title">
-        <v-icon :icon="none ? props.noneIcon : props.icon" class="activator-icon"/>
-        <span v-if="count !== null">{{ count }}</span>
-      </button>
+      <v-list-item v-if="props.variant === 'item'" v-bind="menuProps" :prepend-icon="icon" :title="props.header"
+                   append-icon="mdi-chevron-right" :disabled="props.disabled"/>
+      <!-- the close button selects all items again -->
+      <v-chip v-else v-bind="menuProps" :prepend-icon="icon" :title="props.header" closable :disabled="props.disabled"
+              class="scope-chip" @click:close="emit('update:modelValue', {all: true, ids: []})">
+        <span class="text-truncate">{{ props.summary }}</span>
+      </v-chip>
     </template>
 
     <v-list density="compact" min-width="220" max-width="360" max-height="440">
-      <v-list-subheader>{{ props.header }}</v-list-subheader>
+      <!-- a submenu is next to its item, which already says what the items are -->
+      <v-list-subheader v-if="props.variant === 'chip'">{{ props.header }}</v-list-subheader>
       <v-list-item :title="props.allTitle" role="menuitemcheckbox" :aria-checked="props.modelValue.all"
                    @click="emit('update:modelValue', {all: !props.modelValue.all, ids: []})">
         <template v-slot:prepend>
@@ -57,8 +60,13 @@ const props = defineProps<{
   icon: string,
   /** With no item selected. */
   noneIcon: string,
-  /** The tooltip and the accessible name, the selection in words. */
-  title: string,
+  /** The selection in words, on the chip. */
+  summary: string,
+  /**
+   * `item` is an entry of the message input's menu that opens the items as a submenu. `chip` is shown next to that
+   * menu only while not all items are selected, so the default takes no space.
+   */
+  variant: 'item' | 'chip',
   disabled?: boolean,
 }>();
 
@@ -66,10 +74,7 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: Scope): void,
 }>();
 
-const none = computed(() => !props.modelValue.all && props.modelValue.ids.length === 0);
-
-/** Only with some items selected, the icon tells all from none. */
-const count = computed(() => props.modelValue.all || none.value ? null : props.modelValue.ids.length);
+const icon = computed(() => !props.modelValue.all && props.modelValue.ids.length === 0 ? props.noneIcon : props.icon);
 
 const isSelected = (id: string) => !props.modelValue.all && props.modelValue.ids.includes(id);
 
@@ -81,31 +86,7 @@ const toggle = (id: string) => {
 </script>
 
 <style scoped>
-/* like the plain v-select of the model next to it */
-.activator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 6px;
-  /* the icon starts where the button does, the padding only shows with the ripple and the focus outline */
-  margin-left: -6px;
-  border-radius: 4px;
-  font-size: 1rem;
-  color: inherit;
-  cursor: pointer;
-}
-
-.activator:disabled {
-  cursor: default;
-  opacity: var(--v-disabled-opacity);
-}
-
-.activator:focus-visible {
-  outline: 2px solid rgb(var(--v-theme-primary));
-}
-
-.activator-icon {
-  flex-shrink: 0;
-  opacity: var(--v-medium-emphasis-opacity);
+.scope-chip {
+  max-width: 220px;
 }
 </style>

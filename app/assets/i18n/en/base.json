@@ -45,6 +45,7 @@
     "tokenRequired": "The host changed, so the stored token or API key cannot be kept. Set a new one, or remove it.",
     "remoteUnreachable": "Could not reach the remote server, or it responded with an error.",
     "unknownRepository": "A repository no longer exists.",
+    "unknownMcpServer": "An MCP server no longer exists.",
     "unknownUser": "There is no user with this user name or email.",
     "generationInProgress": "An answer is already being generated in this chat.",
     "notRetryable": "Only a failed or cancelled answer at the end of the chat can be retried.",
@@ -136,6 +137,12 @@
       "one": "1 repository",
       "other": "{count} repositories"
     },
+    "allMcpServers": "All MCP Servers",
+    "mcpServerCount": {
+      "zero": "No MCP servers",
+      "one": "1 MCP server",
+      "other": "{count} MCP servers"
+    },
     "moveCount": {
       "one": "1 move",
       "other": "{count} moves"
@@ -149,7 +156,8 @@
       "askAdmin": "Ask an admin to configure an LLM provider.",
       "waitForUpload": "Please wait for the file to be uploaded.",
       "enterQuestion": "Please enter a question.",
-      "unknownRepository": "A selected repository is no longer available."
+      "unknownRepository": "A selected repository is no longer available.",
+      "unknownMcpServer": "A selected MCP server is no longer available."
     },
     "page": {
       "actions": "Chat actions",
@@ -172,6 +180,7 @@
       "stop": "Stop",
       "send": "Send",
       "attach": "Attach file",
+      "options": "Options",
       "dropHint": "Drop a file to attach it",
       "fileTooLarge": "The file is too large, it may be at most {max}.",
       "uploadFailed": "Could not upload the file: {error}",
@@ -564,7 +573,7 @@
         "one": "{count} Server",
         "other": "{count} Servers"
       },
-      "intro": "MCP servers give the model more tools, e.g. to search the web or to work with other services. The tools of enabled servers are available in all your chats.",
+      "intro": "MCP servers give the model more tools, e.g. to search the web or to work with other services. The tools of enabled servers are available in your chats, unless you pick other servers when starting a chat.",
       "privacy": "The model decides on its own when to use them, and may send content from your chats and repositories to the servers. Only add servers you trust.",
       "authIntro": "If a server supports it, you sign in with your account there. For others, you can enter a token.",
       "emptyTitle": "No MCP servers yet",

@@ -45,6 +45,7 @@
     "tokenRequired": "Der Host hat sich geändert, daher kann der gespeicherte Token oder API-Schlüssel nicht behalten werden. Setze einen neuen oder entferne ihn.",
     "remoteUnreachable": "Der Remote-Server ist nicht erreichbar oder hat mit einem Fehler geantwortet.",
     "unknownRepository": "Ein Repository existiert nicht mehr.",
+    "unknownMcpServer": "Ein MCP-Server existiert nicht mehr.",
     "unknownUser": "Es gibt keinen Benutzer mit diesem Benutzernamen oder dieser E-Mail.",
     "generationInProgress": "In diesem Chat wird bereits eine Antwort erstellt.",
     "notRetryable": "Nur eine fehlgeschlagene oder abgebrochene Antwort am Ende des Chats kann wiederholt werden.",
@@ -136,6 +137,12 @@
       "one": "1 Repository",
       "other": "{count} Repositories"
     },
+    "allMcpServers": "Alle MCP-Server",
+    "mcpServerCount": {
+      "zero": "Keine MCP-Server",
+      "one": "1 MCP-Server",
+      "other": "{count} MCP-Server"
+    },
     "moveCount": {
       "one": "1 Verschiebung",
       "other": "{count} Verschiebungen"
@@ -149,7 +156,8 @@
       "askAdmin": "Bitte einen Admin, einen LLM-Anbieter einzurichten.",
       "waitForUpload": "Bitte warte, bis die Datei hochgeladen ist.",
       "enterQuestion": "Bitte gib eine Frage ein.",
-      "unknownRepository": "Ein ausgewähltes Repository ist nicht mehr verfügbar."
+      "unknownRepository": "Ein ausgewähltes Repository ist nicht mehr verfügbar.",
+      "unknownMcpServer": "Ein ausgewählter MCP-Server ist nicht mehr verfügbar."
     },
     "page": {
       "actions": "Chat-Aktionen",
@@ -172,6 +180,7 @@
       "stop": "Stoppen",
       "send": "Senden",
       "attach": "Datei anhängen",
+      "options": "Optionen",
       "dropHint": "Datei hier ablegen, um sie anzuhängen",
       "fileTooLarge": "Die Datei ist zu groß, sie darf höchstens {max} groß sein.",
       "uploadFailed": "Die Datei konnte nicht hochgeladen werden: {error}",
@@ -564,7 +573,7 @@
         "one": "{count} Server",
         "other": "{count} Server"
       },
-      "intro": "MCP-Server geben dem Modell weitere Tools, z. B. um im Web zu suchen oder mit anderen Diensten zu arbeiten. Die Tools aktivierter Server stehen in all deinen Chats zur Verfügung.",
+      "intro": "MCP-Server geben dem Modell weitere Tools, z. B. um im Web zu suchen oder mit anderen Diensten zu arbeiten. Die Tools aktivierter Server stehen in deinen Chats zur Verfügung, außer du wählst beim Start eines Chats andere Server aus.",
       "privacy": "Das Modell entscheidet selbst, wann es sie verwendet, und kann dabei Inhalte aus deinen Chats und Repositories an die Server senden. Füge nur Server hinzu, denen du vertraust.",
       "authIntro": "Unterstützt ein Server es, meldest du dich mit deinem Konto dort an. Bei anderen kannst du einen Token eingeben.",
       "emptyTitle": "Noch keine MCP-Server",

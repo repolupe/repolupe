@@ -1,7 +1,8 @@
 <template>
   <ScopeSelect :model-value="scope" :items="items" :header="$t('mcpServers.title')"
                :all-title="$t('chat.allMcpServers')" icon="mdi-puzzle-outline" none-icon="mdi-puzzle-remove-outline"
-               :title="mcpServerScopeSummary(props.modelValue, props.servers)" :disabled="props.disabled"
+               :summary="mcpServerScopeSummary(props.modelValue, props.servers)" :variant="props.variant"
+               :disabled="props.disabled"
                @update:model-value="emit('update:modelValue', {all_mcp_servers: $event.all, mcp_server_ids: $event.ids})"/>
 </template>
 
@@ -15,6 +16,8 @@ const props = defineProps<{
   modelValue: McpServerScope,
   /** The servers that can be selected, see `isMcpServerOn`. */
   servers: McpServerDto[],
+  /** See `ScopeSelect`. */
+  variant: 'item' | 'chip',
   disabled?: boolean,
 }>();
 

@@ -59,13 +59,12 @@
           <MessageInput ref="message-input" v-model="input" v-model:attachment="attachment"
                         :placeholder="$t('chat.placeholder')" :can-send="canSend"
                         :sending="sending" :generating="!!generatingMessage" :stopping="stopping"
-                        @send="doSend" @stop="doStop"/>
-          <!-- hidden but taking its space while loading, so the input does not jump up after the view transition -->
-          <div v-if="!modelsLoaded || models.length > 0" class="mt-4 d-flex align-center"
-               :style="{visibility: chat && modelsLoaded ? 'visible' : 'hidden'}">
-            <ChatModelSelect :model-value="chat?.model_id ?? null" :models="models"
-                             :disabled="!chat || loading" @update:model-value="doChangeModel"/>
-          </div>
+                        @send="doSend" @stop="doStop">
+            <template v-slot:end>
+              <ChatModelSelect v-if="chat && models.length > 0" :model-value="chat.model_id" :models="models"
+                               :disabled="loading" @update:model-value="doChangeModel"/>
+            </template>
+          </MessageInput>
         </div>
       </div>
 
@@ -176,7 +175,6 @@ const repositories = ref<RepositoryDto[]>([]);
 /** For the name of the chat's only server, see `needsMcpServers`. */
 const mcpServers = ref<McpServerDto[]>([]);
 const models = ref<ModelDto[]>([]);
-const modelsLoaded = ref(false);
 const fetching = ref(false);
 const loading = ref(false);
 
@@ -413,7 +411,6 @@ watch(needsMcpServers, (needed) => {
 const fetchModels = async () => {
   try {
     models.value = await getModels();
-    modelsLoaded.value = true;
   } catch (e) {
     showSnackbar(t('settings.preferences.page.modelsLoadFailed', {error: errorMessage(e)}));
   }

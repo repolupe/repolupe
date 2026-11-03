@@ -1,6 +1,6 @@
 <template>
   <div class="new-page" :class="{'new-page-temporary': temporary}">
-    <v-btn class="temporary-toggle fade-in" :class="{'fade-in-hidden': !showSelects}" variant="text"
+    <v-btn class="temporary-toggle" variant="text"
            :icon="temporary ? 'mdi-close' : 'mdi-progress-clock'" :disabled="loading"
            v-tooltip="$t('chat.temporary')" @click="temporary = !temporary"/>
     <div class="new-column">
@@ -25,20 +25,25 @@
 
       <!-- the input is rendered while loading, so the view transition from a chat can move it here -->
       <MessageInput v-model="content" v-model:attachment="attachment" :placeholder="$t('chat.placeholder')"
-                    :can-send="canSubmit" :sending="loading" :disabled="loading" @send="submit"/>
-
-      <!-- hidden but taking its space while loading, so the (vertically centered) input does not jump;
-           the padding lines the first icon up with the attach icon in the input -->
-      <div class="fade-in mt-4 ps-4 d-flex align-center flex-wrap ga-3" :class="{'fade-in-hidden': !showSelects}">
-        <ChatModelSelect v-if="fetching" :model-value="null" :models="[]"/>
-        <template v-else>
+                    :can-send="canSubmit" :sending="loading" :disabled="loading" @send="submit">
+        <!-- assumed while loading, so the attach button does not turn into the menu's button -->
+        <template v-if="fetching || repositories.length > 0 || mcpServers.length > 0" v-slot:menu>
           <RepositoryScopeSelect v-if="repositories.length > 0" v-model="repositoryScope" :repositories="repositories"
-                                 :disabled="loading"/>
+                                 variant="item" :disabled="loading"/>
           <McpServerScopeSelect v-if="mcpServers.length > 0" v-model="mcpServerScope" :servers="mcpServers"
-                                :disabled="loading"/>
+                                variant="item" :disabled="loading"/>
+        </template>
+        <!-- only the scopes that are not "all" -->
+        <template v-slot:start>
+          <RepositoryScopeSelect v-if="repositories.length > 0" v-model="repositoryScope" :repositories="repositories"
+                                 variant="chip" :disabled="loading"/>
+          <McpServerScopeSelect v-if="mcpServers.length > 0" v-model="mcpServerScope" :servers="mcpServers"
+                                variant="chip" :disabled="loading"/>
+        </template>
+        <template v-slot:end>
           <ChatModelSelect v-if="models.length > 0" v-model="modelId" :models="models" :disabled="loading"/>
         </template>
-      </div>
+      </MessageInput>
     </div>
 
     <div v-if="poweredBy" class="powered-by text-caption text-medium-emphasis">Powered by {{ PRODUCT_NAME }}</div>
@@ -46,7 +51,7 @@
 </template>
 
 <script setup lang="ts">
-import {computed, onBeforeUnmount, onMounted, ref, watch} from "vue";
+import {computed, onMounted, ref, watch} from "vue";
 import {navigateTo, useRoute} from "#app";
 import {useI18n} from "#i18n";
 import {NuxtLink} from "#components";
@@ -72,11 +77,7 @@ const {t} = useI18n();
 const route = useRoute();
 const user = useUser();
 
-/** The selects fade in after the view transition from a chat moved the input here (see MessageInput). */
-const SELECTS_DELAY_MS = 350;
-
 const fetching = ref(true);
-const selectsDelayPassed = ref(false);
 const loading = ref(false);
 const loadFailed = ref(false);
 const modelsLoaded = ref(false);
@@ -96,8 +97,6 @@ const temporary = ref(false);
 const instanceName = useInstanceName();
 
 const poweredBy = computed(() => instanceName.value !== null && instanceName.value !== PRODUCT_NAME);
-
-const showSelects = computed(() => !fetching.value && selectsDelayPassed.value);
 
 const isAdmin = computed(() => user.value?.role === UserRole.ADMIN);
 
@@ -238,14 +237,7 @@ const load = async () => {
   fetching.value = false;
 };
 
-const timeouts: ReturnType<typeof setTimeout>[] = [];
-
-onMounted(() => {
-  timeouts.push(setTimeout(() => selectsDelayPassed.value = true, SELECTS_DELAY_MS));
-  load();
-});
-
-onBeforeUnmount(() => timeouts.forEach(clearTimeout));
+onMounted(load);
 </script>
 
 <style scoped>
@@ -260,15 +252,6 @@ onBeforeUnmount(() => timeouts.forEach(clearTimeout));
 
 .new-page-temporary {
   background-color: rgb(var(--v-theme-temporary));
-}
-
-.fade-in {
-  transition: opacity 200ms, visibility 200ms;
-}
-
-.fade-in-hidden {
-  opacity: 0;
-  visibility: hidden;
 }
 
 .temporary-toggle {

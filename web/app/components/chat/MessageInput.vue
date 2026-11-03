@@ -12,20 +12,42 @@
       </v-chip>
     </div>
 
-    <v-textarea ref="textarea" v-model="content" class="message-input" :placeholder="props.placeholder" rows="1" max-rows="8"
-                auto-grow variant="solo" bg-color="surface" rounded="lg" hide-details autofocus
-                :maxlength="MAX_LENGTH" :disabled="props.disabled" @keydown.enter="onEnter">
-      <template v-slot:prepend-inner>
-        <v-btn icon="mdi-paperclip" variant="plain" :disabled="props.disabled || props.sending"
-               :aria-label="$t('chat.messageInput.attach')" :title="$t('chat.messageInput.attach')" @click="fileInput?.click()"/>
-      </template>
-      <template v-slot:append-inner>
-        <v-btn v-if="props.generating" icon="mdi-stop" color="primary" variant="tonal"
+    <!-- the text field and below it the actions, in one box; clipped so the field's own corners don't show -->
+    <div class="message-input bg-surface rounded-lg elevation-2 overflow-hidden">
+      <v-textarea ref="textarea" v-model="content" class="message-textarea" :placeholder="props.placeholder" rows="1"
+                  max-rows="8" auto-grow variant="solo" flat bg-color="surface" hide-details autofocus
+                  :maxlength="MAX_LENGTH" :disabled="props.disabled" @keydown.enter="onEnter"/>
+
+      <!-- clicks on the free space focus the text field, as if the box were the field -->
+      <div class="toolbar" @click.self="focus">
+        <!-- without other items, a menu with only the attach entry would just be in the way -->
+        <v-menu v-if="$slots.menu" v-model="menuOpen" :close-on-content-click="false"
+                :disabled="props.disabled || props.sending">
+          <template v-slot:activator="{ props: menuProps }">
+            <v-btn v-bind="menuProps" icon="mdi-plus" variant="plain" density="comfortable"
+                   :disabled="props.disabled || props.sending" :aria-label="$t('chat.messageInput.options')"
+                   :title="$t('chat.messageInput.options')"/>
+          </template>
+          <!-- the items open submenus, so the menu closes itself only after attaching -->
+          <v-list density="compact" min-width="240">
+            <v-list-item prepend-icon="mdi-paperclip" :title="$t('chat.messageInput.attach')" @click="pickFile"/>
+            <slot name="menu"/>
+          </v-list>
+        </v-menu>
+        <v-btn v-else icon="mdi-paperclip" variant="plain" density="comfortable" :disabled="props.disabled || props.sending"
+               :aria-label="$t('chat.messageInput.attach')" :title="$t('chat.messageInput.attach')" @click="pickFile"/>
+
+        <div class="toolbar-start" @click.self="focus">
+          <slot name="start"/>
+        </div>
+
+        <slot name="end"/>
+        <v-btn v-if="props.generating" icon="mdi-stop" color="primary" variant="tonal" density="comfortable"
                :loading="props.stopping" :aria-label="$t('chat.messageInput.stop')" :title="$t('chat.messageInput.stop')" @click="emit('stop')"/>
-        <v-btn v-else icon="mdi-send" color="primary" variant="plain" :disabled="!props.canSend"
+        <v-btn v-else icon="mdi-send" color="primary" variant="plain" density="comfortable" :disabled="!props.canSend"
                :loading="props.sending" :aria-label="$t('chat.messageInput.send')" :title="$t('chat.messageInput.send')" @click="emit('send')"/>
-      </template>
-    </v-textarea>
+      </div>
+    </div>
     <!-- outside the field, which prevents the default of clicks in it, so the picker would not open -->
     <input ref="file-input" type="file" hidden @change="onFileSelected">
 
@@ -62,6 +84,15 @@ const props = defineProps<{
   attachment?: PendingAttachment | null,
 }>();
 
+defineSlots<{
+  /** More list items in the menu (with the attach entry) that replaces the attach button. */
+  menu?: () => unknown,
+  /** Next to the menu, e.g. what the menu's items selected. */
+  start?: () => unknown,
+  /** Before the send button. */
+  end?: () => unknown,
+}>();
+
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void,
   (e: 'update:attachment', value: PendingAttachment | null): void,
@@ -74,6 +105,7 @@ const {t} = useI18n();
 const textarea = useTemplateRef<HTMLTextAreaElement>('textarea');
 const fileInput = useTemplateRef<HTMLInputElement>('file-input');
 
+const menuOpen = ref(false);
 /** Whether files are dragged over the page. */
 const dragging = ref(false);
 /** `dragenter` and `dragleave` fire for every element passed, so the page is left when they even out. */
@@ -114,6 +146,13 @@ const attach = async (file: File) => {
     }
     showSnackbar(t('chat.messageInput.uploadFailed', {error: errorMessage(e)}));
   }
+};
+
+const focus = () => textarea.value?.focus();
+
+const pickFile = () => {
+  menuOpen.value = false;
+  fileInput.value?.click();
 };
 
 const onFileSelected = () => {
@@ -187,30 +226,38 @@ onBeforeUnmount(() => {
   window.removeEventListener('drop', onDrop);
 });
 
-defineExpose({
-  focus: () => textarea.value?.focus(),
-});
+defineExpose({focus});
 </script>
 
 <style scoped>
 .message-input {
   /* moves from the middle of the new chat page to the bottom of the chat page */
   view-transition-name: message-input;
-  /* the space around the 48px buttons in the 56px single-line field */
-  --button-inset: 4px;
 }
 
-.message-input :deep(.v-field__prepend-inner),
-.message-input :deep(.v-field__append-inner) {
-  /* centers the button in the single-line field and keeps it at the bottom as the field grows */
-  align-self: flex-end;
-  padding-top: 0;
-  padding-bottom: var(--button-inset);
+.message-textarea {
+  /* the toolbar below is the rest of the box, so the field does not need the height of a single-line field */
+  --v-input-control-height: 0px;
+  --v-field-padding-bottom: 4px;
 }
 
-.message-input :deep(.v-field--prepended) {
-  /* as far from the left edge as from the bottom, instead of Vuetify's 12px */
-  padding-inline-start: var(--button-inset);
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  /* the 40px buttons are as far from the edges as from the bottom */
+  padding: 0 6px 6px;
+}
+
+.toolbar-start {
+  flex: 1 1 auto;
+  /* fills the toolbar's height too, so it catches the clicks that focus the field */
+  align-self: stretch;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 .attachment-chip {
@@ -245,5 +292,14 @@ defineExpose({
 ::view-transition-group(message-input) {
   animation-duration: 350ms;
   animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* the pages fill the box differently (menu or attach button, model select once loaded), which would crossfade */
+::view-transition-old(message-input) {
+  display: none;
+}
+
+::view-transition-new(message-input) {
+  animation: none;
 }
 </style>

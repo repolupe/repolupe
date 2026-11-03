@@ -213,6 +213,8 @@ class _Translations$base$errors$de extends Translations$base$errors$en {
   @override
   String get unknownRepository => 'Ein Repository existiert nicht mehr.';
   @override
+  String get unknownMcpServer => 'Ein MCP-Server existiert nicht mehr.';
+  @override
   String get unknownUser => 'Es gibt keinen Benutzer mit diesem Benutzernamen oder dieser E-Mail.';
   @override
   String get generationInProgress => 'In diesem Chat wird bereits eine Antwort erstellt.';
@@ -381,6 +383,15 @@ class _Translations$base$chat$de extends Translations$base$chat$en {
     zero: 'Kein Repository',
     one: '1 Repository',
     other: '${count} Repositories',
+  );
+  @override
+  String get allMcpServers => 'Alle MCP-Server';
+  @override
+  String mcpServerCount({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
+    count,
+    zero: 'Keine MCP-Server',
+    one: '1 MCP-Server',
+    other: '${count} MCP-Server',
   );
   @override
   String moveCount({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
@@ -819,6 +830,8 @@ class _Translations$base$chat$startPage$de extends Translations$base$chat$startP
   String get enterQuestion => 'Bitte gib eine Frage ein.';
   @override
   String get unknownRepository => 'Ein ausgewähltes Repository ist nicht mehr verfügbar.';
+  @override
+  String get unknownMcpServer => 'Ein ausgewählter MCP-Server ist nicht mehr verfügbar.';
 }
 
 // Path: base.chat.page
@@ -873,6 +886,8 @@ class _Translations$base$chat$messageInput$de extends Translations$base$chat$mes
   String get send => 'Senden';
   @override
   String get attach => 'Datei anhängen';
+  @override
+  String get options => 'Optionen';
   @override
   String get dropHint => 'Datei hier ablegen, um sie anzuhängen';
   @override
@@ -1617,7 +1632,7 @@ class _Translations$base$mcpServers$page$de extends Translations$base$mcpServers
   );
   @override
   String get intro =>
-      'MCP-Server geben dem Modell weitere Tools, z. B. um im Web zu suchen oder mit anderen Diensten zu arbeiten. Die Tools aktivierter Server stehen in all deinen Chats zur Verfügung.';
+      'MCP-Server geben dem Modell weitere Tools, z. B. um im Web zu suchen oder mit anderen Diensten zu arbeiten. Die Tools aktivierter Server stehen in deinen Chats zur Verfügung, außer du wählst beim Start eines Chats andere Server aus.';
   @override
   String get privacy =>
       'Das Modell entscheidet selbst, wann es sie verwendet, und kann dabei Inhalte aus deinen Chats und Repositories an die Server senden. Füge nur Server hinzu, denen du vertraust.';

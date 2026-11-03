@@ -1,7 +1,8 @@
 <template>
   <ScopeSelect :model-value="scope" :items="items" :header="$t('repositories.title')"
                :all-title="$t('chat.allRepositories')" icon="mdi-folder-outline" none-icon="mdi-folder-remove-outline"
-               :title="repositoryScopeSummary(props.modelValue, props.repositories)" :disabled="props.disabled"
+               :summary="repositoryScopeSummary(props.modelValue, props.repositories)" :variant="props.variant"
+               :disabled="props.disabled"
                @update:model-value="emit('update:modelValue', {all_repositories: $event.all, repository_ids: $event.ids})"/>
 </template>
 
@@ -14,6 +15,8 @@ import ScopeSelect, {type Scope, type ScopeItem} from "~/components/chat/ScopeSe
 const props = defineProps<{
   modelValue: RepositoryScope,
   repositories: RepositoryDto[],
+  /** See `ScopeSelect`. */
+  variant: 'item' | 'chip',
   disabled?: boolean,
 }>();
 
