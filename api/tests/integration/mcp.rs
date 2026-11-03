@@ -225,8 +225,13 @@ async fn keeps_users_without_the_permission_from_managing_mcp_servers(db: Sqlite
         assert_eq!(status, StatusCode::FORBIDDEN, "{path}: {error}");
         assert_eq!(error["code"], "FORBIDDEN");
     }
-    let (status, _) = alice.get(&format!("/api/v1/mcp-servers/{id}/users")).await;
-    assert_eq!(status, StatusCode::FORBIDDEN);
+    for path in [
+        format!("/api/v1/mcp-servers/{id}/users"),
+        "/api/v1/mcp-servers/suggestions".to_string(),
+    ] {
+        let (status, _) = alice.get(&path).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{path}");
+    }
 
     // But she decides whether to use the servers shared with her, and may leave them.
     let mcp = MockMcp::start(McpAuth::None).await;
@@ -251,6 +256,24 @@ async fn keeps_users_without_the_permission_from_managing_mcp_servers(db: Sqlite
     assert_eq!(status, StatusCode::NO_CONTENT);
     let (_, list) = alice.get("/api/v1/mcp-servers").await;
     assert_eq!(list, json!([]));
+}
+
+#[sqlx::test]
+async fn suggests_servers(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let alice = app.user("alice@example.com").await;
+
+    let (status, body) = alice.get("/api/v1/mcp-servers/suggestions").await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(
+        body[0],
+        json!({
+            "name": "TinyFish",
+            "url": "https://agent.tinyfish.ai/mcp",
+            "kind": "SEARCH",
+            "country_code": "US",
+        })
+    );
 }
 
 #[sqlx::test]

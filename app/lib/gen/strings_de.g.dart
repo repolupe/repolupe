@@ -538,6 +538,8 @@ class _Translations$base$mcpServers$de extends Translations$base$mcpServers$en {
   @override
   late final _Translations$base$mcpServers$status$de status = _Translations$base$mcpServers$status$de._(_root);
   @override
+  late final _Translations$base$mcpServers$kind$de kind = _Translations$base$mcpServers$kind$de._(_root);
+  @override
   late final _Translations$base$mcpServers$page$de page = _Translations$base$mcpServers$page$de._(_root);
   @override
   late final _Translations$base$mcpServers$dialog$de dialog = _Translations$base$mcpServers$dialog$de._(_root);
@@ -1554,6 +1556,49 @@ class _Translations$base$mcpServers$status$de extends Translations$base$mcpServe
   String get authorizationRequired => 'Anmeldung erforderlich';
   @override
   String get unknown => 'Unbekannt';
+}
+
+// Path: base.mcpServers.kind
+class _Translations$base$mcpServers$kind$de extends Translations$base$mcpServers$kind$en {
+  _Translations$base$mcpServers$kind$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get search => 'Suche';
+  @override
+  String get webScraping => 'Web-Scraping';
+  @override
+  String get documentation => 'Dokumentation';
+  @override
+  String get devTools => 'Entwicklertools';
+  @override
+  String get cloud => 'Cloud';
+  @override
+  String get database => 'Datenbank';
+  @override
+  String get observability => 'Observability';
+  @override
+  String get projectManagement => 'Projektmanagement';
+  @override
+  String get productivity => 'Produktivität';
+  @override
+  String get crm => 'CRM';
+  @override
+  String get payments => 'Zahlungen';
+  @override
+  String get finance => 'Finanzen';
+  @override
+  String get design => 'Design';
+  @override
+  String get automation => 'Automatisierung';
+  @override
+  String get knowledge => 'Wissen';
+  @override
+  String get maps => 'Karten';
+  @override
+  String get travel => 'Reisen';
 }
 
 // Path: base.mcpServers.page

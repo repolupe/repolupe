@@ -8,7 +8,8 @@ use crate::dto::error::ErrorCode;
 use crate::dto::mcp::{
     AddMcpServerUserRequest, AuthorizationUrlDto, AuthorizeMcpServerRequest,
     CreateMcpServerRequest, McpAuthorizationCallbackRequest, McpServerDto, McpServerStatus,
-    McpServerUserDto, UpdateMcpServerRequest, UpdateMcpServerUserRequest,
+    McpServerSuggestionDto, McpServerUserDto, UpdateMcpServerRequest, UpdateMcpServerUserRequest,
+    mcp_server_suggestions,
 };
 use crate::middleware::auth::AuthenticatedUser;
 use crate::model::mcp_server::{McpServer, McpTool};
@@ -35,6 +36,14 @@ pub(crate) async fn list_mcp_servers(
             .map(|(server, share)| McpServerDto::new(server, share, auth.user_id))
             .collect(),
     ))
+}
+
+/// Common servers, offered when adding one.
+pub(crate) async fn list_mcp_server_suggestions(
+    Extension(auth): Extension<AuthenticatedUser>,
+) -> Result<Json<Vec<McpServerSuggestionDto>>, AppError> {
+    require_mcp_server_management(&auth)?;
+    Ok(Json(mcp_server_suggestions()))
 }
 
 pub(crate) async fn create_mcp_server(

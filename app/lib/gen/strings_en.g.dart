@@ -615,6 +615,7 @@ class Translations$base$mcpServers$en {
       '${error}. Check the URL: it must point to the server\'s MCP endpoint (Streamable HTTP), which often ends in /mcp.';
 
   late final Translations$base$mcpServers$status$en status = Translations$base$mcpServers$status$en.internal(_root);
+  late final Translations$base$mcpServers$kind$en kind = Translations$base$mcpServers$kind$en.internal(_root);
   late final Translations$base$mcpServers$page$en page = Translations$base$mcpServers$page$en.internal(_root);
   late final Translations$base$mcpServers$dialog$en dialog = Translations$base$mcpServers$dialog$en.internal(_root);
   late final Translations$base$mcpServers$sharing$en sharing = Translations$base$mcpServers$sharing$en.internal(_root);
@@ -1850,6 +1851,66 @@ class Translations$base$mcpServers$status$en {
 
   /// en: 'Unknown'
   String get unknown => 'Unknown';
+}
+
+// Path: base.mcpServers.kind
+class Translations$base$mcpServers$kind$en {
+  Translations$base$mcpServers$kind$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Search'
+  String get search => 'Search';
+
+  /// en: 'Web scraping'
+  String get webScraping => 'Web scraping';
+
+  /// en: 'Documentation'
+  String get documentation => 'Documentation';
+
+  /// en: 'Developer tools'
+  String get devTools => 'Developer tools';
+
+  /// en: 'Cloud'
+  String get cloud => 'Cloud';
+
+  /// en: 'Database'
+  String get database => 'Database';
+
+  /// en: 'Observability'
+  String get observability => 'Observability';
+
+  /// en: 'Project management'
+  String get projectManagement => 'Project management';
+
+  /// en: 'Productivity'
+  String get productivity => 'Productivity';
+
+  /// en: 'CRM'
+  String get crm => 'CRM';
+
+  /// en: 'Payments'
+  String get payments => 'Payments';
+
+  /// en: 'Finance'
+  String get finance => 'Finance';
+
+  /// en: 'Design'
+  String get design => 'Design';
+
+  /// en: 'Automation'
+  String get automation => 'Automation';
+
+  /// en: 'Knowledge'
+  String get knowledge => 'Knowledge';
+
+  /// en: 'Maps'
+  String get maps => 'Maps';
+
+  /// en: 'Travel'
+  String get travel => 'Travel';
 }
 
 // Path: base.mcpServers.page

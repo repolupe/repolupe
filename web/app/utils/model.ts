@@ -403,6 +403,54 @@ export interface McpToolDto {
     description: string | null;
 }
 
+/** What an MCP server is for, shown as the subtitle of its suggestion. */
+export enum McpServerKind {
+    /** Searches the web. */
+    SEARCH = "SEARCH",
+    /** Reads and extracts web pages. */
+    WEB_SCRAPING = "WEB_SCRAPING",
+    /** Looks up documentation. */
+    DOCUMENTATION = "DOCUMENTATION",
+    /** Works with developer platforms. */
+    DEV_TOOLS = "DEV_TOOLS",
+    /** Manages hosting and deployments. */
+    CLOUD = "CLOUD",
+    /** Queries and manages databases. */
+    DATABASE = "DATABASE",
+    /** Reads monitoring, profiling or tracing data. */
+    OBSERVABILITY = "OBSERVABILITY",
+    /** Tracks issues and projects. */
+    PROJECT_MANAGEMENT = "PROJECT_MANAGEMENT",
+    /** Works with notes, documents and tasks. */
+    PRODUCTIVITY = "PRODUCTIVITY",
+    /** Works with customer relationships. */
+    CRM = "CRM",
+    /** Handles payments. */
+    PAYMENTS = "PAYMENTS",
+    /** Provides financial data. */
+    FINANCE = "FINANCE",
+    /** Works with designs. */
+    DESIGN = "DESIGN",
+    /** Runs actions in other apps. */
+    AUTOMATION = "AUTOMATION",
+    /** Answers factual questions and computes. */
+    KNOWLEDGE = "KNOWLEDGE",
+    /** Looks up places and routes. */
+    MAPS = "MAPS",
+    /** Looks up travel connections. */
+    TRAVEL = "TRAVEL",
+}
+
+/** A common MCP server, offered when adding one, see {@link getMcpServerSuggestions}. */
+export interface McpServerSuggestionDto {
+    name: string;
+    /** The Streamable HTTP endpoint. */
+    url: string;
+    kind: McpServerKind;
+    /** ISO 3166-1 alpha-2 code of the operator's country, shown as its flag. */
+    country_code: string;
+}
+
 /** Where to send the user to sign in to an MCP server, see {@link McpServerAuth.OAUTH}. */
 export interface AuthorizationUrlDto {
     /** Valid for 10 minutes. */

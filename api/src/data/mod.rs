@@ -2,3 +2,4 @@
 //! provider. One file per list; `dto/` exposes them as DTOs.
 
 pub(crate) mod llm_providers;
+pub(crate) mod mcp_servers;

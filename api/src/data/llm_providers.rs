@@ -1,6 +1,3 @@
-//! The LLM providers offered when creating one, served as
-//! [`LlmProviderSuggestionDto`](crate::dto::llm::LlmProviderSuggestionDto).
-
 use crate::dto::llm::LlmApiFormat;
 
 /// [`LlmProviderSuggestionDto`](crate::dto::llm::LlmProviderSuggestionDto) as a constant.

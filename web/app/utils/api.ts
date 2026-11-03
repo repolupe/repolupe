@@ -18,6 +18,7 @@ import {
     type LlmProviderDto,
     type LlmProviderSuggestionDto,
     type McpServerDto,
+    type McpServerSuggestionDto,
     type McpServerUserDto,
     type RemoteModelDto,
     type MessageDto,
@@ -629,6 +630,11 @@ export function streamMessage(
  */
 export async function getMcpServers(): Promise<McpServerDto[]> {
     return await makeRequest({route: 'mcp-servers', method: 'GET'});
+}
+
+/** Common servers, offered when adding one. */
+export async function getMcpServerSuggestions(): Promise<McpServerSuggestionDto[]> {
+    return await makeRequest({route: 'mcp-servers/suggestions', method: 'GET'});
 }
 
 export interface CreateMcpServerPayload {

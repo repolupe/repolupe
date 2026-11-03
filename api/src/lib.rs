@@ -186,6 +186,7 @@ fn configure_routes(state: config::state::AppState) -> Router<config::state::App
         .route("/api/v1/repositories/{id}/users/{user_id}/update", post(controller::repository::update_repository_user))
         .route("/api/v1/repositories/{id}/users/{user_id}/delete", post(controller::repository::remove_repository_user))
         .route("/api/v1/mcp-servers", get(controller::mcp::list_mcp_servers).post(controller::mcp::create_mcp_server))
+        .route("/api/v1/mcp-servers/suggestions", get(controller::mcp::list_mcp_server_suggestions))
         .route("/api/v1/mcp-servers/authorize/callback", post(controller::mcp::complete_mcp_authorization))
         .route("/api/v1/mcp-servers/{id}/update", post(controller::mcp::update_mcp_server))
         .route("/api/v1/mcp-servers/{id}/delete", post(controller::mcp::delete_mcp_server))

@@ -538,6 +538,25 @@
       "authorizationRequired": "Sign-in required",
       "unknown": "Unknown"
     },
+    "kind": {
+      "search": "Search",
+      "webScraping": "Web scraping",
+      "documentation": "Documentation",
+      "devTools": "Developer tools",
+      "cloud": "Cloud",
+      "database": "Database",
+      "observability": "Observability",
+      "projectManagement": "Project management",
+      "productivity": "Productivity",
+      "crm": "CRM",
+      "payments": "Payments",
+      "finance": "Finance",
+      "design": "Design",
+      "automation": "Automation",
+      "knowledge": "Knowledge",
+      "maps": "Maps",
+      "travel": "Travel"
+    },
     "page": {
       "count": {
         "zero": "{count} Servers",

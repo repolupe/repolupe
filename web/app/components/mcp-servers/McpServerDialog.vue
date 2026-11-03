@@ -1,8 +1,18 @@
 <template>
   <GenericSaveDialog :title="current ? $t('mcpServers.dialog.editTitle') : $t('mcpServers.newServer')" v-model="dialog"
                      :loading="props.loading" @submit="submit">
-    <v-text-field v-model="name" @keydown.enter="submit" :label="`${$t('common.name')}*`" placeholder="GitHub"
-                  prepend-icon="mdi-label" class="mb-2" :disabled="props.loading" :counter="MAX_NAME_LENGTH" />
+    <v-combobox :model-value="name" @update:model-value="onNameChange" v-model:menu="nameMenu"
+                @update:focused="onNameFocused" :items="nameSuggestions" item-title="name" item-value="name"
+                :return-object="false" hide-no-data :label="`${$t('common.name')}*`" placeholder="GitHub"
+                prepend-icon="mdi-label" class="mb-2" :disabled="props.loading" :counter="MAX_NAME_LENGTH">
+      <template v-slot:item="{props: itemProps, item}">
+        <v-list-item v-bind="itemProps" :subtitle="kindLabel(item.raw.kind)">
+          <template v-slot:prepend>
+            <span :class="`fi fi-${item.raw.country_code.toLowerCase()}`" class="mr-4" />
+          </template>
+        </v-list-item>
+      </template>
+    </v-combobox>
 
     <v-text-field v-model="url" @keydown.enter="submit" :label="`${$t('mcpServers.dialog.url')}*`"
                   placeholder="https://mcp.example.com/mcp" persistent-placeholder :hint="current ? undefined : urlHint"
@@ -25,10 +35,11 @@
 
 <script setup lang="ts">
 import {computed, ref} from "vue";
+import "flag-icons/css/flag-icons.min.css";
 import {useI18n} from "#i18n";
 import {charCount, showSnackbar, trimmedOrNull} from "~/utils/utils";
-import type {CreateMcpServerPayload} from "~/utils/api";
-import {type McpServerDto, UserRole} from "~/utils/model";
+import {type CreateMcpServerPayload, getMcpServerSuggestions} from "~/utils/api";
+import {type McpServerDto, McpServerKind, type McpServerSuggestionDto, UserRole} from "~/utils/model";
 import {useUser} from "~/composables/states";
 import GenericSaveDialog from "~/components/dialogs/GenericSaveDialog.vue";
 
@@ -62,6 +73,80 @@ const name = ref('');
 const url = ref('');
 const token = ref('');
 const showToken = ref(false);
+
+const nameMenu = ref(false);
+
+/** Loaded when the dialog first opens to add a server. */
+const suggestions = ref<McpServerSuggestionDto[]>([]);
+
+const loadSuggestions = async () => {
+  if (suggestions.value.length > 0) {
+    return;
+  }
+  try {
+    suggestions.value = await getMcpServerSuggestions();
+  } catch {
+    // Only a convenience: without them, the URL is entered by hand.
+  }
+};
+
+/** Only offered when adding a server, since choosing one fills in the URL, which can't be changed later. */
+const nameSuggestions = computed(() => current.value ? [] : suggestions.value);
+
+/** `undefined` for kinds of a newer server, which then show no subtitle. */
+const kindLabel = (kind: McpServerKind): string | undefined => {
+  switch (kind) {
+    case McpServerKind.SEARCH:
+      return t('mcpServers.kind.search');
+    case McpServerKind.WEB_SCRAPING:
+      return t('mcpServers.kind.webScraping');
+    case McpServerKind.DOCUMENTATION:
+      return t('mcpServers.kind.documentation');
+    case McpServerKind.DEV_TOOLS:
+      return t('mcpServers.kind.devTools');
+    case McpServerKind.CLOUD:
+      return t('mcpServers.kind.cloud');
+    case McpServerKind.DATABASE:
+      return t('mcpServers.kind.database');
+    case McpServerKind.OBSERVABILITY:
+      return t('mcpServers.kind.observability');
+    case McpServerKind.PROJECT_MANAGEMENT:
+      return t('mcpServers.kind.projectManagement');
+    case McpServerKind.PRODUCTIVITY:
+      return t('mcpServers.kind.productivity');
+    case McpServerKind.CRM:
+      return t('mcpServers.kind.crm');
+    case McpServerKind.PAYMENTS:
+      return t('mcpServers.kind.payments');
+    case McpServerKind.FINANCE:
+      return t('mcpServers.kind.finance');
+    case McpServerKind.DESIGN:
+      return t('mcpServers.kind.design');
+    case McpServerKind.AUTOMATION:
+      return t('mcpServers.kind.automation');
+    case McpServerKind.KNOWLEDGE:
+      return t('mcpServers.kind.knowledge');
+    case McpServerKind.MAPS:
+      return t('mcpServers.kind.maps');
+    case McpServerKind.TRAVEL:
+      return t('mcpServers.kind.travel');
+  }
+};
+
+const onNameFocused = (focused: boolean) => {
+  if (focused && nameSuggestions.value.length > 0) {
+    nameMenu.value = true;
+  }
+};
+
+/** Fills in the URL when the name is one of the suggestions. */
+const onNameChange = (value: string | null) => {
+  name.value = value ?? '';
+  const suggestion = nameSuggestions.value.find(s => s.name === value);
+  if (suggestion) {
+    url.value = suggestion.url;
+  }
+};
 
 const urlHint = computed(() => user.value?.role === UserRole.ADMIN
     ? t('mcpServers.dialog.urlHintAdmin')
@@ -98,6 +183,7 @@ defineExpose({
     url.value = '';
     token.value = '';
     showToken.value = false;
+    loadSuggestions();
   },
   load: (server: McpServerDto) => {
     current.value = server;

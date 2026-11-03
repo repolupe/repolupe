@@ -132,6 +132,74 @@ pub struct CreateMcpServerRequest {
     pub token: Option<String>,
 }
 
+/// What an MCP server is for, shown as the subtitle of its suggestion.
+#[derive(Clone, Copy, Eq, PartialEq, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum McpServerKind {
+    /// Searches the web.
+    Search,
+    /// Reads and extracts web pages.
+    WebScraping,
+    /// Looks up documentation.
+    Documentation,
+    /// Works with developer platforms.
+    DevTools,
+    /// Manages hosting and deployments.
+    Cloud,
+    /// Queries and manages databases.
+    Database,
+    /// Reads monitoring, profiling or tracing data.
+    Observability,
+    /// Tracks issues and projects.
+    ProjectManagement,
+    /// Works with notes, documents and tasks.
+    Productivity,
+    /// Works with customer relationships.
+    Crm,
+    /// Handles payments.
+    Payments,
+    /// Provides financial data.
+    Finance,
+    /// Works with designs.
+    Design,
+    /// Runs actions in other apps.
+    Automation,
+    /// Answers factual questions and computes.
+    Knowledge,
+    /// Looks up places and routes.
+    Maps,
+    /// Looks up travel connections.
+    Travel,
+    /// A value this version does not know, from a newer server. Never sent by the server.
+    #[serde(other)]
+    Unknown,
+}
+
+/// A common MCP server, offered when adding one, see `GET /api/v1/mcp-servers/suggestions`.
+#[derive(Serialize, Deserialize)]
+pub struct McpServerSuggestionDto {
+    pub name: String,
+    /// The Streamable HTTP endpoint.
+    pub url: String,
+    pub kind: McpServerKind,
+    /// ISO 3166-1 alpha-2 code of the operator's country, shown as its flag.
+    pub country_code: String,
+}
+
+/// The common MCP servers, offered when adding one. Served by
+/// `GET /api/v1/mcp-servers/suggestions`.
+pub(crate) fn mcp_server_suggestions() -> Vec<McpServerSuggestionDto> {
+    crate::data::mcp_servers::SUGGESTIONS
+        .iter()
+        .map(|s| McpServerSuggestionDto {
+            name: s.name.to_owned(),
+            url: s.url.to_owned(),
+            kind: s.kind,
+            country_code: s.country_code.to_owned(),
+        })
+        .collect()
+}
+
 /// Replaces all fields. The URL and the token of a server can't be changed: it is deleted and
 /// added again instead. Signing in again with OAuth goes through
 /// `POST /api/v1/mcp-servers/{id}/authorize`.
