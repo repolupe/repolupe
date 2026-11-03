@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE mcp_server_users SET enabled = $3 WHERE mcp_server_id = $1 AND user_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "1322625d3c977cd3d9912344f46a94cb1d3d421fb733879b680c07a52af31449"
+}

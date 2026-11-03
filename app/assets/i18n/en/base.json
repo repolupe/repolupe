@@ -87,6 +87,7 @@
     "roleAdmin": "Admin",
     "roleUser": "User",
     "missingUserName": "Missing user name",
+    "missingUserNameOrEmail": "Missing user name or email",
     "userNameInvalid": "User name must be 1 to {max} letters, digits, '.', '_' or '-'",
     "emailInvalid": "Invalid email",
     "userNameTaken": "A user with this user name already exists",
@@ -503,8 +504,7 @@
     },
     "shareDialog": {
       "title": "Share Repository",
-      "description": "The user can read this repository and use it in their chats, but cannot change, sync or delete it.",
-      "missing": "Missing user name or email"
+      "description": "The user can read this repository and use it in their chats, but cannot change, sync or delete it."
     }
   },
   "documents": {
@@ -549,6 +549,7 @@
       "authIntro": "If a server supports it, you sign in with your account there. For others, you can enter a token.",
       "emptyTitle": "No MCP servers yet",
       "emptyText": "Add an MCP server by its URL, so the model can use its tools in your chats.",
+      "emptyTextShared": "No MCP servers have been shared with you. When someone shares one, you can turn it on here to use its tools in your chats.",
       "editServer": "Edit server",
       "deleteServer": "Delete server",
       "authNone": "No authentication",
@@ -557,7 +558,9 @@
       "authOAuth": "Signed in with OAuth",
       "checked": "Checked {relative}",
       "lastError": "The last connection failed: {error}",
+      "lastErrorShared": "The last connection failed. Only the owner sees why.",
       "signInRequired": "The server asks you to sign in before its tools can be used. If it does not support sign-in, delete it and add it again with a token.",
+      "signInRequiredShared": "The server asks its owner to sign in again before its tools can be used.",
       "toolCount": {
         "zero": "No tools",
         "one": "1 tool",
@@ -573,13 +576,20 @@
       "signInAgain": "Sign in again",
       "useInChats": "Use in chats",
       "notUsed": "Not used in chats",
+      "sharedBy": "Shared by {name}",
+      "sharedWithYouHint": "Only the owner can change this server, its tools and its sign-in.",
+      "sharedOff": "{name} shared this server with you. Its tools are only used in your chats once you turn it on. The model may then send content from your chats and repositories to it, so only turn it on if you trust {name} and the server.",
       "signInTitle": "Sign in to {name}?",
       "signInText": "{name} asks you to sign in before its tools can be used. You will be taken to its sign-in page and brought back here afterwards.",
       "deleteTitle": "Delete MCP Server",
-      "deleteText": "The MCP server {name} will be deleted. Its tools will no longer be available in your chats.",
+      "deleteText": "The MCP server {name} will be deleted. Its tools will no longer be available in your chats, nor in those of the users you shared it with.",
+      "leave": "Leave",
+      "leaveTitle": "Leave MCP Server",
+      "leaveText": "You can no longer use the tools of {name} in your chats. The owner can share it with you again.",
       "created": "Server added.",
       "updated": "Server updated.",
       "deleted": "Server deleted.",
+      "left": "You left {name}.",
       "enabled": "{name} enabled.",
       "disabled": "{name} disabled.",
       "toolEnabled": "Tool {name} enabled.",
@@ -599,6 +609,7 @@
       "createFailed": "Could not add the server: {error}",
       "saveFailed": "Could not save the server: {error}",
       "deleteFailed": "Could not delete the server: {error}",
+      "leaveFailed": "Could not leave the server: {error}",
       "toggleFailed": "Could not change the server: {error}",
       "toggleToolFailed": "Could not change the tool: {error}",
       "toggleAllToolsFailed": "Could not change the tools: {error}",
@@ -615,6 +626,26 @@
       "fixedConnection": "The URL and the token can't be changed. To change them, delete the server and add it again.",
       "connecting": "Connecting to the server, this can take a few seconds…",
       "missingUrl": "Missing URL"
+    },
+    "sharing": {
+      "title": "Sharing",
+      "description": "Users you share this server with can turn it on to use its enabled tools in their chats, with your token or sign-in, so only share it with users who may act on your behalf there. They cannot change it, choose its tools or sign in to it.",
+      "notShared": "Not shared with anyone",
+      "sharedAt": "Shared {relative}",
+      "share": "Share",
+      "stopSharing": "Stop sharing",
+      "stopSharingTitle": "Stop Sharing",
+      "stopSharingText": "{name} can no longer use the tools of this server in their chats.",
+      "shared": "Server shared.",
+      "unknownUser": "No user with this user name or email",
+      "stopped": "Stopped sharing.",
+      "loadFailed": "Could not load the users: {error}",
+      "shareFailed": "Could not share the server: {error}",
+      "stopFailed": "Could not stop sharing: {error}"
+    },
+    "shareDialog": {
+      "title": "Share MCP Server",
+      "description": "The user can turn this server on to use its enabled tools in their chats, with your token or sign-in, but cannot change, refresh or delete it."
     },
     "callback": {
       "title": "Sign-in",

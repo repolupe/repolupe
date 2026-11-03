@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE users\n               SET role = 'ADMIN', can_login = TRUE, can_manage_repositories = TRUE,\n                   can_manage_mcp_servers = TRUE, can_change_identity = TRUE\n               WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "9e49c58557b8539be9b871d4434561a4003e1c4a168eaa579da22bafd7c6fef2"
+}

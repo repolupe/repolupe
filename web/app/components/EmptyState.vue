@@ -6,7 +6,8 @@
       <p class="text-medium-emphasis mx-auto" style="max-width: 520px">
         <slot/>
       </p>
-      <v-btn @click="emit('action')" class="mt-6" color="primary" prepend-icon="mdi-plus" :text="props.actionText"/>
+      <v-btn v-if="props.actionText" @click="emit('action')" class="mt-6" color="primary" prepend-icon="mdi-plus"
+             :text="props.actionText"/>
     </v-card-text>
   </v-card>
 </template>
@@ -15,7 +16,8 @@
 const props = defineProps<{
   icon: string,
   title: string,
-  actionText: string,
+  /** Without it, there is no button. */
+  actionText?: string,
 }>();
 
 const emit = defineEmits<{

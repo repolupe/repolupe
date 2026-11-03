@@ -37,7 +37,7 @@ class _ShareRepositorySheetState extends State<ShareRepositorySheet> with Refena
     final userNameOrEmail = _userNameOrEmail.trim();
     if (userNameOrEmail.isEmpty) {
       setState(() {
-        _error = t.base.repositories.shareDialog.missing;
+        _error = t.base.user.missingUserNameOrEmail;
       });
       return;
     }

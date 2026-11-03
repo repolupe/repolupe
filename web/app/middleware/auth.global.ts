@@ -8,7 +8,8 @@ import {DEMO} from "~/utils/demo";
  * Restores the session from the HttpOnly cookie on the first navigation, then sends logged-out
  * users to `/login`, logged-in users away from it, users who must change their password to `/change-password` (and
  * the others away from it), non-admins away from `/settings/admin`, and users who cannot manage repositories away
- * from `/settings/repositories`. The demo has no settings.
+ * from `/settings/repositories`. Users who cannot manage MCP servers still see theirs and the ones shared with them,
+ * since they decide whether to use the shared ones. The demo has no settings.
  */
 export default defineNuxtRouteMiddleware(async (to) => {
     const user = useUser();
@@ -44,10 +45,6 @@ export default defineNuxtRouteMiddleware(async (to) => {
     }
 
     if (to.path.startsWith('/settings/repositories') && !user.value.can_manage_repositories) {
-        return navigateTo('/');
-    }
-
-    if (to.path.startsWith('/settings/mcp-servers') && !user.value.can_manage_mcp_servers) {
         return navigateTo('/');
     }
 });

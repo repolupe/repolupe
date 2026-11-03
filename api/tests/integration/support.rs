@@ -98,6 +98,21 @@ impl TestApp {
         self.attachments_dir.path()
     }
 
+    /// Makes the user an admin, which the API can't do, e.g. so they can add MCP servers at the
+    /// address of a mock.
+    pub async fn make_admin(&self, user: &TestClient) {
+        sqlx::query!(
+            r#"UPDATE users
+               SET role = 'ADMIN', can_login = TRUE, can_manage_repositories = TRUE,
+                   can_manage_mcp_servers = TRUE, can_change_identity = TRUE
+               WHERE id = $1"#,
+            user.user_id,
+        )
+        .execute(&self.db)
+        .await
+        .unwrap();
+    }
+
     /// Makes the attachment `id` look uploaded two days ago, so the cleanup removes it if it
     /// was not sent.
     pub async fn age_attachment(&self, id: &str) {

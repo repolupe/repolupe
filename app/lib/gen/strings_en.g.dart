@@ -365,6 +365,9 @@ class Translations$base$user$en {
   /// en: 'Missing user name'
   String get missingUserName => 'Missing user name';
 
+  /// en: 'Missing user name or email'
+  String get missingUserNameOrEmail => 'Missing user name or email';
+
   /// en: 'User name must be 1 to {max} letters, digits, '.', '_' or '-''
   String userNameInvalid({required Object max}) => 'User name must be 1 to ${max} letters, digits, \'.\', \'_\' or \'-\'';
 
@@ -614,6 +617,8 @@ class Translations$base$mcpServers$en {
   late final Translations$base$mcpServers$status$en status = Translations$base$mcpServers$status$en.internal(_root);
   late final Translations$base$mcpServers$page$en page = Translations$base$mcpServers$page$en.internal(_root);
   late final Translations$base$mcpServers$dialog$en dialog = Translations$base$mcpServers$dialog$en.internal(_root);
+  late final Translations$base$mcpServers$sharing$en sharing = Translations$base$mcpServers$sharing$en.internal(_root);
+  late final Translations$base$mcpServers$shareDialog$en shareDialog = Translations$base$mcpServers$shareDialog$en.internal(_root);
   late final Translations$base$mcpServers$callback$en callback = Translations$base$mcpServers$callback$en.internal(_root);
 }
 
@@ -1776,9 +1781,6 @@ class Translations$base$repositories$shareDialog$en {
 
   /// en: 'The user can read this repository and use it in their chats, but cannot change, sync or delete it.'
   String get description => 'The user can read this repository and use it in their chats, but cannot change, sync or delete it.';
-
-  /// en: 'Missing user name or email'
-  String get missing => 'Missing user name or email';
 }
 
 // Path: base.documents.card
@@ -1883,6 +1885,10 @@ class Translations$base$mcpServers$page$en {
   /// en: 'Add an MCP server by its URL, so the model can use its tools in your chats.'
   String get emptyText => 'Add an MCP server by its URL, so the model can use its tools in your chats.';
 
+  /// en: 'No MCP servers have been shared with you. When someone shares one, you can turn it on here to use its tools in your chats.'
+  String get emptyTextShared =>
+      'No MCP servers have been shared with you. When someone shares one, you can turn it on here to use its tools in your chats.';
+
   /// en: 'Edit server'
   String get editServer => 'Edit server';
 
@@ -1907,9 +1913,15 @@ class Translations$base$mcpServers$page$en {
   /// en: 'The last connection failed: {error}'
   String lastError({required Object error}) => 'The last connection failed: ${error}';
 
+  /// en: 'The last connection failed. Only the owner sees why.'
+  String get lastErrorShared => 'The last connection failed. Only the owner sees why.';
+
   /// en: 'The server asks you to sign in before its tools can be used. If it does not support sign-in, delete it and add it again with a token.'
   String get signInRequired =>
       'The server asks you to sign in before its tools can be used. If it does not support sign-in, delete it and add it again with a token.';
+
+  /// en: 'The server asks its owner to sign in again before its tools can be used.'
+  String get signInRequiredShared => 'The server asks its owner to sign in again before its tools can be used.';
 
   /// en: '(zero) {No tools} (one) {1 tool} (other) {{count} tools}'
   String toolCount({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
@@ -1944,6 +1956,16 @@ class Translations$base$mcpServers$page$en {
   /// en: 'Not used in chats'
   String get notUsed => 'Not used in chats';
 
+  /// en: 'Shared by {name}'
+  String sharedBy({required Object name}) => 'Shared by ${name}';
+
+  /// en: 'Only the owner can change this server, its tools and its sign-in.'
+  String get sharedWithYouHint => 'Only the owner can change this server, its tools and its sign-in.';
+
+  /// en: '{name} shared this server with you. Its tools are only used in your chats once you turn it on. The model may then send content from your chats and repositories to it, so only turn it on if you trust {name} and the server.'
+  String sharedOff({required Object name}) =>
+      '${name} shared this server with you. Its tools are only used in your chats once you turn it on. The model may then send content from your chats and repositories to it, so only turn it on if you trust ${name} and the server.';
+
   /// en: 'Sign in to {name}?'
   String signInTitle({required Object name}) => 'Sign in to ${name}?';
 
@@ -1954,8 +1976,18 @@ class Translations$base$mcpServers$page$en {
   /// en: 'Delete MCP Server'
   String get deleteTitle => 'Delete MCP Server';
 
-  /// en: 'The MCP server {name} will be deleted. Its tools will no longer be available in your chats.'
-  String deleteText({required Object name}) => 'The MCP server ${name} will be deleted. Its tools will no longer be available in your chats.';
+  /// en: 'The MCP server {name} will be deleted. Its tools will no longer be available in your chats, nor in those of the users you shared it with.'
+  String deleteText({required Object name}) =>
+      'The MCP server ${name} will be deleted. Its tools will no longer be available in your chats, nor in those of the users you shared it with.';
+
+  /// en: 'Leave'
+  String get leave => 'Leave';
+
+  /// en: 'Leave MCP Server'
+  String get leaveTitle => 'Leave MCP Server';
+
+  /// en: 'You can no longer use the tools of {name} in your chats. The owner can share it with you again.'
+  String leaveText({required Object name}) => 'You can no longer use the tools of ${name} in your chats. The owner can share it with you again.';
 
   /// en: 'Server added.'
   String get created => 'Server added.';
@@ -1965,6 +1997,9 @@ class Translations$base$mcpServers$page$en {
 
   /// en: 'Server deleted.'
   String get deleted => 'Server deleted.';
+
+  /// en: 'You left {name}.'
+  String left({required Object name}) => 'You left ${name}.';
 
   /// en: '{name} enabled.'
   String enabled({required Object name}) => '${name} enabled.';
@@ -2016,6 +2051,9 @@ class Translations$base$mcpServers$page$en {
   /// en: 'Could not delete the server: {error}'
   String deleteFailed({required Object error}) => 'Could not delete the server: ${error}';
 
+  /// en: 'Could not leave the server: {error}'
+  String leaveFailed({required Object error}) => 'Could not leave the server: ${error}';
+
   /// en: 'Could not change the server: {error}'
   String toggleFailed({required Object error}) => 'Could not change the server: ${error}';
 
@@ -2066,6 +2104,74 @@ class Translations$base$mcpServers$dialog$en {
 
   /// en: 'Missing URL'
   String get missingUrl => 'Missing URL';
+}
+
+// Path: base.mcpServers.sharing
+class Translations$base$mcpServers$sharing$en {
+  Translations$base$mcpServers$sharing$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Sharing'
+  String get title => 'Sharing';
+
+  /// en: 'Users you share this server with can turn it on to use its enabled tools in their chats, with your token or sign-in, so only share it with users who may act on your behalf there. They cannot change it, choose its tools or sign in to it.'
+  String get description =>
+      'Users you share this server with can turn it on to use its enabled tools in their chats, with your token or sign-in, so only share it with users who may act on your behalf there. They cannot change it, choose its tools or sign in to it.';
+
+  /// en: 'Not shared with anyone'
+  String get notShared => 'Not shared with anyone';
+
+  /// en: 'Shared {relative}'
+  String sharedAt({required Object relative}) => 'Shared ${relative}';
+
+  /// en: 'Share'
+  String get share => 'Share';
+
+  /// en: 'Stop sharing'
+  String get stopSharing => 'Stop sharing';
+
+  /// en: 'Stop Sharing'
+  String get stopSharingTitle => 'Stop Sharing';
+
+  /// en: '{name} can no longer use the tools of this server in their chats.'
+  String stopSharingText({required Object name}) => '${name} can no longer use the tools of this server in their chats.';
+
+  /// en: 'Server shared.'
+  String get shared => 'Server shared.';
+
+  /// en: 'No user with this user name or email'
+  String get unknownUser => 'No user with this user name or email';
+
+  /// en: 'Stopped sharing.'
+  String get stopped => 'Stopped sharing.';
+
+  /// en: 'Could not load the users: {error}'
+  String loadFailed({required Object error}) => 'Could not load the users: ${error}';
+
+  /// en: 'Could not share the server: {error}'
+  String shareFailed({required Object error}) => 'Could not share the server: ${error}';
+
+  /// en: 'Could not stop sharing: {error}'
+  String stopFailed({required Object error}) => 'Could not stop sharing: ${error}';
+}
+
+// Path: base.mcpServers.shareDialog
+class Translations$base$mcpServers$shareDialog$en {
+  Translations$base$mcpServers$shareDialog$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Share MCP Server'
+  String get title => 'Share MCP Server';
+
+  /// en: 'The user can turn this server on to use its enabled tools in their chats, with your token or sign-in, but cannot change, refresh or delete it.'
+  String get description =>
+      'The user can turn this server on to use its enabled tools in their chats, with your token or sign-in, but cannot change, refresh or delete it.';
 }
 
 // Path: base.mcpServers.callback

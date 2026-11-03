@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT s.id AS \"id: Uuid\", s.name, s.url, s.token_encrypted, s.oauth_encrypted,\n                  u.role AS \"owner_role: UserRole\",\n                  CASE WHEN s.user_id = $1 THEN NULL ELSE u.user_name END AS \"shared_by?: String\",\n                  s.tools AS \"tools: Json<Vec<McpTool>>\",\n                  s.disabled_tools AS \"disabled_tools: Json<Vec<String>>\",\n                  s.updated_at AS \"updated_at: DateTime<Utc>\"\n           FROM mcp_servers s\n           JOIN users u ON u.id = s.user_id\n           WHERE (s.user_id = $1\n                  OR s.id IN (SELECT mcp_server_id FROM mcp_server_users WHERE user_id = $1 AND enabled))\n             AND s.enabled AND s.status = 'READY'\n           ORDER BY s.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "url",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "token_encrypted",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "oauth_encrypted",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "owner_role: UserRole",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "shared_by?: String",
+        "ordinal": 6,
+        "type_info": "Null"
+      },
+      {
+        "name": "tools: Json<Vec<McpTool>>",
+        "ordinal": 7,
+        "type_info": "Text"
+      },
+      {
+        "name": "disabled_tools: Json<Vec<String>>",
+        "ordinal": 8,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at: DateTime<Utc>",
+        "ordinal": 9,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      null,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "6901cb9e94868cfb98641bcbe9adcc9a80cb2c7825537f51a78fc53c9533ff90"
+}

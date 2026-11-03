@@ -6,18 +6,20 @@
 
         <p class="text-medium-emphasis">{{ $t('mcpServers.page.intro') }}</p>
         <p class="mt-2 text-medium-emphasis">{{ $t('mcpServers.page.privacy') }}</p>
-        <p class="mt-2 text-medium-emphasis">{{ $t('mcpServers.page.authIntro') }}</p>
+        <template v-if="canManage">
+          <p class="mt-2 text-medium-emphasis">{{ $t('mcpServers.page.authIntro') }}</p>
 
-        <v-btn @click="showCreateDialog" class="mt-6" color="primary" prepend-icon="mdi-plus"
-               :text="$t('mcpServers.newServer')" block />
+          <v-btn @click="showCreateDialog" class="mt-6" color="primary" prepend-icon="mdi-plus"
+                 :text="$t('mcpServers.newServer')" block />
+        </template>
       </div>
     </template>
 
     <v-progress-linear v-if="fetching && servers.length === 0" indeterminate color="primary" />
 
     <EmptyState v-else-if="servers.length === 0" icon="mdi-puzzle" :title="$t('mcpServers.page.emptyTitle')"
-                :action-text="$t('mcpServers.newServer')" @action="showCreateDialog">
-      {{ $t('mcpServers.page.emptyText') }}
+                :action-text="canManage ? $t('mcpServers.newServer') : undefined" @action="showCreateDialog">
+      {{ canManage ? $t('mcpServers.page.emptyText') : $t('mcpServers.page.emptyTextShared') }}
     </EmptyState>
 
     <template v-else>
@@ -27,10 +29,14 @@
           <v-card-subtitle class="server-url" :title="server.url">{{ server.url }}</v-card-subtitle>
 
           <template v-slot:append>
-            <v-btn @click="showUpdateDialog(server)" icon="mdi-pencil" variant="text"
-                   v-tooltip="$t('mcpServers.page.editServer')" />
-            <v-btn @click="showDeleteDialog(server)" icon="mdi-delete" variant="text"
-                   v-tooltip="$t('mcpServers.page.deleteServer')" />
+            <template v-if="manages(server)">
+              <v-btn @click="showUpdateDialog(server)" icon="mdi-pencil" variant="text"
+                     v-tooltip="$t('mcpServers.page.editServer')" />
+              <v-btn @click="showDeleteDialog(server)" icon="mdi-delete" variant="text"
+                     v-tooltip="$t('mcpServers.page.deleteServer')" />
+            </template>
+            <v-btn v-else-if="server.shared" @click="showLeaveDialog(server)" icon="mdi-logout" variant="text"
+                   v-tooltip="$t('mcpServers.page.leave')" />
           </template>
         </v-card-item>
 
@@ -42,6 +48,10 @@
             <v-chip v-if="server.status === McpServerStatus.READY && !isUsed(server)" color="grey"
                     prepend-icon="mdi-chat-remove-outline" size="small" label>
               {{ $t('mcpServers.page.notUsed') }}
+            </v-chip>
+            <v-chip v-if="server.shared" prepend-icon="mdi-account-multiple" size="small" label
+                    v-tooltip="$t('mcpServers.page.sharedWithYouHint')">
+              {{ $t('mcpServers.page.sharedBy', {name: server.shared.owner_name}) }}
             </v-chip>
             <span class="text-caption text-medium-emphasis">
               <IconText :icon="authInfo(server).icon">{{ authInfo(server).label }}</IconText>
@@ -56,9 +66,17 @@
                    density="compact" class="mt-4 server-error">
             {{ $t('mcpServers.page.lastError', {error: server.last_error}) }}
           </v-alert>
+          <v-alert v-else-if="server.status === McpServerStatus.FAILED && server.shared" type="error" variant="tonal"
+                   density="compact" class="mt-4">
+            {{ $t('mcpServers.page.lastErrorShared') }}
+          </v-alert>
           <v-alert v-else-if="server.status === McpServerStatus.AUTHORIZATION_REQUIRED" type="info" variant="tonal"
                    density="compact" class="mt-4">
-            {{ $t('mcpServers.page.signInRequired') }}
+            {{ isOwner(server) ? $t('mcpServers.page.signInRequired') : $t('mcpServers.page.signInRequiredShared') }}
+          </v-alert>
+          <v-alert v-if="server.shared && !server.shared.enabled" type="info" variant="tonal" density="compact"
+                   class="mt-4">
+            {{ $t('mcpServers.page.sharedOff', {name: server.shared.owner_name}) }}
           </v-alert>
 
           <v-expansion-panels v-if="server.tools.length !== 0" class="mt-4" variant="accordion" static>
@@ -66,14 +84,14 @@
               <v-expansion-panel-title class="py-2">
                 <IconText icon="mdi-puzzle-outline" :size="16">{{ toolCountLabel(server) }}</IconText>
               </v-expansion-panel-title>
-              <v-expansion-panel-text :class="{'server-off': !server.enabled}">
+              <v-expansion-panel-text :class="{'server-off': !isOn(server)}">
                 <div class="d-flex align-center ga-4">
                   <div class="tool-text flex-grow-1 text-medium-emphasis">{{ $t('mcpServers.page.allTools') }}</div>
                   <v-checkbox :model-value="enabledToolCount(server) === server.tools.length"
                               :indeterminate="enabledToolCount(server) !== 0 && enabledToolCount(server) !== server.tools.length"
                               @update:model-value="doToggleAllTools(server, !!$event)"
-                              :aria-label="$t('mcpServers.page.allTools')" :disabled="busy !== null" color="primary"
-                              density="compact" hide-details class="flex-grow-0 flex-shrink-0" />
+                              :aria-label="$t('mcpServers.page.allTools')" :disabled="busy !== null || !manages(server)"
+                              color="primary" density="compact" hide-details class="flex-grow-0 flex-shrink-0" />
                 </div>
                 <v-divider class="my-2" />
                 <div v-for="tool in server.tools" :key="tool.name" class="tool d-flex align-center ga-4">
@@ -89,8 +107,8 @@
                   </div>
                   <v-checkbox :model-value="isToolEnabled(server, tool)"
                               @update:model-value="doToggleTool(server, tool, !!$event)" :aria-label="tool.name"
-                              :disabled="busy !== null" color="primary" density="compact" hide-details
-                              class="flex-grow-0 flex-shrink-0" />
+                              :disabled="busy !== null || !manages(server)" color="primary" density="compact"
+                              hide-details class="flex-grow-0 flex-shrink-0" />
                 </div>
               </v-expansion-panel-text>
             </v-expansion-panel>
@@ -98,9 +116,11 @@
           <p v-else-if="server.status === McpServerStatus.READY" class="mt-4 text-medium-emphasis">
             {{ $t('mcpServers.page.noTools') }}
           </p>
+
+          <McpServerSharingPanel v-if="manages(server)" :server-id="server.id" class="mt-4" />
         </v-card-text>
 
-        <v-card-actions class="flex-wrap">
+        <v-card-actions v-if="manages(server)" class="flex-wrap">
           <v-btn v-if="server.status === McpServerStatus.AUTHORIZATION_REQUIRED" @click="startSignIn(server)"
                  color="primary" variant="elevated" prepend-icon="mdi-login" :text="$t('mcpServers.page.signIn')"
                  :loading="isBusy(server, 'signIn')" :disabled="busy !== null" />
@@ -110,6 +130,12 @@
                  :loading="isBusy(server, 'refresh')" :disabled="busy !== null" />
           <v-spacer />
           <v-checkbox :model-value="server.enabled" @update:model-value="doToggle(server, !!$event)"
+                      :label="$t('mcpServers.page.useInChats')" :disabled="busy !== null" color="primary"
+                      density="compact" hide-details class="flex-grow-0 mx-2" />
+        </v-card-actions>
+        <v-card-actions v-else-if="server.shared">
+          <v-spacer />
+          <v-checkbox :model-value="server.shared.enabled" @update:model-value="doToggleShared(server, !!$event)"
                       :label="$t('mcpServers.page.useInChats')" :disabled="busy !== null" color="primary"
                       density="compact" hide-details class="flex-grow-0 mx-2" />
         </v-card-actions>
@@ -125,6 +151,13 @@
       </i18n-t>
     </GenericDeleteDialog>
 
+    <GenericConfirmDialog :title="$t('mcpServers.page.leaveTitle')" v-model="dialogLeave" :loading="loading"
+                          :confirm-text="$t('mcpServers.page.leave')" confirm-icon="mdi-logout" @confirm="doLeave">
+      <i18n-t scope="global" keypath="mcpServers.page.leaveText" tag="span">
+        <template v-slot:name><b>{{ selectedServer?.name }}</b></template>
+      </i18n-t>
+    </GenericConfirmDialog>
+
     <GenericConfirmDialog :title="$t('mcpServers.page.signInTitle', {name: selectedServer?.name ?? ''})"
                           v-model="dialogSignIn" :loading="busy !== null" :confirm-text="$t('mcpServers.page.signIn')"
                           confirm-icon="mdi-login" @confirm="startSignIn(selectedServer!)">
@@ -134,7 +167,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted, ref, useTemplateRef} from "vue";
+import {computed, onMounted, ref, useTemplateRef} from "vue";
 import {useRouter} from "#app";
 import {useI18n} from "#i18n";
 import {ErrorCode, McpServerAuth, type McpServerDto, McpServerStatus, type McpToolDto} from "~/utils/model";
@@ -147,20 +180,25 @@ import {
   errorMessage,
   getMcpServers,
   refreshMcpServer,
+  removeMcpServerUser,
   updateMcpServer,
+  updateMcpServerUser,
 } from "~/utils/api";
 import {formatDateTime, formatRelative, showSnackbar} from "~/utils/utils";
+import {useUser} from "~/composables/states";
 import MainContainer from "~/components/MainContainer.vue";
 import EmptyState from "~/components/EmptyState.vue";
 import IconText from "~/components/IconText.vue";
 import GenericDeleteDialog from "~/components/dialogs/GenericDeleteDialog.vue";
 import GenericConfirmDialog from "~/components/dialogs/GenericConfirmDialog.vue";
 import McpServerDialog, {type McpServerFields} from "~/components/mcp-servers/McpServerDialog.vue";
+import McpServerSharingPanel from "~/components/mcp-servers/McpServerSharingPanel.vue";
 
 type BusyAction = 'signIn' | 'refresh' | 'toggle' | 'toggleTool';
 
 const {t} = useI18n();
 const router = useRouter();
+const user = useUser();
 
 const serverDialog = useTemplateRef<InstanceType<typeof McpServerDialog>>('server-dialog');
 
@@ -175,6 +213,18 @@ const selectedServer = ref<McpServerDto | null>(null);
 const dialogServer = ref(false);
 const dialogDelete = ref(false);
 const dialogSignIn = ref(false);
+const dialogLeave = ref(false);
+
+/** Users without the permission still see their servers and the ones shared with them, and turn the latter on. */
+const canManage = computed(() => !!user.value?.can_manage_mcp_servers);
+
+/** Only the owner manages a server, users it is shared with only use it. */
+const isOwner = (server: McpServerDto) => server.owner_id === user.value?.id;
+
+const manages = (server: McpServerDto) => isOwner(server) && canManage.value;
+
+/** Turned on by its owner, and by the user if it is shared with them. */
+const isOn = (server: McpServerDto) => server.enabled && (server.shared?.enabled ?? true);
 
 const isBusy = (server: McpServerDto, action: BusyAction) =>
     busy.value?.id === server.id && busy.value.action === action;
@@ -185,7 +235,7 @@ const enabledToolCount = (server: McpServerDto) => server.tools.filter(tool => i
 
 /** Whether the model gets the server's tools in chats, see `list_usable_mcp_servers` in the API. */
 const isUsed = (server: McpServerDto) =>
-    server.enabled && server.status === McpServerStatus.READY && enabledToolCount(server) !== 0;
+    isOn(server) && server.status === McpServerStatus.READY && enabledToolCount(server) !== 0;
 
 /** `disabled_tools` with every tool the server lists turned on, keeping the names it no longer lists. */
 const withAllToolsOn = (server: McpServerDto) =>
@@ -268,6 +318,11 @@ const showDeleteDialog = (server: McpServerDto) => {
   dialogDelete.value = true;
 };
 
+const showLeaveDialog = (server: McpServerDto) => {
+  selectedServer.value = server;
+  dialogLeave.value = true;
+};
+
 /** Asks to sign in right away, e.g. after adding a server that requires it. */
 const offerSignIn = (server: McpServerDto) => {
   selectedServer.value = server;
@@ -319,6 +374,21 @@ const doDelete = async () => {
   }
 };
 
+const doLeave = async () => {
+  const server = selectedServer.value!;
+  loading.value = true;
+  try {
+    await removeMcpServerUser(server.id, user.value!.id);
+    dialogLeave.value = false;
+    showSnackbar(t('mcpServers.page.left', {name: server.name}));
+    await fetchData();
+  } catch (e) {
+    showSnackbar(t('mcpServers.page.leaveFailed', {error: errorMessage(e)}));
+  } finally {
+    loading.value = false;
+  }
+};
+
 /** A server is never on without tools, so turning on one whose tools are all off turns them all on. */
 const doToggle = async (server: McpServerDto, enabled: boolean) => {
   busy.value = {id: server.id, action: 'toggle'};
@@ -332,6 +402,21 @@ const doToggle = async (server: McpServerDto, enabled: boolean) => {
     showSnackbar(t(enabled ? 'mcpServers.page.enabled' : 'mcpServers.page.disabled', {name: server.name}));
   } catch (e) {
     showSnackbar(t('mcpServers.page.toggleFailed', {error: errorMessage(e)}));
+  } finally {
+    busy.value = null;
+  }
+};
+
+/** Turns a server shared with the user on or off for their chats. */
+const doToggleShared = async (server: McpServerDto, enabled: boolean) => {
+  busy.value = {id: server.id, action: 'toggle'};
+  try {
+    await updateMcpServerUser(server.id, user.value!.id, enabled);
+    replaceServer({...server, shared: {...server.shared!, enabled}});
+    showSnackbar(t(enabled ? 'mcpServers.page.enabled' : 'mcpServers.page.disabled', {name: server.name}));
+  } catch (e) {
+    // tells when the user has as many servers as they may use
+    showSnackbar(t('mcpServers.page.toggleFailed', {error: errorDetail(e)}));
   } finally {
     busy.value = null;
   }

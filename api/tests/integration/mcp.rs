@@ -212,11 +212,45 @@ async fn keeps_users_without_the_permission_from_managing_mcp_servers(db: Sqlite
             "/api/v1/mcp-servers/authorize/callback".to_string(),
             json!({"state": "state", "code": "code"}),
         ),
+        (
+            format!("/api/v1/mcp-servers/{id}/users"),
+            json!({"user_name_or_email": "admin"}),
+        ),
+        (
+            format!("/api/v1/mcp-servers/{id}/users/{id}/delete"),
+            json!({}),
+        ),
     ] {
         let (status, error) = alice.post(&path, body).await;
         assert_eq!(status, StatusCode::FORBIDDEN, "{path}: {error}");
         assert_eq!(error["code"], "FORBIDDEN");
     }
+    let (status, _) = alice.get(&format!("/api/v1/mcp-servers/{id}/users")).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+
+    // But she decides whether to use the servers shared with her, and may leave them.
+    let mcp = MockMcp::start(McpAuth::None).await;
+    let server = create(&app.admin(), "Echo", &mcp.url, None).await;
+    let id = server["id"].as_str().unwrap();
+    let me = format!("/api/v1/mcp-servers/{id}/users/{}", alice.user_id);
+    let (status, body) = app
+        .admin()
+        .post(
+            &format!("/api/v1/mcp-servers/{id}/users"),
+            json!({"user_name_or_email": "alice"}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+    let (status, body) = alice
+        .post(&format!("{me}/update"), json!({"enabled": true}))
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+    let (_, list) = alice.get("/api/v1/mcp-servers").await;
+    assert_eq!(list[0]["shared"]["enabled"], true, "{list}");
+    let (status, _) = alice.post(&format!("{me}/delete"), json!({})).await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    let (_, list) = alice.get("/api/v1/mcp-servers").await;
+    assert_eq!(list, json!([]));
 }
 
 #[sqlx::test]
@@ -443,6 +477,355 @@ async fn leaves_out_the_tools_the_user_turned_off(db: SqlitePool) {
         offered(&llm.requests()[1]),
         ["run_script", "mcp__echo_server__echo"]
     );
+}
+
+#[sqlx::test]
+async fn shares_servers_but_only_the_owner_manages_them(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let admin = app.admin();
+    let alice = app.user("alice@example.com").await;
+    let bob = app.user("bob@example.com").await;
+    let mcp = MockMcp::start(McpAuth::Token).await;
+    let server = create(&admin, "Echo Server", &mcp.url, Some(TOKEN)).await;
+    assert_eq!(server["owner_id"], json!(admin.user_id));
+    assert_eq!(server["token_hint"], &TOKEN[TOKEN.len() - 4..]);
+    let id = server["id"].as_str().unwrap();
+    let users = format!("/api/v1/mcp-servers/{id}/users");
+
+    let (status, error) = admin
+        .post(&users, json!({"user_name_or_email": "nobody@example.com"}))
+        .await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{error}");
+    assert_eq!(error["code"], "UNKNOWN_USER");
+    let (status, error) = admin
+        .post(&users, json!({"user_name_or_email": "admin"}))
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{error}");
+    // Sharing it again does nothing.
+    for _ in 0..2 {
+        let (status, body) = admin
+            .post(&users, json!({"user_name_or_email": "ALICE@example.com"}))
+            .await;
+        assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+    }
+    let (status, list) = admin.get(&users).await;
+    assert_eq!(status, StatusCode::OK, "{list}");
+    assert_eq!(list.as_array().unwrap().len(), 1, "{list}");
+    assert_eq!(list[0]["user_id"], json!(alice.user_id));
+    assert_eq!(list[0]["user_name"], "alice");
+    assert_eq!(list[0]["email"], "alice@example.com");
+
+    // Alice sees it without the token's hint, off until she turns it on, but cannot manage it.
+    let (_, list) = alice.get("/api/v1/mcp-servers").await;
+    assert_eq!(list.as_array().unwrap().len(), 1, "{list}");
+    assert_eq!(list[0]["id"], id);
+    assert_eq!(list[0]["owner_id"], json!(admin.user_id));
+    assert_eq!(list[0]["shared"]["owner_name"], "admin");
+    assert_eq!(list[0]["shared"]["enabled"], false);
+    assert_eq!(list[0]["auth"], "TOKEN");
+    assert_eq!(list[0]["token_hint"], json!(null));
+    assert_eq!(tool_names(&list[0]), ["echo"]);
+    for (path, body) in [
+        (
+            format!("/api/v1/mcp-servers/{id}/update"),
+            json!({"name": "Mine", "enabled": false, "disabled_tools": ["echo"]}),
+        ),
+        (format!("/api/v1/mcp-servers/{id}/delete"), json!({})),
+        (format!("/api/v1/mcp-servers/{id}/refresh"), json!({})),
+        (
+            format!("/api/v1/mcp-servers/{id}/authorize"),
+            json!({"redirect_uri": REDIRECT_URI}),
+        ),
+        (
+            users.clone(),
+            json!({"user_name_or_email": "bob@example.com"}),
+        ),
+        // Also when sharing with nobody or herself.
+        (
+            users.clone(),
+            json!({"user_name_or_email": "nobody@example.com"}),
+        ),
+        (users.clone(), json!({"user_name_or_email": "alice"})),
+        (format!("{users}/{}/delete", bob.user_id), json!({})),
+        (
+            format!("{users}/{}/update", bob.user_id),
+            json!({"enabled": true}),
+        ),
+    ] {
+        let (status, error) = alice.post(&path, body).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{path}: {error}");
+        assert_eq!(error["code"], "FORBIDDEN");
+    }
+    let (status, _) = alice.get(&users).await;
+    assert_eq!(status, StatusCode::FORBIDDEN);
+    // Only she turns it on, not the owner.
+    let (status, error) = admin
+        .post(
+            &format!("{users}/{}/update", alice.user_id),
+            json!({"enabled": true}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "{error}");
+    let (status, error) = admin
+        .post(
+            &format!("{users}/{}/update", admin.user_id),
+            json!({"enabled": true}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{error}");
+    let (_, list) = admin.get("/api/v1/mcp-servers").await;
+    assert_eq!(list[0]["shared"], json!(null));
+    assert_eq!(list[0]["name"], "Echo Server");
+    assert_eq!(list[0]["enabled"], true);
+    assert_eq!(list[0]["disabled_tools"], json!([]));
+
+    // Others don't see it at all.
+    let (_, list) = bob.get("/api/v1/mcp-servers").await;
+    assert_eq!(list, json!([]));
+    let (status, _) = bob.get(&users).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    for (path, body) in [
+        (
+            format!("{users}/{}/update", bob.user_id),
+            json!({"enabled": true}),
+        ),
+        (users.clone(), json!({"user_name_or_email": "bob"})),
+        (
+            users.clone(),
+            json!({"user_name_or_email": "nobody@example.com"}),
+        ),
+        (format!("{users}/{}/delete", alice.user_id), json!({})),
+    ] {
+        let (status, error) = bob.post(&path, body).await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "{path}: {error}");
+    }
+    // The owner removing a user it is not shared with succeeds.
+    let (status, error) = admin
+        .post(&format!("{users}/{}/delete", bob.user_id), json!({}))
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{error}");
+    let (_, list) = admin.get(&users).await;
+    assert_eq!(list.as_array().unwrap().len(), 1, "{list}");
+
+    // Alice leaves it.
+    let (status, _) = alice
+        .post(&format!("{users}/{}/delete", alice.user_id), json!({}))
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    let (_, list) = alice.get("/api/v1/mcp-servers").await;
+    assert_eq!(list, json!([]));
+    let (_, list) = admin.get(&users).await;
+    assert_eq!(list, json!([]));
+}
+
+#[sqlx::test]
+async fn shows_users_of_shared_servers_only_the_origin_of_the_url(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let admin = app.admin();
+    let alice = app.user("alice@example.com").await;
+    let mcp = MockMcp::start(McpAuth::None).await;
+    // Some servers take a key in the URL.
+    let url = format!("{}?api_key=k3y-in-the-query", mcp.url);
+    let origin = mcp.url.trim_end_matches("/mcp").to_string();
+    let server = create(&admin, "Echo", &url, None).await;
+    let id = server["id"].as_str().unwrap();
+    let (status, body) = admin
+        .post(
+            &format!("/api/v1/mcp-servers/{id}/users"),
+            json!({"user_name_or_email": "alice"}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+
+    drop(mcp);
+    let (_, failed) = admin
+        .post(&format!("/api/v1/mcp-servers/{id}/refresh"), json!({}))
+        .await;
+    assert_eq!(failed["status"], "FAILED", "{failed}");
+
+    let (_, list) = admin.get("/api/v1/mcp-servers").await;
+    assert_eq!(list[0]["url"], url);
+    assert!(list[0]["last_error"].is_string(), "{list}");
+    let (_, list) = alice.get("/api/v1/mcp-servers").await;
+    assert_eq!(list[0]["url"], origin);
+    assert_eq!(list[0]["status"], "FAILED");
+    assert_eq!(list[0]["last_error"], json!(null));
+}
+
+/// Shares the server `id` of `owner` with the user `user_name`.
+async fn share(owner: &TestClient, id: &str, user_name: &str) {
+    let (status, body) = owner
+        .post(
+            &format!("/api/v1/mcp-servers/{id}/users"),
+            json!({"user_name_or_email": user_name}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+}
+
+/// Turns the server `id` shared with `user` on or off for their chats.
+async fn turn_on(user: &TestClient, id: &str, enabled: bool) -> (StatusCode, Value) {
+    user.post(
+        &format!("/api/v1/mcp-servers/{id}/users/{}/update", user.user_id),
+        json!({"enabled": enabled}),
+    )
+    .await
+}
+
+#[sqlx::test]
+async fn limits_the_servers_a_user_gets_tools_from(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let admin = app.admin();
+    let alice = app.user("alice@example.com").await;
+    // Another admin, since users can't add servers at the mock's address.
+    let bob = app.user("bob@example.com").await;
+    app.make_admin(&bob).await;
+    let mcp = MockMcp::start(McpAuth::None).await;
+
+    let mut ids = Vec::new();
+    for n in 0..20 {
+        let server = create(&admin, &format!("Server {n}"), &mcp.url, None).await;
+        ids.push(server["id"].as_str().unwrap().to_string());
+    }
+    let (status, error) = admin
+        .post(
+            "/api/v1/mcp-servers",
+            json!({"name": "One more", "url": mcp.url}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{error}");
+    assert_eq!(error["code"], "VALIDATION_ERROR");
+
+    // Shares count only once turned on, so others can't use up the limit.
+    let extra = create(&bob, "Extra", &mcp.url, None).await;
+    let extra = extra["id"].as_str().unwrap();
+    share(&bob, extra, "alice").await;
+    for id in &ids {
+        share(&admin, id, "alice").await;
+        let (status, body) = turn_on(&alice, id, true).await;
+        assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+    }
+    // Turning one on again changes nothing.
+    let (status, body) = turn_on(&alice, &ids[0], true).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+    let (status, error) = turn_on(&alice, extra, true).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{error}");
+    assert_eq!(error["code"], "VALIDATION_ERROR");
+    let (_, list) = alice.get("/api/v1/mcp-servers").await;
+    let extra_server = list
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|server| server["id"] == extra)
+        .unwrap();
+    assert_eq!(extra_server["shared"]["enabled"], false);
+    // With one turned off, it fits.
+    let (status, body) = turn_on(&alice, &ids[0], false).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+    let (status, body) = turn_on(&alice, extra, true).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+
+    // Shares turned on also count when adding servers: Bob has one and turns on 19 more.
+    for id in &ids[..19] {
+        share(&admin, id, "bob").await;
+        let (status, body) = turn_on(&bob, id, true).await;
+        assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+    }
+    let (status, error) = bob
+        .post(
+            "/api/v1/mcp-servers",
+            json!({"name": "Another", "url": mcp.url}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{error}");
+    assert_eq!(error["code"], "VALIDATION_ERROR");
+}
+
+#[sqlx::test]
+async fn answers_with_the_tools_of_shared_servers_the_user_turned_on(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let admin = app.admin();
+    let alice = app.user("alice@example.com").await;
+    let mcp = MockMcp::start(McpAuth::Token).await;
+    let llm = MockLlm::start(vec![
+        text_response("No tools."),
+        tool_use_response("toolu_1", "mcp__echo_server__echo", json!({"text": "hi"})),
+        text_response("It said hi."),
+        text_response("Off again."),
+        text_response("Turned off by the owner."),
+        text_response("Shared again."),
+    ])
+    .await;
+    app.configure_llm(&llm).await;
+    // Alice could neither add it, at an internal address, nor does she know the token.
+    let server = create(&admin, "Echo Server", &mcp.url, Some(TOKEN)).await;
+    let id = server["id"].as_str().unwrap();
+    let users = format!("/api/v1/mcp-servers/{id}/users");
+    // Shared, but off until she turns it on.
+    share(&admin, id, "alice").await;
+    let answer = ask(&alice, "Anything?").await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    let requests = llm.requests();
+    assert_eq!(offered(&requests[0]), ["run_script"]);
+    let system = requests[0]["system"].to_string();
+    assert!(!system.contains("MCP"), "{system}");
+
+    let (status, body) = turn_on(&alice, id, true).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+    let answer = ask(&alice, "What does echo say?").await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    assert_eq!(answer["tool_calls"][0]["status"], "COMPLETED", "{answer}");
+    assert_eq!(mcp.calls(), [json!({"text": "hi"})]);
+    let requests = llm.requests();
+    assert_eq!(
+        requests[1]["tools"][1]["description"],
+        "A tool of the MCP server \"Echo Server\", an external service admin shared with the \
+        user. Echoes the text."
+    );
+    let system = requests[1]["system"].to_string();
+    assert!(
+        system.contains("\\\"Echo Server\\\" (shared with the user by admin)"),
+        "{system}"
+    );
+    assert_eq!(tool_result(&requests[2])["content"], "echo: hi");
+
+    let (status, body) = turn_on(&alice, id, false).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+    let answer = ask(&alice, "And now?").await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    assert_eq!(offered(&llm.requests()[3]), ["run_script"]);
+
+    // The owner turns its tools off for everyone.
+    let (status, body) = turn_on(&alice, id, true).await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+    let update = format!("/api/v1/mcp-servers/{id}/update");
+    let (status, body) = admin
+        .post(
+            &update,
+            json!({"name": "Echo Server", "enabled": true, "disabled_tools": ["echo"]}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let answer = ask(&alice, "Anything?").await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    assert_eq!(offered(&llm.requests()[4]), ["run_script"]);
+
+    // On again, but no longer shared with her. Shared again, it is off again.
+    let (status, body) = admin
+        .post(
+            &update,
+            json!({"name": "Echo Server", "enabled": true, "disabled_tools": []}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let (status, _) = admin
+        .post(&format!("{users}/{}/delete", alice.user_id), json!({}))
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT);
+    share(&admin, id, "alice").await;
+    let answer = ask(&alice, "And now?").await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    assert_eq!(offered(&llm.requests()[5]), ["run_script"]);
 }
 
 #[sqlx::test]

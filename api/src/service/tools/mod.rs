@@ -246,8 +246,9 @@ impl RepositoryTools {
         self
     }
 
-    /// The MCP servers whose tools the model gets.
-    pub(crate) fn mcp_server_names(&self) -> Vec<&str> {
+    /// The MCP servers whose tools the model gets, with the owner's user name for the ones
+    /// shared with the user.
+    pub(crate) fn mcp_server_names(&self) -> Vec<(&str, Option<&str>)> {
         self.mcp.server_names()
     }
 

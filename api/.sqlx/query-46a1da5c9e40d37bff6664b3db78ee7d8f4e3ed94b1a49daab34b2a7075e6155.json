@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id AS \"id: Uuid\", user_id AS \"user_id: Uuid\", name, url, enabled, token_encrypted,\n                  token_hint, oauth_encrypted, status AS \"status: McpServerStatus\", last_error,\n                  tools AS \"tools: Json<Vec<McpToolSummary>>\", disabled_tools AS \"disabled_tools: Json<Vec<String>>\",\n                  checked_at AS \"checked_at: DateTime<Utc>\", created_at AS \"created_at: DateTime<Utc>\",\n                  updated_at AS \"updated_at: DateTime<Utc>\"\n           FROM mcp_servers\n           WHERE user_id = $1\n           ORDER BY id",
+  "query": "SELECT id AS \"id: Uuid\", user_id AS \"user_id: Uuid\", name, url, enabled, token_encrypted,\n                  token_hint, oauth_encrypted, status AS \"status: McpServerStatus\", last_error,\n                  tools AS \"tools: Json<Vec<McpToolSummary>>\", disabled_tools AS \"disabled_tools: Json<Vec<String>>\",\n                  checked_at AS \"checked_at: DateTime<Utc>\", created_at AS \"created_at: DateTime<Utc>\",\n                  updated_at AS \"updated_at: DateTime<Utc>\"\n           FROM mcp_servers s\n           WHERE s.user_id = $1\n              OR s.id IN (SELECT mcp_server_id FROM mcp_server_users WHERE user_id = $1)\n           ORDER BY id",
   "describe": {
     "columns": [
       {
@@ -100,5 +100,5 @@
       false
     ]
   },
-  "hash": "c15740acc6493166fcf5c268da9a415741b5090360f5d3d0fe8d8fc38a75993c"
+  "hash": "46a1da5c9e40d37bff6664b3db78ee7d8f4e3ed94b1a49daab34b2a7075e6155"
 }

@@ -132,7 +132,7 @@ class _UserPageState extends State<UserPage> with Refena {
             icon: Icons.key,
             title: t.base.user.password,
             actions: [
-              FilledButton.tonalIcon(
+              TextButton.icon(
                 key: const ValueKey('user.setPassword'),
                 onPressed: isSelf ? null : _setPassword,
                 icon: const Icon(Icons.lock_reset),

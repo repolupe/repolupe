@@ -50,7 +50,10 @@
       <v-btn @click="showShareDialog" color="primary" variant="elevated" prepend-icon="mdi-share-variant" :text="$t('repositories.share')"/>
     </v-card-actions>
 
-    <ShareRepositoryDialog ref="share-dialog" v-model="dialogShare" :loading="loading" @submit="doShare"/>
+    <ShareUserDialog ref="share-dialog" v-model="dialogShare" :loading="loading"
+                     :title="$t('repositories.shareDialog.title')"
+                     :description="$t('repositories.shareDialog.description')" :submit-text="$t('repositories.share')"
+                     @submit="doShare"/>
 
     <GenericConfirmDialog v-model="dialogRemove" :loading="loading" :title="$t('repositories.usersCard.stopSharingTitle')"
                           :confirm-text="$t('repositories.usersCard.stopSharing')" confirm-icon="mdi-account-remove" @confirm="doRemove">
@@ -68,7 +71,7 @@ import {onMounted, ref, useTemplateRef} from "vue";
 import {ErrorCode, type RepositoryUserDto} from "~/utils/model";
 import {addRepositoryUser, ApiError, errorMessage, getRepositoryUsers, removeRepositoryUser, updateRepositoryUser} from "~/utils/api";
 import {formatDateTime, formatRelative, showSnackbar} from "~/utils/utils";
-import ShareRepositoryDialog from "~/components/repositories/ShareRepositoryDialog.vue";
+import ShareUserDialog from "~/components/dialogs/ShareUserDialog.vue";
 import GenericConfirmDialog from "~/components/dialogs/GenericConfirmDialog.vue";
 import {useI18n} from "#i18n";
 
@@ -82,7 +85,7 @@ const props = defineProps<{
 
 const {t} = useI18n();
 
-const shareDialog = useTemplateRef<InstanceType<typeof ShareRepositoryDialog>>('share-dialog');
+const shareDialog = useTemplateRef<InstanceType<typeof ShareUserDialog>>('share-dialog');
 
 const fetching = ref(true);
 const loading = ref(false);

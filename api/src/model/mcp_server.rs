@@ -1,15 +1,16 @@
 use crate::dto::mcp::{McpServerAuth, McpServerStatus};
+use crate::dto::user::UserRole;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use sqlx::types::Json;
 use uuid::Uuid;
 
-/// With the stored tools as `Tool`: [`McpToolSummary`] where their schemas aren't needed,
-/// [`McpTool`] for the model.
+/// With the stored tools without their schemas, which only [`UsableMcpServer`] reads.
 #[derive(Debug, sqlx::FromRow)]
-pub struct McpServer<Tool = McpToolSummary> {
+pub struct McpServer {
     pub id: Uuid,
+    /// The owner, who alone manages it. Users it is shared with only use it.
     pub user_id: Uuid,
     pub name: String,
     pub url: String,
@@ -21,7 +22,7 @@ pub struct McpServer<Tool = McpToolSummary> {
     pub oauth_encrypted: Option<Vec<u8>>,
     pub status: McpServerStatus,
     pub last_error: Option<String>,
-    pub tools: Json<Vec<Tool>>,
+    pub tools: Json<Vec<McpToolSummary>>,
     /// The names of the tools the model doesn't get, sorted. May include tools the server no
     /// longer lists, so they stay off if they return.
     pub disabled_tools: Json<Vec<String>>,
@@ -30,7 +31,7 @@ pub struct McpServer<Tool = McpToolSummary> {
     pub updated_at: DateTime<Utc>,
 }
 
-impl<Tool> McpServer<Tool> {
+impl McpServer {
     pub fn auth(&self) -> McpServerAuth {
         match (&self.token_encrypted, &self.oauth_encrypted) {
             (Some(_), _) => McpServerAuth::Token,
@@ -38,6 +39,46 @@ impl<Tool> McpServer<Tool> {
             (None, None) => McpServerAuth::None,
         }
     }
+}
+
+/// A server whose tools the model gets in a user's chats, their own or one shared with them,
+/// see `repository::mcp::list_usable_mcp_servers`. Not an [`McpServer`]: it has the tools with
+/// their schemas and the owner, and `query_as!` can't add columns to a struct.
+#[derive(Debug)]
+pub struct UsableMcpServer {
+    pub id: Uuid,
+    pub name: String,
+    pub url: String,
+    pub token_encrypted: Option<Vec<u8>>,
+    pub oauth_encrypted: Option<Vec<u8>>,
+    /// Decides the addresses it may be reached at, like for the owner.
+    pub owner_role: UserRole,
+    /// The owner's user name if the server is shared with the user, `None` for their own.
+    pub shared_by: Option<String>,
+    pub tools: Json<Vec<McpTool>>,
+    pub disabled_tools: Json<Vec<String>>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A server shared with a user, as that user sees the sharing.
+#[derive(Debug)]
+pub struct McpServerShare {
+    pub mcp_server_id: Uuid,
+    /// The owner's user name.
+    pub owner_name: String,
+    /// Whether the user turned the server on for their chats. Off when it is shared, so
+    /// nobody gets tools in their chats without agreeing to it.
+    pub enabled: bool,
+    pub created_at: DateTime<Utc>,
+}
+
+/// A user an MCP server is shared with.
+#[derive(Debug)]
+pub struct McpServerUser {
+    pub user_id: Uuid,
+    pub user_name: String,
+    pub email: Option<String>,
+    pub created_at: DateTime<Utc>,
 }
 
 /// A tool of an MCP server, as listed at the last successful connection.

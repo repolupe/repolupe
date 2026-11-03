@@ -9,7 +9,7 @@
         <v-btn :text="$t('common.cancel')" @click="dialog = false"/>
 
         <v-btn @click="emit('submit')" color="primary" variant="elevated" :loading="props.loading"
-               prepend-icon="mdi-content-save" :text="$t('common.save')" />
+               :prepend-icon="props.submitIcon ?? 'mdi-content-save'" :text="props.submitText ?? $t('common.save')" />
       </template>
     </v-card>
   </v-dialog>
@@ -22,6 +22,9 @@ const props = defineProps<{
   modelValue: boolean,
   loading: boolean,
   title: string,
+  /** Instead of "Save". */
+  submitText?: string,
+  submitIcon?: string,
 }>();
 
 const emit = defineEmits<{

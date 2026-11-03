@@ -338,18 +338,32 @@ export enum McpServerAuth {
     OAUTH = "OAUTH",
 }
 
-/** A remote MCP server whose tools the model can use in the chats of the user who added it. */
+/**
+ * A remote MCP server whose tools the model can use in the chats of the user who added it, and of the users they share
+ * it with once they turn it on. Those use it as the owner set it up (with the owner's token or OAuth sign-in, and only
+ * the tools the owner enabled), but only the owner manages it.
+ */
 export interface McpServerDto {
     id: string;
+    owner_id: string;
+    /** How the server is shared with the user, `null` for its owner. */
+    shared: McpServerShareDto | null;
     name: string;
+    /**
+     * For users it is shared with only the origin (`https://mcp.example.com`), since some servers take a key in the
+     * path or the query, which is the owner's.
+     */
     url: string;
-    /** Whether its tools are offered in the user's chats (once it is `READY`). */
+    /**
+     * Whether the owner turned it on: its tools are offered in the owner's chats (once it is `READY`), and in those of
+     * the users it is shared with who turned it on as well.
+     */
     enabled: boolean;
     auth: McpServerAuth;
-    /** The last 4 characters of the token with `TOKEN`, `null` for short tokens and otherwise. */
+    /** The last 4 characters of the token with `TOKEN`, `null` for short tokens, otherwise and for users it is shared with. */
     token_hint: string | null;
     status: McpServerStatus;
-    /** Why the last connection failed, with `FAILED`. */
+    /** Why the last connection failed, with `FAILED`. `null` for users it is shared with, since it may contain the URL. */
     last_error: string | null;
     /** The tools as of the last successful connection, in the server's order. */
     tools: McpToolDto[];
@@ -362,6 +376,24 @@ export interface McpServerDto {
     checked_at: string;
     created_at: string;
     updated_at: string;
+}
+
+/** How an MCP server is shared with the user, who decides whether to use it. */
+export interface McpServerShareDto {
+    /** The user name of the owner, who shared it. */
+    owner_name: string;
+    /** Whether the user turned it on for their chats. Off when it is shared, see `updateMcpServerUser`. */
+    enabled: boolean;
+    /** When it was shared with the user. */
+    created_at: string;
+}
+
+export interface McpServerUserDto {
+    user_id: string;
+    user_name: string;
+    email: string | null;
+    /** When the server was shared with the user. */
+    created_at: string;
 }
 
 export interface McpToolDto {

@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT u.id AS \"user_id: Uuid\", u.user_name, u.email, su.created_at AS \"created_at: DateTime<Utc>\"\n           FROM mcp_server_users su\n           JOIN mcp_servers s ON s.id = su.mcp_server_id\n           JOIN users u ON u.id = su.user_id\n           WHERE su.mcp_server_id = $1 AND s.user_id = $2\n           ORDER BY su.created_at, u.id",
+  "describe": {
+    "columns": [
+      {
+        "name": "user_id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "user_name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "email",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 3,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "5a672d46fd105a43e23ff1a210dd2d5e42bd46515cb36d56e8641baeb956fba7"
+}

@@ -273,7 +273,7 @@ void main() {
 
     expect(find.text('Admin'), findsNWidgets(2));
     expect(find.text('Change your own password in your account settings'), findsOneWidget);
-    expect(tester.widget<FilledButton>(find.byKey(const ValueKey('user.setPassword'))).enabled, isFalse);
+    expect(tester.widget<TextButton>(find.byKey(const ValueKey('user.setPassword'))).enabled, isFalse);
     expect(find.text('You cannot delete yourself'), findsOneWidget);
     expect(find.byKey(const ValueKey('user.delete')), findsNothing);
 

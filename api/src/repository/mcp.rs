@@ -2,15 +2,22 @@ use crate::config::error::AppError;
 use crate::config::state::DatabasePool;
 use crate::dto::error::ErrorCode;
 use crate::dto::mcp::McpServerStatus;
-use crate::model::mcp_server::{McpServer, McpTool, McpToolSummary};
+use crate::dto::user::UserRole;
+use crate::model::mcp_server::{
+    McpServer, McpServerShare, McpServerUser, McpTool, McpToolSummary, UsableMcpServer,
+};
 use crate::repository::repository::StoredToken;
 use crate::repository::{begin_write, violates_unique};
 use crate::util::validation::ValidationError;
 use chrono::{DateTime, Utc};
+use sqlx::SqliteConnection;
 use sqlx::types::Json;
+use std::collections::HashMap;
 use uuid::Uuid;
 
-/// Servers a user may add, so the tools in their prompts stay manageable.
+/// Servers whose tools a user may get, so the tools in their prompts stay manageable: the ones
+/// they added and the ones shared with them that they turned on. Shares that are off don't
+/// count, so others can't use up the limit.
 pub(crate) const MAX_MCP_SERVERS_PER_USER: i64 = 20;
 
 /// The outcome of connecting to a server.
@@ -39,10 +46,13 @@ pub(crate) struct McpServerChanges<'a> {
     pub disabled_tools: &'a [String],
 }
 
+/// The servers the user owns or that are shared with them, the latter with how.
 pub(crate) async fn list_mcp_servers(
     db: &DatabasePool,
     user_id: Uuid,
-) -> Result<Vec<McpServer>, AppError> {
+) -> Result<Vec<(McpServer, Option<McpServerShare>)>, AppError> {
+    // One snapshot, so every server shared with the user comes with its share.
+    let mut tx = db.begin().await?;
     let servers = sqlx::query_as!(
         McpServer,
         r#"SELECT id AS "id: Uuid", user_id AS "user_id: Uuid", name, url, enabled, token_encrypted,
@@ -50,33 +60,61 @@ pub(crate) async fn list_mcp_servers(
                   tools AS "tools: Json<Vec<McpToolSummary>>", disabled_tools AS "disabled_tools: Json<Vec<String>>",
                   checked_at AS "checked_at: DateTime<Utc>", created_at AS "created_at: DateTime<Utc>",
                   updated_at AS "updated_at: DateTime<Utc>"
-           FROM mcp_servers
-           WHERE user_id = $1
+           FROM mcp_servers s
+           WHERE s.user_id = $1
+              OR s.id IN (SELECT mcp_server_id FROM mcp_server_users WHERE user_id = $1)
            ORDER BY id"#,
         user_id,
     )
-    .fetch_all(db)
+    .fetch_all(&mut *tx)
     .await?;
-    Ok(servers)
+    let mut shares: HashMap<Uuid, McpServerShare> = sqlx::query_as!(
+        McpServerShare,
+        r#"SELECT su.mcp_server_id AS "mcp_server_id: Uuid", u.user_name AS owner_name, su.enabled,
+                  su.created_at AS "created_at: DateTime<Utc>"
+           FROM mcp_server_users su
+           JOIN mcp_servers s ON s.id = su.mcp_server_id
+           JOIN users u ON u.id = s.user_id
+           WHERE su.user_id = $1"#,
+        user_id,
+    )
+    .fetch_all(&mut *tx)
+    .await?
+    .into_iter()
+    .map(|share| (share.mcp_server_id, share))
+    .collect();
+    tx.commit().await?;
+    Ok(servers
+        .into_iter()
+        .map(|server| {
+            let share = shares.remove(&server.id);
+            (server, share)
+        })
+        .collect())
 }
 
-/// The servers whose tools the model gets in the user's chats: enabled, and connected at the
-/// last check. In the order they were added, so the tools stay in the same order. With the
-/// schemas of the tools, unlike the other queries.
+/// The servers whose tools the model gets in the user's chats: their own and the ones shared
+/// with them that they turned on, enabled by the owner and connected at the last check. In the
+/// order they were added, so the tools stay in the same order. With the schemas of the tools,
+/// unlike the other queries.
 pub(crate) async fn list_usable_mcp_servers(
     db: &DatabasePool,
     user_id: Uuid,
-) -> Result<Vec<McpServer<McpTool>>, AppError> {
+) -> Result<Vec<UsableMcpServer>, AppError> {
     let servers = sqlx::query_as!(
-        McpServer::<McpTool>,
-        r#"SELECT id AS "id: Uuid", user_id AS "user_id: Uuid", name, url, enabled, token_encrypted,
-                  token_hint, oauth_encrypted, status AS "status: McpServerStatus", last_error,
-                  tools AS "tools: Json<Vec<McpTool>>", disabled_tools AS "disabled_tools: Json<Vec<String>>",
-                  checked_at AS "checked_at: DateTime<Utc>", created_at AS "created_at: DateTime<Utc>",
-                  updated_at AS "updated_at: DateTime<Utc>"
-           FROM mcp_servers
-           WHERE user_id = $1 AND enabled AND status = 'READY'
-           ORDER BY id"#,
+        UsableMcpServer,
+        r#"SELECT s.id AS "id: Uuid", s.name, s.url, s.token_encrypted, s.oauth_encrypted,
+                  u.role AS "owner_role: UserRole",
+                  CASE WHEN s.user_id = $1 THEN NULL ELSE u.user_name END AS "shared_by?: String",
+                  s.tools AS "tools: Json<Vec<McpTool>>",
+                  s.disabled_tools AS "disabled_tools: Json<Vec<String>>",
+                  s.updated_at AS "updated_at: DateTime<Utc>"
+           FROM mcp_servers s
+           JOIN users u ON u.id = s.user_id
+           WHERE (s.user_id = $1
+                  OR s.id IN (SELECT mcp_server_id FROM mcp_server_users WHERE user_id = $1 AND enabled))
+             AND s.enabled AND s.status = 'READY'
+           ORDER BY s.id"#,
         user_id,
     )
     .fetch_all(db)
@@ -84,6 +122,7 @@ pub(crate) async fn list_usable_mcp_servers(
     Ok(servers)
 }
 
+/// A server the user owns or that is shared with them.
 pub(crate) async fn get_mcp_server(
     db: &DatabasePool,
     user_id: Uuid,
@@ -96,8 +135,10 @@ pub(crate) async fn get_mcp_server(
                   tools AS "tools: Json<Vec<McpToolSummary>>", disabled_tools AS "disabled_tools: Json<Vec<String>>",
                   checked_at AS "checked_at: DateTime<Utc>", created_at AS "created_at: DateTime<Utc>",
                   updated_at AS "updated_at: DateTime<Utc>"
-           FROM mcp_servers
-           WHERE id = $1 AND user_id = $2"#,
+           FROM mcp_servers s
+           WHERE s.id = $1
+             AND (s.user_id = $2
+                  OR s.id IN (SELECT mcp_server_id FROM mcp_server_users WHERE user_id = $2))"#,
         id,
         user_id,
     )
@@ -116,18 +157,7 @@ pub(crate) async fn create_mcp_server(
     let now = Utc::now();
 
     let mut tx = begin_write(db).await?;
-    let count = sqlx::query_scalar!(
-        r#"SELECT COUNT(*) AS "count!: i64" FROM mcp_servers WHERE user_id = $1"#,
-        new.user_id,
-    )
-    .fetch_one(&mut *tx)
-    .await?;
-    if count >= MAX_MCP_SERVERS_PER_USER {
-        return Err(ValidationError(format!(
-            "You can add at most {MAX_MCP_SERVERS_PER_USER} MCP servers"
-        ))
-        .into());
-    }
+    check_mcp_server_limit(&mut tx, new.user_id).await?;
     let server = sqlx::query_as!(
         McpServer,
         r#"INSERT INTO mcp_servers (id, user_id, name, url, enabled, token_encrypted, token_hint,
@@ -158,7 +188,7 @@ pub(crate) async fn create_mcp_server(
     Ok(server)
 }
 
-/// Applies `changes`. Returns `None` if the server does not exist (for the user). Its URL
+/// Applies `changes`. Returns `None` if the user owns no such server. Its URL
 /// never changes: allowing that would need to clear the token and the OAuth credentials,
 /// which were issued for that server, and to forget the cached OAuth client.
 pub(crate) async fn update_mcp_server(
@@ -232,20 +262,147 @@ pub(crate) async fn record_connection(
     Ok(server)
 }
 
-/// Deleting a missing server also succeeds, so the request is safe to retry.
+/// Returns `false` if the user owns no such server.
 pub(crate) async fn delete_mcp_server(
     db: &DatabasePool,
     user_id: Uuid,
     id: Uuid,
-) -> Result<(), AppError> {
-    sqlx::query!(
+) -> Result<bool, AppError> {
+    let result = sqlx::query!(
         "DELETE FROM mcp_servers WHERE id = $1 AND user_id = $2",
         id,
         user_id,
     )
     .execute(db)
     .await?;
+    Ok(result.rows_affected() > 0)
+}
+
+/// The users the server is shared with, without its owner. Empty if `owner_id` owns no such
+/// server.
+pub(crate) async fn list_mcp_server_users(
+    db: &DatabasePool,
+    owner_id: Uuid,
+    id: Uuid,
+) -> Result<Vec<McpServerUser>, AppError> {
+    let users = sqlx::query_as!(
+        McpServerUser,
+        r#"SELECT u.id AS "user_id: Uuid", u.user_name, u.email, su.created_at AS "created_at: DateTime<Utc>"
+           FROM mcp_server_users su
+           JOIN mcp_servers s ON s.id = su.mcp_server_id
+           JOIN users u ON u.id = su.user_id
+           WHERE su.mcp_server_id = $1 AND s.user_id = $2
+           ORDER BY su.created_at, u.id"#,
+        id,
+        owner_id,
+    )
+    .fetch_all(db)
+    .await?;
+    Ok(users)
+}
+
+/// Shares the server of `owner_id` with the user, off until they turn it on. Returns `false` if
+/// nothing changed: `owner_id` owns no such server, or it already is shared with the user
+/// (sharing it again never turns it on).
+pub(crate) async fn add_mcp_server_user(
+    db: &DatabasePool,
+    owner_id: Uuid,
+    id: Uuid,
+    user_id: Uuid,
+) -> Result<bool, AppError> {
+    let now = Utc::now();
+    let result = sqlx::query!(
+        r#"INSERT INTO mcp_server_users (mcp_server_id, user_id, enabled, created_at)
+           SELECT id, $3, FALSE, $4 FROM mcp_servers WHERE id = $1 AND user_id = $2
+           ON CONFLICT DO NOTHING"#,
+        id,
+        owner_id,
+        user_id,
+        now,
+    )
+    .execute(db)
+    .await?;
+    Ok(result.rows_affected() > 0)
+}
+
+/// Turns the server shared with the user on or off for their chats. Returns `false` if it is
+/// not shared with them. Turning it on fails if the user has [`MAX_MCP_SERVERS_PER_USER`]
+/// servers already.
+pub(crate) async fn update_mcp_server_user(
+    db: &DatabasePool,
+    id: Uuid,
+    user_id: Uuid,
+    enabled: bool,
+) -> Result<bool, AppError> {
+    let mut tx = begin_write(db).await?;
+    let Some(was_enabled) = sqlx::query_scalar!(
+        "SELECT enabled FROM mcp_server_users WHERE mcp_server_id = $1 AND user_id = $2",
+        id,
+        user_id,
+    )
+    .fetch_optional(&mut *tx)
+    .await?
+    else {
+        return Ok(false);
+    };
+    if enabled && !was_enabled {
+        check_mcp_server_limit(&mut tx, user_id).await?;
+    }
+    sqlx::query!(
+        "UPDATE mcp_server_users SET enabled = $3 WHERE mcp_server_id = $1 AND user_id = $2",
+        id,
+        user_id,
+        enabled,
+    )
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    Ok(true)
+}
+
+/// Fails if the user has [`MAX_MCP_SERVERS_PER_USER`] servers: their own and the ones shared
+/// with them that they turned on.
+async fn check_mcp_server_limit(
+    conn: &mut SqliteConnection,
+    user_id: Uuid,
+) -> Result<(), AppError> {
+    let count = sqlx::query_scalar!(
+        r#"SELECT (SELECT COUNT(*) FROM mcp_servers WHERE user_id = $1)
+                  + (SELECT COUNT(*) FROM mcp_server_users WHERE user_id = $1 AND enabled)
+                  AS "count!: i64""#,
+        user_id,
+    )
+    .fetch_one(&mut *conn)
+    .await?;
+    if count >= MAX_MCP_SERVERS_PER_USER {
+        return Err(ValidationError(format!(
+            "You can use at most {MAX_MCP_SERVERS_PER_USER} MCP servers, counting the ones shared \
+            with you that you turned on"
+        ))
+        .into());
+    }
     Ok(())
+}
+
+/// Stops sharing the server with the user, for its owner or the user themselves (`acting_id`).
+/// Returns `false` if nothing changed: it was not shared with them, or `acting_id` is neither.
+pub(crate) async fn remove_mcp_server_user(
+    db: &DatabasePool,
+    acting_id: Uuid,
+    id: Uuid,
+    user_id: Uuid,
+) -> Result<bool, AppError> {
+    let result = sqlx::query!(
+        r#"DELETE FROM mcp_server_users
+           WHERE mcp_server_id = $1 AND user_id = $2
+             AND (user_id = $3 OR EXISTS (SELECT 1 FROM mcp_servers WHERE id = $1 AND user_id = $3))"#,
+        id,
+        user_id,
+        acting_id,
+    )
+    .execute(db)
+    .await?;
+    Ok(result.rows_affected() > 0)
 }
 
 /// The encrypted OAuth credentials of the server.

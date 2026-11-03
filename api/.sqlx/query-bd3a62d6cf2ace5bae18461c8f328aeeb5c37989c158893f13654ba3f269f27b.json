@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT (SELECT COUNT(*) FROM mcp_servers WHERE user_id = $1)\n                  + (SELECT COUNT(*) FROM mcp_server_users WHERE user_id = $1 AND enabled)\n                  AS \"count!: i64\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "count!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bd3a62d6cf2ace5bae18461c8f328aeeb5c37989c158893f13654ba3f269f27b"
+}

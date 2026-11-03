@@ -1,5 +1,6 @@
 //! MCP servers: remote services whose tools the model can use in the chats of the user who
-//! added them. Only remote servers (Streamable HTTP) are supported.
+//! added them, and of the users they share them with. Only remote servers (Streamable HTTP)
+//! are supported.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -37,18 +38,29 @@ pub enum McpServerAuth {
     Unknown,
 }
 
+/// Users the server is shared with use it in their chats once they turn it on, as the owner set
+/// it up (with the owner's token or OAuth sign-in, and only the tools the owner enabled), but
+/// only the owner manages it.
 #[derive(Serialize, Deserialize)]
 pub struct McpServerDto {
     pub id: Uuid,
+    pub owner_id: Uuid,
+    /// How the server is shared with the user, `null` for its owner.
+    pub shared: Option<McpServerShareDto>,
     pub name: String,
+    /// For users it is shared with only the origin (`https://mcp.example.com`), since some
+    /// servers take a key in the path or the query, which is the owner's.
     pub url: String,
-    /// Whether its tools are offered in the user's chats (once it is `READY`).
+    /// Whether the owner turned it on: its tools are offered in the owner's chats (once it is
+    /// `READY`), and in those of the users it is shared with who turned it on as well.
     pub enabled: bool,
     pub auth: McpServerAuth,
-    /// The last 4 characters of the token with `TOKEN`, `null` for short tokens and otherwise.
+    /// The last 4 characters of the token with `TOKEN`, `null` for short tokens, otherwise and
+    /// for users it is shared with.
     pub token_hint: Option<String>,
     pub status: McpServerStatus,
-    /// Why the last connection failed, with `FAILED`.
+    /// Why the last connection failed, with `FAILED`. `null` for users it is shared with, since
+    /// it may contain the URL.
     pub last_error: Option<String>,
     /// The tools as of the last successful connection, in the server's order.
     pub tools: Vec<McpToolDto>,
@@ -61,6 +73,41 @@ pub struct McpServerDto {
     pub updated_at: DateTime<Utc>,
 }
 
+/// How a server is shared with the user, who decides whether to use it.
+#[derive(Serialize, Deserialize)]
+pub struct McpServerShareDto {
+    /// The user name of the owner, who shared it.
+    pub owner_name: String,
+    /// Whether the user turned it on for their chats. Off when it is shared, see
+    /// [`UpdateMcpServerUserRequest`].
+    pub enabled: bool,
+    /// When it was shared with the user.
+    pub created_at: DateTime<Utc>,
+}
+
+/// Turns a server shared with the user on or off for their chats. Only for that user, not for
+/// the owner, and also without the permission to manage MCP servers. Turning it on fails with
+/// `VALIDATION_ERROR` if the user has 20 servers already: their own and the shared ones they
+/// turned on.
+#[derive(Serialize, Deserialize)]
+pub struct UpdateMcpServerUserRequest {
+    pub enabled: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct McpServerUserDto {
+    pub user_id: Uuid,
+    pub user_name: String,
+    pub email: Option<String>,
+    /// When the server was shared with the user.
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AddMcpServerUserRequest {
+    pub user_name_or_email: String,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct McpToolDto {
     /// As the server names it.
@@ -70,8 +117,10 @@ pub struct McpToolDto {
 }
 
 /// Connects to the server and lists its tools before saving. Fails with `REMOTE_UNREACHABLE` if
-/// it cannot be reached or is no MCP server, and `AUTH_FAILED` if it rejects `token`. A server
-/// that asks for authentication without a token is saved as `AUTHORIZATION_REQUIRED`.
+/// it cannot be reached or is no MCP server, `AUTH_FAILED` if it rejects `token`, and
+/// `VALIDATION_ERROR` if the user has 20 servers already (counting the shared ones they turned
+/// on). A server that asks for authentication without a token is saved as
+/// `AUTHORIZATION_REQUIRED`.
 #[derive(Serialize, Deserialize)]
 pub struct CreateMcpServerRequest {
     /// Unique among the user's servers, ignoring case.

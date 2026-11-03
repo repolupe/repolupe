@@ -18,6 +18,7 @@ import {
     type LlmProviderDto,
     type LlmProviderSuggestionDto,
     type McpServerDto,
+    type McpServerUserDto,
     type RemoteModelDto,
     type MessageDto,
     type MessageStreamEvent,
@@ -621,7 +622,11 @@ export function streamMessage(
 
 // --- MCP servers ---
 
-/** The user's own servers. The other MCP server endpoints fail with `FORBIDDEN` without `can_manage_mcp_servers`. */
+/**
+ * The user's own servers and the ones shared with them. The other MCP server endpoints fail with `FORBIDDEN` without
+ * `can_manage_mcp_servers` (except turning a shared server on or off and leaving it), and for servers shared with the
+ * user.
+ */
 export async function getMcpServers(): Promise<McpServerDto[]> {
     return await makeRequest({route: 'mcp-servers', method: 'GET'});
 }
@@ -680,6 +685,36 @@ export async function authorizeMcpServer(id: string, redirectUri: string): Promi
         body: {redirect_uri: redirectUri},
     });
     return response.authorization_url;
+}
+
+/** The users the server is shared with. Owner only. */
+export async function getMcpServerUsers(id: string): Promise<McpServerUserDto[]> {
+    return await makeRequest({route: `mcp-servers/${id}/users`, method: 'GET'});
+}
+
+/**
+ * Shares the server, which the user can then turn on to use it with the owner's credentials. Fails with
+ * `UNKNOWN_USER`, sharing it again does nothing. Owner only.
+ */
+export async function addMcpServerUser(id: string, userNameOrEmail: string): Promise<void> {
+    await makeRequest({
+        route: `mcp-servers/${id}/users`,
+        method: 'POST',
+        body: {user_name_or_email: userNameOrEmail},
+    });
+}
+
+/**
+ * Turns a server shared with the user on or off for their chats. Only the user themselves, not the owner. Turning it on
+ * fails with `VALIDATION_ERROR` if the user has 20 servers already: their own and the shared ones they turned on.
+ */
+export async function updateMcpServerUser(id: string, userId: string, enabled: boolean): Promise<void> {
+    await makeRequest({route: `mcp-servers/${id}/users/${userId}/update`, method: 'POST', body: {enabled}});
+}
+
+/** Stops sharing the server with the user. The owner, or the user themselves to leave it. */
+export async function removeMcpServerUser(id: string, userId: string): Promise<void> {
+    await makeRequest({route: `mcp-servers/${id}/users/${userId}/delete`, method: 'POST'});
 }
 
 export interface McpAuthorizationCallbackPayload {

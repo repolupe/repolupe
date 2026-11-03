@@ -26,7 +26,9 @@ use crate::dto::extraction::{
     RepositoryDocumentDto, RepositoryDocumentsDto, RepositoryLabelDto,
 };
 use crate::dto::llm::{ApiKeyDto, LlmModelDto, LlmProviderDto, ModelDto, RemoteModelDto};
-use crate::dto::mcp::{McpServerAuth, McpServerDto, McpToolDto};
+use crate::dto::mcp::{
+    McpServerAuth, McpServerDto, McpServerShareDto, McpServerUserDto, McpToolDto,
+};
 use crate::dto::repository::{
     RemoteSettingsDto, RepositoryDto, RepositoryTokenDto, RepositoryUserDto,
 };
@@ -119,6 +121,17 @@ impl RepositoryDto {
             next_sync_at: repository.next_sync_at,
             created_at: repository.created_at,
             updated_at: repository.updated_at,
+        }
+    }
+}
+
+impl From<model::mcp_server::McpServerUser> for McpServerUserDto {
+    fn from(user: model::mcp_server::McpServerUser) -> Self {
+        McpServerUserDto {
+            user_id: user.user_id,
+            user_name: user.user_name,
+            email: user.email,
+            created_at: user.created_at,
         }
     }
 }
@@ -245,18 +258,38 @@ impl LlmProviderDto {
     }
 }
 
-impl From<model::mcp_server::McpServer> for McpServerDto {
-    fn from(server: model::mcp_server::McpServer) -> Self {
+impl McpServerDto {
+    /// As seen by `viewer_id`, whom it was read for, with `share` if it is shared with them.
+    pub(crate) fn new(
+        server: model::mcp_server::McpServer,
+        share: Option<model::mcp_server::McpServerShare>,
+        viewer_id: Uuid,
+    ) -> Self {
         let auth = server.auth();
+        let is_owner = server.user_id == viewer_id;
         McpServerDto {
             id: server.id,
+            owner_id: server.user_id,
+            shared: share.map(|share| McpServerShareDto {
+                owner_name: share.owner_name,
+                enabled: share.enabled,
+                created_at: share.created_at,
+            }),
             name: server.name,
-            url: server.url,
+            // Some servers take a key in the URL, which is the owner's.
+            url: if is_owner {
+                server.url
+            } else {
+                service::mcp::url_origin(&server.url)
+            },
             enabled: server.enabled,
             auth,
-            token_hint: server.token_hint.filter(|_| auth == McpServerAuth::Token),
+            token_hint: server
+                .token_hint
+                .filter(|_| auth == McpServerAuth::Token && is_owner),
             status: server.status,
-            last_error: server.last_error,
+            // May contain the URL, e.g. in the errors of requests.
+            last_error: server.last_error.filter(|_| is_owner),
             tools: server
                 .tools
                 .0

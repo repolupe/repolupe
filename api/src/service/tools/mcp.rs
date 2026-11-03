@@ -1,4 +1,5 @@
-//! The tools of the user's MCP servers, see [`crate::service::mcp`]. The model calls them as
+//! The tools of the user's MCP servers and the ones shared with them, see
+//! [`crate::service::mcp`]. The model calls them as
 //! `mcp__<server>__<tool>`: `<server>` is a slug of the server's name (lowercase letters,
 //! digits and single `_`), `<tool>` the tool's own name, with characters the LLM APIs reject
 //! replaced. Names that would be longer than 64 characters get a hash instead of their end.
@@ -14,7 +15,7 @@ use super::{Call, ToolError};
 use crate::model::mcp_server::McpTool;
 use crate::service::llm::ToolDefinition;
 use crate::service::mcp::{
-    ConnectError, McpClient, McpSession, McpTarget, maybe_processed, service_error,
+    ConnectError, McpClient, McpSession, McpTarget, hide_url, maybe_processed, service_error,
 };
 use chrono::{DateTime, Utc};
 use rmcp::model::{CallToolRequestParams, CallToolResult, ContentBlock, ResourceContents};
@@ -43,6 +44,8 @@ pub(crate) struct McpServerTools {
     /// [`McpClient::require_authorization`].
     pub(crate) updated_at: DateTime<Utc>,
     pub(crate) name: String,
+    /// The owner's user name if the server is shared with the user, `None` for their own.
+    pub(crate) shared_by: Option<String>,
     pub(crate) tools: Vec<McpTool>,
 }
 
@@ -59,6 +62,7 @@ struct Server {
     target: McpTarget,
     updated_at: DateTime<Utc>,
     name: String,
+    shared_by: Option<String>,
     /// With the names the model calls them by.
     tools: Vec<(String, McpTool)>,
     /// Opened by the first call.
@@ -112,6 +116,7 @@ impl McpTools {
                     target: server.target,
                     updated_at: server.updated_at,
                     name: server.name,
+                    shared_by: server.shared_by,
                     tools,
                     session: Mutex::new(None),
                 }
@@ -124,12 +129,13 @@ impl McpTools {
         }
     }
 
-    /// The names of the servers whose tools the model gets.
-    pub(super) fn server_names(&self) -> Vec<&str> {
+    /// The names of the servers whose tools the model gets, with the owner's user name for the
+    /// ones shared with the user.
+    pub(super) fn server_names(&self) -> Vec<(&str, Option<&str>)> {
         self.servers
             .iter()
             .filter(|s| !s.tools.is_empty())
-            .map(|s| s.name.as_str())
+            .map(|s| (s.name.as_str(), s.shared_by.as_deref()))
             .collect()
     }
 
@@ -144,9 +150,12 @@ impl McpTools {
                 ToolDefinition {
                     name: name.clone(),
                     description: format!(
-                        "A tool of the MCP server \"{}\", an external service the user \
-                        connected. {about}",
-                        server.name
+                        "A tool of the MCP server \"{}\", an external service {}. {about}",
+                        server.name,
+                        match &server.shared_by {
+                            Some(owner) => format!("{owner} shared with the user"),
+                            None => "the user connected".to_string(),
+                        }
                     )
                     .trim_end()
                     .to_string(),
@@ -236,7 +245,8 @@ impl McpTools {
     /// The result for the model when the server failed. A server that wants a new sign-in is
     /// marked as such, so its tools are not offered until the user signed in again. One that
     /// refused the request (HTTP 403) fails only this call: the credentials may lack a
-    /// permission for it, but are still valid.
+    /// permission for it, but are still valid. For servers shared with the user, the reasons
+    /// leave out the server's URL but its origin, which may contain the owner's key.
     async fn failure(&self, server: &Server, error: ConnectError) -> ToolError {
         match error {
             ConnectError::AuthorizationRequired { .. } => {
@@ -245,9 +255,13 @@ impl McpTools {
                         .require_authorization(server.target.id, server.updated_at)
                         .await;
                 }
+                let who = match &server.shared_by {
+                    Some(owner) => format!("Its owner, {owner}, who shared it with the user,"),
+                    None => "The user".to_string(),
+                };
                 ToolError::Invalid(format!(
-                    "The MCP server \"{}\" rejected the credentials. The user has to sign in to \
-                    it again (or set a new token) in the settings.",
+                    "The MCP server \"{}\" rejected the credentials. {who} has to sign in to it \
+                    again (or set a new token) in the settings.",
                     server.name
                 ))
             }
@@ -262,10 +276,17 @@ impl McpTools {
                     server.name
                 ))
             }
-            ConnectError::Failed(message) => ToolError::Invalid(format!(
-                "The MCP server \"{}\" failed: {message}",
-                server.name
-            )),
+            ConnectError::Failed(message) => {
+                // May contain its URL, e.g. in the errors of requests.
+                let message = match server.shared_by {
+                    Some(_) => hide_url(&message, &server.target.url),
+                    None => message,
+                };
+                ToolError::Invalid(format!(
+                    "The MCP server \"{}\" failed: {message}",
+                    server.name
+                ))
+            }
         }
     }
 }
@@ -440,6 +461,7 @@ mod tests {
             },
             updated_at: Utc::now(),
             name: name.to_string(),
+            shared_by: None,
             tools: tools.iter().map(|t| tool(t)).collect(),
         }
     }
@@ -477,10 +499,12 @@ mod tests {
 
     #[test]
     fn keeps_names_unique() {
+        let mut wiki = server("Wiki", &["a.b", "a_b"]);
+        wiki.shared_by = Some("alice".to_string());
         let tools = tools(vec![
             server("Docs", &["search", "search"]),
             server("docs", &["search"]),
-            server("Wiki", &["a.b", "a_b"]),
+            wiki,
         ]);
         let names: Vec<String> = tools.definitions().map(|d| d.name).collect();
         assert_eq!(
@@ -493,12 +517,20 @@ mod tests {
                 "mcp__wiki__a_b_2",
             ]
         );
-        assert_eq!(tools.server_names(), ["Docs", "docs", "Wiki"]);
-        let definition = tools.definitions().next().unwrap();
         assert_eq!(
-            definition.description,
+            tools.server_names(),
+            [("Docs", None), ("docs", None), ("Wiki", Some("alice"))]
+        );
+        let descriptions: Vec<String> = tools.definitions().map(|d| d.description).collect();
+        assert_eq!(
+            descriptions[0],
             "A tool of the MCP server \"Docs\", an external service the user connected. Does \
             things."
+        );
+        assert_eq!(
+            descriptions[3],
+            "A tool of the MCP server \"Wiki\", an external service alice shared with the user. \
+            Does things."
         );
     }
 
@@ -526,7 +558,7 @@ mod tests {
         let tools = tools(vec![large, other]);
         let names: Vec<String> = tools.definitions().map(|d| d.name).collect();
         assert_eq!(names, ["mcp__a__large", "mcp__a__small"]);
-        assert_eq!(tools.server_names(), ["A"]);
+        assert_eq!(tools.server_names(), [("A", None)]);
     }
 
     #[test]

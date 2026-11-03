@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT enabled FROM mcp_server_users WHERE mcp_server_id = $1 AND user_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "name": "enabled",
+        "ordinal": 0,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "bdbe88ea21de3cfcf5dda0e816d318cd04a32d0822fb277ca865d82779d752dd"
+}

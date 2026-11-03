@@ -123,7 +123,7 @@ void main() {
     expect(find.text('Sets a new password for bob and signs them out everywhere.'), findsOneWidget);
     expect(find.text('Disabled (signed out everywhere)'), findsOneWidget);
     expect(find.text('Must be changed at the next login'), findsOneWidget);
-    expect(tester.widget<FilledButton>(find.byKey(const ValueKey('user.setPassword'))).enabled, isTrue);
+    expect(tester.widget<TextButton>(find.byKey(const ValueKey('user.setPassword'))).enabled, isTrue);
     expect(find.byKey(const ValueKey('user.delete')), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();

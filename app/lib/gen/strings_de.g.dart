@@ -307,6 +307,8 @@ class _Translations$base$user$de extends Translations$base$user$en {
   @override
   String get missingUserName => 'Benutzername fehlt';
   @override
+  String get missingUserNameOrEmail => 'Benutzername oder E-Mail fehlt';
+  @override
   String userNameInvalid({required Object max}) => 'Der Benutzername muss aus 1 bis ${max} Buchstaben, Ziffern, \'.\', \'_\' oder \'-\' bestehen';
   @override
   String get emailInvalid => 'Ungültige E-Mail-Adresse';
@@ -539,6 +541,10 @@ class _Translations$base$mcpServers$de extends Translations$base$mcpServers$en {
   late final _Translations$base$mcpServers$page$de page = _Translations$base$mcpServers$page$de._(_root);
   @override
   late final _Translations$base$mcpServers$dialog$de dialog = _Translations$base$mcpServers$dialog$de._(_root);
+  @override
+  late final _Translations$base$mcpServers$sharing$de sharing = _Translations$base$mcpServers$sharing$de._(_root);
+  @override
+  late final _Translations$base$mcpServers$shareDialog$de shareDialog = _Translations$base$mcpServers$shareDialog$de._(_root);
   @override
   late final _Translations$base$mcpServers$callback$de callback = _Translations$base$mcpServers$callback$de._(_root);
 }
@@ -1490,8 +1496,6 @@ class _Translations$base$repositories$shareDialog$de extends Translations$base$r
   @override
   String get description =>
       'Der Benutzer kann dieses Repository lesen und in seinen Chats verwenden, es aber nicht ändern, synchronisieren oder löschen.';
-  @override
-  String get missing => 'Benutzername oder E-Mail fehlt';
 }
 
 // Path: base.documents.card
@@ -1579,6 +1583,9 @@ class _Translations$base$mcpServers$page$de extends Translations$base$mcpServers
   @override
   String get emptyText => 'Füge einen MCP-Server über seine URL hinzu, damit das Modell seine Tools in deinen Chats verwenden kann.';
   @override
+  String get emptyTextShared =>
+      'Es wurden keine MCP-Server mit dir geteilt. Wenn jemand einen teilt, kannst du ihn hier aktivieren, um seine Tools in deinen Chats zu verwenden.';
+  @override
   String get editServer => 'Server bearbeiten';
   @override
   String get deleteServer => 'Server löschen';
@@ -1595,8 +1602,12 @@ class _Translations$base$mcpServers$page$de extends Translations$base$mcpServers
   @override
   String lastError({required Object error}) => 'Die letzte Verbindung ist fehlgeschlagen: ${error}';
   @override
+  String get lastErrorShared => 'Die letzte Verbindung ist fehlgeschlagen. Nur der Besitzer sieht, warum.';
+  @override
   String get signInRequired =>
       'Der Server verlangt eine Anmeldung, bevor seine Tools verwendet werden können. Unterstützt er keine Anmeldung, lösche ihn und füge ihn mit einem Token neu hinzu.';
+  @override
+  String get signInRequiredShared => 'Der Server verlangt, dass sich sein Besitzer erneut anmeldet, bevor seine Tools verwendet werden können.';
   @override
   String toolCount({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
     count,
@@ -1623,6 +1634,13 @@ class _Translations$base$mcpServers$page$de extends Translations$base$mcpServers
   @override
   String get notUsed => 'Nicht in Chats verwendet';
   @override
+  String sharedBy({required Object name}) => 'Geteilt von ${name}';
+  @override
+  String get sharedWithYouHint => 'Nur der Besitzer kann diesen Server, seine Tools und seine Anmeldung ändern.';
+  @override
+  String sharedOff({required Object name}) =>
+      '${name} hat diesen Server mit dir geteilt. Seine Tools werden erst in deinen Chats verwendet, wenn du ihn aktivierst. Das Modell kann dann Inhalte aus deinen Chats und Repositories an ihn senden. Aktiviere ihn also nur, wenn du ${name} und dem Server vertraust.';
+  @override
   String signInTitle({required Object name}) => 'Bei ${name} anmelden?';
   @override
   String signInText({required Object name}) =>
@@ -1631,13 +1649,22 @@ class _Translations$base$mcpServers$page$de extends Translations$base$mcpServers
   String get deleteTitle => 'MCP-Server löschen';
   @override
   String deleteText({required Object name}) =>
-      'Der MCP-Server ${name} wird gelöscht. Seine Tools stehen danach in deinen Chats nicht mehr zur Verfügung.';
+      'Der MCP-Server ${name} wird gelöscht. Seine Tools stehen danach weder in deinen Chats noch in denen der Benutzer, mit denen du ihn geteilt hast, zur Verfügung.';
+  @override
+  String get leave => 'Verlassen';
+  @override
+  String get leaveTitle => 'MCP-Server verlassen';
+  @override
+  String leaveText({required Object name}) =>
+      'Du kannst die Tools von ${name} nicht mehr in deinen Chats verwenden. Der Besitzer kann ihn erneut mit dir teilen.';
   @override
   String get created => 'Server hinzugefügt.';
   @override
   String get updated => 'Server aktualisiert.';
   @override
   String get deleted => 'Server gelöscht.';
+  @override
+  String left({required Object name}) => 'Du hast ${name} verlassen.';
   @override
   String enabled({required Object name}) => '${name} aktiviert.';
   @override
@@ -1673,6 +1700,8 @@ class _Translations$base$mcpServers$page$de extends Translations$base$mcpServers
   String saveFailed({required Object error}) => 'Der Server konnte nicht gespeichert werden: ${error}';
   @override
   String deleteFailed({required Object error}) => 'Der Server konnte nicht gelöscht werden: ${error}';
+  @override
+  String leaveFailed({required Object error}) => 'Der Server konnte nicht verlassen werden: ${error}';
   @override
   String toggleFailed({required Object error}) => 'Der Server konnte nicht geändert werden: ${error}';
   @override
@@ -1710,6 +1739,58 @@ class _Translations$base$mcpServers$dialog$de extends Translations$base$mcpServe
   String get connecting => 'Verbindung zum Server wird hergestellt, das kann einige Sekunden dauern…';
   @override
   String get missingUrl => 'URL fehlt';
+}
+
+// Path: base.mcpServers.sharing
+class _Translations$base$mcpServers$sharing$de extends Translations$base$mcpServers$sharing$en {
+  _Translations$base$mcpServers$sharing$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'Teilen';
+  @override
+  String get description =>
+      'Benutzer, mit denen du diesen Server teilst, können ihn aktivieren, um seine aktivierten Tools in ihren Chats zu verwenden, mit deinem Token oder deiner Anmeldung. Teile ihn also nur mit Benutzern, die dort in deinem Namen handeln dürfen. Sie können ihn nicht ändern, seine Tools nicht auswählen und sich nicht bei ihm anmelden.';
+  @override
+  String get notShared => 'Mit niemandem geteilt';
+  @override
+  String sharedAt({required Object relative}) => 'Geteilt ${relative}';
+  @override
+  String get share => 'Teilen';
+  @override
+  String get stopSharing => 'Nicht mehr teilen';
+  @override
+  String get stopSharingTitle => 'Nicht mehr teilen';
+  @override
+  String stopSharingText({required Object name}) => '${name} kann die Tools dieses Servers nicht mehr in den eigenen Chats verwenden.';
+  @override
+  String get shared => 'Server geteilt.';
+  @override
+  String get unknownUser => 'Kein Benutzer mit diesem Benutzernamen oder dieser E-Mail';
+  @override
+  String get stopped => 'Nicht mehr geteilt.';
+  @override
+  String loadFailed({required Object error}) => 'Die Benutzer konnten nicht geladen werden: ${error}';
+  @override
+  String shareFailed({required Object error}) => 'Der Server konnte nicht geteilt werden: ${error}';
+  @override
+  String stopFailed({required Object error}) => 'Das Teilen konnte nicht beendet werden: ${error}';
+}
+
+// Path: base.mcpServers.shareDialog
+class _Translations$base$mcpServers$shareDialog$de extends Translations$base$mcpServers$shareDialog$en {
+  _Translations$base$mcpServers$shareDialog$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'MCP-Server teilen';
+  @override
+  String get description =>
+      'Der Benutzer kann diesen Server aktivieren, um seine aktivierten Tools in seinen Chats zu verwenden, mit deinem Token oder deiner Anmeldung, ihn aber nicht ändern, aktualisieren oder löschen.';
 }
 
 // Path: base.mcpServers.callback

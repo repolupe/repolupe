@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT su.mcp_server_id AS \"mcp_server_id: Uuid\", u.user_name AS owner_name, su.enabled,\n                  su.created_at AS \"created_at: DateTime<Utc>\"\n           FROM mcp_server_users su\n           JOIN mcp_servers s ON s.id = su.mcp_server_id\n           JOIN users u ON u.id = s.user_id\n           WHERE su.user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "name": "mcp_server_id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "owner_name",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "enabled",
+        "ordinal": 2,
+        "type_info": "Bool"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 3,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "07bf9e3521175da88bba571470c65e9a6aa88b32784e164f55a8b0951e222165"
+}

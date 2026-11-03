@@ -87,6 +87,7 @@
     "roleAdmin": "Admin",
     "roleUser": "Benutzer",
     "missingUserName": "Benutzername fehlt",
+    "missingUserNameOrEmail": "Benutzername oder E-Mail fehlt",
     "userNameInvalid": "Der Benutzername muss aus 1 bis {max} Buchstaben, Ziffern, '.', '_' oder '-' bestehen",
     "emailInvalid": "Ungültige E-Mail-Adresse",
     "userNameTaken": "Es gibt bereits einen Benutzer mit diesem Benutzernamen",
@@ -503,8 +504,7 @@
     },
     "shareDialog": {
       "title": "Repository teilen",
-      "description": "Der Benutzer kann dieses Repository lesen und in seinen Chats verwenden, es aber nicht ändern, synchronisieren oder löschen.",
-      "missing": "Benutzername oder E-Mail fehlt"
+      "description": "Der Benutzer kann dieses Repository lesen und in seinen Chats verwenden, es aber nicht ändern, synchronisieren oder löschen."
     }
   },
   "documents": {
@@ -549,6 +549,7 @@
       "authIntro": "Unterstützt ein Server es, meldest du dich mit deinem Konto dort an. Bei anderen kannst du einen Token eingeben.",
       "emptyTitle": "Noch keine MCP-Server",
       "emptyText": "Füge einen MCP-Server über seine URL hinzu, damit das Modell seine Tools in deinen Chats verwenden kann.",
+      "emptyTextShared": "Es wurden keine MCP-Server mit dir geteilt. Wenn jemand einen teilt, kannst du ihn hier aktivieren, um seine Tools in deinen Chats zu verwenden.",
       "editServer": "Server bearbeiten",
       "deleteServer": "Server löschen",
       "authNone": "Keine Authentifizierung",
@@ -557,7 +558,9 @@
       "authOAuth": "Mit OAuth angemeldet",
       "checked": "Geprüft {relative}",
       "lastError": "Die letzte Verbindung ist fehlgeschlagen: {error}",
+      "lastErrorShared": "Die letzte Verbindung ist fehlgeschlagen. Nur der Besitzer sieht, warum.",
       "signInRequired": "Der Server verlangt eine Anmeldung, bevor seine Tools verwendet werden können. Unterstützt er keine Anmeldung, lösche ihn und füge ihn mit einem Token neu hinzu.",
+      "signInRequiredShared": "Der Server verlangt, dass sich sein Besitzer erneut anmeldet, bevor seine Tools verwendet werden können.",
       "toolCount": {
         "zero": "Keine Tools",
         "one": "1 Tool",
@@ -573,13 +576,20 @@
       "signInAgain": "Erneut anmelden",
       "useInChats": "In Chats verwenden",
       "notUsed": "Nicht in Chats verwendet",
+      "sharedBy": "Geteilt von {name}",
+      "sharedWithYouHint": "Nur der Besitzer kann diesen Server, seine Tools und seine Anmeldung ändern.",
+      "sharedOff": "{name} hat diesen Server mit dir geteilt. Seine Tools werden erst in deinen Chats verwendet, wenn du ihn aktivierst. Das Modell kann dann Inhalte aus deinen Chats und Repositories an ihn senden. Aktiviere ihn also nur, wenn du {name} und dem Server vertraust.",
       "signInTitle": "Bei {name} anmelden?",
       "signInText": "{name} verlangt eine Anmeldung, bevor seine Tools verwendet werden können. Du wirst zur Anmeldeseite weitergeleitet und danach hierher zurückgebracht.",
       "deleteTitle": "MCP-Server löschen",
-      "deleteText": "Der MCP-Server {name} wird gelöscht. Seine Tools stehen danach in deinen Chats nicht mehr zur Verfügung.",
+      "deleteText": "Der MCP-Server {name} wird gelöscht. Seine Tools stehen danach weder in deinen Chats noch in denen der Benutzer, mit denen du ihn geteilt hast, zur Verfügung.",
+      "leave": "Verlassen",
+      "leaveTitle": "MCP-Server verlassen",
+      "leaveText": "Du kannst die Tools von {name} nicht mehr in deinen Chats verwenden. Der Besitzer kann ihn erneut mit dir teilen.",
       "created": "Server hinzugefügt.",
       "updated": "Server aktualisiert.",
       "deleted": "Server gelöscht.",
+      "left": "Du hast {name} verlassen.",
       "enabled": "{name} aktiviert.",
       "disabled": "{name} deaktiviert.",
       "toolEnabled": "Tool {name} aktiviert.",
@@ -599,6 +609,7 @@
       "createFailed": "Der Server konnte nicht hinzugefügt werden: {error}",
       "saveFailed": "Der Server konnte nicht gespeichert werden: {error}",
       "deleteFailed": "Der Server konnte nicht gelöscht werden: {error}",
+      "leaveFailed": "Der Server konnte nicht verlassen werden: {error}",
       "toggleFailed": "Der Server konnte nicht geändert werden: {error}",
       "toggleToolFailed": "Das Tool konnte nicht geändert werden: {error}",
       "toggleAllToolsFailed": "Die Tools konnten nicht geändert werden: {error}",
@@ -615,6 +626,26 @@
       "fixedConnection": "URL und Token lassen sich nicht ändern. Lösche den Server dafür und füge ihn neu hinzu.",
       "connecting": "Verbindung zum Server wird hergestellt, das kann einige Sekunden dauern…",
       "missingUrl": "URL fehlt"
+    },
+    "sharing": {
+      "title": "Teilen",
+      "description": "Benutzer, mit denen du diesen Server teilst, können ihn aktivieren, um seine aktivierten Tools in ihren Chats zu verwenden, mit deinem Token oder deiner Anmeldung. Teile ihn also nur mit Benutzern, die dort in deinem Namen handeln dürfen. Sie können ihn nicht ändern, seine Tools nicht auswählen und sich nicht bei ihm anmelden.",
+      "notShared": "Mit niemandem geteilt",
+      "sharedAt": "Geteilt {relative}",
+      "share": "Teilen",
+      "stopSharing": "Nicht mehr teilen",
+      "stopSharingTitle": "Nicht mehr teilen",
+      "stopSharingText": "{name} kann die Tools dieses Servers nicht mehr in den eigenen Chats verwenden.",
+      "shared": "Server geteilt.",
+      "unknownUser": "Kein Benutzer mit diesem Benutzernamen oder dieser E-Mail",
+      "stopped": "Nicht mehr geteilt.",
+      "loadFailed": "Die Benutzer konnten nicht geladen werden: {error}",
+      "shareFailed": "Der Server konnte nicht geteilt werden: {error}",
+      "stopFailed": "Das Teilen konnte nicht beendet werden: {error}"
+    },
+    "shareDialog": {
+      "title": "MCP-Server teilen",
+      "description": "Der Benutzer kann diesen Server aktivieren, um seine aktivierten Tools in seinen Chats zu verwenden, mit deinem Token oder deiner Anmeldung, ihn aber nicht ändern, aktualisieren oder löschen."
     },
     "callback": {
       "title": "Anmeldung",
