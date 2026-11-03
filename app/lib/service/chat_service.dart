@@ -145,6 +145,10 @@ class ChatState with ChatStateMappable {
   /// It is fixed once the chat is created.
   bool get isTemporary => chat?.temporary ?? temporary;
 
+  /// Whether a temporary chat is under way (created, or its first message is being sent), which the user cannot come
+  /// back to once they open another chat, since it is not listed.
+  bool get startedTemporary => isTemporary && (chat != null || sending);
+
   /// The model the user's model resolves to, like the server picks it: the user's own, else the default model.
   ModelDto? get fallbackModel => models.where((m) => m.id == defaultModelId).firstOrNull ?? models.where((m) => m.isDefault).firstOrNull;
 

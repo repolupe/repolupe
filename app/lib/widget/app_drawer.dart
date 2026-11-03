@@ -4,6 +4,7 @@ import 'package:app/pages/settings_page.dart';
 import 'package:app/service/chat_list_service.dart';
 import 'package:app/service/chat_service.dart';
 import 'package:app/util/format.dart';
+import 'package:app/widget/chat/leave_temporary_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -48,11 +49,16 @@ class AppDrawer extends StatelessWidget {
                       title: Text(t.base.app.navigation.newChat),
                       selected: openId == null,
                       onTap: () async {
+                        // Like the app bar's button, keeps the choices of a chat without messages.
+                        final leave = context.read(chatProvider).messages.isNotEmpty;
+                        // Asked above the drawer, which stays open if the user stays.
+                        if ((leave && !await LeaveTemporaryDialog.confirm(context)) || !context.mounted) {
+                          return;
+                        }
                         // The drawer's context is gone once it is closed.
                         final ref = context.ref;
                         Navigator.pop(context);
-                        // Like the app bar's button, keeps the choices of a chat without messages.
-                        if (ref.read(chatProvider).messages.isNotEmpty) {
+                        if (leave) {
                           await ref.redux(chatProvider).dispatchAsync(NewChatAction());
                         }
                       },
@@ -83,6 +89,10 @@ class AppDrawer extends StatelessWidget {
                           subtitle: Text(formatDayTime(chat.updatedAt)),
                           selected: chat.id == openId,
                           onTap: () async {
+                            // Asked above the drawer, which stays open if the user stays.
+                            if (!await LeaveTemporaryDialog.confirm(context) || !context.mounted) {
+                              return;
+                            }
                             // The drawer's context is gone once it is closed.
                             final ref = context.ref;
                             Navigator.pop(context);

@@ -8,6 +8,7 @@ import 'package:app/util/format.dart';
 import 'package:app/widget/app_drawer.dart';
 import 'package:app/widget/chat/assistant_message.dart';
 import 'package:app/widget/chat/instance_hero.dart';
+import 'package:app/widget/chat/leave_temporary_dialog.dart';
 import 'package:app/widget/chat/model_sheet.dart';
 import 'package:app/widget/chat/repository_sheet.dart';
 import 'package:app/widget/chat/user_message.dart';
@@ -96,7 +97,9 @@ class _ChatPageState extends State<ChatPage> with Refena {
                 onPressed: state.messages.isEmpty
                     ? null
                     : () async {
-                        await context.redux(chatProvider).dispatchAsync(NewChatAction());
+                        if (await LeaveTemporaryDialog.confirm(context) && context.mounted) {
+                          await context.redux(chatProvider).dispatchAsync(NewChatAction());
+                        }
                       },
               ),
             ],

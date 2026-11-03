@@ -4,6 +4,7 @@ import 'package:app/service/chat_service.dart';
 import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/util/format.dart';
+import 'package:app/widget/chat/leave_temporary_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -95,6 +96,9 @@ class _OlderChatsPageState extends State<OlderChatsPage> with Refena {
                     title: Text(chat.title, maxLines: 1, overflow: TextOverflow.ellipsis),
                     subtitle: Text(formatDayTime(chat.updatedAt)),
                     onTap: () async {
+                      if (!await LeaveTemporaryDialog.confirm(context) || !context.mounted) {
+                        return;
+                      }
                       // The page's context is gone once it is closed.
                       final ref = context.ref;
                       Navigator.pop(context);

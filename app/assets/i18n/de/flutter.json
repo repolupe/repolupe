@@ -25,6 +25,11 @@
     "page": {
       "temporaryOff": "Temporären Chat ausschalten"
     },
+    "leaveTemporaryDialog": {
+      "title": "Temporären Chat verlassen?",
+      "text": "Temporäre Chats werden nicht in deinen Chats aufgeführt, du kannst also nicht zu diesem zurückkehren. Er wird einen Tag nach seiner letzten Nachricht gelöscht.",
+      "leave": "Verlassen"
+    },
     "markdownContent": {
       "openLinkFailed": "{link} konnte nicht geöffnet werden"
     },

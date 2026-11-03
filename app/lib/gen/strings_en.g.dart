@@ -717,6 +717,9 @@ class Translations$flutter$chat$en {
 
   // Translations
   late final Translations$flutter$chat$page$en page = Translations$flutter$chat$page$en.internal(_root);
+  late final Translations$flutter$chat$leaveTemporaryDialog$en leaveTemporaryDialog = Translations$flutter$chat$leaveTemporaryDialog$en.internal(
+    _root,
+  );
   late final Translations$flutter$chat$markdownContent$en markdownContent = Translations$flutter$chat$markdownContent$en.internal(_root);
   late final Translations$flutter$chat$repositorySheet$en repositorySheet = Translations$flutter$chat$repositorySheet$en.internal(_root);
   late final Translations$flutter$chat$toolCallPage$en toolCallPage = Translations$flutter$chat$toolCallPage$en.internal(_root);
@@ -2423,6 +2426,24 @@ class Translations$flutter$chat$page$en {
 
   /// en: 'Turn off temporary chat'
   String get temporaryOff => 'Turn off temporary chat';
+}
+
+// Path: flutter.chat.leaveTemporaryDialog
+class Translations$flutter$chat$leaveTemporaryDialog$en {
+  Translations$flutter$chat$leaveTemporaryDialog$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Leave temporary chat?'
+  String get title => 'Leave temporary chat?';
+
+  /// en: 'Temporary chats are not listed in your chats, so you cannot come back to this one. It is deleted a day after its last message.'
+  String get text => 'Temporary chats are not listed in your chats, so you cannot come back to this one. It is deleted a day after its last message.';
+
+  /// en: 'Leave'
+  String get leave => 'Leave';
 }
 
 // Path: flutter.chat.markdownContent

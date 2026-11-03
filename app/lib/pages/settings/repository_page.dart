@@ -12,6 +12,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
 import 'package:app/util/format.dart';
 import 'package:app/util/poller.dart';
+import 'package:app/widget/chat/leave_temporary_dialog.dart';
 import 'package:app/widget/confirm_dialog.dart';
 import 'package:app/widget/delete_dialog.dart';
 import 'package:app/widget/repositories/info_card.dart';
@@ -187,7 +188,10 @@ class _RepositoryPageState extends State<RepositoryPage> with Refena {
   }
 
   /// Starts a new chat that reads only this repository, closing the settings.
-  void _ask(RepositoryDto repository) {
+  Future<void> _ask(RepositoryDto repository) async {
+    if (!await LeaveTemporaryDialog.confirm(context)) {
+      return;
+    }
     unawaited(ref.global.dispatchAsync(NavigateAction.pushRoot(HomePage(repositoryIds: [repository.id]))));
   }
 

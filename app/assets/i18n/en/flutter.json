@@ -25,6 +25,11 @@
     "page": {
       "temporaryOff": "Turn off temporary chat"
     },
+    "leaveTemporaryDialog": {
+      "title": "Leave temporary chat?",
+      "text": "Temporary chats are not listed in your chats, so you cannot come back to this one. It is deleted a day after its last message.",
+      "leave": "Leave"
+    },
     "markdownContent": {
       "openLinkFailed": "Could not open {link}"
     },
