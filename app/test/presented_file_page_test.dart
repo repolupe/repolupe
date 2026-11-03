@@ -14,6 +14,7 @@ import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import 'support/api.dart';
+import 'support/file_picker.dart';
 import 'support/rust.dart';
 
 const _userId = '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12';
@@ -31,33 +32,6 @@ final _toolCall = ToolCallSummaryDto(
   status: ToolCallStatus.completed,
   createdAt: DateTime.utc(2026, 10, 21, 12),
 );
-
-/// Records what it is asked to save, failing if [error] is set.
-class _FakeFilePicker extends FilePickerPlatform {
-  final PlatformException? error;
-  final saved = <(String, Uint8List, String)>[];
-
-  _FakeFilePicker({this.error});
-
-  @override
-  Future<Uri?> saveFile({
-    required String fileName,
-    required Uint8List bytes,
-    required String mimeType,
-    String? dialogTitle,
-    String? initialDirectory,
-    Function(FilePickerStatus)? onFileSaving,
-    WindowsOptions windowsOptions = const WindowsOptions(),
-    LinuxOptions linuxOptions = const LinuxOptions(),
-    WebOptions webOptions = const WebOptions(),
-  }) async {
-    if (error case final error?) {
-      throw error;
-    }
-    saved.add((fileName, bytes, mimeType));
-    return Uri.file('/saved/$fileName');
-  }
-}
 
 /// Opens the page of the `present_file_to_user` call, which loads `# Guide` as Markdown.
 Future<void> _openPage(WidgetTester tester) async {
@@ -94,7 +68,7 @@ void main() {
   });
 
   testWidgets('the file is saved under its name with its content type', (tester) async {
-    final picker = _FakeFilePicker();
+    final picker = FakeFilePicker();
     FilePickerPlatform.instance = picker;
 
     await _openPage(tester);
@@ -111,7 +85,7 @@ void main() {
   });
 
   testWidgets('a failed save shows a snack bar', (tester) async {
-    FilePickerPlatform.instance = _FakeFilePicker(error: PlatformException(code: 'error'));
+    FilePickerPlatform.instance = FakeFilePicker(error: PlatformException(code: 'error'));
 
     await _openPage(tester);
     await tester.tap(find.byKey(const ValueKey('presentedFile.download')));

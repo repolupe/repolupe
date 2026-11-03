@@ -1,4 +1,3 @@
-import 'package:app/gen/strings.g.dart';
 import 'package:app/service/api_service.dart';
 import 'package:app/src/rust/api/client.dart';
 import 'package:app/src/rust/api/error.dart';
@@ -6,10 +5,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/util/tool_call.dart';
 import 'package:app/widget/chat/file_content.dart';
 import 'package:app/widget/chat/tool_call_info.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
@@ -63,20 +59,6 @@ class _PresentedFilePageState extends State<PresentedFilePage> with Refena {
     }
   }
 
-  Future<void> _save(FileDownload file) async {
-    // Without parameters like the charset, which Android's save dialog does not take.
-    final type = (file.contentType ?? '').split(';').first.trim();
-    try {
-      await FilePicker.saveFile(
-        fileName: fileName(widget.path),
-        bytes: file.content,
-        mimeType: type.isEmpty ? 'application/octet-stream' : type,
-      );
-    } on PlatformException {
-      ref.global.dispatch(ShowSnackBarAction(message: t.flutter.chat.fileContent.saveFailed));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final download = _download;
@@ -87,11 +69,10 @@ class _PresentedFilePageState extends State<PresentedFilePage> with Refena {
       error: _error,
       actions: [
         if (download != null)
-          IconButton(
+          DownloadButton(
             key: const ValueKey('presentedFile.download'),
-            icon: const Icon(Icons.download),
-            tooltip: context.t.base.common.download,
-            onPressed: () => _save(download),
+            file: download,
+            fileName: fileName(widget.path),
           ),
       ],
       fill: _file is PdfFile,

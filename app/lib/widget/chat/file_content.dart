@@ -1,12 +1,15 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:app/gen/strings.g.dart';
 import 'package:app/src/rust/api/client.dart';
 import 'package:app/widget/chat/code_block.dart';
 import 'package:app/widget/chat/markdown_content.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
+import 'package:refena_flutter/addons.dart';
+import 'package:refena_flutter/refena_flutter.dart';
 
 /// A downloaded file as it is shown: Markdown rendered, PDFs in a viewer, other text as it is.
 sealed class LoadedFile {
@@ -67,6 +70,38 @@ class FileContent extends StatelessWidget {
         style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
       ),
     };
+  }
+}
+
+/// Saves [file] as [fileName] where the user chooses, or shows a snack bar if it cannot.
+class DownloadButton extends StatelessWidget {
+  final FileDownload file;
+  final String fileName;
+
+  const DownloadButton({super.key, required this.file, required this.fileName});
+
+  @override
+  Widget build(BuildContext context) {
+    final ref = context.ref;
+    return IconButton(
+      icon: const Icon(Icons.download),
+      tooltip: context.t.base.common.download,
+      onPressed: () => _save(ref),
+    );
+  }
+
+  Future<void> _save(Ref ref) async {
+    // Without parameters like the charset, which Android's save dialog does not take.
+    final type = (file.contentType ?? '').split(';').first.trim();
+    try {
+      await FilePicker.saveFile(
+        fileName: fileName,
+        bytes: file.content,
+        mimeType: type.isEmpty ? 'application/octet-stream' : type,
+      );
+    } on PlatformException {
+      ref.global.dispatch(ShowSnackBarAction(message: t.flutter.chat.fileContent.saveFailed));
+    }
   }
 }
 
