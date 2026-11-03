@@ -250,6 +250,70 @@ class NewChatAction extends AsyncReduxAction<ChatService, ChatState> {
   }
 }
 
+/// Loads the models again, keeping the chat, after an admin changed them in the settings (e.g. added the first one),
+/// since the chat page stays open below them. A chosen model of the new chat that no longer exists is no longer
+/// chosen. If they fail to load, the ones loaded before stay.
+class LoadModelsAction extends AsyncReduxAction<ChatService, ChatState> {
+  @override
+  Future<ChatState> reduce() async {
+    if (notifier._api.state == null) {
+      return state;
+    }
+
+    final epoch = state.epoch;
+    final List<ModelDto> models;
+    try {
+      models = await external(notifier._api).dispatchAsyncTakeResult(ApiListModelsAction());
+    } on ClientError {
+      // The failed request is logged as an action.
+      return state;
+    }
+    if (epoch != state.epoch) {
+      return state;
+    }
+    return state.copyWith(
+      models: models,
+      modelId: models.any((m) => m.id == state.modelId) ? state.modelId : null,
+    );
+  }
+}
+
+/// Loads the repositories again, keeping the chat, after the user changed them in the settings (e.g. added the first
+/// one), since the chat page stays open below them. The new chat no longer reads the chosen ones that are gone. If it
+/// could not choose any before, it reads all of them now (unless some were chosen), like a new chat. If they fail to
+/// load, the ones loaded before stay.
+class LoadRepositoriesAction extends AsyncReduxAction<ChatService, ChatState> {
+  @override
+  Future<ChatState> reduce() async {
+    if (notifier._api.state == null) {
+      return state;
+    }
+
+    final epoch = state.epoch;
+    final List<RepositoryDto> repositories;
+    try {
+      repositories = await external(notifier._api).dispatchAsyncTakeResult(ApiListRepositoriesAction());
+    } on ClientError {
+      // The failed request is logged as an action.
+      return state;
+    }
+    if (epoch != state.epoch) {
+      return state;
+    }
+    if (state.chat != null) {
+      // The chat keeps the repositories it was created with.
+      return state.copyWith(repositories: repositories);
+    }
+    final ids = state.repositoryIds.where((id) => repositories.any((r) => r.id == id)).toList();
+    return state.copyWith(
+      repositories: repositories,
+      // Without repositories, "all" would be misleading.
+      allRepositories: repositories.isNotEmpty && (state.allRepositories || (state.repositories.isEmpty && ids.isEmpty)),
+      repositoryIds: ids,
+    );
+  }
+}
+
 /// Opens the previous chat [chatId] with its messages (dropping the current one), and follows its answer if one is
 /// being generated. Shows a snack bar if it fails, leaving a new chat.
 class OpenChatAction extends AsyncReduxAction<ChatService, ChatState> with GlobalActions {

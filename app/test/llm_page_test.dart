@@ -1,6 +1,7 @@
 import 'package:app/gen/strings.g.dart';
 import 'package:app/pages/settings/admin/llm_page.dart';
 import 'package:app/service/api_service.dart';
+import 'package:app/service/chat_service.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
@@ -57,10 +58,24 @@ class _FakeApi {
 
   _FakeApi({required this.providers});
 
+  /// The models of the [providers] that users choose from in chats.
+  List<ModelDto> get models => [
+    for (final provider in providers)
+      for (final model in provider.models)
+        ModelDto(
+          id: model.id,
+          displayName: model.displayName ?? model.apiName,
+          providerId: provider.id,
+          providerName: provider.name,
+          isDefault: model.isDefault,
+        ),
+  ];
+
   /// Answers the actions of the API.
   void answer(ApiMocks mock) {
     mock.on<ApiGetMeAction>((state, _) => (state, fakeUser(id: _adminId, userName: 'alice', role: UserRole.admin)));
     mock.on<ApiListLlmProvidersAction>((state, _) => (state, providers));
+    mock.on<ApiListModelsAction>((state, _) => (state, models));
     mock.on<ApiSetDefaultModelAction>((state, action) {
       requests.add(action);
       providers = [
@@ -199,6 +214,8 @@ void main() {
     expect(find.descendant(of: haikuStar, matching: find.byIcon(Icons.star)), findsOneWidget);
     expect(tester.widget<IconButton>(haikuStar).onPressed, isNull);
     expect(((tester.widget<IconButton>(opusStar).icon) as Icon).icon, Icons.star_border);
+    // The chat page below loads the models again.
+    expect(container.read(chatProvider).fallbackModel(null)?.displayName, 'claude-haiku');
     clearSnackBars();
 
     // Delete a model after confirming.
@@ -212,6 +229,7 @@ void main() {
     expect(api.requests.last, isA<ApiDeleteLlmModelAction>().having((a) => a.id, 'id', UuidValue.fromString(_opusId)));
     expect(find.text('Claude Opus 5.5'), findsNothing);
     expect(find.text('1 Model'), findsOneWidget);
+    expect(container.read(chatProvider).models.map((m) => m.displayName), ['claude-haiku']);
     clearSnackBars();
 
     // Delete a provider after typing its name.

@@ -5,6 +5,7 @@ import 'package:app/pages/home_page.dart';
 import 'package:app/pages/settings/repositories_page.dart';
 import 'package:app/pages/settings/repository_form_page.dart';
 import 'package:app/service/api_service.dart';
+import 'package:app/service/chat_service.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/error.dart';
@@ -152,6 +153,8 @@ class _RepositoryPageState extends State<RepositoryPage> with Refena {
       onDelete: () async {
         try {
           await ref.redux(apiProvider).dispatchAsync(ApiDeleteRepositoryAction(id: repository.id));
+          // The chat page below no longer offers it.
+          unawaited(ref.redux(chatProvider).dispatchAsync(LoadRepositoriesAction()));
           return null;
         } on ClientError catch (e) {
           return t.base.repositories.page.deleteFailed(error: e.userMessage);
@@ -175,6 +178,8 @@ class _RepositoryPageState extends State<RepositoryPage> with Refena {
       onConfirm: () async {
         try {
           await ref.redux(apiProvider).dispatchAsync(ApiRemoveRepositoryUserAction(id: repository.id, userId: userId));
+          // The chat page below no longer offers it.
+          unawaited(ref.redux(chatProvider).dispatchAsync(LoadRepositoriesAction()));
           return null;
         } on ClientError catch (e) {
           return t.base.repositories.page.leaveFailed(error: e.userMessage);

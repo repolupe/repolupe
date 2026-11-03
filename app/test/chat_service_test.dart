@@ -9,12 +9,17 @@ import 'package:app/service/chat_list_service.dart';
 import 'package:app/service/chat_service.dart';
 import 'package:app/service/message_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/mcp.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
 import 'package:app/util/format.dart';
 import 'package:app/util/tool_call.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+import 'support/api.dart';
+import 'support/fake_repository.dart';
 import 'support/rust.dart';
 
 const _chatId = '0199a8d4-6d5e-7c3a-9b1f-000000000001';
@@ -307,6 +312,94 @@ void main() {
     final state = container.read(chatProvider);
     expect(state.answer, isNull);
     expect(state.messages.map((m) => m.content), ['Hello', 'Hi there']);
+  });
+
+  test('the models are loaded again keeping the new chat, e.g. after an admin added the first one in the settings', () async {
+    ModelDto model(String id, String name) => ModelDto(
+      id: UuidValue.fromString(id),
+      displayName: name,
+      providerId: UuidValue.fromString(_modelId),
+      providerName: 'Anthropic',
+      isDefault: id == _modelId,
+    );
+    var models = <ModelDto>[];
+    final container = await mockContainer(
+      account: fakeAccount(userId: '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12'),
+      api: (mock) {
+        mock.on<ApiListModelsAction>((state, _) => (state, models));
+        mock.on<ApiListRepositoriesAction>((state, _) => (state, const <RepositoryDto>[]));
+        mock.on<ApiListMcpServersAction>((state, _) => (state, const <McpServerDto>[]));
+      },
+    );
+    final chat = container.redux(chatProvider);
+
+    // A new server has no models yet.
+    await chat.dispatchAsync(NewChatAction());
+    chat.dispatch(SetTemporaryAction(true));
+    expect(container.read(chatProvider).answeringModel(null), isNull);
+
+    models = [model(_modelId, 'Claude'), model(_otherModelId, 'Haiku')];
+    await chat.dispatchAsync(LoadModelsAction());
+    var state = container.read(chatProvider);
+    expect(state.models.map((m) => m.displayName), ['Claude', 'Haiku']);
+    expect(state.answeringModel(null)?.displayName, 'Claude');
+    expect(state.isTemporary, isTrue);
+
+    // A chosen model that was deleted meanwhile is no longer chosen.
+    await chat.dispatchAsync(ChooseModelAction(UuidValue.fromString(_otherModelId)));
+    models = [model(_modelId, 'Claude')];
+    await chat.dispatchAsync(LoadModelsAction());
+    state = container.read(chatProvider);
+    expect(state.modelId, isNull);
+    expect(state.answeringModel(null)?.displayName, 'Claude');
+  });
+
+  test('the repositories are loaded again keeping the choice of the new chat, e.g. after the user added the first one', () async {
+    const userId = '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12';
+    const notesId = '0199a8d4-6d5e-7c3a-9b1f-000000000008';
+    final docs = fakeRepository(id: _repositoryId, ownerId: userId, name: 'docs');
+    final notes = fakeRepository(id: notesId, ownerId: userId, name: 'notes');
+    var repositories = <RepositoryDto>[];
+    final container = await mockContainer(
+      account: fakeAccount(userId: userId),
+      api: (mock) {
+        mock.on<ApiListModelsAction>((state, _) => (state, const <ModelDto>[]));
+        mock.on<ApiListRepositoriesAction>((state, _) => (state, repositories));
+        mock.on<ApiListMcpServersAction>((state, _) => (state, const <McpServerDto>[]));
+      },
+    );
+    final chat = container.redux(chatProvider);
+    ChatState state() => container.read(chatProvider);
+    Future<void> reload(List<RepositoryDto> next) async {
+      repositories = next;
+      await chat.dispatchAsync(LoadRepositoriesAction());
+    }
+
+    // Without repositories, the new chat can't read all of them; with the first one, it does, like a new chat.
+    await chat.dispatchAsync(NewChatAction());
+    expect(state().allRepositories, isFalse);
+    await reload([docs]);
+    expect(state().repositories.map((r) => r.name), ['docs']);
+    expect(state().allRepositories, isTrue);
+    await reload([docs, notes]);
+    expect(state().allRepositories, isTrue);
+
+    // The chosen ones that are gone are no longer chosen, the others stay.
+    chat.dispatch(SetRepositoryScopeAction(all: false, ids: [docs.id, notes.id]));
+    await reload([docs]);
+    expect(state().allRepositories, isFalse);
+    expect(state().repositoryIds, [docs.id]);
+
+    // Choosing none stays, also with another repository.
+    chat.dispatch(SetRepositoryScopeAction(all: false, ids: const []));
+    await reload([docs, notes]);
+    expect(state().allRepositories, isFalse);
+    expect(state().repositoryIds, isEmpty);
+
+    // Without repositories again, "all" would be misleading.
+    chat.dispatch(SetRepositoryScopeAction(all: true, ids: const []));
+    await reload([]);
+    expect(state().allRepositories, isFalse);
   });
 
   test('an attached file is uploaded and sent with a blank message, unless removed, too large or no longer available', () async {

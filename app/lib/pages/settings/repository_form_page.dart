@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/api_service.dart';
+import 'package:app/service/chat_service.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/api/mirror.dart';
@@ -159,6 +162,8 @@ class _RepositoryFormPageState extends State<RepositoryFormPage> with Refena {
               ),
             );
       }
+      // The chat page below offers the new repository, or its new name.
+      unawaited(ref.redux(chatProvider).dispatchAsync(LoadRepositoriesAction()));
       if (mounted) {
         Navigator.pop(context, saved);
       }

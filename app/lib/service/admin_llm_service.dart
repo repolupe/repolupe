@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/api_service.dart';
+import 'package:app/service/chat_service.dart';
 import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/api/mirror.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
@@ -10,7 +13,12 @@ import 'package:uuid/uuid.dart';
 
 // What admins do to the LLM providers and their models (`/api/v1/llm-providers`, `/api/v1/models`,
 // `/api/v1/default-model`): each action checks the input, calls the API, shows a snack bar in any case, and returns
-// the result (`null` or `false` if it failed).
+// the result (`null` or `false` if it failed). Those that change the models let the chat load them again.
+
+/// Loads the models of the chat again in the background, since its page stays open below the settings.
+void _reloadChatModels(Ref ref) {
+  unawaited(ref.redux(chatProvider).dispatchAsync(LoadModelsAction()));
+}
 
 /// Creates an LLM provider after checking the name and currency (empty for none; the base URL and API key are
 /// optional too). Returns the provider, `null` if that failed.
@@ -126,6 +134,8 @@ class UpdateLlmProviderAction extends AsyncGlobalActionWithResult<LlmProviderDto
       return null;
     }
 
+    // The chat groups the models by the provider's name.
+    _reloadChatModels(ref);
     ref.global.dispatch(ShowSnackBarAction(message: t.base.admin.llm.page.providerUpdated));
     return provider;
   }
@@ -150,6 +160,7 @@ class DeleteLlmProviderAction extends AsyncGlobalActionWithResult<String?> {
       return t.base.admin.llm.page.deleteProviderFailed(error: e.userMessage);
     }
 
+    _reloadChatModels(ref);
     ref.global.dispatch(ShowSnackBarAction(message: t.base.admin.llm.page.providerDeleted));
     return null;
   }
@@ -233,6 +244,7 @@ class SaveLlmModelAction extends AsyncGlobalActionWithResult<LlmModelDto?> {
       return null;
     }
 
+    _reloadChatModels(ref);
     ref.global.dispatch(
       ShowSnackBarAction(message: modelId == null ? t.base.admin.llm.page.modelsAdded(count: 1) : t.base.admin.llm.page.modelUpdated),
     );
@@ -281,6 +293,9 @@ class AddRemoteModelsAction extends AsyncGlobalActionWithResult<AddRemoteModelsR
       }
     }
 
+    if (added.isNotEmpty) {
+      _reloadChatModels(ref);
+    }
     if (failed.isEmpty) {
       ref.global.dispatch(ShowSnackBarAction(message: t.base.admin.llm.page.modelsAdded(count: added.length)));
       return (added: added, error: null);
@@ -314,6 +329,7 @@ class DeleteLlmModelAction extends AsyncGlobalActionWithResult<String?> {
       return t.base.admin.llm.page.deleteModelFailed(error: e.userMessage);
     }
 
+    _reloadChatModels(ref);
     ref.global.dispatch(ShowSnackBarAction(message: t.base.admin.llm.page.modelDeleted));
     return null;
   }
@@ -338,6 +354,7 @@ class SetDefaultLlmModelAction extends AsyncGlobalActionWithResult<bool> {
       return false;
     }
 
+    _reloadChatModels(ref);
     ref.global.dispatch(ShowSnackBarAction(message: t.base.admin.llm.page.defaultChanged));
     return true;
   }

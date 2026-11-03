@@ -44,6 +44,8 @@ class _FakeApi {
   /// Answers the actions of the API.
   void answer(ApiMocks mock) {
     mock.on<ApiGetMeAction>((state, _) => (state, fakeUser(id: _adminId, userName: 'alice', role: UserRole.admin)));
+    // The chat loads the models again after a change.
+    mock.on<ApiListModelsAction>((state, _) => (state, const <ModelDto>[]));
     mock.on<ApiCreateLlmProviderAction>((state, action) {
       requests.add(action);
       final request = action.request;

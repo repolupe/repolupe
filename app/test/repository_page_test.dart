@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:app/gen/strings.g.dart';
 import 'package:app/pages/settings/repository_page.dart';
 import 'package:app/service/api_service.dart';
+import 'package:app/service/chat_service.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/src/rust/api/mirror.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/error.dart';
@@ -34,6 +35,7 @@ class _FakeApi {
   void answer(ApiMocks mock) {
     mock.on<ApiGetMeAction>((state, _) => (state, fakeUser(id: _userId)));
     mock.on<ApiGetRepositoryAction>((state, action) => (state, _repository(action.id)));
+    mock.on<ApiListRepositoriesAction>((state, _) => (state, [?repository]));
     mock.on<ApiListRepositoryDocumentsAction>((state, action) {
       _repository(action.id);
       return (state, const RepositoryDocumentsDto(documents: []));
@@ -212,6 +214,8 @@ void main() {
       ),
     );
     expect(find.text('The new handbook'), findsOneWidget);
+    // The chat page below loads the repositories again.
+    expect(container.read(chatProvider).repositories.single.description, 'The new handbook');
     clearSnackBars();
 
     // Remove the token.
@@ -259,6 +263,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Repository deleted.'), findsOneWidget);
     expect(api.requests.last, _on<ApiDeleteRepositoryAction>((a) => a.id));
+    expect(container.read(chatProvider).repositories, isEmpty);
     expect(find.text('the list'), findsOneWidget);
     expect(find.byKey(const ValueKey('repository.body')), findsNothing);
   });
@@ -267,7 +272,9 @@ void main() {
     final api = _FakeApi(
       repository: fakeRepository(id: _repositoryId, ownerId: _otherUserId, name: 'docs', local: true, nextSyncAt: null),
     );
-    await _pumpPage(tester, api);
+    final container = await _pumpPage(tester, api);
+    await container.redux(chatProvider).dispatchAsync(LoadRepositoriesAction());
+    expect(container.read(chatProvider).repositories, hasLength(1));
 
     // The page is hit-testable once the push transition is over.
     await tester.pumpAndSettle();
@@ -287,6 +294,7 @@ void main() {
       api.requests.last,
       _on<ApiRemoveRepositoryUserAction>((a) => a.id).having((a) => a.userId, 'userId', UuidValue.fromString(_userId)),
     );
+    expect(container.read(chatProvider).repositories, isEmpty);
     expect(find.text('the list'), findsOneWidget);
   });
 
