@@ -47,9 +47,6 @@ class ChatState with ChatStateMappable {
   /// The models the user can choose, also to show which one wrote an answer.
   final List<ModelDto> models;
 
-  /// The user's own model, used when the chat has none.
-  final UuidValue? defaultModelId;
-
   /// The repositories the user can read, to choose those of a new chat.
   final List<RepositoryDto> repositories;
 
@@ -96,7 +93,6 @@ class ChatState with ChatStateMappable {
     required this.chat,
     required this.messages,
     required this.models,
-    required this.defaultModelId,
     required this.repositories,
     required this.allRepositories,
     required this.repositoryIds,
@@ -117,7 +113,6 @@ class ChatState with ChatStateMappable {
         chat: null,
         messages: const [],
         models: const [],
-        defaultModelId: null,
         repositories: const [],
         allRepositories: false,
         repositoryIds: const [],
@@ -167,12 +162,15 @@ class ChatState with ChatStateMappable {
   /// back to once they open another chat, since it is not listed.
   bool get startedTemporary => isTemporary && (chat != null || sending);
 
-  /// The model the user's model resolves to, like the server picks it: the user's own, else the default model.
-  ModelDto? get fallbackModel => models.where((m) => m.id == defaultModelId).firstOrNull ?? models.where((m) => m.isDefault).firstOrNull;
+  /// The model the user's model resolves to, like the server picks it: the user's own [defaultModelId] (that of
+  /// `meProvider`), else the default model.
+  ModelDto? fallbackModel(UuidValue? defaultModelId) =>
+      models.where((m) => m.id == defaultModelId).firstOrNull ?? models.where((m) => m.isDefault).firstOrNull;
 
-  /// The model that answers in the chat: the chosen one, else the [fallbackModel].
+  /// The model that answers in the chat: the chosen one, else the [fallbackModel] of [defaultModelId].
   /// A model that no longer exists counts as not chosen, like on the server.
-  ModelDto? get answeringModel => models.where((m) => m.id == chosenModelId).firstOrNull ?? fallbackModel;
+  ModelDto? answeringModel(UuidValue? defaultModelId) =>
+      models.where((m) => m.id == chosenModelId).firstOrNull ?? fallbackModel(defaultModelId);
 }
 
 /// Turned on by its owner, and by the user if it is shared with them. Only then its tools may be used in chats.
@@ -203,8 +201,8 @@ class ChatService extends ReduxNotifier<ChatState> {
   ChatState init() => ChatState.empty();
 }
 
-/// Starts a new chat for the active account (dropping the current one) and loads the models, the user's model, the
-/// repositories and the MCP servers. The new chat reads all repositories, if there are any, or only [repositoryIds] if
+/// Starts a new chat for the active account (dropping the current one) and loads the models, the repositories and the
+/// MCP servers. The user's model comes from `meProvider`, which keeps the user of the account. The new chat reads all repositories, if there are any, or only [repositoryIds] if
 /// given (e.g. opened from a repository's page), and gets the tools of all MCP servers.
 class NewChatAction extends AsyncReduxAction<ChatService, ChatState> {
   final List<UuidValue>? repositoryIds;
@@ -221,9 +219,8 @@ class NewChatAction extends AsyncReduxAction<ChatService, ChatState> {
     }
 
     final api = external(notifier._api);
-    final (models, user, repositories, mcpServers) = await (
+    final (models, repositories, mcpServers) = await (
       _loadOrNull(() => api.dispatchAsyncTakeResult(ApiListModelsAction())),
-      _loadOrNull(() => api.dispatchAsyncTakeResult(ApiGetMeAction())),
       _loadOrNull(() => api.dispatchAsyncTakeResult(ApiListRepositoriesAction())),
       _loadOrNull(() => api.dispatchAsyncTakeResult(ApiListMcpServersAction())),
     ).wait;
@@ -233,7 +230,6 @@ class NewChatAction extends AsyncReduxAction<ChatService, ChatState> {
     final repositoryIds = this.repositoryIds;
     return state.copyWith(
       models: models ?? const [],
-      defaultModelId: user?.defaultModelId,
       repositories: repositories ?? const [],
       // Without repositories, "all" would be misleading.
       allRepositories: repositoryIds == null && repositories != null && repositories.isNotEmpty,
@@ -278,7 +274,6 @@ class OpenChatAction extends AsyncReduxAction<ChatService, ChatState> with Globa
       _SetStateAction(
         ChatState.empty().copyWith(
           models: state.models,
-          defaultModelId: state.defaultModelId,
           repositories: state.repositories,
           mcpServers: state.mcpServers,
           loading: true,

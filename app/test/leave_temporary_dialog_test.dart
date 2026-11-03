@@ -14,7 +14,6 @@ import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import 'support/api.dart';
-import 'support/fake_user.dart';
 import 'support/rust.dart';
 
 const _userId = '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12';
@@ -60,7 +59,6 @@ Future<RefenaContainer> _startTemporaryChat(WidgetTester tester) async {
     overrides: [
       apiProvider.overrideWithActions((mock) {
         mock.on<ApiListModelsAction>((state, action) => (state, const <ModelDto>[]));
-        mock.on<ApiGetMeAction>((state, action) => (state, fakeUser(id: _userId)));
         mock.on<ApiListRepositoriesAction>((state, action) => (state, const <RepositoryDto>[]));
         mock.on<ApiListMcpServersAction>((state, action) => (state, const <McpServerDto>[]));
         mock.on<ApiListChatsAction>((state, action) => (state, ChatPageDto(items: [_chat(_savedId, 'Saved chat', temporary: false)])));

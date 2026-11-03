@@ -84,25 +84,6 @@ Map<String, dynamic> _message({
   'attachment': null,
 };
 
-const _user = {
-  'id': '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12',
-  'role': 'USER',
-  'user_name': 'alice',
-  'email': null,
-  'can_login': true,
-  'can_manage_repositories': true,
-  'can_manage_mcp_servers': true,
-  'can_change_identity': true,
-  'must_change_password': false,
-  'auto_commit': false,
-  'default_model_id': _otherModelId,
-  'locale': null,
-  'full_name': null,
-  'first_name': null,
-  'about': null,
-  'created_at': '2026-10-21T12:00:00+00:00',
-};
-
 const _repository = {
   'id': _repositoryId,
   'owner_id': '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12',
@@ -150,9 +131,6 @@ void main() {
               {'id': _otherModelId, 'display_name': 'Haiku', 'provider_id': _modelId, 'provider_name': 'Anthropic', 'is_default': false},
             ]),
           );
-        case '/api/v1/me':
-          response.headers.contentType = ContentType.json;
-          response.write(jsonEncode(_user));
         case '/api/v1/repositories':
           response.headers.contentType = ContentType.json;
           response.write(jsonEncode([_repository]));
@@ -204,16 +182,20 @@ void main() {
 
     await chat.dispatchAsync(NewChatAction());
     var state = container.read(chatProvider);
+    // The user comes from `meProvider`, it is not loaded again for every chat.
+    expect(requests.map((r) => r.$2), isNot(contains('/api/v1/me')));
     expect(state.modelName(UuidValue.fromString(_modelId)), 'Claude');
+    final userModelId = UuidValue.fromString(_otherModelId);
     // The user's own model, not the default one.
-    expect(state.answeringModel?.displayName, 'Haiku');
+    expect(state.answeringModel(userModelId)?.displayName, 'Haiku');
+    expect(state.answeringModel(null)?.displayName, 'Claude');
     // With repositories, a new chat reads all of them.
     expect(state.scopeAll, isTrue);
     expect(state.repositories.map((r) => r.name), ['docs']);
 
     chat.dispatch(SetRepositoryScopeAction(all: false, ids: [UuidValue.fromString(_repositoryId)]));
     await chat.dispatchAsync(ChooseModelAction(UuidValue.fromString(_modelId)));
-    expect(container.read(chatProvider).answeringModel?.displayName, 'Claude');
+    expect(container.read(chatProvider).answeringModel(userModelId)?.displayName, 'Claude');
     chat.dispatch(SetTemporaryAction(true));
     expect(container.read(chatProvider).isTemporary, isTrue);
 

@@ -2,6 +2,7 @@ import 'package:app/config/theme.dart';
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/chat_list_service.dart';
 import 'package:app/service/chat_service.dart';
+import 'package:app/service/me_service.dart';
 import 'package:app/service/message_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/util/format.dart';
@@ -462,6 +463,7 @@ class _ModelButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final defaultModelId = context.watch(meProvider.select((user) => user?.defaultModelId));
     return TextButton(
       key: const ValueKey('chat.model'),
       style: TextButton.styleFrom(
@@ -470,7 +472,7 @@ class _ModelButton extends StatelessWidget {
       ),
       onPressed: enabled ? () async => ModelSheet.show(context) : null,
       child: Text(
-        state.answeringModel?.displayName ?? context.t.base.common.kDefault,
+        state.answeringModel(defaultModelId)?.displayName ?? context.t.base.common.kDefault,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),

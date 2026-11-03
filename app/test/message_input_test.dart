@@ -14,7 +14,6 @@ import 'package:uuid/uuid.dart';
 
 import 'support/api.dart';
 import 'support/fake_repository.dart';
-import 'support/fake_user.dart';
 import 'support/rust.dart';
 
 const _userId = '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12';
@@ -77,7 +76,6 @@ Future<RefenaContainer> _pumpChatPage(
     overrides: [
       apiProvider.overrideWithActions((mock) {
         mock.on<ApiListModelsAction>((state, action) => (state, _models));
-        mock.on<ApiGetMeAction>((state, action) => (state, fakeUser(id: _userId)));
         mock.on<ApiListRepositoriesAction>((state, action) => (state, repositories));
         mock.on<ApiListMcpServersAction>((state, action) => (state, mcpServers));
         mock.on<ApiCreateChatAction>((state, action) {

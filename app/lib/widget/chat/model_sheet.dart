@@ -1,5 +1,6 @@
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/chat_service.dart';
+import 'package:app/service/me_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -20,6 +21,7 @@ class ModelSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch(chatProvider);
+    final fallbackModel = state.fallbackModel(context.watch(meProvider.select((user) => user?.defaultModelId)));
     final theme = Theme.of(context);
     // A model that no longer exists counts as the user's model, like on the server.
     final chosen = state.models.where((m) => m.id == state.chosenModelId).firstOrNull?.id;
@@ -51,7 +53,7 @@ class ModelSheet extends StatelessWidget {
               children: [
                 ListTile(
                   title: Text(context.t.base.common.kDefault),
-                  subtitle: state.fallbackModel == null ? null : Text(state.fallbackModel!.displayName),
+                  subtitle: fallbackModel == null ? null : Text(fallbackModel.displayName),
                   selected: chosen == null,
                   trailing: chosen == null ? const Icon(Icons.check) : null,
                   onTap: () => choose(null),

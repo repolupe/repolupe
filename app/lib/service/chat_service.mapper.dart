@@ -190,11 +190,6 @@ class ChatStateMapper extends ClassMapperBase<ChatState> {
     'models',
     _$models,
   );
-  static UuidValue? _$defaultModelId(ChatState v) => v.defaultModelId;
-  static const Field<ChatState, UuidValue> _f$defaultModelId = Field(
-    'defaultModelId',
-    _$defaultModelId,
-  );
   static List<RepositoryDto> _$repositories(ChatState v) => v.repositories;
   static const Field<ChatState, List<RepositoryDto>> _f$repositories = Field(
     'repositories',
@@ -254,7 +249,6 @@ class ChatStateMapper extends ClassMapperBase<ChatState> {
     #chat: _f$chat,
     #messages: _f$messages,
     #models: _f$models,
-    #defaultModelId: _f$defaultModelId,
     #repositories: _f$repositories,
     #allRepositories: _f$allRepositories,
     #repositoryIds: _f$repositoryIds,
@@ -275,7 +269,6 @@ class ChatStateMapper extends ClassMapperBase<ChatState> {
       chat: data.dec(_f$chat),
       messages: data.dec(_f$messages),
       models: data.dec(_f$models),
-      defaultModelId: data.dec(_f$defaultModelId),
       repositories: data.dec(_f$repositories),
       allRepositories: data.dec(_f$allRepositories),
       repositoryIds: data.dec(_f$repositoryIds),
@@ -372,7 +365,6 @@ abstract class ChatStateCopyWith<$R, $In extends ChatState, $Out>
     ChatDto? chat,
     List<MessageDto>? messages,
     List<ModelDto>? models,
-    UuidValue? defaultModelId,
     List<RepositoryDto>? repositories,
     bool? allRepositories,
     List<UuidValue>? repositoryIds,
@@ -453,7 +445,6 @@ class _ChatStateCopyWithImpl<$R, $Out>
     Object? chat = $none,
     List<MessageDto>? messages,
     List<ModelDto>? models,
-    Object? defaultModelId = $none,
     List<RepositoryDto>? repositories,
     bool? allRepositories,
     List<UuidValue>? repositoryIds,
@@ -472,7 +463,6 @@ class _ChatStateCopyWithImpl<$R, $Out>
       if (chat != $none) #chat: chat,
       if (messages != null) #messages: messages,
       if (models != null) #models: models,
-      if (defaultModelId != $none) #defaultModelId: defaultModelId,
       if (repositories != null) #repositories: repositories,
       if (allRepositories != null) #allRepositories: allRepositories,
       if (repositoryIds != null) #repositoryIds: repositoryIds,
@@ -493,7 +483,6 @@ class _ChatStateCopyWithImpl<$R, $Out>
     chat: data.get(#chat, or: $value.chat),
     messages: data.get(#messages, or: $value.messages),
     models: data.get(#models, or: $value.models),
-    defaultModelId: data.get(#defaultModelId, or: $value.defaultModelId),
     repositories: data.get(#repositories, or: $value.repositories),
     allRepositories: data.get(#allRepositories, or: $value.allRepositories),
     repositoryIds: data.get(#repositoryIds, or: $value.repositoryIds),
