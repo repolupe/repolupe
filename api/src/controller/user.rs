@@ -226,6 +226,7 @@ pub(crate) async fn update_user(
         email,
         payload.can_login,
         payload.can_manage_repositories,
+        payload.can_manage_mcp_servers,
         payload.can_change_identity,
         payload.must_change_password,
     )

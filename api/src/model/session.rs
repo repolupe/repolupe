@@ -9,6 +9,7 @@ pub struct ActiveSession {
     pub user_id: Uuid,
     pub role: UserRole,
     pub can_manage_repositories: bool,
+    pub can_manage_mcp_servers: bool,
     pub must_change_password: bool,
     pub last_used_at: DateTime<Utc>,
 }

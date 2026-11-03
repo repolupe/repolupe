@@ -4773,6 +4773,7 @@ const _: fn() = || {
         let _: Option<String> = UpdateUserRequest.email;
         let _: bool = UpdateUserRequest.can_login;
         let _: bool = UpdateUserRequest.can_manage_repositories;
+        let _: bool = UpdateUserRequest.can_manage_mcp_servers;
         let _: bool = UpdateUserRequest.can_change_identity;
         let _: bool = UpdateUserRequest.must_change_password;
     }
@@ -4791,6 +4792,7 @@ const _: fn() = || {
         let _: Option<String> = UserDto.email;
         let _: bool = UserDto.can_login;
         let _: bool = UserDto.can_manage_repositories;
+        let _: bool = UserDto.can_manage_mcp_servers;
         let _: bool = UserDto.can_change_identity;
         let _: bool = UserDto.must_change_password;
         let _: Option<uuid::Uuid> = UserDto.default_model_id;
@@ -6967,6 +6969,7 @@ impl SseDecode for repolupe::dto::user::UpdateUserRequest {
         let mut var_email = <Option<String>>::sse_decode(deserializer);
         let mut var_canLogin = <bool>::sse_decode(deserializer);
         let mut var_canManageRepositories = <bool>::sse_decode(deserializer);
+        let mut var_canManageMcpServers = <bool>::sse_decode(deserializer);
         let mut var_canChangeIdentity = <bool>::sse_decode(deserializer);
         let mut var_mustChangePassword = <bool>::sse_decode(deserializer);
         return repolupe::dto::user::UpdateUserRequest {
@@ -6974,6 +6977,7 @@ impl SseDecode for repolupe::dto::user::UpdateUserRequest {
             email: var_email,
             can_login: var_canLogin,
             can_manage_repositories: var_canManageRepositories,
+            can_manage_mcp_servers: var_canManageMcpServers,
             can_change_identity: var_canChangeIdentity,
             must_change_password: var_mustChangePassword,
         };
@@ -7005,6 +7009,7 @@ impl SseDecode for repolupe::dto::user::UserDto {
         let mut var_email = <Option<String>>::sse_decode(deserializer);
         let mut var_canLogin = <bool>::sse_decode(deserializer);
         let mut var_canManageRepositories = <bool>::sse_decode(deserializer);
+        let mut var_canManageMcpServers = <bool>::sse_decode(deserializer);
         let mut var_canChangeIdentity = <bool>::sse_decode(deserializer);
         let mut var_mustChangePassword = <bool>::sse_decode(deserializer);
         let mut var_defaultModelId = <Option<uuid::Uuid>>::sse_decode(deserializer);
@@ -7021,6 +7026,7 @@ impl SseDecode for repolupe::dto::user::UserDto {
             email: var_email,
             can_login: var_canLogin,
             can_manage_repositories: var_canManageRepositories,
+            can_manage_mcp_servers: var_canManageMcpServers,
             can_change_identity: var_canChangeIdentity,
             must_change_password: var_mustChangePassword,
             default_model_id: var_defaultModelId,
@@ -9422,6 +9428,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::user::UpdateUse
             self.0.email.into_into_dart().into_dart(),
             self.0.can_login.into_into_dart().into_dart(),
             self.0.can_manage_repositories.into_into_dart().into_dart(),
+            self.0.can_manage_mcp_servers.into_into_dart().into_dart(),
             self.0.can_change_identity.into_into_dart().into_dart(),
             self.0.must_change_password.into_into_dart().into_dart(),
         ]
@@ -9472,6 +9479,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::user::UserDto> 
             self.0.email.into_into_dart().into_dart(),
             self.0.can_login.into_into_dart().into_dart(),
             self.0.can_manage_repositories.into_into_dart().into_dart(),
+            self.0.can_manage_mcp_servers.into_into_dart().into_dart(),
             self.0.can_change_identity.into_into_dart().into_dart(),
             self.0.must_change_password.into_into_dart().into_dart(),
             self.0.default_model_id.into_into_dart().into_dart(),
@@ -11189,6 +11197,7 @@ impl SseEncode for repolupe::dto::user::UpdateUserRequest {
         <Option<String>>::sse_encode(self.email, serializer);
         <bool>::sse_encode(self.can_login, serializer);
         <bool>::sse_encode(self.can_manage_repositories, serializer);
+        <bool>::sse_encode(self.can_manage_mcp_servers, serializer);
         <bool>::sse_encode(self.can_change_identity, serializer);
         <bool>::sse_encode(self.must_change_password, serializer);
     }
@@ -11213,6 +11222,7 @@ impl SseEncode for repolupe::dto::user::UserDto {
         <Option<String>>::sse_encode(self.email, serializer);
         <bool>::sse_encode(self.can_login, serializer);
         <bool>::sse_encode(self.can_manage_repositories, serializer);
+        <bool>::sse_encode(self.can_manage_mcp_servers, serializer);
         <bool>::sse_encode(self.can_change_identity, serializer);
         <bool>::sse_encode(self.must_change_password, serializer);
         <Option<uuid::Uuid>>::sse_encode(self.default_model_id, serializer);

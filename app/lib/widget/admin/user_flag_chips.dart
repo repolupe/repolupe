@@ -4,7 +4,8 @@ import 'package:app/widget/status_chip.dart';
 import 'package:flutter/material.dart';
 
 /// What sets a user apart, as small chips: the admin role, and the restrictions an admin set (login disabled, a
-/// required password change, repositories read only, a fixed user name and email). Nothing for a plain user.
+/// required password change, repositories read only, MCP servers use only, a fixed user name and email). Nothing for
+/// a plain user.
 class UserFlagChips extends StatelessWidget {
   final UserDto user;
 
@@ -16,6 +17,7 @@ class UserFlagChips extends StatelessWidget {
     if (!user.canLogin) (t.base.admin.users.page.loginDisabled, Colors.red, Icons.block),
     if (user.mustChangePassword) (t.base.admin.users.page.passwordChangeRequired, Colors.orange, Icons.lock_reset),
     if (!user.canManageRepositories) (t.flutter.admin.users.flags.repositoriesReadOnly, Colors.grey, Icons.visibility),
+    if (!user.canManageMcpServers) (t.flutter.admin.users.flags.mcpServersUseOnly, Colors.grey, Icons.extension_off),
     if (!user.canChangeIdentity) (t.flutter.admin.users.flags.identityFixed, Colors.grey, Icons.person_off),
   ];
 

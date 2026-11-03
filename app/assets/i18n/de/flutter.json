@@ -149,16 +149,20 @@
         "loginDisabled": "Deaktiviert (überall abgemeldet)",
         "repositoriesManage": "Kann eigene verwalten und teilen",
         "repositoriesReadOnly": "Nur lesen (kann nur Fragen zu Repositories stellen, die mit ihm geteilt wurden)",
+      "mcpServersManage": "Kann eigene verwalten",
+      "mcpServersUseOnly": "Nur nutzen (kann keine hinzufügen oder ändern)",
         "identity": "Benutzername und E-Mail",
         "identityEditable": "Der Benutzer kann sie ändern",
         "identityFixed": "Fest (nur Admins können sie ändern)",
         "passwordMustChange": "Muss bei der nächsten Anmeldung geändert werden"
       },
       "form": {
-        "adminNote": "Admins können umbenannt, aber nie eingeschränkt werden."
+        "adminNote": "Admins können umbenannt, aber nie eingeschränkt werden.",
+      "canManageMcpServersHint": "Ohne diese Berechtigung kann der Benutzer keine MCP-Server hinzufügen oder ändern. Diese werden in der Weboberfläche verwaltet."
       },
       "flags": {
         "repositoriesReadOnly": "Repositories nur lesen",
+      "mcpServersUseOnly": "MCP-Server nur nutzen",
         "identityFixed": "Benutzername und E-Mail fest"
       }
     },

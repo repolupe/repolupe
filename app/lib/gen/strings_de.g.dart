@@ -2404,6 +2404,8 @@ class _Translations$base$admin$users$page$de extends Translations$base$admin$use
   @override
   String get readOnly => 'Nur lesen';
   @override
+  String get useOnly => 'Nur nutzen';
+  @override
   String get editable => 'Änderbar';
   @override
   String get fixed => 'Fest';
@@ -2466,6 +2468,11 @@ class _Translations$base$admin$users$editDialog$de extends Translations$base$adm
   @override
   String get canManageRepositoriesHint =>
       'Ohne diese Berechtigung ist die Seite Repositories ausgeblendet, und der Benutzer kann nur Fragen zu Repositories stellen, die mit ihm geteilt wurden';
+  @override
+  String get canManageMcpServers => 'Darf MCP-Server verwalten';
+  @override
+  String get canManageMcpServersHint =>
+      'Ohne diese Berechtigung ist die Seite MCP-Server ausgeblendet, und der Benutzer kann keine MCP-Server hinzufügen oder ändern';
   @override
   String get canChangeIdentity => 'Darf Benutzername und E-Mail ändern';
   @override
@@ -2928,6 +2935,10 @@ class _Translations$flutter$admin$users$userPage$de extends Translations$flutter
   @override
   String get repositoriesReadOnly => 'Nur lesen (kann nur Fragen zu Repositories stellen, die mit ihm geteilt wurden)';
   @override
+  String get mcpServersManage => 'Kann eigene verwalten';
+  @override
+  String get mcpServersUseOnly => 'Nur nutzen (kann keine hinzufügen oder ändern)';
+  @override
   String get identity => 'Benutzername und E-Mail';
   @override
   String get identityEditable => 'Der Benutzer kann sie ändern';
@@ -2946,6 +2957,9 @@ class _Translations$flutter$admin$users$form$de extends Translations$flutter$adm
   // Translations
   @override
   String get adminNote => 'Admins können umbenannt, aber nie eingeschränkt werden.';
+  @override
+  String get canManageMcpServersHint =>
+      'Ohne diese Berechtigung kann der Benutzer keine MCP-Server hinzufügen oder ändern. Diese werden in der Weboberfläche verwaltet.';
 }
 
 // Path: flutter.admin.users.flags
@@ -2957,6 +2971,8 @@ class _Translations$flutter$admin$users$flags$de extends Translations$flutter$ad
   // Translations
   @override
   String get repositoriesReadOnly => 'Repositories nur lesen';
+  @override
+  String get mcpServersUseOnly => 'MCP-Server nur nutzen';
   @override
   String get identityFixed => 'Benutzername und E-Mail fest';
 }

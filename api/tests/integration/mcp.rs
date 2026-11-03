@@ -176,6 +176,50 @@ async fn keeps_users_off_internal_addresses(db: SqlitePool) {
 }
 
 #[sqlx::test]
+async fn keeps_users_without_the_permission_from_managing_mcp_servers(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let alice = app.user("alice@example.com").await;
+    let (status, body) = app
+        .admin()
+        .post(
+            &format!("/api/v1/users/{}/update", alice.user_id),
+            json!({"user_name": "alice", "email": "alice@example.com", "can_login": true, "can_manage_repositories": true, "can_manage_mcp_servers": false, "can_change_identity": true, "must_change_password": false}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let (_, me) = alice.get("/api/v1/me").await;
+    assert_eq!(me["can_manage_mcp_servers"], false);
+
+    let (status, servers) = alice.get("/api/v1/mcp-servers").await;
+    assert_eq!(status, StatusCode::OK, "{servers}");
+    let id = uuid::Uuid::now_v7();
+    for (path, body) in [
+        (
+            "/api/v1/mcp-servers".to_string(),
+            json!({"name": "Echo", "url": "https://example.com/mcp"}),
+        ),
+        (
+            format!("/api/v1/mcp-servers/{id}/update"),
+            json!({"name": "Echo", "enabled": true, "disabled_tools": []}),
+        ),
+        (format!("/api/v1/mcp-servers/{id}/delete"), json!({})),
+        (format!("/api/v1/mcp-servers/{id}/refresh"), json!({})),
+        (
+            format!("/api/v1/mcp-servers/{id}/authorize"),
+            json!({"redirect_uri": REDIRECT_URI}),
+        ),
+        (
+            "/api/v1/mcp-servers/authorize/callback".to_string(),
+            json!({"state": "state", "code": "code"}),
+        ),
+    ] {
+        let (status, error) = alice.post(&path, body).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{path}: {error}");
+        assert_eq!(error["code"], "FORBIDDEN");
+    }
+}
+
+#[sqlx::test]
 async fn takes_rejections_without_a_challenge_as_such(db: SqlitePool) {
     let app = TestApp::new(db).await;
     let admin = app.admin();

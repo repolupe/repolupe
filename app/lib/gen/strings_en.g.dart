@@ -2866,6 +2866,9 @@ class Translations$base$admin$users$page$en {
   /// en: 'Read only'
   String get readOnly => 'Read only';
 
+  /// en: 'Use only'
+  String get useOnly => 'Use only';
+
   /// en: 'Editable'
   String get editable => 'Editable';
 
@@ -2949,6 +2952,12 @@ class Translations$base$admin$users$editDialog$en {
 
   /// en: 'Without it, the Repositories page is hidden and they can only ask about repositories shared with them'
   String get canManageRepositoriesHint => 'Without it, the Repositories page is hidden and they can only ask about repositories shared with them';
+
+  /// en: 'Can manage MCP servers'
+  String get canManageMcpServers => 'Can manage MCP servers';
+
+  /// en: 'Without it, the MCP Servers page is hidden and they cannot add or change MCP servers'
+  String get canManageMcpServersHint => 'Without it, the MCP Servers page is hidden and they cannot add or change MCP servers';
 
   /// en: 'Can change user name and email'
   String get canChangeIdentity => 'Can change user name and email';
@@ -3556,6 +3565,12 @@ class Translations$flutter$admin$users$userPage$en {
   /// en: 'Read only (can only ask about repositories shared with them)'
   String get repositoriesReadOnly => 'Read only (can only ask about repositories shared with them)';
 
+  /// en: 'Can manage their own'
+  String get mcpServersManage => 'Can manage their own';
+
+  /// en: 'Use only (cannot add or change any)'
+  String get mcpServersUseOnly => 'Use only (cannot add or change any)';
+
   /// en: 'User name and email'
   String get identity => 'User name and email';
 
@@ -3579,6 +3594,9 @@ class Translations$flutter$admin$users$form$en {
 
   /// en: 'Admins can be renamed, but never restricted.'
   String get adminNote => 'Admins can be renamed, but never restricted.';
+
+  /// en: 'Without it, they cannot add or change MCP servers. These are managed in the web interface.'
+  String get canManageMcpServersHint => 'Without it, they cannot add or change MCP servers. These are managed in the web interface.';
 }
 
 // Path: flutter.admin.users.flags
@@ -3591,6 +3609,9 @@ class Translations$flutter$admin$users$flags$en {
 
   /// en: 'Repositories read only'
   String get repositoriesReadOnly => 'Repositories read only';
+
+  /// en: 'MCP servers use only'
+  String get mcpServersUseOnly => 'MCP servers use only';
 
   /// en: 'Fixed user name and email'
   String get identityFixed => 'Fixed user name and email';

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "UPDATE users SET user_name = $2, email = $3, can_login = $4, can_manage_repositories = $5,\n                            can_change_identity = $6, must_change_password = $7\n           WHERE id = $1 AND (role != 'ADMIN' OR ($4 AND $5 AND $6))\n           RETURNING id AS \"id: Uuid\", role AS \"role: UserRole\", user_name, email, password_hash, can_login, can_manage_repositories, can_change_identity, must_change_password, default_model_id AS \"default_model_id: Uuid\", locale, auto_commit, full_name, first_name, about, created_at AS \"created_at: DateTime<Utc>\"",
+  "query": "UPDATE users SET user_name = $2, email = $3, can_login = $4, can_manage_repositories = $5,\n                            can_manage_mcp_servers = $6, can_change_identity = $7, must_change_password = $8\n           WHERE id = $1 AND (role != 'ADMIN' OR ($4 AND $5 AND $6 AND $7))\n           RETURNING id AS \"id: Uuid\", role AS \"role: UserRole\", user_name, email, password_hash, can_login, can_manage_repositories, can_manage_mcp_servers, can_change_identity, must_change_password, default_model_id AS \"default_model_id: Uuid\", locale, auto_commit, full_name, first_name, about, created_at AS \"created_at: DateTime<Utc>\"",
   "describe": {
     "columns": [
       {
@@ -39,59 +39,65 @@
         "type_info": "Bool"
       },
       {
-        "name": "can_change_identity",
+        "name": "can_manage_mcp_servers",
         "ordinal": 7,
         "type_info": "Bool"
       },
       {
-        "name": "must_change_password",
+        "name": "can_change_identity",
         "ordinal": 8,
         "type_info": "Bool"
       },
       {
-        "name": "default_model_id: Uuid",
+        "name": "must_change_password",
         "ordinal": 9,
+        "type_info": "Bool"
+      },
+      {
+        "name": "default_model_id: Uuid",
+        "ordinal": 10,
         "type_info": "Blob"
       },
       {
         "name": "locale",
-        "ordinal": 10,
+        "ordinal": 11,
         "type_info": "Text"
       },
       {
         "name": "auto_commit",
-        "ordinal": 11,
+        "ordinal": 12,
         "type_info": "Bool"
       },
       {
         "name": "full_name",
-        "ordinal": 12,
-        "type_info": "Text"
-      },
-      {
-        "name": "first_name",
         "ordinal": 13,
         "type_info": "Text"
       },
       {
-        "name": "about",
+        "name": "first_name",
         "ordinal": 14,
         "type_info": "Text"
       },
       {
-        "name": "created_at: DateTime<Utc>",
+        "name": "about",
         "ordinal": 15,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 16,
         "type_info": "Datetime"
       }
     ],
     "parameters": {
-      "Right": 7
+      "Right": 8
     },
     "nullable": [
       false,
       false,
       false,
       true,
+      false,
       false,
       false,
       false,
@@ -106,5 +112,5 @@
       false
     ]
   },
-  "hash": "d9daddcb8cfb4ff0c681fff2e504e9e19dd3d4b83da239231f7f7e93ad836cd0"
+  "hash": "2636b93161d79e20351238030243ba69f9c0fb0df1e0ee0368df441ab5aed76f"
 }

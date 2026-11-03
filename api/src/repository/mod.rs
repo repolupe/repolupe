@@ -12,7 +12,7 @@ pub(crate) mod session;
 pub(crate) mod user;
 
 use crate::config::state::DatabasePool;
-use sqlx::{Sqlite, Transaction};
+use sqlx::{Sqlite, SqliteConnection, Transaction};
 
 /// Starts a transaction that takes the write lock right away, so concurrent ones run one after
 /// the other. A deferred transaction that reads before it writes would fail with `SQLITE_BUSY`
@@ -21,6 +21,20 @@ pub(crate) async fn begin_write(
     db: &DatabasePool,
 ) -> Result<Transaction<'static, Sqlite>, sqlx::Error> {
     db.begin_with("BEGIN IMMEDIATE").await
+}
+
+/// The tables with rows whose foreign keys point nowhere, comma-separated, which only happens
+/// if they were written with foreign keys off.
+pub(crate) async fn foreign_key_violations(
+    conn: &mut SqliteConnection,
+) -> Result<Option<String>, sqlx::Error> {
+    // An expression, because sqlx can't look up the columns of the pragma's virtual table.
+    sqlx::query_scalar!(
+        r#"SELECT group_concat("table", ', ') AS "tables: String"
+           FROM (SELECT DISTINCT "table" FROM pragma_foreign_key_check)"#
+    )
+    .fetch_one(conn)
+    .await
 }
 
 /// Whether `e` violates the unique index `target`. SQLite names the index only for indexes on

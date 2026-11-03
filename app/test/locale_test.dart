@@ -20,6 +20,7 @@ void main() {
     userName: 'alice',
     canLogin: true,
     canManageRepositories: true,
+    canManageMcpServers: true,
     canChangeIdentity: true,
     mustChangePassword: false,
     locale: locale,

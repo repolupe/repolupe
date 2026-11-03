@@ -38,7 +38,7 @@ pub(crate) async fn get_active_session(
     let session = sqlx::query_as!(
         ActiveSession,
         r#"SELECT s.id AS "id: Uuid", s.user_id AS "user_id: Uuid", u.role AS "role: UserRole", u.can_manage_repositories,
-                  u.must_change_password, s.last_used_at AS "last_used_at: DateTime<Utc>"
+                  u.can_manage_mcp_servers, u.must_change_password, s.last_used_at AS "last_used_at: DateTime<Utc>"
            FROM sessions s
            JOIN users u ON u.id = s.user_id
            WHERE s.token_hash = $1 AND s.expires_at > $2 AND u.can_login"#,

@@ -196,6 +196,7 @@ class UpdateUserRequest {
   final String? email;
   final bool canLogin;
   final bool canManageRepositories;
+  final bool canManageMcpServers;
   final bool canChangeIdentity;
 
   /// The user can do nothing but change their password until they do.
@@ -206,6 +207,7 @@ class UpdateUserRequest {
     this.email,
     required this.canLogin,
     required this.canManageRepositories,
+    required this.canManageMcpServers,
     required this.canChangeIdentity,
     required this.mustChangePassword,
   });
@@ -216,6 +218,7 @@ class UpdateUserRequest {
       email.hashCode ^
       canLogin.hashCode ^
       canManageRepositories.hashCode ^
+      canManageMcpServers.hashCode ^
       canChangeIdentity.hashCode ^
       mustChangePassword.hashCode;
 
@@ -228,6 +231,7 @@ class UpdateUserRequest {
           email == other.email &&
           canLogin == other.canLogin &&
           canManageRepositories == other.canManageRepositories &&
+          canManageMcpServers == other.canManageMcpServers &&
           canChangeIdentity == other.canChangeIdentity &&
           mustChangePassword == other.mustChangePassword;
 }
@@ -243,6 +247,10 @@ class UserDto {
 
   /// `false` only lets the user read repositories shared with them. Always `true` for admins.
   final bool canManageRepositories;
+
+  /// `false` keeps the user from adding, changing and deleting MCP servers. Their chats still
+  /// use the servers they have. Always `true` for admins.
+  final bool canManageMcpServers;
 
   /// `false` keeps the user from changing their own user name and email. Always `true` for
   /// admins.
@@ -277,6 +285,7 @@ class UserDto {
     this.email,
     required this.canLogin,
     required this.canManageRepositories,
+    required this.canManageMcpServers,
     required this.canChangeIdentity,
     required this.mustChangePassword,
     this.defaultModelId,
@@ -296,6 +305,7 @@ class UserDto {
       email.hashCode ^
       canLogin.hashCode ^
       canManageRepositories.hashCode ^
+      canManageMcpServers.hashCode ^
       canChangeIdentity.hashCode ^
       mustChangePassword.hashCode ^
       defaultModelId.hashCode ^
@@ -317,6 +327,7 @@ class UserDto {
           email == other.email &&
           canLogin == other.canLogin &&
           canManageRepositories == other.canManageRepositories &&
+          canManageMcpServers == other.canManageMcpServers &&
           canChangeIdentity == other.canChangeIdentity &&
           mustChangePassword == other.mustChangePassword &&
           defaultModelId == other.defaultModelId &&

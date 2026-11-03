@@ -15,6 +15,11 @@
               :hint="isAdmin ? $t('admin.users.editDialog.adminUnrestricted') : $t('admin.users.editDialog.canManageRepositoriesHint')"
               persistent-hint class="mb-4" />
 
+    <v-switch v-model="canManageMcpServers" :label="$t('admin.users.editDialog.canManageMcpServers')" color="primary"
+              :disabled="props.loading || isAdmin"
+              :hint="isAdmin ? $t('admin.users.editDialog.adminUnrestricted') : $t('admin.users.editDialog.canManageMcpServersHint')"
+              persistent-hint class="mb-4" />
+
     <v-switch v-model="canChangeIdentity" :label="$t('admin.users.editDialog.canChangeIdentity')" color="primary"
               :disabled="props.loading || isAdmin"
               :hint="isAdmin ? $t('admin.users.editDialog.adminUnrestricted') : $t('admin.users.editDialog.canChangeIdentityHint')"
@@ -52,6 +57,7 @@ const userName = ref('');
 const email = ref('');
 const canLogin = ref(true);
 const canManageRepositories = ref(true);
+const canManageMcpServers = ref(true);
 const canChangeIdentity = ref(true);
 const mustChangePassword = ref(false);
 
@@ -69,6 +75,7 @@ const submit = () => {
     email: trimmedEmail || null,
     can_login: canLogin.value,
     can_manage_repositories: canManageRepositories.value,
+    can_manage_mcp_servers: canManageMcpServers.value,
     can_change_identity: canChangeIdentity.value,
     must_change_password: mustChangePassword.value,
   });
@@ -81,6 +88,7 @@ defineExpose({
     email.value = user.email ?? '';
     canLogin.value = user.can_login;
     canManageRepositories.value = user.can_manage_repositories;
+    canManageMcpServers.value = user.can_manage_mcp_servers;
     canChangeIdentity.value = user.can_change_identity;
     mustChangePassword.value = user.must_change_password;
   },

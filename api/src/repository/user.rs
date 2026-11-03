@@ -26,9 +26,9 @@ pub(crate) async fn create_user(
     let now = Utc::now();
     let user = sqlx::query_as!(
         User,
-        r#"INSERT INTO users (id, role, user_name, email, password_hash, can_login, can_manage_repositories, can_change_identity, must_change_password, auto_commit, created_at)
-           VALUES ($1, $2, $3, $4, $5, true, true, true, $6, false, $7)
-           RETURNING id AS "id: Uuid", role AS "role: UserRole", user_name, email, password_hash, can_login, can_manage_repositories, can_change_identity, must_change_password, default_model_id AS "default_model_id: Uuid", locale, auto_commit, full_name, first_name, about, created_at AS "created_at: DateTime<Utc>""#,
+        r#"INSERT INTO users (id, role, user_name, email, password_hash, can_login, can_manage_repositories, can_manage_mcp_servers, can_change_identity, must_change_password, auto_commit, created_at)
+           VALUES ($1, $2, $3, $4, $5, true, true, true, true, $6, false, $7)
+           RETURNING id AS "id: Uuid", role AS "role: UserRole", user_name, email, password_hash, can_login, can_manage_repositories, can_manage_mcp_servers, can_change_identity, must_change_password, default_model_id AS "default_model_id: Uuid", locale, auto_commit, full_name, first_name, about, created_at AS "created_at: DateTime<Utc>""#,
         id,
         role,
         user_name,
@@ -64,7 +64,7 @@ fn unique_violation(e: sqlx::Error) -> AppError {
 pub(crate) async fn get_user(db: &DatabasePool, user_id: Uuid) -> Result<Option<User>, AppError> {
     let user = sqlx::query_as!(
         User,
-        r#"SELECT id AS "id: Uuid", role AS "role: UserRole", user_name, email, password_hash, can_login, can_manage_repositories, can_change_identity, must_change_password, default_model_id AS "default_model_id: Uuid", locale, auto_commit, full_name, first_name, about, created_at AS "created_at: DateTime<Utc>"
+        r#"SELECT id AS "id: Uuid", role AS "role: UserRole", user_name, email, password_hash, can_login, can_manage_repositories, can_manage_mcp_servers, can_change_identity, must_change_password, default_model_id AS "default_model_id: Uuid", locale, auto_commit, full_name, first_name, about, created_at AS "created_at: DateTime<Utc>"
            FROM users WHERE id = $1"#,
         user_id,
     )
@@ -81,7 +81,7 @@ pub(crate) async fn get_user_by_login(
 ) -> Result<Option<User>, AppError> {
     let user = sqlx::query_as!(
         User,
-        r#"SELECT id AS "id: Uuid", role AS "role: UserRole", user_name, email, password_hash, can_login, can_manage_repositories, can_change_identity, must_change_password, default_model_id AS "default_model_id: Uuid", locale, auto_commit, full_name, first_name, about, created_at AS "created_at: DateTime<Utc>"
+        r#"SELECT id AS "id: Uuid", role AS "role: UserRole", user_name, email, password_hash, can_login, can_manage_repositories, can_manage_mcp_servers, can_change_identity, must_change_password, default_model_id AS "default_model_id: Uuid", locale, auto_commit, full_name, first_name, about, created_at AS "created_at: DateTime<Utc>"
            FROM users WHERE lower(user_name) = lower($1) OR lower(email) = lower($1)"#,
         login,
     )
@@ -93,7 +93,7 @@ pub(crate) async fn get_user_by_login(
 pub(crate) async fn list_users(db: &DatabasePool) -> Result<Vec<User>, AppError> {
     let users = sqlx::query_as!(
         User,
-        r#"SELECT id AS "id: Uuid", role AS "role: UserRole", user_name, email, password_hash, can_login, can_manage_repositories, can_change_identity, must_change_password, default_model_id AS "default_model_id: Uuid", locale, auto_commit, full_name, first_name, about, created_at AS "created_at: DateTime<Utc>"
+        r#"SELECT id AS "id: Uuid", role AS "role: UserRole", user_name, email, password_hash, can_login, can_manage_repositories, can_manage_mcp_servers, can_change_identity, must_change_password, default_model_id AS "default_model_id: Uuid", locale, auto_commit, full_name, first_name, about, created_at AS "created_at: DateTime<Utc>"
            FROM users
            ORDER BY created_at, id"#,
     )
@@ -145,7 +145,7 @@ pub(crate) async fn reset_password(
         User,
         r#"UPDATE users SET password_hash = $2, must_change_password = $3
            WHERE id = $1
-           RETURNING id AS "id: Uuid", role AS "role: UserRole", user_name, email, password_hash, can_login, can_manage_repositories, can_change_identity, must_change_password, default_model_id AS "default_model_id: Uuid", locale, auto_commit, full_name, first_name, about, created_at AS "created_at: DateTime<Utc>""#,
+           RETURNING id AS "id: Uuid", role AS "role: UserRole", user_name, email, password_hash, can_login, can_manage_repositories, can_manage_mcp_servers, can_change_identity, must_change_password, default_model_id AS "default_model_id: Uuid", locale, auto_commit, full_name, first_name, about, created_at AS "created_at: DateTime<Utc>""#,
         user_id,
         password_hash,
         must_change_password,
@@ -258,7 +258,7 @@ pub(crate) async fn update_identity(
         User,
         r#"UPDATE users SET user_name = $2, email = $3
            WHERE id = $1 AND can_change_identity
-           RETURNING id AS "id: Uuid", role AS "role: UserRole", user_name, email, password_hash, can_login, can_manage_repositories, can_change_identity, must_change_password, default_model_id AS "default_model_id: Uuid", locale, auto_commit, full_name, first_name, about, created_at AS "created_at: DateTime<Utc>""#,
+           RETURNING id AS "id: Uuid", role AS "role: UserRole", user_name, email, password_hash, can_login, can_manage_repositories, can_manage_mcp_servers, can_change_identity, must_change_password, default_model_id AS "default_model_id: Uuid", locale, auto_commit, full_name, first_name, about, created_at AS "created_at: DateTime<Utc>""#,
         user_id,
         user_name,
         email,
@@ -280,6 +280,7 @@ pub(crate) async fn update_user(
     email: Option<&str>,
     can_login: bool,
     can_manage_repositories: bool,
+    can_manage_mcp_servers: bool,
     can_change_identity: bool,
     must_change_password: bool,
 ) -> Result<Option<User>, AppError> {
@@ -287,14 +288,15 @@ pub(crate) async fn update_user(
     let user = sqlx::query_as!(
         User,
         r#"UPDATE users SET user_name = $2, email = $3, can_login = $4, can_manage_repositories = $5,
-                            can_change_identity = $6, must_change_password = $7
-           WHERE id = $1 AND (role != 'ADMIN' OR ($4 AND $5 AND $6))
-           RETURNING id AS "id: Uuid", role AS "role: UserRole", user_name, email, password_hash, can_login, can_manage_repositories, can_change_identity, must_change_password, default_model_id AS "default_model_id: Uuid", locale, auto_commit, full_name, first_name, about, created_at AS "created_at: DateTime<Utc>""#,
+                            can_manage_mcp_servers = $6, can_change_identity = $7, must_change_password = $8
+           WHERE id = $1 AND (role != 'ADMIN' OR ($4 AND $5 AND $6 AND $7))
+           RETURNING id AS "id: Uuid", role AS "role: UserRole", user_name, email, password_hash, can_login, can_manage_repositories, can_manage_mcp_servers, can_change_identity, must_change_password, default_model_id AS "default_model_id: Uuid", locale, auto_commit, full_name, first_name, about, created_at AS "created_at: DateTime<Utc>""#,
         user_id,
         user_name,
         email,
         can_login,
         can_manage_repositories,
+        can_manage_mcp_servers,
         can_change_identity,
         must_change_password,
     )

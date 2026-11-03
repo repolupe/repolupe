@@ -91,6 +91,7 @@ const _user = {
   'email': null,
   'can_login': true,
   'can_manage_repositories': true,
+  'can_manage_mcp_servers': true,
   'can_change_identity': true,
   'must_change_password': false,
   'auto_commit': false,

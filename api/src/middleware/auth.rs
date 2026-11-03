@@ -17,6 +17,7 @@ pub(crate) struct AuthenticatedUser {
     pub user_id: Uuid,
     pub role: UserRole,
     pub can_manage_repositories: bool,
+    pub can_manage_mcp_servers: bool,
 }
 
 /// Browsers send the token in the session cookie, mobile clients as `Authorization: Bearer`.
@@ -59,6 +60,7 @@ async fn authenticate(
         user_id: session.user_id,
         role: session.role,
         can_manage_repositories: session.can_manage_repositories,
+        can_manage_mcp_servers: session.can_manage_mcp_servers,
     })
 }
 

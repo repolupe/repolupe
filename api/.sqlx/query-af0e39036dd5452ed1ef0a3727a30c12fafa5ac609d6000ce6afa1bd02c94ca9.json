@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT group_concat(\"table\", ', ') AS \"tables: String\"\n           FROM (SELECT DISTINCT \"table\" FROM pragma_foreign_key_check)",
+  "describe": {
+    "columns": [
+      {
+        "name": "tables: String",
+        "ordinal": 0,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "af0e39036dd5452ed1ef0a3727a30c12fafa5ac609d6000ce6afa1bd02c94ca9"
+}

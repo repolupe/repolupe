@@ -22,6 +22,9 @@ pub struct UserDto {
     pub can_login: bool,
     /// `false` only lets the user read repositories shared with them. Always `true` for admins.
     pub can_manage_repositories: bool,
+    /// `false` keeps the user from adding, changing and deleting MCP servers. Their chats still
+    /// use the servers they have. Always `true` for admins.
+    pub can_manage_mcp_servers: bool,
     /// `false` keeps the user from changing their own user name and email. Always `true` for
     /// admins.
     pub can_change_identity: bool,
@@ -61,6 +64,7 @@ pub struct UpdateUserRequest {
     pub email: Option<String>,
     pub can_login: bool,
     pub can_manage_repositories: bool,
+    pub can_manage_mcp_servers: bool,
     pub can_change_identity: bool,
     /// The user can do nothing but change their password until they do.
     pub must_change_password: bool,

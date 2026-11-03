@@ -46,4 +46,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
     if (to.path.startsWith('/settings/repositories') && !user.value.can_manage_repositories) {
         return navigateTo('/');
     }
+
+    if (to.path.startsWith('/settings/mcp-servers') && !user.value.can_manage_mcp_servers) {
+        return navigateTo('/');
+    }
 });

@@ -30,6 +30,7 @@ class _UserFormPageState extends State<UserFormPage> with Refena {
   bool _showPassword = false;
   late bool _canLogin = widget.user?.canLogin ?? true;
   late bool _canManageRepositories = widget.user?.canManageRepositories ?? true;
+  late bool _canManageMcpServers = widget.user?.canManageMcpServers ?? true;
   late bool _canChangeIdentity = widget.user?.canChangeIdentity ?? true;
 
   /// On for a new user, so they choose their own password.
@@ -39,7 +40,16 @@ class _UserFormPageState extends State<UserFormPage> with Refena {
   bool get _isAdmin => widget.user?.role == UserRole.admin;
 
   /// The fields as they are, compared with [_initialValues] to tell whether there are unsaved changes.
-  Object get _values => (_userName, _email, _password, _canLogin, _canManageRepositories, _canChangeIdentity, _mustChangePassword);
+  Object get _values => (
+    _userName,
+    _email,
+    _password,
+    _canLogin,
+    _canManageRepositories,
+    _canManageMcpServers,
+    _canChangeIdentity,
+    _mustChangePassword,
+  );
 
   /// The fields as the page opened.
   late final Object _initialValues;
@@ -69,6 +79,7 @@ class _UserFormPageState extends State<UserFormPage> with Refena {
                 email: _email,
                 canLogin: _canLogin,
                 canManageRepositories: _canManageRepositories,
+                canManageMcpServers: _canManageMcpServers,
                 canChangeIdentity: _canChangeIdentity,
                 mustChangePassword: _mustChangePassword,
               ),
@@ -203,6 +214,21 @@ class _UserFormPageState extends State<UserFormPage> with Refena {
                       : (value) {
                           setState(() {
                             _canManageRepositories = value;
+                          });
+                        },
+                ),
+                SwitchListTile(
+                  key: const ValueKey('userForm.canManageMcpServers'),
+                  title: Text(users.editDialog.canManageMcpServers),
+                  subtitle: Text(_isAdmin ? adminHint : t.flutter.admin.users.form.canManageMcpServersHint),
+                  secondary: const Icon(Icons.extension),
+                  contentPadding: EdgeInsets.zero,
+                  value: _canManageMcpServers,
+                  onChanged: _saving || _isAdmin
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _canManageMcpServers = value;
                           });
                         },
                 ),

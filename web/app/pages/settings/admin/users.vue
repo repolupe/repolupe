@@ -21,6 +21,7 @@
                 { title: $t('admin.users.page.user'), key: 'user_name', sortable: true },
                 { title: $t('user.role'), key: 'role', sortable: true },
                 { title: $t('common.repository'), key: 'can_manage_repositories', sortable: true },
+                { title: $t('mcpServers.title'), key: 'can_manage_mcp_servers', sortable: true },
                 { title: $t('admin.users.page.identity'), key: 'can_change_identity', sortable: true },
                 { title: $t('common.actions'), key: 'actions', sortable: false, width: 200 },
             ]"
@@ -48,6 +49,11 @@
           <template v-slot:item.can_manage_repositories="{ item }">
             <v-chip v-if="item.can_manage_repositories" size="small" prepend-icon="mdi-check" :text="$t('admin.users.page.manage')" />
             <v-chip v-else size="small" prepend-icon="mdi-eye" :text="$t('admin.users.page.readOnly')" />
+          </template>
+
+          <template v-slot:item.can_manage_mcp_servers="{ item }">
+            <v-chip v-if="item.can_manage_mcp_servers" size="small" prepend-icon="mdi-check" :text="$t('admin.users.page.manage')" />
+            <v-chip v-else size="small" prepend-icon="mdi-eye" :text="$t('admin.users.page.useOnly')" />
           </template>
 
           <template v-slot:item.can_change_identity="{ item }">

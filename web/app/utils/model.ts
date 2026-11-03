@@ -36,6 +36,11 @@ export interface UserDto {
     can_login: boolean;
     /** `false` only lets the user read repositories shared with them. Always `true` for admins. */
     can_manage_repositories: boolean;
+    /**
+     * `false` keeps the user from adding, changing and deleting MCP servers. Their chats still use the servers they
+     * have. Always `true` for admins.
+     */
+    can_manage_mcp_servers: boolean;
     /** `false` keeps the user from changing their own user name and email. Always `true` for admins. */
     can_change_identity: boolean;
     /**

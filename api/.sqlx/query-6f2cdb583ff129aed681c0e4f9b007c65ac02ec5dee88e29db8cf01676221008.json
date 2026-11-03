@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id AS \"id: Uuid\", role AS \"role: UserRole\", user_name, email, password_hash, can_login, can_manage_repositories, can_change_identity, must_change_password, default_model_id AS \"default_model_id: Uuid\", locale, auto_commit, full_name, first_name, about, created_at AS \"created_at: DateTime<Utc>\"\n           FROM users WHERE id = $1",
+  "query": "SELECT id AS \"id: Uuid\", role AS \"role: UserRole\", user_name, email, password_hash, can_login, can_manage_repositories, can_manage_mcp_servers, can_change_identity, must_change_password, default_model_id AS \"default_model_id: Uuid\", locale, auto_commit, full_name, first_name, about, created_at AS \"created_at: DateTime<Utc>\"\n           FROM users WHERE lower(user_name) = lower($1) OR lower(email) = lower($1)",
   "describe": {
     "columns": [
       {
@@ -39,48 +39,53 @@
         "type_info": "Bool"
       },
       {
-        "name": "can_change_identity",
+        "name": "can_manage_mcp_servers",
         "ordinal": 7,
         "type_info": "Bool"
       },
       {
-        "name": "must_change_password",
+        "name": "can_change_identity",
         "ordinal": 8,
         "type_info": "Bool"
       },
       {
-        "name": "default_model_id: Uuid",
+        "name": "must_change_password",
         "ordinal": 9,
+        "type_info": "Bool"
+      },
+      {
+        "name": "default_model_id: Uuid",
+        "ordinal": 10,
         "type_info": "Blob"
       },
       {
         "name": "locale",
-        "ordinal": 10,
+        "ordinal": 11,
         "type_info": "Text"
       },
       {
         "name": "auto_commit",
-        "ordinal": 11,
+        "ordinal": 12,
         "type_info": "Bool"
       },
       {
         "name": "full_name",
-        "ordinal": 12,
-        "type_info": "Text"
-      },
-      {
-        "name": "first_name",
         "ordinal": 13,
         "type_info": "Text"
       },
       {
-        "name": "about",
+        "name": "first_name",
         "ordinal": 14,
         "type_info": "Text"
       },
       {
-        "name": "created_at: DateTime<Utc>",
+        "name": "about",
         "ordinal": 15,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 16,
         "type_info": "Datetime"
       }
     ],
@@ -97,6 +102,7 @@
       false,
       false,
       false,
+      false,
       true,
       true,
       false,
@@ -106,5 +112,5 @@
       false
     ]
   },
-  "hash": "531e4560465463bafe687d54117f72b9d2993cad56e4c7ef1fb97996fbfb05df"
+  "hash": "6f2cdb583ff129aed681c0e4f9b007c65ac02ec5dee88e29db8cf01676221008"
 }

@@ -91,6 +91,7 @@ const pages = computed(() => [
     label: t('mcpServers.title'),
     state: mcpServerCount.value !== null ? t('settings.page.mcpServerCount', mcpServerCount.value) : undefined,
     icon: 'mdi-puzzle',
+    requiresMcpServerManagement: true,
   },
   {
     route: '/settings/account',
@@ -113,9 +114,10 @@ const pages = computed(() => [
   },
 ]);
 
-// Users who cannot manage repositories only use the ones shared with them in chats.
-const pagesVisible = computed(() =>
-    pages.value.filter(p => !p.requiresRepositoryManagement || user.value?.can_manage_repositories));
+// Users who cannot manage repositories or MCP servers only use the ones they have in chats.
+const pagesVisible = computed(() => pages.value.filter(p =>
+    (!p.requiresRepositoryManagement || user.value?.can_manage_repositories)
+    && (!p.requiresMcpServerManagement || user.value?.can_manage_mcp_servers)));
 
 const adminPages = computed(() => [
   {
@@ -150,7 +152,9 @@ onMounted(() => {
   if (user.value?.can_manage_repositories) {
     getRepositories().then(r => repositoryCount.value = r.length).catch(() => {});
   }
-  getMcpServers().then(s => mcpServerCount.value = s.length).catch(() => {});
+  if (user.value?.can_manage_mcp_servers) {
+    getMcpServers().then(s => mcpServerCount.value = s.length).catch(() => {});
+  }
   getModels().then(m => models.value = m).catch(() => {});
 });
 

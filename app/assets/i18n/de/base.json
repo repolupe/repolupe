@@ -650,6 +650,7 @@
         "passwordChangeRequired": "Passwortänderung erforderlich",
         "manage": "Verwalten",
         "readOnly": "Nur lesen",
+        "useOnly": "Nur nutzen",
         "editable": "Änderbar",
         "fixed": "Fest",
         "cannotDeleteSelf": "Du kannst dich nicht selbst löschen",
@@ -676,6 +677,8 @@
         "canLoginHint": "Beim Ausschalten wird der Benutzer überall abgemeldet",
         "canManageRepositories": "Darf Repositories verwalten",
         "canManageRepositoriesHint": "Ohne diese Berechtigung ist die Seite Repositories ausgeblendet, und der Benutzer kann nur Fragen zu Repositories stellen, die mit ihm geteilt wurden",
+        "canManageMcpServers": "Darf MCP-Server verwalten",
+        "canManageMcpServersHint": "Ohne diese Berechtigung ist die Seite MCP-Server ausgeblendet, und der Benutzer kann keine MCP-Server hinzufügen oder ändern",
         "canChangeIdentity": "Darf Benutzername und E-Mail ändern",
         "canChangeIdentityHint": "Ohne diese Berechtigung können nur Admins sie ändern",
         "mustChangePasswordHint": "Bis dahin kann der Benutzer nach der Anmeldung nichts anderes tun"

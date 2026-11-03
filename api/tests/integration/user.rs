@@ -218,7 +218,7 @@ async fn admin_disables_login(db: SqlitePool) {
     let (status, body) = alice
         .post(
             &path,
-            json!({"user_name": "alice", "email": "alice@example.com", "can_login": true, "can_manage_repositories": true, "can_change_identity": true, "must_change_password": false}),
+            json!({"user_name": "alice", "email": "alice@example.com", "can_login": true, "can_manage_repositories": true, "can_manage_mcp_servers": true, "can_change_identity": true, "must_change_password": false}),
         )
         .await;
     assert_eq!(status, StatusCode::FORBIDDEN, "{body}");
@@ -226,7 +226,7 @@ async fn admin_disables_login(db: SqlitePool) {
     let (status, body) = admin
         .post(
             &path,
-            json!({"user_name": "alice", "email": "alice@example.com", "can_login": false, "can_manage_repositories": true, "can_change_identity": true, "must_change_password": false}),
+            json!({"user_name": "alice", "email": "alice@example.com", "can_login": false, "can_manage_repositories": true, "can_manage_mcp_servers": true, "can_change_identity": true, "must_change_password": false}),
         )
         .await;
     assert_eq!(status, StatusCode::OK, "{body}");
@@ -243,7 +243,7 @@ async fn admin_disables_login(db: SqlitePool) {
     let (status, _) = admin
         .post(
             &path,
-            json!({"user_name": "alice", "email": "alice@example.com", "can_login": true, "can_manage_repositories": true, "can_change_identity": true, "must_change_password": false}),
+            json!({"user_name": "alice", "email": "alice@example.com", "can_login": true, "can_manage_repositories": true, "can_manage_mcp_servers": true, "can_change_identity": true, "must_change_password": false}),
         )
         .await;
     assert_eq!(status, StatusCode::OK);
@@ -257,14 +257,21 @@ async fn admin_disables_login(db: SqlitePool) {
     let (status, body) = admin
         .post(
             &format!("/api/v1/users/{}/update", admin.user_id),
-            json!({"user_name": "admin", "email": null, "can_login": false, "can_manage_repositories": true, "can_change_identity": true, "must_change_password": false}),
+            json!({"user_name": "admin", "email": null, "can_login": false, "can_manage_repositories": true, "can_manage_mcp_servers": true, "can_change_identity": true, "must_change_password": false}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "{body}");
+    let (status, body) = admin
+        .post(
+            &format!("/api/v1/users/{}/update", admin.user_id),
+            json!({"user_name": "admin", "email": null, "can_login": true, "can_manage_repositories": true, "can_manage_mcp_servers": false, "can_change_identity": true, "must_change_password": false}),
         )
         .await;
     assert_eq!(status, StatusCode::FORBIDDEN, "{body}");
     let (status, _) = admin
         .post(
             &format!("/api/v1/users/{}/update", uuid::Uuid::now_v7()),
-            json!({"user_name": "nobody", "email": null, "can_login": true, "can_manage_repositories": true, "can_change_identity": true, "must_change_password": false}),
+            json!({"user_name": "nobody", "email": null, "can_login": true, "can_manage_repositories": true, "can_manage_mcp_servers": true, "can_change_identity": true, "must_change_password": false}),
         )
         .await;
     assert_eq!(status, StatusCode::NOT_FOUND);
@@ -277,7 +284,7 @@ async fn admin_changes_user_name_and_email(db: SqlitePool) {
     let alice = app.user("alice@example.com").await;
     app.user("bob@example.com").await;
     let path = format!("/api/v1/users/{}/update", alice.user_id);
-    let update = |user_name: &str, email: Option<&str>| json!({"user_name": user_name, "email": email, "can_login": true, "can_manage_repositories": true, "can_change_identity": true, "must_change_password": false});
+    let update = |user_name: &str, email: Option<&str>| json!({"user_name": user_name, "email": email, "can_login": true, "can_manage_repositories": true, "can_manage_mcp_servers": true, "can_change_identity": true, "must_change_password": false});
 
     let (status, body) = alice.post(&path, update("mallory", None)).await;
     assert_eq!(status, StatusCode::FORBIDDEN, "{body}");
@@ -373,7 +380,7 @@ async fn user_changes_own_user_name_and_email(db: SqlitePool) {
 
     // Without the permission, nothing changes, but admins still can
     let path = format!("/api/v1/users/{}/update", alice.user_id);
-    let permissions = |can_change_identity: bool| json!({"user_name": "alice2", "email": null, "can_login": true, "can_manage_repositories": true, "can_change_identity": can_change_identity, "must_change_password": false});
+    let permissions = |can_change_identity: bool| json!({"user_name": "alice2", "email": null, "can_login": true, "can_manage_repositories": true, "can_manage_mcp_servers": true, "can_change_identity": can_change_identity, "must_change_password": false});
     let (status, body) = admin.post(&path, permissions(false)).await;
     assert_eq!(status, StatusCode::OK, "{body}");
     assert_eq!(body["can_change_identity"], false);
@@ -389,7 +396,7 @@ async fn user_changes_own_user_name_and_email(db: SqlitePool) {
     let (status, body) = admin
         .post(
             &format!("/api/v1/users/{}/update", admin.user_id),
-            json!({"user_name": "admin", "email": null, "can_login": true, "can_manage_repositories": true, "can_change_identity": false, "must_change_password": false}),
+            json!({"user_name": "admin", "email": null, "can_login": true, "can_manage_repositories": true, "can_manage_mcp_servers": true, "can_change_identity": false, "must_change_password": false}),
         )
         .await;
     assert_eq!(status, StatusCode::FORBIDDEN, "{body}");
@@ -420,7 +427,7 @@ async fn user_without_repository_permission_only_reads_shared_repositories(db: S
         .admin()
         .post(
             &format!("/api/v1/users/{}/update", bob.user_id),
-            json!({"user_name": "bob", "email": "bob@example.com", "can_login": true, "can_manage_repositories": false, "can_change_identity": true, "must_change_password": false}),
+            json!({"user_name": "bob", "email": "bob@example.com", "can_login": true, "can_manage_repositories": false, "can_manage_mcp_servers": true, "can_change_identity": true, "must_change_password": false}),
         )
         .await;
     assert_eq!(status, StatusCode::OK, "{body}");
@@ -622,7 +629,7 @@ async fn admin_sets_password_and_requires_change(db: SqlitePool) {
     let (status, body) = admin
         .post(
             &format!("/api/v1/users/{}/update", alice.user_id),
-            json!({"user_name": "alice", "email": "alice@example.com", "can_login": true, "can_manage_repositories": true, "can_change_identity": true, "must_change_password": true}),
+            json!({"user_name": "alice", "email": "alice@example.com", "can_login": true, "can_manage_repositories": true, "can_manage_mcp_servers": true, "can_change_identity": true, "must_change_password": true}),
         )
         .await;
     assert_eq!(status, StatusCode::OK, "{body}");
@@ -631,7 +638,7 @@ async fn admin_sets_password_and_requires_change(db: SqlitePool) {
     let (status, body) = admin
         .post(
             &format!("/api/v1/users/{}/update", admin.user_id),
-            json!({"user_name": "admin", "email": null, "can_login": true, "can_manage_repositories": true, "can_change_identity": true, "must_change_password": true}),
+            json!({"user_name": "admin", "email": null, "can_login": true, "can_manage_repositories": true, "can_manage_mcp_servers": true, "can_change_identity": true, "must_change_password": true}),
         )
         .await;
     assert_eq!(status, StatusCode::OK, "{body}");

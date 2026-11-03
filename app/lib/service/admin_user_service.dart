@@ -74,6 +74,7 @@ class UpdateUserAction extends AsyncGlobalActionWithResult<UserDto?> {
   final String email;
   final bool canLogin;
   final bool canManageRepositories;
+  final bool canManageMcpServers;
   final bool canChangeIdentity;
   final bool mustChangePassword;
 
@@ -83,6 +84,7 @@ class UpdateUserAction extends AsyncGlobalActionWithResult<UserDto?> {
     required this.email,
     required this.canLogin,
     required this.canManageRepositories,
+    required this.canManageMcpServers,
     required this.canChangeIdentity,
     required this.mustChangePassword,
   });
@@ -109,6 +111,7 @@ class UpdateUserAction extends AsyncGlobalActionWithResult<UserDto?> {
                 email: trimmedOrNull(email),
                 canLogin: canLogin,
                 canManageRepositories: canManageRepositories,
+                canManageMcpServers: canManageMcpServers,
                 canChangeIdentity: canChangeIdentity,
                 mustChangePassword: mustChangePassword,
               ),

@@ -68,6 +68,7 @@ impl From<model::user::User> for UserDto {
             email: user.email,
             can_login: user.can_login,
             can_manage_repositories: user.can_manage_repositories,
+            can_manage_mcp_servers: user.can_manage_mcp_servers,
             can_change_identity: user.can_change_identity,
             must_change_password: user.must_change_password,
             default_model_id: user.default_model_id,

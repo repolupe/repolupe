@@ -115,6 +115,10 @@ class _UserPageState extends State<UserPage> with Refena {
                 value: user.canManageRepositories ? userPage.repositoriesManage : userPage.repositoriesReadOnly,
               ),
               InfoRow(
+                label: t.base.mcpServers.title,
+                value: user.canManageMcpServers ? userPage.mcpServersManage : userPage.mcpServersUseOnly,
+              ),
+              InfoRow(
                 label: userPage.identity,
                 value: user.canChangeIdentity ? userPage.identityEditable : userPage.identityFixed,
               ),

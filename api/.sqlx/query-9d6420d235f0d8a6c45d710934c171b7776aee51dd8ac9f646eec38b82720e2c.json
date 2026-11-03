@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT s.id AS \"id: Uuid\", s.user_id AS \"user_id: Uuid\", u.role AS \"role: UserRole\", u.can_manage_repositories,\n                  u.must_change_password, s.last_used_at AS \"last_used_at: DateTime<Utc>\"\n           FROM sessions s\n           JOIN users u ON u.id = s.user_id\n           WHERE s.token_hash = $1 AND s.expires_at > $2 AND u.can_login",
+  "query": "SELECT s.id AS \"id: Uuid\", s.user_id AS \"user_id: Uuid\", u.role AS \"role: UserRole\", u.can_manage_repositories,\n                  u.can_manage_mcp_servers, u.must_change_password, s.last_used_at AS \"last_used_at: DateTime<Utc>\"\n           FROM sessions s\n           JOIN users u ON u.id = s.user_id\n           WHERE s.token_hash = $1 AND s.expires_at > $2 AND u.can_login",
   "describe": {
     "columns": [
       {
@@ -24,13 +24,18 @@
         "type_info": "Bool"
       },
       {
-        "name": "must_change_password",
+        "name": "can_manage_mcp_servers",
         "ordinal": 4,
         "type_info": "Bool"
       },
       {
-        "name": "last_used_at: DateTime<Utc>",
+        "name": "must_change_password",
         "ordinal": 5,
+        "type_info": "Bool"
+      },
+      {
+        "name": "last_used_at: DateTime<Utc>",
+        "ordinal": 6,
         "type_info": "Datetime"
       }
     ],
@@ -43,8 +48,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "a9cdfe43fca6af356d2e5758e35e38ecab072bce4050844a0a02c36ce5e60885"
+  "hash": "9d6420d235f0d8a6c45d710934c171b7776aee51dd8ac9f646eec38b82720e2c"
 }

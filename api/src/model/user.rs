@@ -15,6 +15,8 @@ pub struct User {
     pub can_login: bool,
     /// `false` only lets the user read repositories shared with them.
     pub can_manage_repositories: bool,
+    /// `false` keeps the user from adding, changing and deleting MCP servers.
+    pub can_manage_mcp_servers: bool,
     /// `false` keeps the user from changing their own user name and email.
     pub can_change_identity: bool,
     /// Set by an admin: the user can do nothing but change their password until they do.

@@ -29,6 +29,7 @@ Map<String, dynamic> _userJson({required bool mustChangePassword}) => {
   'email': 'alice@example.com',
   'can_login': true,
   'can_manage_repositories': true,
+  'can_manage_mcp_servers': true,
   'can_change_identity': true,
   'must_change_password': mustChangePassword,
   'auto_commit': false,

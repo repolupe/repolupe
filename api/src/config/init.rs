@@ -14,9 +14,9 @@ use crate::service::runtime_config::LiveConfig;
 use crate::util;
 use crate::util::token_cipher::TokenCipher;
 use chrono::TimeDelta;
-use sqlx::SqlitePool;
 use sqlx::migrate::{MigrateError, Migrator};
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
+use sqlx::{ConnectOptions, Connection, SqlitePool};
 use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
@@ -181,6 +181,9 @@ pub enum InitError {
     #[error("Failed to run migrations: {0}")]
     Migrate(#[from] MigrateError),
 
+    #[error("The migrations would leave invalid foreign keys in {0}")]
+    ForeignKeyViolations(String),
+
     #[error("Startup failed: {0}")]
     Startup(String),
 }
@@ -189,6 +192,29 @@ impl From<AppError> for InitError {
     fn from(e: AppError) -> Self {
         InitError::Startup(e.to_string())
     }
+}
+
+/// Applies the migrations on a connection of its own with foreign keys off, so a migration can
+/// rebuild a referenced table: with them on, dropping the old table would run its
+/// `ON DELETE CASCADE`s, and `PRAGMA foreign_keys` has no effect inside the transaction sqlx
+/// wraps each migration in. All migrations run in one transaction, rolled back if they leave
+/// foreign keys that point nowhere.
+async fn migrate(db: &DatabasePool) -> Result<(), InitError> {
+    let options = db.connect_options().as_ref().clone().foreign_keys(false);
+    let mut conn = options.connect().await.map_err(InitError::Database)?;
+    let mut tx = conn
+        .begin_with("BEGIN IMMEDIATE")
+        .await
+        .map_err(InitError::Database)?;
+    MIGRATOR.run_direct(&mut *tx).await?;
+    let violations = repository::foreign_key_violations(&mut tx)
+        .await
+        .map_err(InitError::Database)?;
+    if let Some(tables) = violations {
+        return Err(InitError::ForeignKeyViolations(tables));
+    }
+    tx.commit().await.map_err(InitError::Database)?;
+    conn.close().await.map_err(InitError::Database)
 }
 
 /// Prepares the database and returns the state. The background tasks are started by the caller.
@@ -219,7 +245,7 @@ pub(crate) async fn init(config: Config, db: DatabasePool) -> Result<AppState, I
     }
 
     if config.run_migrations {
-        MIGRATOR.run(&db).await?;
+        migrate(&db).await?;
     }
 
     create_initial_admin_user(

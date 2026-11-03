@@ -650,6 +650,7 @@
         "passwordChangeRequired": "Password change required",
         "manage": "Manage",
         "readOnly": "Read only",
+        "useOnly": "Use only",
         "editable": "Editable",
         "fixed": "Fixed",
         "cannotDeleteSelf": "You cannot delete yourself",
@@ -676,6 +677,8 @@
         "canLoginHint": "Turning this off signs the user out everywhere",
         "canManageRepositories": "Can manage repositories",
         "canManageRepositoriesHint": "Without it, the Repositories page is hidden and they can only ask about repositories shared with them",
+        "canManageMcpServers": "Can manage MCP servers",
+        "canManageMcpServersHint": "Without it, the MCP Servers page is hidden and they cannot add or change MCP servers",
         "canChangeIdentity": "Can change user name and email",
         "canChangeIdentityHint": "Without it, only admins can change them",
         "mustChangePasswordHint": "Until then, the user can do nothing else after logging in"

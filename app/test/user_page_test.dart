@@ -42,6 +42,7 @@ class _FakeApi {
         email: request.email,
         canLogin: request.canLogin,
         canManageRepositories: request.canManageRepositories,
+        canManageMcpServers: request.canManageMcpServers,
         canChangeIdentity: request.canChangeIdentity,
         mustChangePassword: request.mustChangePassword,
       );
@@ -55,6 +56,7 @@ class _FakeApi {
         email: bob.email,
         canLogin: bob.canLogin,
         canManageRepositories: bob.canManageRepositories,
+        canManageMcpServers: bob.canManageMcpServers,
         canChangeIdentity: bob.canChangeIdentity,
         mustChangePassword: action.request.mustChangePassword,
       );
@@ -78,6 +80,7 @@ UserDto _withUser(
   required String? email,
   required bool canLogin,
   required bool canManageRepositories,
+  required bool canManageMcpServers,
   required bool canChangeIdentity,
   required bool mustChangePassword,
 }) => UserDto(
@@ -87,6 +90,7 @@ UserDto _withUser(
   email: email,
   canLogin: canLogin,
   canManageRepositories: canManageRepositories,
+  canManageMcpServers: canManageMcpServers,
   canChangeIdentity: canChangeIdentity,
   mustChangePassword: mustChangePassword,
   defaultModelId: user.defaultModelId,
@@ -176,6 +180,7 @@ void main() {
     expect(tester.widget<SwitchListTile>(find.byKey(const ValueKey('userForm.canLogin'))).onChanged, isNotNull);
     await tester.tap(find.byKey(const ValueKey('userForm.canLogin')));
     await tester.tap(find.byKey(const ValueKey('userForm.canManageRepositories')));
+    await tester.tap(find.byKey(const ValueKey('userForm.canManageMcpServers')));
     await tester.tap(find.byKey(const ValueKey('userForm.mustChangePassword')));
     await tester.enterText(find.byKey(const ValueKey('userForm.userName')), 'bob2');
     await tester.enterText(find.byKey(const ValueKey('userForm.email')), '');
@@ -192,6 +197,7 @@ void main() {
         email: null,
         canLogin: false,
         canManageRepositories: false,
+        canManageMcpServers: false,
         canChangeIdentity: true,
         mustChangePassword: true,
       ),
@@ -273,10 +279,15 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('user.edit')));
     await tester.pumpAndSettle();
-    for (final key in ['userForm.canLogin', 'userForm.canManageRepositories', 'userForm.canChangeIdentity']) {
+    for (final key in [
+      'userForm.canLogin',
+      'userForm.canManageRepositories',
+      'userForm.canManageMcpServers',
+      'userForm.canChangeIdentity',
+    ]) {
       expect(tester.widget<SwitchListTile>(find.byKey(ValueKey(key))).onChanged, isNull, reason: key);
     }
     expect(tester.widget<SwitchListTile>(find.byKey(const ValueKey('userForm.mustChangePassword'))).onChanged, isNotNull);
-    expect(find.text('Admins cannot be restricted'), findsNWidgets(3));
+    expect(find.text('Admins cannot be restricted'), findsNWidgets(4));
   });
 }

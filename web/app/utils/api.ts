@@ -621,7 +621,7 @@ export function streamMessage(
 
 // --- MCP servers ---
 
-/** The user's own servers. */
+/** The user's own servers. The other MCP server endpoints fail with `FORBIDDEN` without `can_manage_mcp_servers`. */
 export async function getMcpServers(): Promise<McpServerDto[]> {
     return await makeRequest({route: 'mcp-servers', method: 'GET'});
 }
@@ -725,6 +725,7 @@ export interface UpdateUserPayload {
     email: string | null;
     can_login: boolean;
     can_manage_repositories: boolean;
+    can_manage_mcp_servers: boolean;
     can_change_identity: boolean;
     /** The user can do nothing but change their password until they do. */
     must_change_password: boolean;

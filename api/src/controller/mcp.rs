@@ -34,6 +34,7 @@ pub(crate) async fn create_mcp_server(
     Extension(auth): Extension<AuthenticatedUser>,
     JsonBody(payload): JsonBody<CreateMcpServerRequest>,
 ) -> Result<(StatusCode, Json<McpServerDto>), AppError> {
+    require_mcp_server_management(&auth)?;
     let access = RemoteAccess::of(auth.role);
     let name = parse_name(&payload.name)?;
     let url = util::validation::parse_mcp_url(payload.url.trim(), access)?;
@@ -79,6 +80,7 @@ pub(crate) async fn update_mcp_server(
     PathParam(id): PathParam<Uuid>,
     JsonBody(payload): JsonBody<UpdateMcpServerRequest>,
 ) -> Result<Json<McpServerDto>, AppError> {
+    require_mcp_server_management(&auth)?;
     let name = parse_name(&payload.name)?;
     let disabled_tools = util::validation::parse_disabled_tools(&payload.disabled_tools)?;
     let server = repository::mcp::update_mcp_server(
@@ -102,6 +104,7 @@ pub(crate) async fn delete_mcp_server(
     Extension(auth): Extension<AuthenticatedUser>,
     PathParam(id): PathParam<Uuid>,
 ) -> Result<StatusCode, AppError> {
+    require_mcp_server_management(&auth)?;
     repository::mcp::delete_mcp_server(&state.db, auth.user_id, id).await?;
     state.mcp.forget(id);
     Ok(StatusCode::NO_CONTENT)
@@ -113,6 +116,7 @@ pub(crate) async fn refresh_mcp_server(
     Extension(auth): Extension<AuthenticatedUser>,
     PathParam(id): PathParam<Uuid>,
 ) -> Result<Json<McpServerDto>, AppError> {
+    require_mcp_server_management(&auth)?;
     let server = find_mcp_server(&state, auth.user_id, id).await?;
     let server = state
         .mcp
@@ -127,6 +131,7 @@ pub(crate) async fn authorize_mcp_server(
     PathParam(id): PathParam<Uuid>,
     JsonBody(payload): JsonBody<AuthorizeMcpServerRequest>,
 ) -> Result<Json<AuthorizationUrlDto>, AppError> {
+    require_mcp_server_management(&auth)?;
     let redirect_uri = util::validation::parse_redirect_uri(payload.redirect_uri.trim())?;
     let server = find_mcp_server(&state, auth.user_id, id).await?;
     let authorization_url = state
@@ -147,6 +152,7 @@ pub(crate) async fn complete_mcp_authorization(
     Extension(auth): Extension<AuthenticatedUser>,
     JsonBody(payload): JsonBody<McpAuthorizationCallbackRequest>,
 ) -> Result<Json<McpServerDto>, AppError> {
+    require_mcp_server_management(&auth)?;
     let id = state
         .mcp
         .complete_sign_in(
@@ -191,6 +197,17 @@ fn connection<'a>(
         }
         Err(e) => Err(connect_app_error(e.clone())),
     }
+}
+
+/// Users without the permission keep listing their servers and using them in chats, but
+/// cannot add, change, connect or delete any, like repositories.
+fn require_mcp_server_management(auth: &AuthenticatedUser) -> Result<(), AppError> {
+    if !auth.can_manage_mcp_servers {
+        return Err(AppError::Forbidden(
+            "You are not allowed to manage MCP servers".to_string(),
+        ));
+    }
+    Ok(())
 }
 
 /// Servers of other users are reported as missing.

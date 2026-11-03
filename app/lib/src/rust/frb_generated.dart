@@ -4091,14 +4091,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   UpdateUserRequest dco_decode_update_user_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 6) throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    if (arr.length != 7) throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
     return UpdateUserRequest(
       userName: dco_decode_String(arr[0]),
       email: dco_decode_opt_String(arr[1]),
       canLogin: dco_decode_bool(arr[2]),
       canManageRepositories: dco_decode_bool(arr[3]),
-      canChangeIdentity: dco_decode_bool(arr[4]),
-      mustChangePassword: dco_decode_bool(arr[5]),
+      canManageMcpServers: dco_decode_bool(arr[4]),
+      canChangeIdentity: dco_decode_bool(arr[5]),
+      mustChangePassword: dco_decode_bool(arr[6]),
     );
   }
 
@@ -4119,7 +4120,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   UserDto dco_decode_user_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 15) throw Exception('unexpected arr length: expect 15 but see ${arr.length}');
+    if (arr.length != 16) throw Exception('unexpected arr length: expect 16 but see ${arr.length}');
     return UserDto(
       id: dco_decode_Uuid(arr[0]),
       role: dco_decode_user_role(arr[1]),
@@ -4127,15 +4128,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       email: dco_decode_opt_String(arr[3]),
       canLogin: dco_decode_bool(arr[4]),
       canManageRepositories: dco_decode_bool(arr[5]),
-      canChangeIdentity: dco_decode_bool(arr[6]),
-      mustChangePassword: dco_decode_bool(arr[7]),
-      defaultModelId: dco_decode_opt_Uuid(arr[8]),
-      locale: dco_decode_opt_String(arr[9]),
-      autoCommit: dco_decode_bool(arr[10]),
-      fullName: dco_decode_opt_String(arr[11]),
-      firstName: dco_decode_opt_String(arr[12]),
-      about: dco_decode_opt_String(arr[13]),
-      createdAt: dco_decode_Chrono_Utc(arr[14]),
+      canManageMcpServers: dco_decode_bool(arr[6]),
+      canChangeIdentity: dco_decode_bool(arr[7]),
+      mustChangePassword: dco_decode_bool(arr[8]),
+      defaultModelId: dco_decode_opt_Uuid(arr[9]),
+      locale: dco_decode_opt_String(arr[10]),
+      autoCommit: dco_decode_bool(arr[11]),
+      fullName: dco_decode_opt_String(arr[12]),
+      firstName: dco_decode_opt_String(arr[13]),
+      about: dco_decode_opt_String(arr[14]),
+      createdAt: dco_decode_Chrono_Utc(arr[15]),
     );
   }
 
@@ -6094,6 +6096,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_email = sse_decode_opt_String(deserializer);
     var var_canLogin = sse_decode_bool(deserializer);
     var var_canManageRepositories = sse_decode_bool(deserializer);
+    var var_canManageMcpServers = sse_decode_bool(deserializer);
     var var_canChangeIdentity = sse_decode_bool(deserializer);
     var var_mustChangePassword = sse_decode_bool(deserializer);
     return UpdateUserRequest(
@@ -6101,6 +6104,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       email: var_email,
       canLogin: var_canLogin,
       canManageRepositories: var_canManageRepositories,
+      canManageMcpServers: var_canManageMcpServers,
       canChangeIdentity: var_canChangeIdentity,
       mustChangePassword: var_mustChangePassword,
     );
@@ -6130,6 +6134,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_email = sse_decode_opt_String(deserializer);
     var var_canLogin = sse_decode_bool(deserializer);
     var var_canManageRepositories = sse_decode_bool(deserializer);
+    var var_canManageMcpServers = sse_decode_bool(deserializer);
     var var_canChangeIdentity = sse_decode_bool(deserializer);
     var var_mustChangePassword = sse_decode_bool(deserializer);
     var var_defaultModelId = sse_decode_opt_Uuid(deserializer);
@@ -6146,6 +6151,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       email: var_email,
       canLogin: var_canLogin,
       canManageRepositories: var_canManageRepositories,
+      canManageMcpServers: var_canManageMcpServers,
       canChangeIdentity: var_canChangeIdentity,
       mustChangePassword: var_mustChangePassword,
       defaultModelId: var_defaultModelId,
@@ -7814,6 +7820,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.email, serializer);
     sse_encode_bool(self.canLogin, serializer);
     sse_encode_bool(self.canManageRepositories, serializer);
+    sse_encode_bool(self.canManageMcpServers, serializer);
     sse_encode_bool(self.canChangeIdentity, serializer);
     sse_encode_bool(self.mustChangePassword, serializer);
   }
@@ -7836,6 +7843,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.email, serializer);
     sse_encode_bool(self.canLogin, serializer);
     sse_encode_bool(self.canManageRepositories, serializer);
+    sse_encode_bool(self.canManageMcpServers, serializer);
     sse_encode_bool(self.canChangeIdentity, serializer);
     sse_encode_bool(self.mustChangePassword, serializer);
     sse_encode_opt_Uuid(self.defaultModelId, serializer);

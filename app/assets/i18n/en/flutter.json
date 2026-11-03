@@ -149,16 +149,20 @@
         "loginDisabled": "Disabled (signed out everywhere)",
         "repositoriesManage": "Can manage their own and share them",
         "repositoriesReadOnly": "Read only (can only ask about repositories shared with them)",
+      "mcpServersManage": "Can manage their own",
+      "mcpServersUseOnly": "Use only (cannot add or change any)",
         "identity": "User name and email",
         "identityEditable": "The user can change them",
         "identityFixed": "Fixed (only admins can change them)",
         "passwordMustChange": "Must be changed at the next login"
       },
       "form": {
-        "adminNote": "Admins can be renamed, but never restricted."
+        "adminNote": "Admins can be renamed, but never restricted.",
+      "canManageMcpServersHint": "Without it, they cannot add or change MCP servers. These are managed in the web interface."
       },
       "flags": {
         "repositoriesReadOnly": "Repositories read only",
+      "mcpServersUseOnly": "MCP servers use only",
         "identityFixed": "Fixed user name and email"
       }
     },
