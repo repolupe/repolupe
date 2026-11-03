@@ -143,6 +143,7 @@ import {
   authorizeMcpServer,
   createMcpServer,
   deleteMcpServer,
+  errorDetail,
   errorMessage,
   getMcpServers,
   refreshMcpServer,
@@ -226,9 +227,14 @@ const authInfo = (server: McpServerDto) => {
   }
 };
 
-/** Like {@link errorMessage}, telling what an MCP endpoint is when the server could not be connected to. */
-const saveErrorMessage = (e: unknown): string =>
-    e instanceof ApiError && e.code === ErrorCode.REMOTE_UNREACHABLE ? t('mcpServers.unreachable') : errorMessage(e);
+/**
+ * Like {@link errorDetail}, telling what an MCP endpoint is when the server could not be connected to. Adding a server
+ * connects to it, so the API's message tells why that failed.
+ */
+const createErrorMessage = (e: unknown): string =>
+    e instanceof ApiError && e.code === ErrorCode.REMOTE_UNREACHABLE
+        ? t('mcpServers.unreachable', {error: errorDetail(e)})
+        : errorDetail(e);
 
 const replaceServer = (server: McpServerDto) => {
   servers.value = servers.value.map(s => s.id === server.id ? server : s);
@@ -290,8 +296,10 @@ const doSave = async (fields: McpServerFields) => {
       offerSignIn(server);
     }
   } catch (e) {
-    const key = editing ? 'mcpServers.page.saveFailed' : 'mcpServers.page.createFailed';
-    showSnackbar(t(key, {error: saveErrorMessage(e)}));
+    // changing a server does not connect to it
+    showSnackbar(editing
+        ? t('mcpServers.page.saveFailed', {error: errorMessage(e)})
+        : t('mcpServers.page.createFailed', {error: createErrorMessage(e)}));
   } finally {
     loading.value = false;
   }
@@ -434,7 +442,7 @@ const startSignIn = async (server: McpServerDto) => {
     }
     window.location.assign(authorizationUrl.href);
   } catch (e) {
-    showSnackbar(t('mcpServers.page.signInFailed', {error: errorMessage(e)}));
+    showSnackbar(t('mcpServers.page.signInFailed', {error: errorDetail(e)}));
   } finally {
     busy.value = null;
   }

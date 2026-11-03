@@ -288,6 +288,7 @@ async fn mcp_servers(
             |server| match McpTarget::new(&server, access, &state.token_cipher) {
                 Ok(target) => Some(McpServerTools {
                     target,
+                    updated_at: server.updated_at,
                     name: server.name,
                     tools: server
                         .tools

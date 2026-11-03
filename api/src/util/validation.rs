@@ -104,6 +104,13 @@ pub(crate) fn validate_name(name: &str) -> Result<(), ValidationError> {
     Ok(())
 }
 
+/// Trims `name` and checks it with [`validate_name`].
+pub(crate) fn parse_name(name: &str) -> Result<&str, ValidationError> {
+    let name = name.trim();
+    validate_name(name)?;
+    Ok(name)
+}
+
 pub(crate) fn validate_description(description: &str) -> Result<(), ValidationError> {
     if description.chars().count() > MAX_DESCRIPTION_LENGTH {
         return Err(ValidationError(format!(
@@ -120,29 +127,42 @@ pub(crate) fn parse_remote_url(
     remote_url: &str,
     access: RemoteAccess,
 ) -> Result<Url, ValidationError> {
-    let invalid = |msg: &str| ValidationError(msg.to_string());
+    parse_access_url(remote_url, access, "Remote URL", false)
+}
 
-    if remote_url.len() > MAX_REMOTE_URL_LENGTH {
-        return Err(invalid("Remote URL is too long"));
+/// The checks of [`parse_remote_url`] and [`parse_mcp_url`], with messages starting with
+/// `subject`.
+fn parse_access_url(
+    url: &str,
+    access: RemoteAccess,
+    subject: &str,
+    allow_query: bool,
+) -> Result<Url, ValidationError> {
+    let invalid = |msg: &str| ValidationError(format!("{subject} {msg}"));
+
+    if url.len() > MAX_REMOTE_URL_LENGTH {
+        return Err(invalid("is too long"));
     }
-    let url = Url::parse(remote_url).map_err(|_| invalid("Remote URL is not a valid URL"))?;
+    let url = Url::parse(url).map_err(|_| invalid("is not a valid URL"))?;
     match (access, url.scheme()) {
         (_, "https") | (RemoteAccess::Unrestricted, "http") => {}
-        (RemoteAccess::Public, _) => return Err(invalid("Remote URL must use https://")),
+        (RemoteAccess::Public, _) => return Err(invalid("must use https://")),
         (RemoteAccess::Unrestricted, _) => {
-            return Err(invalid("Remote URL must use https:// or http://"));
+            return Err(invalid("must use https:// or http://"));
         }
     }
     if url.host_str().is_none_or(str::is_empty) {
-        return Err(invalid("Remote URL must have a host"));
+        return Err(invalid("must have a host"));
     }
     if !url.username().is_empty() || url.password().is_some() {
-        return Err(invalid(
-            "Remote URL must not contain credentials, set a token instead",
-        ));
+        return Err(invalid("must not contain credentials, set a token instead"));
     }
-    if url.query().is_some() || url.fragment().is_some() {
-        return Err(invalid("Remote URL must not contain a query or fragment"));
+    if allow_query {
+        if url.fragment().is_some() {
+            return Err(invalid("must not contain a fragment"));
+        }
+    } else if url.query().is_some() || url.fragment().is_some() {
+        return Err(invalid("must not contain a query or fragment"));
     }
     Ok(url)
 }
@@ -190,6 +210,13 @@ pub(crate) fn validate_token(token: &str) -> Result<(), ValidationError> {
         return Err(ValidationError("Invalid token".to_string()));
     }
     Ok(())
+}
+
+/// Trims `token` and checks it with [`validate_token`].
+pub(crate) fn parse_token(token: &str) -> Result<&str, ValidationError> {
+    let token = token.trim();
+    validate_token(token)?;
+    Ok(token)
 }
 
 /// API keys end up in an HTTP header like tokens.
@@ -295,31 +322,7 @@ pub(crate) fn parse_llm_base_url(base_url: &str) -> Result<String, ValidationErr
 /// access is unrestricted, and whether the host is public is checked when it is resolved.
 /// Unlike them, a query is allowed, since some servers take their settings there.
 pub(crate) fn parse_mcp_url(url: &str, access: RemoteAccess) -> Result<Url, ValidationError> {
-    let invalid = |msg: &str| ValidationError(msg.to_string());
-
-    if url.len() > MAX_REMOTE_URL_LENGTH {
-        return Err(invalid("URL is too long"));
-    }
-    let url = Url::parse(url).map_err(|_| invalid("URL is not a valid URL"))?;
-    match (access, url.scheme()) {
-        (_, "https") | (RemoteAccess::Unrestricted, "http") => {}
-        (RemoteAccess::Public, _) => return Err(invalid("URL must use https://")),
-        (RemoteAccess::Unrestricted, _) => {
-            return Err(invalid("URL must use https:// or http://"));
-        }
-    }
-    if url.host_str().is_none_or(str::is_empty) {
-        return Err(invalid("URL must have a host"));
-    }
-    if !url.username().is_empty() || url.password().is_some() {
-        return Err(invalid(
-            "URL must not contain credentials, set a token instead",
-        ));
-    }
-    if url.fragment().is_some() {
-        return Err(invalid("URL must not contain a fragment"));
-    }
-    Ok(url)
+    parse_access_url(url, access, "URL", true)
 }
 
 /// Where an authorization server sends the user back to after signing in to an MCP server:
@@ -556,6 +559,20 @@ mod tests {
         let http = "http://git.internal/owner/repo";
         assert!(parse_remote_url(http, RemoteAccess::Public).is_err());
         assert!(parse_remote_url(http, RemoteAccess::Unrestricted).is_ok());
+    }
+
+    #[test]
+    fn validates_mcp_url() {
+        let public = RemoteAccess::Public;
+        assert!(parse_mcp_url("https://mcp.example.com/mcp?team=1", public).is_ok());
+        assert_eq!(
+            parse_mcp_url("https://mcp.example.com/mcp#x", public).unwrap_err(),
+            ValidationError("URL must not contain a fragment".to_string())
+        );
+        assert_eq!(
+            parse_remote_url("https://github.com/owner/repo?x=1", public).unwrap_err(),
+            ValidationError("Remote URL must not contain a query or fragment".to_string())
+        );
     }
 
     #[test]

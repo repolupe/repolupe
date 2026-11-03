@@ -66,7 +66,7 @@ class _ToolCallPageState extends State<ToolCallPage> with Refena {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(summary.name),
+        title: Text(summary.displayName),
         actions: [
           if (summary.status == ToolCallStatus.running)
             IconButton(
@@ -83,7 +83,13 @@ class _ToolCallPageState extends State<ToolCallPage> with Refena {
           children: [
             Row(
               children: [
-                Expanded(child: ToolCallLocation(toolCall: summary, path: null)),
+                Expanded(
+                  child: switch (parseMcpToolName(summary.name)) {
+                    // The server of a tool of an MCP server, which is bound to none of our repositories.
+                    final mcp? => Text(mcp.server, style: muted),
+                    null => ToolCallLocation(toolCall: summary, path: null),
+                  },
+                ),
                 ToolCallStatusIcon(status: summary.status),
               ],
             ),

@@ -13,7 +13,7 @@ use crate::model::remote_access::RemoteAccess;
 use crate::repository::mcp::{Connection, McpServerChanges, NewMcpServer};
 use crate::service::mcp::{ConnectError, Credentials, McpTarget, connect_app_error};
 use crate::util::extract::{JsonBody, PathParam};
-use crate::util::validation::ValidationError;
+use crate::util::validation::{parse_name, parse_token};
 use crate::{repository, util};
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -165,8 +165,8 @@ pub(crate) async fn complete_mcp_authorization(
 }
 
 /// How a new or changed server is stored after connecting to it. A server that asks for
-/// authentication is stored to sign in to, unless it rejected the token, which fails like an
-/// unreachable server.
+/// authentication (or refuses the connection) is stored to sign in to, unless it rejected (or
+/// refused) the token, which fails.
 fn connection<'a>(
     target: &McpTarget,
     tools: &'a Result<Vec<McpTool>, ConnectError>,
@@ -179,7 +179,7 @@ fn connection<'a>(
             tools: Some(tools),
             checked_at,
         }),
-        Err(ConnectError::AuthorizationRequired { .. })
+        Err(ConnectError::AuthorizationRequired { .. } | ConnectError::Forbidden { .. })
             if !matches!(target.credentials, Credentials::Token(_)) =>
         {
             Ok(Connection {
@@ -198,16 +198,4 @@ async fn find_mcp_server(state: &AppState, user_id: Uuid, id: Uuid) -> Result<Mc
     repository::mcp::get_mcp_server(&state.db, user_id, id)
         .await?
         .ok_or(AppError::NotFound)
-}
-
-fn parse_name(name: &str) -> Result<&str, ValidationError> {
-    let name = name.trim();
-    util::validation::validate_name(name)?;
-    Ok(name)
-}
-
-fn parse_token(token: &str) -> Result<&str, ValidationError> {
-    let token = token.trim();
-    util::validation::validate_token(token)?;
-    Ok(token)
 }

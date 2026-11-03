@@ -1,5 +1,5 @@
 use super::mock_llm::{MockLlm, text_response, tool_result, tool_use_response};
-use super::mock_mcp::{McpAuth, MockMcp, TOKEN};
+use super::mock_mcp::{FORBIDDEN, HOLD, INSUFFICIENT_SCOPE, LOSE_RESULT, McpAuth, MockMcp, TOKEN};
 use super::support::{TestApp, TestClient};
 use axum::http::StatusCode;
 use serde_json::{Value, json};
@@ -38,6 +38,34 @@ async fn ask(client: &TestClient, question: &str) -> Value {
         .await;
     assert_eq!(status, StatusCode::CREATED, "{chat}");
     client.wait_for_answer(chat["id"].as_str().unwrap()).await
+}
+
+/// Signs in to the server `id` with OAuth and returns it.
+async fn sign_in(client: &TestClient, mcp: &MockMcp, id: &str) -> Value {
+    let (status, body) = client
+        .post(
+            &format!("/api/v1/mcp-servers/{id}/authorize"),
+            json!({"redirect_uri": REDIRECT_URI}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let authorization_url = body["authorization_url"].as_str().unwrap();
+    let state = Url::parse(authorization_url)
+        .unwrap()
+        .query_pairs()
+        .find(|(key, _)| key == "state")
+        .unwrap()
+        .1
+        .into_owned();
+    let code = mcp.approve(authorization_url);
+    let (status, server) = client
+        .post(
+            "/api/v1/mcp-servers/authorize/callback",
+            json!({"state": state, "code": code, "iss": null}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{server}");
+    server
 }
 
 /// The names of the tools the model got in `request`.
@@ -395,6 +423,106 @@ async fn reports_failed_tool_calls(db: SqlitePool) {
 }
 
 #[sqlx::test]
+async fn fails_only_the_calls_the_server_refuses(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let admin = app.admin();
+    let mcp = MockMcp::start(McpAuth::Token).await;
+    let llm = MockLlm::start(vec![
+        tool_use_response("toolu_1", "mcp__echo__echo", json!({"text": FORBIDDEN})),
+        tool_use_response(
+            "toolu_2",
+            "mcp__echo__echo",
+            json!({"text": INSUFFICIENT_SCOPE}),
+        ),
+        tool_use_response("toolu_3", "mcp__echo__echo", json!({"text": "hi"})),
+        text_response("Two were refused."),
+        text_response("Still there."),
+    ])
+    .await;
+    app.configure_llm(&llm).await;
+    create(&admin, "Echo", &mcp.url, Some(TOKEN)).await;
+
+    let answer = ask(&admin, "Echo three times").await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    let statuses: Vec<&str> = answer["tool_calls"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|call| call["status"].as_str().unwrap())
+        .collect();
+    assert_eq!(statuses, ["FAILED", "FAILED", "COMPLETED"], "{answer}");
+    let requests = llm.requests();
+    let refused = tool_result(&requests[1]);
+    assert_eq!(refused["is_error"], true, "{refused}");
+    assert_eq!(
+        refused["content"],
+        "The MCP server \"Echo\" refused the request (HTTP 403 Forbidden). The credentials may \
+        lack a permission for it."
+    );
+    let refused = tool_result(&requests[2]);
+    assert_eq!(refused["is_error"], true, "{refused}");
+    assert!(
+        refused["content"].as_str().unwrap().contains("OAuth scope"),
+        "{refused}"
+    );
+    // The session is still usable.
+    assert_eq!(tool_result(&requests[3])["content"], "echo: hi");
+    assert_eq!(mcp.calls(), [json!({"text": "hi"})]);
+
+    // The server stays as it was, with its tools.
+    let (_, list) = admin.get("/api/v1/mcp-servers").await;
+    assert_eq!(list[0]["status"], "READY", "{list}");
+    assert_eq!(tool_names(&list[0]), ["echo"]);
+    ask(&admin, "Anything?").await;
+    assert_eq!(
+        offered(&llm.requests()[4]),
+        ["run_script", "mcp__echo__echo"]
+    );
+}
+
+#[sqlx::test]
+async fn tells_the_model_when_a_call_was_lost(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let admin = app.admin();
+    let mcp = MockMcp::start(McpAuth::Token).await;
+    let echo =
+        |id: &str, text: &str| tool_use_response(id, "mcp__echo__echo", json!({"text": text}));
+    let llm = MockLlm::start(vec![
+        echo("toolu_1", LOSE_RESULT),
+        echo("toolu_2", "after the loss"),
+        text_response("Done."),
+    ])
+    .await;
+    app.configure_llm(&llm).await;
+    create(&admin, "Echo", &mcp.url, Some(TOKEN)).await;
+
+    let answer = ask(&admin, "Echo twice").await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    let statuses: Vec<&str> = answer["tool_calls"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|call| call["status"].as_str().unwrap())
+        .collect();
+    assert_eq!(statuses, ["FAILED", "COMPLETED"], "{answer}");
+    let requests = llm.requests();
+    let lost = tool_result(&requests[1]);
+    assert_eq!(lost["is_error"], true, "{lost}");
+    assert_eq!(
+        lost["content"],
+        "The connection to the MCP server \"Echo\" was lost during the call. The tool may or \
+        may not have run, so check that before calling it again."
+    );
+    assert_eq!(tool_result(&requests[2])["content"], "echo: after the loss");
+    // It may have run, so it was not sent again.
+    let expected = [
+        json!({"text": LOSE_RESULT}),
+        json!({"text": "after the loss"}),
+    ];
+    assert_eq!(mcp.calls(), expected);
+}
+
+#[sqlx::test]
 async fn signs_in_with_oauth(db: SqlitePool) {
     let app = TestApp::new(db).await;
     let admin = app.admin();
@@ -487,4 +615,207 @@ async fn signs_in_with_oauth(db: SqlitePool) {
     assert_eq!(list[0]["auth"], "OAUTH");
     ask(&admin, "Anything?").await;
     assert_eq!(offered(&llm.requests()[4]), ["run_script"]);
+}
+
+#[sqlx::test]
+async fn keeps_the_server_when_replaced_credentials_are_rejected(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let admin = app.admin();
+    let mcp = MockMcp::start(McpAuth::TokenOrOAuth).await;
+    let echo =
+        |id: &str, text: &str| tool_use_response(id, "mcp__echo__echo", json!({"text": text}));
+    let llm = MockLlm::start(vec![
+        echo("toolu_1", HOLD),
+        echo("toolu_2", "with the old token"),
+        text_response("The second one failed."),
+        text_response("Still there."),
+    ])
+    .await;
+    app.configure_llm(&llm).await;
+    let server = create(&admin, "Echo", &mcp.url, Some(TOKEN)).await;
+    assert_eq!(server["status"], "READY", "{server}");
+    let id = server["id"].as_str().unwrap();
+
+    // While an answer uses the token, the user revokes it and signs in with OAuth instead.
+    let (status, chat) = admin
+        .post(
+            "/api/v1/chats",
+            json!({"content": "Echo twice", "all_repositories": true}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{chat}");
+    mcp.wait_for_held().await;
+    mcp.reject_token();
+    let server = sign_in(&admin, &mcp, id).await;
+    assert_eq!(server["status"], "READY", "{server}");
+    assert_eq!(server["auth"], "OAUTH");
+
+    // The answer's next call is rejected with the old token. It fails, but the server stays.
+    mcp.release();
+    let answer = admin.wait_for_answer(chat["id"].as_str().unwrap()).await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    let statuses: Vec<&str> = answer["tool_calls"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|call| call["status"].as_str().unwrap())
+        .collect();
+    assert_eq!(statuses, ["COMPLETED", "FAILED"], "{answer}");
+    let result = tool_result(&llm.requests()[2]);
+    assert_eq!(result["is_error"], true, "{result}");
+    assert!(
+        result["content"]
+            .as_str()
+            .unwrap()
+            .contains("rejected the credentials"),
+        "{result}"
+    );
+    assert_eq!(mcp.calls(), [json!({"text": HOLD})]);
+
+    let (_, list) = admin.get("/api/v1/mcp-servers").await;
+    assert_eq!(list[0]["status"], "READY", "{list}");
+    assert_eq!(tool_names(&list[0]), ["echo"]);
+    ask(&admin, "Anything?").await;
+    assert_eq!(
+        offered(&llm.requests()[3]),
+        ["run_script", "mcp__echo__echo"]
+    );
+}
+
+#[sqlx::test]
+async fn refreshes_tokens_with_the_client_secret(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let admin = app.admin();
+    let mcp = MockMcp::start(McpAuth::ConfidentialOAuth).await;
+    let llm = MockLlm::start(vec![
+        tool_use_response("toolu_1", "mcp__oauth__echo", json!({"text": "refreshed"})),
+        text_response("Done."),
+    ])
+    .await;
+    app.configure_llm(&llm).await;
+
+    let server = create(&admin, "OAuth", &mcp.url, None).await;
+    let id = server["id"].as_str().unwrap();
+    let (status, body) = admin
+        .post(
+            &format!("/api/v1/mcp-servers/{id}/authorize"),
+            json!({"redirect_uri": REDIRECT_URI}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let authorization_url = body["authorization_url"].as_str().unwrap();
+    let state = Url::parse(authorization_url)
+        .unwrap()
+        .query_pairs()
+        .find(|(key, _)| key == "state")
+        .unwrap()
+        .1
+        .into_owned();
+    // Asked for a public client, the server registered a confidential one.
+    assert_eq!(mcp.registrations()[0]["token_endpoint_auth_method"], "none");
+    let code = mcp.approve(authorization_url);
+
+    // The access tokens expire right away, so listing the tools and calling one refresh them,
+    // which the server allows only with the secret it registered the client with.
+    let (status, server) = admin
+        .post(
+            "/api/v1/mcp-servers/authorize/callback",
+            json!({"state": state, "code": code, "iss": null}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{server}");
+    assert_eq!(server["status"], "READY", "{server}");
+    let refreshes = mcp.refreshes();
+    assert!(refreshes >= 1);
+
+    let answer = ask(&admin, "Echo something").await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    let result = tool_result(&llm.requests()[1]);
+    assert_eq!(result["content"], "echo: refreshed", "{result}");
+    assert!(mcp.refreshes() > refreshes);
+}
+
+#[sqlx::test]
+async fn requires_a_sign_in_when_the_client_is_rejected(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let admin = app.admin();
+    let mcp = MockMcp::start(McpAuth::OAuth).await;
+    let server = create(&admin, "OAuth", &mcp.url, None).await;
+    let id = server["id"].as_str().unwrap();
+    let server = sign_in(&admin, &mcp, id).await;
+    assert_eq!(server["status"], "READY", "{server}");
+
+    // The access tokens expire right away, so connecting refreshes them, which the
+    // authorization server rejects with `invalid_client`.
+    mcp.forget_clients();
+    let (status, server) = admin
+        .post(&format!("/api/v1/mcp-servers/{id}/refresh"), json!({}))
+        .await;
+    assert_eq!(status, StatusCode::OK, "{server}");
+    assert_eq!(server["status"], "AUTHORIZATION_REQUIRED", "{server}");
+
+    // Signing in again registers another client.
+    let server = sign_in(&admin, &mcp, id).await;
+    assert_eq!(server["status"], "READY", "{server}");
+    assert_eq!(mcp.registrations().len(), 2);
+}
+
+#[sqlx::test]
+async fn refreshes_tokens_one_connection_at_a_time(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let admin = app.admin();
+    let mcp = MockMcp::start(McpAuth::OAuth).await;
+    let llm = MockLlm::start(vec![
+        tool_use_response("toolu_1", "mcp__oauth__echo", json!({"text": "together"})),
+        tool_use_response("toolu_2", "mcp__oauth__echo", json!({"text": "together"})),
+        text_response("Done."),
+        text_response("Done."),
+    ])
+    .await;
+    app.configure_llm(&llm).await;
+
+    let server = create(&admin, "OAuth", &mcp.url, None).await;
+    let id = server["id"].as_str().unwrap();
+    let (status, body) = admin
+        .post(
+            &format!("/api/v1/mcp-servers/{id}/authorize"),
+            json!({"redirect_uri": REDIRECT_URI}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let authorization_url = body["authorization_url"].as_str().unwrap();
+    let state = Url::parse(authorization_url)
+        .unwrap()
+        .query_pairs()
+        .find(|(key, _)| key == "state")
+        .unwrap()
+        .1
+        .into_owned();
+    let code = mcp.approve(authorization_url);
+    let (status, server) = admin
+        .post(
+            "/api/v1/mcp-servers/authorize/callback",
+            json!({"state": state, "code": code, "iss": null}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{server}");
+    assert_eq!(server["status"], "READY", "{server}");
+
+    // After a restart, two answers connect at the same time, each with an OAuth client of its
+    // own, and both have to refresh the expired tokens. The server rotates the refresh token,
+    // so a second refresh with the same one would be rejected.
+    let restarted = app.start_background_tasks().await;
+    let admin = admin.on(&restarted);
+    mcp.slow_down();
+    let (first, second) = tokio::join!(ask(&admin, "Echo"), ask(&admin, "Echo too"));
+    for answer in [first, second] {
+        assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    }
+    for request in &llm.requests()[2..] {
+        let result = tool_result(request);
+        assert_eq!(result["content"], "echo: together", "{result}");
+    }
+    assert_eq!(mcp.rejected_refreshes(), 0);
+    let (_, list) = admin.get("/api/v1/mcp-servers").await;
+    assert_eq!(list[0]["status"], "READY", "{list}");
 }

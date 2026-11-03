@@ -120,7 +120,7 @@ class ToolCallLabel extends StatelessWidget {
       children: [
         Icon(toolCall.icon, size: 16),
         const SizedBox(width: 8),
-        Text(toolCall.name, style: mono?.copyWith(fontWeight: FontWeight.w600)),
+        Text(toolCall.displayName, style: mono?.copyWith(fontWeight: FontWeight.w600)),
         if (detail.isNotEmpty) ...[
           const SizedBox(width: 8),
           Expanded(

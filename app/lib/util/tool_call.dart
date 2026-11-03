@@ -7,6 +7,19 @@ import 'package:flutter/material.dart';
 /// The tools that propose commits, shown with the `ProposedCommitPage`.
 const changeTools = {'change_file', 'move_files', 'save_attachment'};
 
+final _mcpToolName = RegExp(r'^mcp__(.+?)__(.+)$');
+
+/// The server and tool of a tool call's [name] if it is a tool of an MCP server (`mcp__<server>__<tool>`), `null` for
+/// the built-in tools. The server's slug never contains `__`, so the first one after it ends it; the tool may contain
+/// more.
+({String server, String tool})? parseMcpToolName(String name) {
+  final match = _mcpToolName.firstMatch(name);
+  return match == null ? null : (server: match[1]!, tool: match[2]!);
+}
+
+/// Whether [name] is a tool of an MCP server (`mcp__<server>__<tool>`), not one of the built-in tools.
+bool isMcpToolName(String name) => parseMcpToolName(name) != null;
+
 /// The last segment of a path, e.g. `guide.md` for `docs/guide.md`.
 String fileName(String path) {
   final segments = path.split('/').where((s) => s.isNotEmpty);
@@ -45,13 +58,18 @@ extension ToolCallInput on ToolCallSummaryDto {
     ];
   }
 
-  /// The repository the model named, for calls whose repository was deleted.
+  /// The repository the model named, for calls whose repository was deleted. `null` for a tool of an MCP server,
+  /// whose `repository` input means something on that server, not one of ours.
   String? get repositoryName => switch (inputMap['repository']) {
-    final String name => name,
+    final String repository when !isMcpToolName(name) => repository,
     _ => null,
   };
 
+  /// The name shown to the user: the tool's own name for a tool of an MCP server, whose server is the [detail].
+  String get displayName => parseMcpToolName(name)?.tool ?? name;
+
   IconData get icon => switch (name) {
+    _ when isMcpToolName(name) => Icons.extension_outlined,
     'list_files' => Icons.folder_outlined,
     'read_file' => Icons.description_outlined,
     'grep' => Icons.manage_search,
@@ -83,8 +101,12 @@ extension ToolCallInput on ToolCallSummaryDto {
     }
   }
 
-  /// The most telling part of the input, e.g. the path that was read or the pattern that was searched.
+  /// The most telling part of the input, e.g. the path that was read or the pattern that was searched, or the server of
+  /// a tool of an MCP server, whose input could be anything.
   String get detail {
+    if (parseMcpToolName(name) case final mcp?) {
+      return mcp.server;
+    }
     final input = inputMap;
     String? str(Object? value) => switch (value) {
       final String s when s.isNotEmpty => s,

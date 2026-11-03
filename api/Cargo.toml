@@ -20,7 +20,9 @@ reqwest = { version = "0.13", default-features = false, features = ["rustls", "h
 rig-core = { version = "=0.45.0", default-features = false }
 rig-reqwest = { version = "=0.45.0", default-features = false }
 # The MCP client, see `service::mcp`. Without its TLS features: requests go through our clients.
-rmcp = { version = "3.8", default-features = false, features = ["client", "auth", "transport-streamable-http-client-reqwest"] }
+# Pinned, since `service::mcp` matches the texts of some of its errors (and of oauth2's, which
+# it uses). Before upgrading, the tests in `tests/integration/mcp.rs` must pass.
+rmcp = { version = "=3.8.0", default-features = false, features = ["client", "auth", "transport-streamable-http-client-reqwest"] }
 # For implementing rmcp's `CredentialStore`.
 async-trait = "0.1"
 rust_decimal = "1.43.0"
@@ -71,7 +73,7 @@ local-ocr = ["xberg/ocr", "xberg/tesseract-dynamic", "xberg/paddle-ocr", "dep:xb
 
 [dev-dependencies]
 # An MCP server for the tests of the MCP client.
-rmcp = { version = "3.8", default-features = false, features = ["server", "transport-streamable-http-server"] }
+rmcp = { version = "=3.8.0", default-features = false, features = ["server", "transport-streamable-http-server"] }
 tempfile = "3"
 tower = { version = "0.5", features = ["util"] }
 

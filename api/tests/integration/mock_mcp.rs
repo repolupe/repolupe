@@ -1,3 +1,4 @@
+use axum::body::Body;
 use axum::extract::{Request, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::middleware::Next;
@@ -17,12 +18,25 @@ use rmcp::transport::streamable_http_server::{StreamableHttpServerConfig, Stream
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
+use tokio::sync::{Notify, Semaphore};
 use tokio::task::JoinHandle;
 use url::Url;
 
 /// The token [`McpAuth::Token`] accepts.
 pub const TOKEN: &str = "mcp-secret-token";
+/// Calls of `echo` with this text are refused with 403, without a `WWW-Authenticate` header.
+pub const FORBIDDEN: &str = "forbidden";
+/// Calls of `echo` with this text are refused with 403 for an `insufficient_scope`.
+pub const INSUFFICIENT_SCOPE: &str = "insufficient scope";
+/// Calls of `echo` with this text run, but the connection is lost before their result arrives.
+pub const LOSE_RESULT: &str = "lose result";
+/// Calls of `echo` with this text run, but answer only after [`MockMcp::release`].
+pub const HOLD: &str = "hold";
+/// The delay of [`MockMcp::slow_down`].
+const SLOW_DOWN: Duration = Duration::from_millis(200);
 
 pub enum McpAuth {
     None,
@@ -34,12 +48,18 @@ pub enum McpAuth {
     /// Requires an access token from the authorization server at the same address, which
     /// issues them for one second, so each use refreshes them.
     OAuth,
+    /// Like [`McpAuth::OAuth`], but registers confidential clients, with a secret its token
+    /// endpoint requires, although Repolupe asks for a public client.
+    ConfidentialOAuth,
+    /// Like [`McpAuth::OAuth`], but also accepts [`TOKEN`] until [`MockMcp::reject_token`].
+    TokenOrOAuth,
 }
 
 /// An MCP server on localhost (rmcp's own) with the tool `echo`, which answers
-/// `echo: <text>`. With [`McpAuth::OAuth`], it is its own authorization server, with dynamic
-/// client registration, PKCE and refresh tokens; [`MockMcp::approve`] stands in for the user
-/// signing in. Stops when dropped.
+/// `echo: <text>`, except for [`FORBIDDEN`], [`INSUFFICIENT_SCOPE`], [`LOSE_RESULT`] and
+/// [`HOLD`]. With [`McpAuth::OAuth`], it is its own authorization server, with dynamic client registration,
+/// PKCE and refresh tokens; [`MockMcp::approve`] stands in for the user signing in. Stops when
+/// dropped.
 pub struct MockMcp {
     /// The MCP endpoint.
     pub url: String,
@@ -53,17 +73,34 @@ struct MockState {
     /// The arguments of the calls of `echo`.
     calls: Arc<Mutex<Vec<Value>>>,
     oauth: Mutex<OAuthState>,
+    /// See [`MockMcp::slow_down`].
+    slow: AtomicBool,
+    /// See [`MockMcp::reject_token`].
+    token_rejected: AtomicBool,
+    hold: Arc<Hold>,
+}
+
+/// The calls of `echo` with [`HOLD`].
+struct Hold {
+    held: Notify,
+    released: Semaphore,
 }
 
 #[derive(Default)]
 struct OAuthState {
     registrations: Vec<Value>,
+    /// The IDs of the registered clients, until [`MockMcp::forget_clients`].
+    clients: HashSet<String>,
+    /// The secrets of the registered clients, with [`McpAuth::ConfidentialOAuth`].
+    client_secrets: HashMap<String, String>,
     /// Issued codes, with the PKCE challenge and the client.
     codes: HashMap<String, (String, String)>,
     access_tokens: HashSet<String>,
     refresh_tokens: HashSet<String>,
     issued: usize,
     refreshes: usize,
+    /// Refreshes with a refresh token that was already used or revoked.
+    rejected_refreshes: usize,
 }
 
 impl MockMcp {
@@ -71,30 +108,42 @@ impl MockMcp {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let base_url = format!("http://{}", listener.local_addr().unwrap());
         let calls = Arc::new(Mutex::new(Vec::new()));
+        let hold = Arc::new(Hold {
+            held: Notify::new(),
+            released: Semaphore::new(0),
+        });
         let state = Arc::new(MockState {
             auth,
             base_url: base_url.clone(),
             calls: calls.clone(),
             oauth: Mutex::new(OAuthState::default()),
+            slow: AtomicBool::new(false),
+            token_rejected: AtomicBool::new(false),
+            hold: hold.clone(),
         });
 
         let mcp = StreamableHttpService::new(
             move || {
                 Ok(EchoServer {
                     calls: calls.clone(),
+                    hold: hold.clone(),
                 })
             },
             Arc::new(LocalSessionManager::default()),
             StreamableHttpServerConfig::default(),
         );
-        let mut router =
-            Router::new()
-                .nest_service("/mcp", mcp)
-                .layer(axum::middleware::from_fn_with_state(
-                    state.clone(),
-                    authenticate,
-                ));
-        if matches!(state.auth, McpAuth::OAuth) {
+        let mut router = Router::new()
+            .nest_service("/mcp", mcp)
+            .layer(axum::middleware::from_fn(lose_results))
+            .layer(axum::middleware::from_fn(refuse_calls))
+            .layer(axum::middleware::from_fn_with_state(
+                state.clone(),
+                authenticate,
+            ));
+        if matches!(
+            state.auth,
+            McpAuth::OAuth | McpAuth::ConfidentialOAuth | McpAuth::TokenOrOAuth
+        ) {
             router = router
                 .route(
                     "/.well-known/oauth-protected-resource/mcp",
@@ -131,11 +180,45 @@ impl MockMcp {
         self.state.oauth.lock().unwrap().refreshes
     }
 
+    /// The refreshes rejected because their refresh token was already used or revoked.
+    pub fn rejected_refreshes(&self) -> usize {
+        self.state.oauth.lock().unwrap().rejected_refreshes
+    }
+
+    /// Answers the metadata and token requests of the authorization server only after
+    /// [`SLOW_DOWN`] from now on, so connections that start together overlap.
+    pub fn slow_down(&self) {
+        self.state.slow.store(true, Ordering::Relaxed);
+    }
+
+    /// Stops accepting [`TOKEN`] with [`McpAuth::TokenOrOAuth`], as if the user revoked it.
+    pub fn reject_token(&self) {
+        self.state.token_rejected.store(true, Ordering::Relaxed);
+    }
+
+    /// Waits until a call of `echo` with [`HOLD`] has run.
+    pub async fn wait_for_held(&self) {
+        tokio::time::timeout(Duration::from_secs(10), self.state.hold.held.notified())
+            .await
+            .expect("no call was held");
+    }
+
+    /// Lets a held call of `echo` answer.
+    pub fn release(&self) {
+        self.state.hold.released.add_permits(1);
+    }
+
     /// Revokes all tokens, as if the user revoked the access.
     pub fn revoke(&self) {
         let mut oauth = self.state.oauth.lock().unwrap();
         oauth.access_tokens.clear();
         oauth.refresh_tokens.clear();
+    }
+
+    /// Forgets the registered clients, as an authorization server that deletes unused ones
+    /// would: their token requests are rejected with `invalid_client`.
+    pub fn forget_clients(&self) {
+        self.state.oauth.lock().unwrap().clients.clear();
     }
 
     /// Signs in at `authorization_url` as the user would, and returns the code the
@@ -170,6 +253,7 @@ impl Drop for MockMcp {
 #[derive(Clone)]
 struct EchoServer {
     calls: Arc<Mutex<Vec<Value>>>,
+    hold: Arc<Hold>,
 }
 
 impl ServerHandler for EchoServer {
@@ -204,6 +288,10 @@ impl ServerHandler for EchoServer {
         let Some(text) = arguments["text"].as_str() else {
             return Ok(CallToolResult::error(vec![ContentBlock::text("text is missing")]).into());
         };
+        if text == HOLD {
+            self.hold.held.notify_one();
+            self.hold.released.acquire().await.unwrap().forget();
+        }
         Ok(CallToolResult::success(vec![ContentBlock::text(format!("echo: {text}"))]).into())
     }
 }
@@ -230,7 +318,13 @@ async fn authenticate(
         McpAuth::Token | McpAuth::TokenWithoutChallenge => {
             (bearer.as_deref() == Some(TOKEN), "Bearer".to_string())
         }
-        McpAuth::OAuth => (
+        McpAuth::TokenOrOAuth
+            if bearer.as_deref() == Some(TOKEN)
+                && !state.token_rejected.load(Ordering::Relaxed) =>
+        {
+            (true, String::new())
+        }
+        McpAuth::OAuth | McpAuth::ConfidentialOAuth | McpAuth::TokenOrOAuth => (
             bearer.is_some_and(|token| state.oauth.lock().unwrap().access_tokens.contains(&token)),
             format!(
                 "Bearer resource_metadata=\"{}/.well-known/oauth-protected-resource/mcp\"",
@@ -247,6 +341,51 @@ async fn authenticate(
         )
             .into_response()
     }
+}
+
+/// Refuses the calls of `echo` with [`FORBIDDEN`] or [`INSUFFICIENT_SCOPE`], as a firewall or
+/// a server checking permissions per call would. After [`authenticate`].
+async fn refuse_calls(request: Request, next: Next) -> Response {
+    let (parts, body) = request.into_parts();
+    let bytes = axum::body::to_bytes(body, usize::MAX).await.unwrap();
+    let message: Value = serde_json::from_slice(&bytes).unwrap_or_default();
+    if message["method"] == "tools/call" {
+        match message["params"]["arguments"]["text"].as_str() {
+            Some(FORBIDDEN) => return StatusCode::FORBIDDEN.into_response(),
+            Some(INSUFFICIENT_SCOPE) => {
+                let challenge = r#"Bearer error="insufficient_scope", scope="echo:write""#;
+                return (
+                    StatusCode::FORBIDDEN,
+                    [(header::WWW_AUTHENTICATE, challenge)],
+                )
+                    .into_response();
+            }
+            _ => {}
+        }
+    }
+    next.run(Request::from_parts(parts, Body::from(bytes)))
+        .await
+}
+
+/// Loses the connection of calls of `echo` with [`LOSE_RESULT`] once they have run. After
+/// [`refuse_calls`].
+async fn lose_results(request: Request, next: Next) -> Response {
+    let (parts, body) = request.into_parts();
+    let bytes = axum::body::to_bytes(body, usize::MAX).await.unwrap();
+    let message: Value = serde_json::from_slice(&bytes).unwrap_or_default();
+    let lose =
+        message["method"] == "tools/call" && message["params"]["arguments"]["text"] == LOSE_RESULT;
+    let response = next
+        .run(Request::from_parts(parts, Body::from(bytes)))
+        .await;
+    if !lose {
+        return response;
+    }
+    // The response stream ends with the result, so the call has run.
+    axum::body::to_bytes(response.into_body(), usize::MAX)
+        .await
+        .unwrap();
+    ([(header::CONTENT_TYPE, "text/event-stream")], "").into_response()
 }
 
 fn bearer(headers: &HeaderMap) -> Option<String> {
@@ -266,6 +405,7 @@ async fn resource_metadata(State(state): State<Arc<MockState>>) -> Json<Value> {
 }
 
 async fn authorization_server_metadata(State(state): State<Arc<MockState>>) -> Json<Value> {
+    slow_down(&state).await;
     let base = &state.base_url;
     Json(json!({
         "issuer": base,
@@ -275,7 +415,10 @@ async fn authorization_server_metadata(State(state): State<Arc<MockState>>) -> J
         "response_types_supported": ["code"],
         "grant_types_supported": ["authorization_code", "refresh_token"],
         "code_challenge_methods_supported": ["S256"],
-        "token_endpoint_auth_methods_supported": ["none"],
+        "token_endpoint_auth_methods_supported": match state.auth {
+            McpAuth::ConfidentialOAuth => ["client_secret_basic"],
+            _ => ["none"],
+        },
     }))
 }
 
@@ -286,18 +429,40 @@ async fn register(
     let mut oauth = state.oauth.lock().unwrap();
     oauth.registrations.push(body.clone());
     let client_id = format!("client-{}", oauth.registrations.len());
-    (
-        StatusCode::CREATED,
-        Json(json!({"client_id": client_id, "redirect_uris": body["redirect_uris"]})),
-    )
+    oauth.clients.insert(client_id.clone());
+    let mut registered = json!({"client_id": client_id, "redirect_uris": body["redirect_uris"]});
+    if let McpAuth::ConfidentialOAuth = state.auth {
+        let secret = format!("secret-{}", oauth.registrations.len());
+        registered["client_secret"] = json!(secret);
+        oauth.client_secrets.insert(client_id, secret);
+    }
+    (StatusCode::CREATED, Json(registered))
 }
 
 async fn token(
     State(state): State<Arc<MockState>>,
+    headers: HeaderMap,
     Form(form): Form<HashMap<String, String>>,
 ) -> Response {
+    slow_down(&state).await;
     let mut oauth = state.oauth.lock().unwrap();
-    let client_id = form.get("client_id").cloned().unwrap_or_default();
+    let (client_id, secret) = client_credentials(&headers, &form);
+    if !oauth.clients.contains(&client_id) {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({"error": "invalid_client"})),
+        )
+            .into_response();
+    }
+    if let McpAuth::ConfidentialOAuth = state.auth
+        && (secret.is_none() || oauth.client_secrets.get(&client_id) != secret.as_ref())
+    {
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(json!({"error": "invalid_client"})),
+        )
+            .into_response();
+    }
     match form.get("grant_type").map(String::as_str) {
         Some("authorization_code") => {
             let code = form.get("code").cloned().unwrap_or_default();
@@ -313,7 +478,9 @@ async fn token(
         }
         Some("refresh_token") => {
             let refresh_token = form.get("refresh_token").cloned().unwrap_or_default();
+            // Rotated: each refresh token is used once.
             if !oauth.refresh_tokens.remove(&refresh_token) {
+                oauth.rejected_refreshes += 1;
                 return invalid_grant();
             }
             oauth.refreshes += 1;
@@ -332,6 +499,34 @@ async fn token(
         "refresh_token": refresh_token,
     }))
     .into_response()
+}
+
+/// The client ID and secret of a token request, from HTTP Basic authentication or the form.
+/// The IDs and secrets the mock issues need no URL decoding.
+fn client_credentials(
+    headers: &HeaderMap,
+    form: &HashMap<String, String>,
+) -> (String, Option<String>) {
+    let basic = headers
+        .get(header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok()?.strip_prefix("Basic "))
+        .and_then(|encoded| {
+            base64::engine::general_purpose::STANDARD
+                .decode(encoded)
+                .ok()
+        })
+        .and_then(|decoded| String::from_utf8(decoded).ok());
+    if let Some((id, secret)) = basic.as_deref().and_then(|basic| basic.split_once(':')) {
+        return (id.to_string(), Some(secret.to_string()));
+    }
+    let client_id = form.get("client_id").cloned().unwrap_or_default();
+    (client_id, form.get("client_secret").cloned())
+}
+
+async fn slow_down(state: &MockState) {
+    if state.slow.load(Ordering::Relaxed) {
+        tokio::time::sleep(SLOW_DOWN).await;
+    }
 }
 
 fn invalid_grant() -> Response {

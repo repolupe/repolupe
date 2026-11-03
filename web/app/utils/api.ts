@@ -44,7 +44,7 @@ export class ApiError extends Error {
         public readonly status: number,
         /** `null` if the response is not from the API, e.g. the error page of a proxy. */
         public readonly code: ErrorCode | null,
-        /** The API's text in English, only shown for codes this version does not know. */
+        /** The API's text in English, shown for codes this version does not know, or by {@link errorDetail}. */
         message: string,
     ) {
         super(message);
@@ -104,6 +104,18 @@ export function errorMessage(e: unknown): string {
         return key ? t(key) : e.message;
     }
     return t('common.error');
+}
+
+/**
+ * Like {@link errorMessage}, but the API's own message for every code except `INTERNAL_ERROR` (whose message is
+ * generic), which is in the API's language (English). Only for endpoints whose messages carry the specific reason, e.g.
+ * why connecting to an MCP server failed, which the generic text of the code would hide. Shown as the detail of a
+ * localized text.
+ */
+export function errorDetail(e: unknown): string {
+    return e instanceof ApiError && e.code !== null && e.code !== ErrorCode.INTERNAL_ERROR && e.message
+        ? e.message
+        : errorMessage(e);
 }
 
 interface RequestParameter {

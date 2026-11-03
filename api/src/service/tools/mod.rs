@@ -38,7 +38,9 @@ use std::sync::Arc;
 use support::format_size;
 use uuid::Uuid;
 
-pub(crate) use mcp::{McpServerTools, PREFIX as MCP_PREFIX};
+pub(crate) use mcp::{
+    MAX_DEFINITION_BYTES, McpServerTools, PREFIX as MCP_PREFIX, definition_bytes,
+};
 pub(crate) use present_file::{PresentedFile, read_presented_file};
 pub(crate) use support::commit::{
     CommitIdentities, read_proposed_commit_diff, read_proposed_commit_patch,

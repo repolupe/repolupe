@@ -533,7 +533,7 @@
   "mcpServers": {
     "title": "MCP-Server",
     "newServer": "Neuer Server",
-    "unreachable": "Keine Verbindung zum MCP-Server möglich. Prüfe die URL: Sie muss auf den MCP-Endpunkt des Servers (Streamable HTTP) zeigen, der oft auf /mcp endet.",
+    "unreachable": "{error}. Prüfe die URL: Sie muss auf den MCP-Endpunkt des Servers (Streamable HTTP) zeigen, der oft auf /mcp endet.",
     "status": {
       "authorizationRequired": "Anmeldung erforderlich",
       "unknown": "Unbekannt"

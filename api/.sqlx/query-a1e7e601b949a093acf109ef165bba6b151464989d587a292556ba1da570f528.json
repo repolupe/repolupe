@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE mcp_servers\n           SET oauth_encrypted = $2,\n               token_encrypted = NULL,\n               token_hint      = NULL,\n               updated_at      = CASE WHEN $3 THEN $4 ELSE updated_at END\n           WHERE id = $1 AND ($3 OR oauth_encrypted IS NOT NULL)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "a1e7e601b949a093acf109ef165bba6b151464989d587a292556ba1da570f528"
+}

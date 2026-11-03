@@ -531,8 +531,8 @@ class _Translations$base$mcpServers$de extends Translations$base$mcpServers$en {
   @override
   String get newServer => 'Neuer Server';
   @override
-  String get unreachable =>
-      'Keine Verbindung zum MCP-Server möglich. Prüfe die URL: Sie muss auf den MCP-Endpunkt des Servers (Streamable HTTP) zeigen, der oft auf /mcp endet.';
+  String unreachable({required Object error}) =>
+      '${error}. Prüfe die URL: Sie muss auf den MCP-Endpunkt des Servers (Streamable HTTP) zeigen, der oft auf /mcp endet.';
   @override
   late final _Translations$base$mcpServers$status$de status = _Translations$base$mcpServers$status$de._(_root);
   @override

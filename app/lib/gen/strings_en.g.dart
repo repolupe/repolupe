@@ -607,9 +607,9 @@ class Translations$base$mcpServers$en {
   /// en: 'New Server'
   String get newServer => 'New Server';
 
-  /// en: 'Could not connect to the MCP server. Check the URL: it must point to the server's MCP endpoint (Streamable HTTP), which often ends in /mcp.'
-  String get unreachable =>
-      'Could not connect to the MCP server. Check the URL: it must point to the server\'s MCP endpoint (Streamable HTTP), which often ends in /mcp.';
+  /// en: '{error}. Check the URL: it must point to the server's MCP endpoint (Streamable HTTP), which often ends in /mcp.'
+  String unreachable({required Object error}) =>
+      '${error}. Check the URL: it must point to the server\'s MCP endpoint (Streamable HTTP), which often ends in /mcp.';
 
   late final Translations$base$mcpServers$status$en status = Translations$base$mcpServers$status$en.internal(_root);
   late final Translations$base$mcpServers$page$en page = Translations$base$mcpServers$page$en.internal(_root);

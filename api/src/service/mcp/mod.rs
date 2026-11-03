@@ -15,13 +15,13 @@ use crate::model::mcp_server::{McpServer, McpTool};
 use crate::model::remote_access::RemoteAccess;
 use crate::repository;
 use crate::repository::mcp::Connection;
-use crate::util::http::client_builder;
-use crate::util::ip::{NotPublic, PublicResolver, has_public_host, is_not_public};
+use crate::service::tools::{MAX_DEFINITION_BYTES, definition_bytes};
+use crate::util::http::{check_public_url, redirect_policy, remote_client_builder};
+use crate::util::ip::is_not_public;
 use crate::util::token_cipher::TokenCipher;
-use chrono::Utc;
-use oauth::{OAuthHttp, PendingSignIns};
+use chrono::{DateTime, Utc};
+use oauth::{OAuthHttp, PendingSignIns, RefreshLocks};
 use reqwest::StatusCode;
-use reqwest::redirect::{Attempt, Policy};
 use rmcp::ServiceExt;
 use rmcp::model::{ClientCapabilities, ClientConfig, Implementation, Tool};
 use rmcp::service::{ClientInitializeError, RoleClient, RunningService, ServiceError};
@@ -44,13 +44,17 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(30);
 /// For closing a session, which tells the server to drop it.
 const CLOSE_TIMEOUT: Duration = Duration::from_secs(5);
-const MAX_REDIRECTS: usize = 5;
 /// Tools of a server beyond this are left out, so they don't crowd the prompt.
 const MAX_TOOLS: usize = 100;
 /// Longer descriptions of tools are cut.
 const MAX_DESCRIPTION_CHARS: usize = 2_000;
 /// Tools with larger argument schemas are left out.
 const MAX_SCHEMA_BYTES: usize = 64 * 1024;
+/// Tools of a server beyond this many bytes of definitions together are left out, so each
+/// answer parses at most this much of each server. Four times what an answer gets of all
+/// servers together, so turning off tools still leaves others to fill that, and far below
+/// [`MAX_TOOLS`] times [`MAX_SCHEMA_BYTES`].
+const MAX_SERVER_DEFINITION_BYTES: usize = 4 * MAX_DEFINITION_BYTES;
 const USER_AGENT: &str = concat!("repolupe/", env!("CARGO_PKG_VERSION"));
 
 /// A connection to an MCP server. Dropping it closes it in the background, [`close`] waits.
@@ -94,35 +98,10 @@ impl Clients {
     }
 }
 
-/// Without the proxy environment variables, which would resolve the hosts instead of
-/// [`PublicResolver`].
 fn builder(access: RemoteAccess) -> reqwest::ClientBuilder {
-    let builder = client_builder()
-        .no_proxy()
+    remote_client_builder(access)
         .connect_timeout(CONNECT_TIMEOUT)
-        .user_agent(USER_AGENT);
-    match access {
-        RemoteAccess::Public => builder.https_only(true).dns_resolver(PublicResolver),
-        RemoteAccess::Unrestricted => builder,
-    }
-}
-
-fn redirect_policy(access: RemoteAccess) -> Policy {
-    match access {
-        RemoteAccess::Public => Policy::custom(check_redirect),
-        RemoteAccess::Unrestricted => Policy::limited(MAX_REDIRECTS),
-    }
-}
-
-/// [`PublicResolver`] never sees IP addresses in redirects, so they are checked here.
-fn check_redirect(attempt: Attempt) -> reqwest::redirect::Action {
-    if attempt.previous().len() >= MAX_REDIRECTS {
-        attempt.error("too many redirects")
-    } else if !has_public_host(attempt.url()) {
-        attempt.error(NotPublic)
-    } else {
-        attempt.follow()
-    }
+        .user_agent(USER_AGENT)
 }
 
 /// Connects to the MCP servers of users and signs them in.
@@ -136,10 +115,11 @@ pub(crate) struct McpClient {
     /// server is deleted or its credentials change.
     auth: Mutex<HashMap<Uuid, CachedAuth>>,
     sign_ins: PendingSignIns,
+    /// Shared by all OAuth clients of a server, also the ones no longer cached.
+    refresh_locks: RefreshLocks,
 }
 
 struct CachedAuth {
-    url: String,
     access: RemoteAccess,
     client: AuthClient<reqwest::Client>,
 }
@@ -162,8 +142,8 @@ pub(crate) enum Credentials {
 }
 
 impl McpTarget {
-    pub(crate) fn new(
-        server: &McpServer,
+    pub(crate) fn new<Tool>(
+        server: &McpServer<Tool>,
         access: RemoteAccess,
         cipher: &TokenCipher,
     ) -> Result<Self, AppError> {
@@ -191,10 +171,19 @@ impl McpTarget {
 /// Why connecting to a server failed.
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub(crate) enum ConnectError {
-    /// The server asks for authentication, or rejected the token or the OAuth credentials.
+    /// The server asks for authentication, or rejected the token or the OAuth credentials
+    /// (HTTP 401).
     #[error("The server requires authentication")]
     AuthorizationRequired {
         /// The server's `WWW-Authenticate` header, which may point to its OAuth metadata.
+        challenge: Option<String>,
+    },
+    /// The server refused the request (HTTP 403), such as for a permission or an OAuth scope
+    /// the credentials lack, or a firewall in front of it. Unlike
+    /// [`Self::AuthorizationRequired`], the credentials may still be valid.
+    #[error("The server refused the request")]
+    Forbidden {
+        /// The server's `WWW-Authenticate` header, if it sent one.
         challenge: Option<String>,
     },
     /// For the user, without internals.
@@ -207,10 +196,18 @@ impl ConnectError {
         Self::Failed(message.to_string())
     }
 
-    /// How the server is stored after the failure.
+    /// Whether the server refused the request for an OAuth scope the credentials lack.
+    pub(crate) fn insufficient_scope(&self) -> bool {
+        matches!(self, Self::Forbidden { challenge: Some(challenge) }
+            if challenge.contains("insufficient_scope"))
+    }
+
+    /// How the server is stored after the failure. A server that refused the connection or
+    /// the list of tools is stored to sign in to again, like one that rejected the
+    /// credentials: they most likely lack a permission.
     pub(crate) fn connection(&self) -> Connection<'_> {
         let (status, last_error) = match self {
-            ConnectError::AuthorizationRequired { .. } => {
+            ConnectError::AuthorizationRequired { .. } | ConnectError::Forbidden { .. } => {
                 (McpServerStatus::AuthorizationRequired, None)
             }
             ConnectError::Failed(message) => (McpServerStatus::Failed, Some(message.as_str())),
@@ -232,6 +229,7 @@ impl McpClient {
             cipher,
             auth: Mutex::new(HashMap::new()),
             sign_ins: PendingSignIns::default(),
+            refresh_locks: RefreshLocks::default(),
         }
     }
 
@@ -290,11 +288,7 @@ impl McpClient {
                 ));
             }
         };
-        Ok(tools
-            .into_iter()
-            .filter_map(|tool| stored_tool(tool, target.id))
-            .take(MAX_TOOLS)
-            .collect())
+        Ok(stored_tools(tools, target.id))
     }
 
     /// Lists the tools of `server` and stores the outcome, unless the server was changed in
@@ -316,18 +310,24 @@ impl McpClient {
             Err(e) => e.connection(),
         };
         let updated =
-            repository::mcp::record_connection(&self.db, server.id, &server.url, connection)
-                .await?;
+            repository::mcp::record_connection(&self.db, server.id, None, connection).await?;
         Ok(updated.unwrap_or(server))
     }
 
     /// Marks the server as needing a new sign-in, after it rejected the credentials during an
-    /// answer. Its tools are offered again once the user signed in.
-    pub(crate) async fn require_authorization(&self, id: Uuid, url: &str) {
+    /// answer. Its tools are offered again once the user signed in. Only if the server still
+    /// has the `updated_at` of when the answer read the credentials: if the user signed in
+    /// since, the rejected ones are outdated.
+    pub(crate) async fn require_authorization(&self, id: Uuid, updated_at: DateTime<Utc>) {
         self.forget(id);
         let connection = ConnectError::AuthorizationRequired { challenge: None };
-        if let Err(e) =
-            repository::mcp::record_connection(&self.db, id, url, connection.connection()).await
+        if let Err(e) = repository::mcp::record_connection(
+            &self.db,
+            id,
+            Some(updated_at),
+            connection.connection(),
+        )
+        .await
         {
             tracing::warn!("Failed to mark MCP server {id} as requiring authorization: {e}");
         }
@@ -345,7 +345,6 @@ impl McpClient {
         target: &McpTarget,
     ) -> Result<AuthClient<reqwest::Client>, ConnectError> {
         if let Some(cached) = self.auth.lock().unwrap().get(&target.id)
-            && cached.url == target.url
             && cached.access == target.access
         {
             return Ok(cached.client.clone());
@@ -357,7 +356,6 @@ impl McpClient {
         self.auth.lock().unwrap().insert(
             target.id,
             CachedAuth {
-                url: target.url.clone(),
                 access: target.access,
                 client: client.clone(),
             },
@@ -411,17 +409,39 @@ fn client_config() -> ClientConfig {
     )
 }
 
-/// Checks what [`PublicResolver`] cannot: IP addresses in the URL are never resolved.
+/// See [`check_public_url`].
 fn check_url(url: &str, access: RemoteAccess) -> Result<(), ConnectError> {
     let url = Url::parse(url).map_err(|_| ConnectError::failed("The URL is not valid"))?;
-    if access == RemoteAccess::Public && (url.scheme() != "https" || !has_public_host(&url)) {
-        return Err(not_public());
-    }
-    Ok(())
+    check_public_url(&url, access).map_err(|_| not_public())
 }
 
 fn not_public() -> ConnectError {
     ConnectError::failed("The server's address is not public")
+}
+
+/// The tools as stored: at most [`MAX_TOOLS`], with definitions of at most
+/// [`MAX_SERVER_DEFINITION_BYTES`] together. A tool too large for the bytes left is left out,
+/// the following ones may still fit.
+fn stored_tools(tools: Vec<Tool>, server_id: Uuid) -> Vec<McpTool> {
+    let mut bytes = 0;
+    tools
+        .into_iter()
+        .filter_map(|tool| stored_tool(tool, server_id))
+        .filter(|tool| {
+            let size = tool.definition_bytes.unwrap_or_default();
+            if bytes + size > MAX_SERVER_DEFINITION_BYTES {
+                tracing::info!(
+                    "Leaving out the tool {} of MCP server {server_id}, too many bytes of \
+                    definitions altogether",
+                    tool.name
+                );
+                return false;
+            }
+            bytes += size;
+            true
+        })
+        .take(MAX_TOOLS)
+        .collect()
 }
 
 /// The tool as stored, `None` for tools the model cannot get.
@@ -451,12 +471,15 @@ fn stored_tool(tool: Tool, server_id: Uuid) -> Option<McpTool> {
     let title = tool
         .title
         .or_else(|| tool.annotations.and_then(|annotations| annotations.title));
-    Some(McpTool {
+    let mut tool = McpTool {
         name: tool.name.into_owned(),
         title,
         description,
         input_schema,
-    })
+        definition_bytes: None,
+    };
+    tool.definition_bytes = Some(definition_bytes(&tool, size));
+    Some(tool)
 }
 
 /// `schema` as the LLM APIs accept it: of type `object`, without `allOf`, `anyOf` or `oneOf`
@@ -598,6 +621,38 @@ pub(crate) fn service_error(error: &ServiceError, server_id: Uuid) -> ConnectErr
     }
 }
 
+/// Whether the request failed with `error` because the connection was lost after it was sent,
+/// so the server may have processed it.
+pub(crate) fn maybe_processed(error: &ServiceError) -> bool {
+    let error = match error {
+        // The session ended, or the response stream closed before the response arrived.
+        ServiceError::TransportClosed => return true,
+        ServiceError::TransportSend(error) => error.error.as_ref(),
+        _ => return false,
+    };
+    let lost = |e: &reqwest::Error| {
+        !(e.is_connect() || e.is_status() || e.is_builder() || e.is_redirect())
+    };
+    let mut source: Option<&(dyn Error + 'static)> = Some(error);
+    while let Some(e) = source {
+        if let Some(e) = e.downcast_ref::<StreamableHttpError<reqwest::Error>>() {
+            return match e {
+                // For requests that were under way while rmcp opened a new session, and when
+                // its worker is gone, which may have taken the request along.
+                StreamableHttpError::SessionRecoveryTimeout
+                | StreamableHttpError::TransportChannelClosed => true,
+                StreamableHttpError::Client(e) => lost(e),
+                _ => false,
+            };
+        }
+        if let Some(e) = e.downcast_ref::<reqwest::Error>() {
+            return lost(e);
+        }
+        source = e.source();
+    }
+    false
+}
+
 /// Finds out from the errors in the chain of `error` why a request failed.
 fn transport_error(error: &(dyn Error + Send + Sync + 'static), server_id: Uuid) -> ConnectError {
     let mut source: Option<&(dyn Error + 'static)> = Some(error);
@@ -607,8 +662,10 @@ fn transport_error(error: &(dyn Error + Send + Sync + 'static), server_id: Uuid)
                 challenge: Some(e.www_authenticate_header.clone()),
             };
         }
+        // rmcp reports every 403 with a `WWW-Authenticate` header this way, not only those for
+        // an `insufficient_scope`.
         if let Some(e) = e.downcast_ref::<InsufficientScopeError>() {
-            return ConnectError::AuthorizationRequired {
+            return ConnectError::Forbidden {
                 challenge: Some(e.www_authenticate_header.clone()),
             };
         }
@@ -620,7 +677,7 @@ fn transport_error(error: &(dyn Error + Send + Sync + 'static), server_id: Uuid)
                     };
                 }
                 StreamableHttpError::InsufficientScope(e) => {
-                    return ConnectError::AuthorizationRequired {
+                    return ConnectError::Forbidden {
                         challenge: Some(e.www_authenticate_header.clone()),
                     };
                 }
@@ -632,10 +689,19 @@ fn transport_error(error: &(dyn Error + Send + Sync + 'static), server_id: Uuid)
                 }
                 // Not a source of the error, so the loop would not find it.
                 StreamableHttpError::Client(e) => return request_error(e, server_id),
+                // rmcp reports a 401 or 403 without a `WWW-Authenticate` header only as
+                // `HTTP <status>: <body>`. Guarded by the integration tests
+                // `takes_rejections_without_a_challenge_as_such` (401 and 403) and
+                // `fails_only_the_calls_the_server_refuses` (403).
                 StreamableHttpError::UnexpectedServerResponse(message)
-                    if rejects_credentials(message) =>
+                    if message.starts_with("HTTP 401 ") =>
                 {
                     return ConnectError::AuthorizationRequired { challenge: None };
+                }
+                StreamableHttpError::UnexpectedServerResponse(message)
+                    if message.starts_with("HTTP 403 ") =>
+                {
+                    return ConnectError::Forbidden { challenge: None };
                 }
                 StreamableHttpError::UnexpectedContentType(_)
                 | StreamableHttpError::UnexpectedServerResponse(_)
@@ -664,17 +730,19 @@ fn auth_error(error: &AuthError, server_id: Uuid) -> ConnectError {
         AuthError::AuthorizationRequired | AuthError::TokenRefreshRejected(_) => {
             ConnectError::AuthorizationRequired { challenge: None }
         }
+        // oauth2's message for an `invalid_client` response: the authorization server no
+        // longer accepts the client, a new sign-in registers another one. Guarded by the
+        // integration test `requires_a_sign_in_when_the_client_is_rejected`.
+        AuthError::TokenRefreshFailed(message)
+            if message.starts_with("Server returned error response: invalid_client") =>
+        {
+            ConnectError::AuthorizationRequired { challenge: None }
+        }
         _ => {
             tracing::info!("Authorizing with MCP server {server_id} failed: {error}");
             ConnectError::Failed(format!("Authorizing failed: {error}"))
         }
     }
-}
-
-/// Whether rmcp's message is about a response with status 401 or 403. It reports those without
-/// a `WWW-Authenticate` header only as `HTTP <status>: <body>`.
-fn rejects_credentials(message: &str) -> bool {
-    message.starts_with("HTTP 401 ") || message.starts_with("HTTP 403 ")
 }
 
 fn request_error(error: &reqwest::Error, server_id: Uuid) -> ConnectError {
@@ -683,13 +751,13 @@ fn request_error(error: &reqwest::Error, server_id: Uuid) -> ConnectError {
     }
     // From responses rmcp checked with `error_for_status`.
     if let Some(status) = error.status() {
-        return if matches!(status, StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN) {
-            ConnectError::AuthorizationRequired { challenge: None }
-        } else {
-            ConnectError::Failed(format!(
+        return match status {
+            StatusCode::UNAUTHORIZED => ConnectError::AuthorizationRequired { challenge: None },
+            StatusCode::FORBIDDEN => ConnectError::Forbidden { challenge: None },
+            _ => ConnectError::Failed(format!(
                 "The server responded with HTTP {}",
                 status.as_u16()
-            ))
+            )),
         };
     }
     tracing::info!("Request to MCP server {server_id} failed: {error:?}");
@@ -709,6 +777,11 @@ pub(crate) fn connect_app_error(error: ConnectError) -> AppError {
             ErrorCode::AuthFailed,
             "The server rejected the token".to_string(),
         ),
+        // Most likely, the token lacks a permission.
+        ConnectError::Forbidden { .. } => AppError::Unprocessable(
+            ErrorCode::AuthFailed,
+            "The server refused access with the token".to_string(),
+        ),
         ConnectError::Failed(message) => {
             AppError::BadGateway(ErrorCode::RemoteUnreachable, message)
         }
@@ -722,6 +795,74 @@ mod tests {
 
     fn normalized(schema: Value) -> Option<Value> {
         object_schema(schema.as_object().unwrap().clone()).map(Value::Object)
+    }
+
+    #[test]
+    fn tells_rejected_credentials_from_refused_requests() {
+        let error = |e: StreamableHttpError<reqwest::Error>| transport_error(&e, Uuid::now_v7());
+        let unexpected = |message: &'static str| {
+            error(StreamableHttpError::UnexpectedServerResponse(
+                message.into(),
+            ))
+        };
+        assert_eq!(
+            unexpected("HTTP 401 Unauthorized: "),
+            ConnectError::AuthorizationRequired { challenge: None }
+        );
+        assert_eq!(
+            error(StreamableHttpError::AuthRequired(AuthRequiredError::new(
+                "Bearer".to_string()
+            ))),
+            ConnectError::AuthorizationRequired {
+                challenge: Some("Bearer".to_string())
+            }
+        );
+        let forbidden = unexpected("HTTP 403 Forbidden: blocked");
+        assert_eq!(forbidden, ConnectError::Forbidden { challenge: None });
+        assert!(!forbidden.insufficient_scope());
+
+        let challenge = r#"Bearer error="insufficient_scope", scope="write""#;
+        let refused = error(StreamableHttpError::InsufficientScope(
+            InsufficientScopeError::new(challenge.to_string(), Some("write".to_string())),
+        ));
+        assert_eq!(
+            refused,
+            ConnectError::Forbidden {
+                challenge: Some(challenge.to_string())
+            }
+        );
+        assert!(refused.insufficient_scope());
+    }
+
+    #[test]
+    fn caps_the_definitions_of_a_server() {
+        let tool = |name: String, padding: usize| {
+            let schema = json!({"type": "object", "description": "x".repeat(padding)});
+            Tool::new(
+                name,
+                "Does things.",
+                Arc::new(schema.as_object().unwrap().clone()),
+            )
+        };
+        // Of some 60 KiB each, of which 8 fit.
+        let mut tools: Vec<Tool> = (0..9)
+            .map(|n| tool(format!("large{n}"), 60 * 1024))
+            .collect();
+        tools.push(tool("small".to_string(), 0));
+        let stored = stored_tools(tools, Uuid::now_v7());
+        let names: Vec<&str> = stored.iter().map(|t| t.name.as_str()).collect();
+        let mut expected: Vec<String> = (0..8).map(|n| format!("large{n}")).collect();
+        expected.push("small".to_string());
+        assert_eq!(names, expected);
+        let total: usize = stored.iter().filter_map(|t| t.definition_bytes).sum();
+        assert!(total <= MAX_SERVER_DEFINITION_BYTES);
+        // As the answers would measure it.
+        let schema = serde_json::to_vec(&stored[0].input_schema).unwrap().len();
+        assert_eq!(
+            stored[0].definition_bytes,
+            Some(definition_bytes(&stored[0], schema))
+        );
+        assert!(schema > 60 * 1024);
     }
 
     #[test]

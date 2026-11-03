@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "UPDATE mcp_servers\n           SET status     = $3,\n               last_error = $4,\n               tools      = COALESCE($5, tools),\n               checked_at = $6\n           WHERE id = $1 AND url = $2\n           RETURNING id AS \"id: Uuid\", user_id AS \"user_id: Uuid\", name, url, enabled, token_encrypted,\n                     token_hint, oauth_encrypted, status AS \"status: McpServerStatus\", last_error,\n                     tools AS \"tools: Json<Vec<McpTool>>\", disabled_tools AS \"disabled_tools: Json<Vec<String>>\",\n                     checked_at AS \"checked_at: DateTime<Utc>\", created_at AS \"created_at: DateTime<Utc>\",\n                     updated_at AS \"updated_at: DateTime<Utc>\"",
+  "query": "UPDATE mcp_servers\n           SET name           = $3,\n               enabled        = $4,\n               disabled_tools = $5,\n               updated_at     = $6\n           WHERE id = $1 AND user_id = $2\n           RETURNING id AS \"id: Uuid\", user_id AS \"user_id: Uuid\", name, url, enabled, token_encrypted,\n                     token_hint, oauth_encrypted, status AS \"status: McpServerStatus\", last_error,\n                     tools AS \"tools: Json<Vec<McpToolSummary>>\", disabled_tools AS \"disabled_tools: Json<Vec<String>>\",\n                     checked_at AS \"checked_at: DateTime<Utc>\", created_at AS \"created_at: DateTime<Utc>\",\n                     updated_at AS \"updated_at: DateTime<Utc>\"",
   "describe": {
     "columns": [
       {
@@ -54,7 +54,7 @@
         "type_info": "Text"
       },
       {
-        "name": "tools: Json<Vec<McpTool>>",
+        "name": "tools: Json<Vec<McpToolSummary>>",
         "ordinal": 10,
         "type_info": "Text"
       },
@@ -100,5 +100,5 @@
       false
     ]
   },
-  "hash": "d158d26af81690a15821e4a4e6c9cbe2e2184279e529ec74155e5ff5b5662194"
+  "hash": "f1c6d29d652e25e8b1b498f0922289636794959b1e497b7293e4faa488eb4635"
 }

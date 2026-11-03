@@ -6,8 +6,8 @@ use super::{blocking, failed, open, pack_file_commit, parse_oid, repack};
 use crate::config::error::AppError;
 use crate::dto::error::ErrorCode;
 use crate::model::remote_access::RemoteAccess;
-use crate::util::http::client_builder;
-use crate::util::ip::{PublicResolver, is_public_ip};
+use crate::util::http::remote_client_builder;
+use crate::util::ip::is_public_ip;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use gix::bstr::ByteSlice;
@@ -47,21 +47,16 @@ pub(crate) struct GitClient {
 
 impl GitClient {
     pub(crate) fn new() -> Result<Self, reqwest::Error> {
-        let builder = || {
-            client_builder()
-                // Ignores the proxy environment variables, like the Git LFS client.
-                .no_proxy()
+        let builder = |access| {
+            remote_client_builder(access)
                 .connect_timeout(CONNECT_TIMEOUT)
                 .read_timeout(READ_TIMEOUT)
                 // A redirect could point at an internal host that was never checked.
                 .redirect(Policy::none())
         };
         Ok(Self {
-            public: builder()
-                .https_only(true)
-                .dns_resolver(PublicResolver)
-                .build()?,
-            unrestricted: builder().build()?,
+            public: builder(RemoteAccess::Public).build()?,
+            unrestricted: builder(RemoteAccess::Unrestricted).build()?,
         })
     }
 

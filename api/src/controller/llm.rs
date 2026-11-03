@@ -14,7 +14,7 @@ use crate::repository::llm::{LlmModelFields, LlmProviderChanges, NewLlmProvider}
 use crate::service::llm::LlmError;
 use crate::service::llm_config::decrypt_api_key;
 use crate::util::extract::{JsonBody, PathParam};
-use crate::util::validation::ValidationError;
+use crate::util::validation::{ValidationError, parse_name};
 use crate::{repository, util};
 use axum::Json;
 use axum::extract::State;
@@ -330,12 +330,6 @@ fn origin(base_url: &str) -> Result<url::Origin, AppError> {
     Url::parse(base_url)
         .map(|url| url.origin())
         .map_err(|e| AppError::InternalServerError(format!("Invalid base URL {base_url}: {e}")))
-}
-
-fn parse_name(name: &str) -> Result<&str, ValidationError> {
-    let name = name.trim();
-    util::validation::validate_name(name)?;
-    Ok(name)
 }
 
 fn parse_base_url(

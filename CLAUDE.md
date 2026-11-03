@@ -40,7 +40,7 @@ cd rust && cargo test
 
 - `cargo run` doesn't load `.env`; export it first (`set -a; source ../.env; set +a`). `TOKEN_ENCRYPTION_KEY` is required, `DATABASE_URL` defaults to `sqlite:rp.db`.
 - The default feature `local-ocr` needs Tesseract and Leptonica via pkg-config (`brew install tesseract`). Without it (`--no-default-features`, used for mobile) only Mistral OCR is available.
-- `ort` and `rig-core` are pinned on purpose; newer releases break the build or the API.
+- `ort`, `rig-core` and `rmcp` are pinned on purpose; newer releases break the build or the API, and `service/mcp` matches rmcp's (and oauth2's) error texts, so `cargo test mcp` must pass before upgrading it.
 - Git runs in-process with gitoxide. Only the tests use the `git` CLI.
 
 ## sqlx / SQLite

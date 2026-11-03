@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "INSERT INTO mcp_servers (id, user_id, name, url, enabled, token_encrypted, token_hint,\n                                    oauth_encrypted, status, last_error, tools, disabled_tools,\n                                    checked_at, created_at, updated_at)\n           VALUES ($1, $2, $3, $4, TRUE, $5, $6, NULL, $7, $8, $9, '[]', $10, $11, $11)\n           RETURNING id AS \"id: Uuid\", user_id AS \"user_id: Uuid\", name, url, enabled, token_encrypted,\n                     token_hint, oauth_encrypted, status AS \"status: McpServerStatus\", last_error,\n                     tools AS \"tools: Json<Vec<McpTool>>\", disabled_tools AS \"disabled_tools: Json<Vec<String>>\",\n                     checked_at AS \"checked_at: DateTime<Utc>\", created_at AS \"created_at: DateTime<Utc>\",\n                     updated_at AS \"updated_at: DateTime<Utc>\"",
+  "query": "INSERT INTO mcp_servers (id, user_id, name, url, enabled, token_encrypted, token_hint,\n                                    oauth_encrypted, status, last_error, tools, disabled_tools,\n                                    checked_at, created_at, updated_at)\n           VALUES ($1, $2, $3, $4, TRUE, $5, $6, NULL, $7, $8, $9, '[]', $10, $11, $11)\n           RETURNING id AS \"id: Uuid\", user_id AS \"user_id: Uuid\", name, url, enabled, token_encrypted,\n                     token_hint, oauth_encrypted, status AS \"status: McpServerStatus\", last_error,\n                     tools AS \"tools: Json<Vec<McpToolSummary>>\", disabled_tools AS \"disabled_tools: Json<Vec<String>>\",\n                     checked_at AS \"checked_at: DateTime<Utc>\", created_at AS \"created_at: DateTime<Utc>\",\n                     updated_at AS \"updated_at: DateTime<Utc>\"",
   "describe": {
     "columns": [
       {
@@ -54,7 +54,7 @@
         "type_info": "Text"
       },
       {
-        "name": "tools: Json<Vec<McpTool>>",
+        "name": "tools: Json<Vec<McpToolSummary>>",
         "ordinal": 10,
         "type_info": "Text"
       },
@@ -100,5 +100,5 @@
       false
     ]
   },
-  "hash": "9e082b27c5e2ee50afc7bbf31c04ca33d4535080cec440b2757e6ff7dd560f97"
+  "hash": "5917c8a8fade1d5688d873d83a3d66d08580761d4110579be9ff303831deb77c"
 }

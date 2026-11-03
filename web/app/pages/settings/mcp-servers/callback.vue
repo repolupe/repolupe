@@ -31,7 +31,7 @@ import {onMounted, ref} from "vue";
 import {navigateTo, useRoute} from "#app";
 import {useI18n} from "#i18n";
 import {ErrorCode, McpServerStatus} from "~/utils/model";
-import {ApiError, completeMcpAuthorization, errorMessage} from "~/utils/api";
+import {ApiError, completeMcpAuthorization, errorDetail} from "~/utils/api";
 import {showSnackbar} from "~/utils/utils";
 import MainContainer from "~/components/MainContainer.vue";
 
@@ -80,7 +80,7 @@ const complete = async () => {
   } catch (e) {
     error.value = e instanceof ApiError && e.code === ErrorCode.NOT_FOUND
         ? t('mcpServers.callback.expired')
-        : t('mcpServers.callback.failed', {error: errorMessage(e)});
+        : t('mcpServers.callback.failed', {error: errorDetail(e)});
   }
 };
 

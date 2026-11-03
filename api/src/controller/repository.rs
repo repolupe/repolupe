@@ -13,7 +13,7 @@ use crate::model::remote_access::RemoteAccess;
 use crate::model::repository::{Remote, Repository};
 use crate::repository::repository::{NewRepository, RepositoryChanges};
 use crate::util::extract::{JsonBody, PathParam};
-use crate::util::validation::ValidationError;
+use crate::util::validation::{ValidationError, parse_name, parse_token};
 use crate::{repository, util};
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -455,12 +455,6 @@ async fn not_found_or_conflict(state: &AppState, user_id: Uuid, id: Uuid) -> App
     }
 }
 
-fn parse_name(name: &str) -> Result<&str, ValidationError> {
-    let name = name.trim();
-    util::validation::validate_name(name)?;
-    Ok(name)
-}
-
 /// Blank descriptions are stored as `NULL`.
 fn parse_description(description: Option<&str>) -> Result<Option<&str>, ValidationError> {
     let description = description.map(str::trim).filter(|d| !d.is_empty());
@@ -474,10 +468,4 @@ fn parse_branch(branch: &str) -> Result<&str, ValidationError> {
     let branch = branch.trim();
     util::validation::validate_branch(branch)?;
     Ok(branch)
-}
-
-fn parse_token(token: &str) -> Result<&str, ValidationError> {
-    let token = token.trim();
-    util::validation::validate_token(token)?;
-    Ok(token)
 }

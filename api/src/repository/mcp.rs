@@ -2,7 +2,7 @@ use crate::config::error::AppError;
 use crate::config::state::DatabasePool;
 use crate::dto::error::ErrorCode;
 use crate::dto::mcp::McpServerStatus;
-use crate::model::mcp_server::{McpServer, McpTool};
+use crate::model::mcp_server::{McpServer, McpTool, McpToolSummary};
 use crate::repository::repository::StoredToken;
 use crate::repository::{begin_write, violates_unique};
 use crate::util::validation::ValidationError;
@@ -47,7 +47,7 @@ pub(crate) async fn list_mcp_servers(
         McpServer,
         r#"SELECT id AS "id: Uuid", user_id AS "user_id: Uuid", name, url, enabled, token_encrypted,
                   token_hint, oauth_encrypted, status AS "status: McpServerStatus", last_error,
-                  tools AS "tools: Json<Vec<McpTool>>", disabled_tools AS "disabled_tools: Json<Vec<String>>",
+                  tools AS "tools: Json<Vec<McpToolSummary>>", disabled_tools AS "disabled_tools: Json<Vec<String>>",
                   checked_at AS "checked_at: DateTime<Utc>", created_at AS "created_at: DateTime<Utc>",
                   updated_at AS "updated_at: DateTime<Utc>"
            FROM mcp_servers
@@ -61,13 +61,14 @@ pub(crate) async fn list_mcp_servers(
 }
 
 /// The servers whose tools the model gets in the user's chats: enabled, and connected at the
-/// last check. In the order they were added, so the tools stay in the same order.
+/// last check. In the order they were added, so the tools stay in the same order. With the
+/// schemas of the tools, unlike the other queries.
 pub(crate) async fn list_usable_mcp_servers(
     db: &DatabasePool,
     user_id: Uuid,
-) -> Result<Vec<McpServer>, AppError> {
+) -> Result<Vec<McpServer<McpTool>>, AppError> {
     let servers = sqlx::query_as!(
-        McpServer,
+        McpServer::<McpTool>,
         r#"SELECT id AS "id: Uuid", user_id AS "user_id: Uuid", name, url, enabled, token_encrypted,
                   token_hint, oauth_encrypted, status AS "status: McpServerStatus", last_error,
                   tools AS "tools: Json<Vec<McpTool>>", disabled_tools AS "disabled_tools: Json<Vec<String>>",
@@ -92,7 +93,7 @@ pub(crate) async fn get_mcp_server(
         McpServer,
         r#"SELECT id AS "id: Uuid", user_id AS "user_id: Uuid", name, url, enabled, token_encrypted,
                   token_hint, oauth_encrypted, status AS "status: McpServerStatus", last_error,
-                  tools AS "tools: Json<Vec<McpTool>>", disabled_tools AS "disabled_tools: Json<Vec<String>>",
+                  tools AS "tools: Json<Vec<McpToolSummary>>", disabled_tools AS "disabled_tools: Json<Vec<String>>",
                   checked_at AS "checked_at: DateTime<Utc>", created_at AS "created_at: DateTime<Utc>",
                   updated_at AS "updated_at: DateTime<Utc>"
            FROM mcp_servers
@@ -135,7 +136,7 @@ pub(crate) async fn create_mcp_server(
            VALUES ($1, $2, $3, $4, TRUE, $5, $6, NULL, $7, $8, $9, '[]', $10, $11, $11)
            RETURNING id AS "id: Uuid", user_id AS "user_id: Uuid", name, url, enabled, token_encrypted,
                      token_hint, oauth_encrypted, status AS "status: McpServerStatus", last_error,
-                     tools AS "tools: Json<Vec<McpTool>>", disabled_tools AS "disabled_tools: Json<Vec<String>>",
+                     tools AS "tools: Json<Vec<McpToolSummary>>", disabled_tools AS "disabled_tools: Json<Vec<String>>",
                      checked_at AS "checked_at: DateTime<Utc>", created_at AS "created_at: DateTime<Utc>",
                      updated_at AS "updated_at: DateTime<Utc>""#,
         new.id,
@@ -157,8 +158,9 @@ pub(crate) async fn create_mcp_server(
     Ok(server)
 }
 
-/// Applies `changes` if the server still has `expected_url`. Returns `None` if it does not
-/// exist (for the user), or its URL changed in the meantime.
+/// Applies `changes`. Returns `None` if the server does not exist (for the user). Its URL
+/// never changes: allowing that would need to clear the token and the OAuth credentials,
+/// which were issued for that server, and to forget the cached OAuth client.
 pub(crate) async fn update_mcp_server(
     db: &DatabasePool,
     user_id: Uuid,
@@ -177,7 +179,7 @@ pub(crate) async fn update_mcp_server(
            WHERE id = $1 AND user_id = $2
            RETURNING id AS "id: Uuid", user_id AS "user_id: Uuid", name, url, enabled, token_encrypted,
                      token_hint, oauth_encrypted, status AS "status: McpServerStatus", last_error,
-                     tools AS "tools: Json<Vec<McpTool>>", disabled_tools AS "disabled_tools: Json<Vec<String>>",
+                     tools AS "tools: Json<Vec<McpToolSummary>>", disabled_tools AS "disabled_tools: Json<Vec<String>>",
                      checked_at AS "checked_at: DateTime<Utc>", created_at AS "created_at: DateTime<Utc>",
                      updated_at AS "updated_at: DateTime<Utc>""#,
         id,
@@ -193,34 +195,37 @@ pub(crate) async fn update_mcp_server(
     Ok(server)
 }
 
-/// Stores the outcome of connecting to the server at `expected_url`. Returns `None` if it no
-/// longer exists or has another URL by now, then the outcome is outdated.
+/// Stores the outcome of connecting to the server, and with `expected_updated_at` only if the
+/// server's `updated_at` is still that. It changes when the user changes the credentials
+/// (signs in), not when tokens are refreshed or outcomes stored, so an outcome of credentials
+/// replaced in the meantime is left out. Returns `None` if the server no longer exists or was
+/// changed, then the outcome is outdated.
 pub(crate) async fn record_connection(
     db: &DatabasePool,
     id: Uuid,
-    expected_url: &str,
+    expected_updated_at: Option<DateTime<Utc>>,
     connection: Connection<'_>,
 ) -> Result<Option<McpServer>, AppError> {
     let tools = connection.tools.map(Json);
     let server = sqlx::query_as!(
         McpServer,
         r#"UPDATE mcp_servers
-           SET status     = $3,
-               last_error = $4,
-               tools      = COALESCE($5, tools),
-               checked_at = $6
-           WHERE id = $1 AND url = $2
+           SET status     = $2,
+               last_error = $3,
+               tools      = COALESCE($4, tools),
+               checked_at = $5
+           WHERE id = $1 AND ($6 IS NULL OR updated_at = $6)
            RETURNING id AS "id: Uuid", user_id AS "user_id: Uuid", name, url, enabled, token_encrypted,
                      token_hint, oauth_encrypted, status AS "status: McpServerStatus", last_error,
-                     tools AS "tools: Json<Vec<McpTool>>", disabled_tools AS "disabled_tools: Json<Vec<String>>",
+                     tools AS "tools: Json<Vec<McpToolSummary>>", disabled_tools AS "disabled_tools: Json<Vec<String>>",
                      checked_at AS "checked_at: DateTime<Utc>", created_at AS "created_at: DateTime<Utc>",
                      updated_at AS "updated_at: DateTime<Utc>""#,
         id,
-        expected_url,
         connection.status,
         connection.last_error,
         tools,
         connection.checked_at,
+        expected_updated_at,
     )
     .fetch_optional(db)
     .await?;
@@ -243,42 +248,36 @@ pub(crate) async fn delete_mcp_server(
     Ok(())
 }
 
-/// The encrypted OAuth credentials of the server, if it still has `url`.
+/// The encrypted OAuth credentials of the server.
 pub(crate) async fn get_oauth_credentials(
     db: &DatabasePool,
     id: Uuid,
-    url: &str,
 ) -> Result<Option<Vec<u8>>, AppError> {
-    let credentials = sqlx::query_scalar!(
-        "SELECT oauth_encrypted FROM mcp_servers WHERE id = $1 AND url = $2",
-        id,
-        url,
-    )
-    .fetch_optional(db)
-    .await?;
+    let credentials =
+        sqlx::query_scalar!("SELECT oauth_encrypted FROM mcp_servers WHERE id = $1", id)
+            .fetch_optional(db)
+            .await?;
     Ok(credentials.flatten())
 }
 
-/// Stores new OAuth credentials of the server, if it still has `url`. With `sign_in`, they
-/// replace the token, otherwise (for refreshed tokens) only earlier credentials, so a sign-out
-/// or a token set in the meantime stays. Returns whether they were stored.
+/// Stores new OAuth credentials of the server. With `sign_in`, they replace the token,
+/// otherwise (for refreshed tokens) only earlier credentials, so a sign-out or a token set in
+/// the meantime stays. Returns whether they were stored.
 pub(crate) async fn save_oauth_credentials(
     db: &DatabasePool,
     id: Uuid,
-    url: &str,
     encrypted: &[u8],
     sign_in: bool,
 ) -> Result<bool, AppError> {
     let now = Utc::now();
     let result = sqlx::query!(
         r#"UPDATE mcp_servers
-           SET oauth_encrypted = $3,
+           SET oauth_encrypted = $2,
                token_encrypted = NULL,
                token_hint      = NULL,
-               updated_at      = CASE WHEN $4 THEN $5 ELSE updated_at END
-           WHERE id = $1 AND url = $2 AND ($4 OR oauth_encrypted IS NOT NULL)"#,
+               updated_at      = CASE WHEN $3 THEN $4 ELSE updated_at END
+           WHERE id = $1 AND ($3 OR oauth_encrypted IS NOT NULL)"#,
         id,
-        url,
         encrypted,
         sign_in,
         now,
@@ -288,15 +287,10 @@ pub(crate) async fn save_oauth_credentials(
     Ok(result.rows_affected() > 0)
 }
 
-pub(crate) async fn clear_oauth_credentials(
-    db: &DatabasePool,
-    id: Uuid,
-    url: &str,
-) -> Result<(), AppError> {
+pub(crate) async fn clear_oauth_credentials(db: &DatabasePool, id: Uuid) -> Result<(), AppError> {
     sqlx::query!(
-        "UPDATE mcp_servers SET oauth_encrypted = NULL WHERE id = $1 AND url = $2",
+        "UPDATE mcp_servers SET oauth_encrypted = NULL WHERE id = $1",
         id,
-        url,
     )
     .execute(db)
     .await?;

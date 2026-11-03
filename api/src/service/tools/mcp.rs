@@ -13,7 +13,10 @@ use super::support::MAX_OUTPUT_CHARS;
 use super::{Call, ToolError};
 use crate::model::mcp_server::McpTool;
 use crate::service::llm::ToolDefinition;
-use crate::service::mcp::{ConnectError, McpClient, McpSession, McpTarget, service_error};
+use crate::service::mcp::{
+    ConnectError, McpClient, McpSession, McpTarget, maybe_processed, service_error,
+};
+use chrono::{DateTime, Utc};
 use rmcp::model::{CallToolRequestParams, CallToolResult, ContentBlock, ResourceContents};
 use serde_json::{Map, Value};
 use sha2::{Digest, Sha256};
@@ -31,11 +34,14 @@ const CALL_TIMEOUT: Duration = Duration::from_mins(2);
 /// OpenAI accepts at most 128 tools per request, which leaves room for the built-in ones.
 const MAX_TOOLS: usize = 100;
 /// Some 30k to 40k tokens, sent with every request of an answer.
-const MAX_DEFINITION_BYTES: usize = 128 * 1024;
+pub(crate) const MAX_DEFINITION_BYTES: usize = 128 * 1024;
 
 /// A server whose tools the model gets, with how to connect to it.
 pub(crate) struct McpServerTools {
     pub(crate) target: McpTarget,
+    /// The server's `updated_at` when `target` was read, see
+    /// [`McpClient::require_authorization`].
+    pub(crate) updated_at: DateTime<Utc>,
     pub(crate) name: String,
     pub(crate) tools: Vec<McpTool>,
 }
@@ -51,6 +57,7 @@ pub(super) struct McpTools {
 
 struct Server {
     target: McpTarget,
+    updated_at: DateTime<Utc>,
     name: String,
     /// With the names the model calls them by.
     tools: Vec<(String, McpTool)>,
@@ -103,6 +110,7 @@ impl McpTools {
                     .collect();
                 Server {
                     target: server.target,
+                    updated_at: server.updated_at,
                     name: server.name,
                     tools,
                     session: Mutex::new(None),
@@ -174,6 +182,17 @@ impl McpTools {
             CallToolRequestParams::new(tool.name.clone()).with_arguments(args.arguments.clone());
         let result = match tokio::time::timeout(CALL_TIMEOUT, session.call_tool(params)).await {
             Ok(Ok(result)) => result,
+            Ok(Err(e)) if maybe_processed(&e) => {
+                tracing::info!(
+                    "Lost the connection to MCP server {} during a tool call: {e}",
+                    server.target.id
+                );
+                return Err(ToolError::Invalid(format!(
+                    "The connection to the MCP server \"{}\" was lost during the call. The \
+                    tool may or may not have run, so check that before calling it again.",
+                    server.name
+                )));
+            }
             Ok(Err(e)) => {
                 return Err(self
                     .failure(server, service_error(&e, server.target.id))
@@ -215,18 +234,31 @@ impl McpTools {
     }
 
     /// The result for the model when the server failed. A server that wants a new sign-in is
-    /// marked as such, so its tools are not offered until the user signed in again.
+    /// marked as such, so its tools are not offered until the user signed in again. One that
+    /// refused the request (HTTP 403) fails only this call: the credentials may lack a
+    /// permission for it, but are still valid.
     async fn failure(&self, server: &Server, error: ConnectError) -> ToolError {
         match error {
             ConnectError::AuthorizationRequired { .. } => {
                 if let Some(client) = &self.client {
                     client
-                        .require_authorization(server.target.id, &server.target.url)
+                        .require_authorization(server.target.id, server.updated_at)
                         .await;
                 }
                 ToolError::Invalid(format!(
                     "The MCP server \"{}\" rejected the credentials. The user has to sign in to \
                     it again (or set a new token) in the settings.",
+                    server.name
+                ))
+            }
+            ConnectError::Forbidden { .. } => {
+                let reason = if error.insufficient_scope() {
+                    "It needs a permission (OAuth scope) the user did not grant."
+                } else {
+                    "The credentials may lack a permission for it."
+                };
+                ToolError::Invalid(format!(
+                    "The MCP server \"{}\" refused the request (HTTP 403 Forbidden). {reason}",
                     server.name
                 ))
             }
@@ -257,7 +289,7 @@ fn select(servers: &mut [McpServerTools]) {
             if count == MAX_TOOLS {
                 break 'rounds;
             }
-            let size = definition_bytes(tool);
+            let size = definition_size(tool);
             if bytes + size <= MAX_DEFINITION_BYTES {
                 keep[round] = true;
                 count += 1;
@@ -279,11 +311,20 @@ fn select(servers: &mut [McpServerTools]) {
     }
 }
 
-/// About the size of the tool's definition as sent to the LLM.
-fn definition_bytes(tool: &McpTool) -> usize {
-    let schema = serde_json::to_vec(&tool.input_schema).map_or(usize::MAX, |json| json.len());
+/// About the size of the tool's definition as sent to the LLM: as stored with the tool, or
+/// measured for tools stored without it.
+fn definition_size(tool: &McpTool) -> usize {
+    tool.definition_bytes.unwrap_or_else(|| {
+        let schema = serde_json::to_vec(&tool.input_schema).map_or(usize::MAX, |json| json.len());
+        definition_bytes(tool, schema)
+    })
+}
+
+/// About the size of the tool's definition as sent to the LLM, with `schema_bytes` the size of
+/// its schema as JSON. Stored with the tool as [`McpTool::definition_bytes`].
+pub(crate) fn definition_bytes(tool: &McpTool, schema_bytes: usize) -> usize {
     let about = tool.description.as_ref().or(tool.title.as_ref());
-    schema.saturating_add(tool.name.len() + about.map_or(0, String::len))
+    schema_bytes.saturating_add(tool.name.len() + about.map_or(0, String::len))
 }
 
 /// The content of the result as text, cut at [`MAX_OUTPUT_CHARS`]. Images and audio are only
@@ -385,6 +426,7 @@ mod tests {
             title: None,
             description: Some("Does things.".to_string()),
             input_schema: json!({"type": "object"}).as_object().unwrap().clone(),
+            definition_bytes: None,
         }
     }
 
@@ -396,6 +438,7 @@ mod tests {
                 access: RemoteAccess::Public,
                 credentials: Credentials::None,
             },
+            updated_at: Utc::now(),
             name: name.to_string(),
             tools: tools.iter().map(|t| tool(t)).collect(),
         }
@@ -484,6 +527,19 @@ mod tests {
         let names: Vec<String> = tools.definitions().map(|d| d.name).collect();
         assert_eq!(names, ["mcp__a__large", "mcp__a__small"]);
         assert_eq!(tools.server_names(), ["A"]);
+    }
+
+    #[test]
+    fn uses_the_stored_sizes() {
+        // Small, but stored as large.
+        let mut stored = server("A", &["stored", "small"]);
+        stored.tools[0].definition_bytes = Some(100 * 1024);
+        // Stored without a size, so measured.
+        let mut measured = server("B", &["measured"]);
+        measured.tools[0].description = Some("x".repeat(100 * 1024));
+        let tools = tools(vec![stored, measured]);
+        let names: Vec<String> = tools.definitions().map(|d| d.name).collect();
+        assert_eq!(names, ["mcp__a__stored", "mcp__a__small"]);
     }
 
     #[test]

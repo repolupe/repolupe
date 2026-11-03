@@ -9,11 +9,11 @@ use super::git::{self, TreeBlob};
 use crate::config::error::AppError;
 use crate::dto::error::ErrorCode;
 use crate::model::remote_access::RemoteAccess;
-use crate::util::http::client_builder;
-use crate::util::ip::{NotPublic, PublicResolver, has_public_host, is_not_public};
+use crate::util::http::{check_public_url, redirect_policy, remote_client_builder};
+use crate::util::ip::is_not_public;
 use futures_util::{StreamExt, TryStreamExt, stream};
 use reqwest::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderName, HeaderValue};
-use reqwest::redirect::{Attempt, Policy};
+use reqwest::redirect::Policy;
 use reqwest::{Method, RequestBuilder, Response, StatusCode};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
@@ -34,7 +34,6 @@ pub(super) const MAX_OBJECT_SIZE: u64 = 100 * 1024 * 1024;
 const BATCH_SIZE: usize = 100;
 const MAX_BATCH_RESPONSE_SIZE: usize = 4 * 1024 * 1024;
 const CONCURRENT_DOWNLOADS: usize = 4;
-const MAX_REDIRECTS: usize = 5;
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(10);
 const READ_TIMEOUT: Duration = Duration::from_secs(60);
@@ -60,27 +59,17 @@ struct Clients {
 impl Clients {
     fn new(access: RemoteAccess) -> Result<Self, reqwest::Error> {
         let builder = || {
-            let builder = client_builder()
-                // Like git, which runs without the proxy environment variables.
-                .no_proxy()
+            remote_client_builder(access)
                 .connect_timeout(CONNECT_TIMEOUT)
                 .read_timeout(READ_TIMEOUT)
-                .user_agent(concat!("repolupe/", env!("CARGO_PKG_VERSION")));
-            match access {
-                RemoteAccess::Public => builder.https_only(true).dns_resolver(PublicResolver),
-                RemoteAccess::Unrestricted => builder,
-            }
-        };
-        // Object storage often redirects to signed URLs. reqwest drops the
-        // `Authorization` header when a redirect leaves the host.
-        let redirect = match access {
-            RemoteAccess::Public => Policy::custom(check_redirect),
-            RemoteAccess::Unrestricted => Policy::limited(MAX_REDIRECTS),
+                .user_agent(concat!("repolupe/", env!("CARGO_PKG_VERSION")))
         };
         Ok(Self {
             // Like git, which runs with `http.followRedirects=false`.
             api: builder().redirect(Policy::none()).build()?,
-            transfer: builder().redirect(redirect).build()?,
+            // Object storage often redirects to signed URLs. reqwest drops the
+            // `Authorization` header when a redirect leaves the host.
+            transfer: builder().redirect(redirect_policy(access)).build()?,
         })
     }
 }
@@ -657,7 +646,7 @@ fn same_origin(a: &Url, b: &Url) -> bool {
         && a.port_or_known_default() == b.port_or_known_default()
 }
 
-/// Checks what [`PublicResolver`] cannot: IP addresses in the URL are never resolved.
+/// Checks the scheme, then the host with [`check_public_url`].
 fn check_url(url: &Url, access: RemoteAccess) -> Result<(), AppError> {
     match access {
         RemoteAccess::Public => {
@@ -665,9 +654,6 @@ fn check_url(url: &Url, access: RemoteAccess) -> Result<(), AppError> {
                 return Err(AppError::BadRequest(
                     "Git LFS URLs must use https://".to_string(),
                 ));
-            }
-            if !has_public_host(url) {
-                return Err(not_public());
             }
         }
         RemoteAccess::Unrestricted => {
@@ -678,17 +664,7 @@ fn check_url(url: &Url, access: RemoteAccess) -> Result<(), AppError> {
             }
         }
     }
-    Ok(())
-}
-
-fn check_redirect(attempt: Attempt) -> reqwest::redirect::Action {
-    if attempt.previous().len() >= MAX_REDIRECTS {
-        attempt.error("too many redirects")
-    } else if !has_public_host(attempt.url()) {
-        attempt.error(NotPublic)
-    } else {
-        attempt.follow()
-    }
+    check_public_url(url, access).map_err(|_| not_public())
 }
 
 async fn write_object(
