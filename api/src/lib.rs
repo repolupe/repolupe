@@ -19,6 +19,7 @@ use tower_http::services::{ServeDir, ServeFile};
 
 mod config;
 mod controller;
+mod data;
 pub mod dto;
 mod middleware;
 mod model;
