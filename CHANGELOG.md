@@ -1,3 +1,13 @@
+## 1.1.0 (2026-11-04)
+
+- feat: MCP servers give the model more tools, connected with a token or by signing in (managed in the web app)
+- feat: restyled message input
+- feat(app): warning before leaving a temporary chat
+- feat(app): download button for attachments
+- feat(web): the repositories and MCP servers chosen for a new chat are remembered for the next one
+- fix: a brief tool call no longer flickers back to "Thinking" while an answer is generated
+- fix(app): the chat offers models and repositories added or removed in the settings without a restart
+
 ## 1.0.3 (2026-11-01)
 
 - feat: the model can run JavaScript in a sandbox with repository files and attachments

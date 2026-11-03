@@ -51,6 +51,8 @@ Android and iOS apps.
   the documents it used. Use Anthropic or any OpenAI-compatible API, including local models.
 - **Read only or write:** For each repository, and for each person you share it with, decide whether the assistant
   only answers or also proposes commits.
+- **More tools with MCP:** Connect MCP servers so the assistant can search the web or work with your other services,
+  and share them with the people on your server.
 - **Built-in OCR:** Scanned PDFs become searchable text with Tesseract or PaddleOCR, or with Mistral OCR.
 - **Tiny footprint:** One small binary with an embedded SQLite database, using about 100 MB of RAM without local OCR.
 - **Private by design:** No analytics, no tracking. With a local model and the built-in OCR, your documents and chats
