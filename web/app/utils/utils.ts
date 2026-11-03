@@ -85,6 +85,78 @@ export function mcpServerScopeSummary(scope: McpServerScope, servers: McpServerD
     return name ?? t('chat.mcpServerCount', ids.length);
 }
 
+/** A selection of all items or some of them, saved in this browser for the user's next new chat. */
+export interface SavedScope {
+    all: boolean;
+    /** Ignored if `all`. */
+    ids: string[];
+}
+
+/**
+ * The selection saved as `json`, without the items that are gone (`existingIds` are those left). `null` if there is
+ * none or it is invalid, and if all its items are gone, so the chat gets the default rather than none of them.
+ */
+export function parseSavedScope(json: string | null, existingIds: string[]): SavedScope | null {
+    let value: unknown;
+    try {
+        value = JSON.parse(json ?? 'null');
+    } catch {
+        return null;
+    }
+    if (typeof value !== 'object' || value === null) {
+        return null;
+    }
+    const {all, ids} = value as Record<string, unknown>;
+    if (typeof all !== 'boolean' || !Array.isArray(ids) || !ids.every(id => typeof id === 'string')) {
+        return null;
+    }
+    if (all) {
+        return {all: true, ids: []};
+    }
+    const kept = ids.filter(id => existingIds.includes(id));
+    return kept.length === 0 && ids.length > 0 ? null : {all: false, ids: kept};
+}
+
+/** Followed by the user's id, since the ids are theirs. */
+const REPOSITORY_SCOPE_KEY = 'newChatRepositories';
+const MCP_SERVER_SCOPE_KEY = 'newChatMcpServers';
+
+function readSavedScope(key: string, userId: string, existingIds: string[]): SavedScope | null {
+    try {
+        return parseSavedScope(localStorage.getItem(`${key}:${userId}`), existingIds);
+    } catch {
+        return null;
+    }
+}
+
+function writeSavedScope(key: string, userId: string, scope: SavedScope) {
+    try {
+        localStorage.setItem(`${key}:${userId}`, JSON.stringify(scope.all ? {all: true, ids: []} : scope));
+    } catch {
+        // only a convenience
+    }
+}
+
+/** The repositories the user last selected for a new chat in this browser, see {@link parseSavedScope}. */
+export function readRepositoryScope(userId: string, repositories: RepositoryDto[]): RepositoryScope | null {
+    const scope = readSavedScope(REPOSITORY_SCOPE_KEY, userId, repositories.map(r => r.id));
+    return scope && {all_repositories: scope.all, repository_ids: scope.ids};
+}
+
+export function writeRepositoryScope(userId: string, scope: RepositoryScope) {
+    writeSavedScope(REPOSITORY_SCOPE_KEY, userId, {all: scope.all_repositories, ids: scope.repository_ids});
+}
+
+/** Like {@link readRepositoryScope}, `servers` are the ones that can be selected. */
+export function readMcpServerScope(userId: string, servers: McpServerDto[]): McpServerScope | null {
+    const scope = readSavedScope(MCP_SERVER_SCOPE_KEY, userId, servers.map(s => s.id));
+    return scope && {all_mcp_servers: scope.all, mcp_server_ids: scope.ids};
+}
+
+export function writeMcpServerScope(userId: string, scope: McpServerScope) {
+    writeSavedScope(MCP_SERVER_SCOPE_KEY, userId, {all: scope.all_mcp_servers, ids: scope.mcp_server_ids});
+}
+
 /**
  * The model that answers, like the server picks it: the first of `ids` that exists (e.g. the
  * chat's model, then the user's), else the default model.

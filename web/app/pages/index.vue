@@ -28,17 +28,19 @@
                     :can-send="canSubmit" :sending="loading" :disabled="loading" @send="submit">
         <!-- assumed while loading, so the attach button does not turn into the menu's button -->
         <template v-if="fetching || repositories.length > 0 || mcpServers.length > 0" v-slot:menu>
-          <RepositoryScopeSelect v-if="repositories.length > 0" v-model="repositoryScope" :repositories="repositories"
-                                 variant="item" :disabled="loading"/>
-          <McpServerScopeSelect v-if="mcpServers.length > 0" v-model="mcpServerScope" :servers="mcpServers"
-                                variant="item" :disabled="loading"/>
+          <RepositoryScopeSelect v-if="repositories.length > 0" :model-value="repositoryScope"
+                                 :repositories="repositories" variant="item" :disabled="loading"
+                                 @update:model-value="selectRepositoryScope"/>
+          <McpServerScopeSelect v-if="mcpServers.length > 0" :model-value="mcpServerScope" :servers="mcpServers"
+                                variant="item" :disabled="loading" @update:model-value="selectMcpServerScope"/>
         </template>
         <!-- only the scopes that are not "all" -->
         <template v-slot:start>
-          <RepositoryScopeSelect v-if="repositories.length > 0" v-model="repositoryScope" :repositories="repositories"
-                                 variant="chip" :disabled="loading"/>
-          <McpServerScopeSelect v-if="mcpServers.length > 0" v-model="mcpServerScope" :servers="mcpServers"
-                                variant="chip" :disabled="loading"/>
+          <RepositoryScopeSelect v-if="repositories.length > 0" :model-value="repositoryScope"
+                                 :repositories="repositories" variant="chip" :disabled="loading"
+                                 @update:model-value="selectRepositoryScope"/>
+          <McpServerScopeSelect v-if="mcpServers.length > 0" :model-value="mcpServerScope" :servers="mcpServers"
+                                variant="chip" :disabled="loading" @update:model-value="selectMcpServerScope"/>
         </template>
         <template v-slot:end>
           <ChatModelSelect v-if="models.length > 0" v-model="modelId" :models="models" :disabled="loading"/>
@@ -65,7 +67,15 @@ import {
   type RepositoryScope,
   UserRole,
 } from "~/utils/model";
-import {isMcpServerOn, showSnackbar, type PendingAttachment} from "~/utils/utils";
+import {
+  isMcpServerOn,
+  readMcpServerScope,
+  readRepositoryScope,
+  showSnackbar,
+  writeMcpServerScope,
+  writeRepositoryScope,
+  type PendingAttachment,
+} from "~/utils/utils";
 import {PRODUCT_NAME, refreshChats, useInstanceName, useUser} from "~/composables/states";
 import MessageInput from "~/components/chat/MessageInput.vue";
 import McpServerScopeSelect from "~/components/chat/McpServerScopeSelect.vue";
@@ -103,8 +113,11 @@ const isAdmin = computed(() => user.value?.role === UserRole.ADMIN);
 const canSubmit = computed(() => !fetching.value && !loadFailed.value
     && (attachment.value ? !!attachment.value.uploaded : content.value.trim().length > 0));
 
-/** `?repository=<id>` preselects that repository (linked from the repository page). */
-const applyRepositoryQuery = () => {
+/**
+ * None without repositories, else the one in `?repository=<id>` (linked from the repository page), else the ones the
+ * user last selected in this browser, else all.
+ */
+const restoreRepositoryScope = () => {
   const id = route.query.repository;
   if (repositories.value.length === 0) {
     // without repositories, "all" would be misleading
@@ -112,7 +125,23 @@ const applyRepositoryQuery = () => {
   } else if (typeof id === 'string' && repositories.value.some(r => r.id === id)) {
     repositoryScope.value = {all_repositories: false, repository_ids: [id]};
   } else {
-    repositoryScope.value = {all_repositories: true, repository_ids: []};
+    repositoryScope.value = (user.value && readRepositoryScope(user.value.id, repositories.value))
+        ?? {all_repositories: true, repository_ids: []};
+  }
+};
+
+/** Only what the user picks is saved for their next new chat, not what a link or a missing item selects. */
+const selectRepositoryScope = (scope: RepositoryScope) => {
+  repositoryScope.value = scope;
+  if (user.value) {
+    writeRepositoryScope(user.value.id, scope);
+  }
+};
+
+const selectMcpServerScope = (scope: McpServerScope) => {
+  mcpServerScope.value = scope;
+  if (user.value) {
+    writeMcpServerScope(user.value.id, scope);
   }
 };
 
@@ -205,6 +234,14 @@ const fetchMcpServers = async () => {
   }
 };
 
+/** The servers the user last selected in this browser. Without any server on, `setMcpServers` gave the chat all. */
+const restoreMcpServerScope = () => {
+  if (mcpServers.value.length > 0) {
+    mcpServerScope.value = (user.value && readMcpServerScope(user.value.id, mcpServers.value))
+        ?? {all_mcp_servers: true, mcp_server_ids: []};
+  }
+};
+
 const fetchModels = async () => {
   try {
     models.value = await getModels();
@@ -213,15 +250,16 @@ const fetchModels = async () => {
   }
 };
 
-watch(() => route.query.repository, () => applyRepositoryQuery());
+watch(() => route.query.repository, () => restoreRepositoryScope());
 
 const load = async () => {
   fetching.value = true;
   loadFailed.value = false;
-  // the MCP servers are optional, `fetchMcpServers` handles a failure itself
+  // the MCP servers are optional, `fetchMcpServers` handles a failure itself, and their selection is restored before
+  // the repositories arrive, since their select is shown as soon as they are there
   const [[repositoriesResult, modelsResult]] = await Promise.all([
     Promise.allSettled([getRepositories(), getModels()]),
-    fetchMcpServers(),
+    fetchMcpServers().then(restoreMcpServerScope),
   ]);
   if (repositoriesResult.status === 'fulfilled') {
     repositories.value = repositoriesResult.value;
@@ -233,7 +271,7 @@ const load = async () => {
     models.value = modelsResult.value;
     modelsLoaded.value = true;
   }
-  applyRepositoryQuery();
+  restoreRepositoryScope();
   fetching.value = false;
 };
 
