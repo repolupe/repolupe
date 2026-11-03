@@ -11,6 +11,15 @@ RUN npm ci --ignore-scripts
 COPY web ./
 RUN npm run generate
 
+# The manifests with the crate's own version set to 0.0.0, so a release bump doesn't invalidate the
+# cached dependency build
+FROM debian:13-slim AS api-manifests
+
+WORKDIR /app
+COPY api/Cargo.toml api/Cargo.lock ./
+RUN sed -i '0,/^version = /s/^version = .*/version = "0.0.0"/' Cargo.toml \
+    && sed -i '/^name = "repolupe"$/{n;s/^version = .*/version = "0.0.0"/}' Cargo.lock
+
 FROM rust:1.99.1 AS api
 
 # Tesseract and Leptonica for OCR, linked by xberg via pkg-config
@@ -21,11 +30,13 @@ RUN apt-get update \
 WORKDIR /app
 
 # Compile dependencies first so they are cached between source changes
-COPY api/Cargo.toml api/Cargo.lock api/build.rs ./
+COPY --from=api-manifests /app/Cargo.toml /app/Cargo.lock ./
+COPY api/build.rs ./
 RUN mkdir src && echo 'fn main() { panic!("Dummy image called!") }' > ./src/main.rs
 RUN cargo build --release
 
-# Add source
+# Add source, with the real manifests
+COPY api/Cargo.toml api/Cargo.lock ./
 COPY api/src ./src
 COPY api/migrations ./migrations
 COPY api/.sqlx ./.sqlx
