@@ -1,6 +1,6 @@
 import 'package:app/pages/attachment_page.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
-import 'package:app/util/format.dart';
+import 'package:app/widget/chat/attachment_label.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -28,17 +28,10 @@ class UserMessage extends StatelessWidget {
               if (attachment != null)
                 FilledButton.tonalIcon(
                   icon: const Icon(Icons.attach_file),
-                  label: Text.rich(
-                    TextSpan(
-                      text: attachment.fileName,
-                      children: [
-                        TextSpan(
-                          text: '  ${formatBytes(attachment.size)}',
-                          style: TextStyle(color: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.7)),
-                        ),
-                      ],
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                  label: AttachmentLabel(
+                    fileName: attachment.fileName,
+                    size: attachment.size,
+                    sizeColor: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.7),
                   ),
                   onPressed: () async {
                     await ref.global.dispatchAsync(NavigateAction.push(AttachmentPage(attachment: attachment)));

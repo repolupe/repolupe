@@ -190,7 +190,7 @@ void main() {
     expect(state.answeringModel(userModelId)?.displayName, 'Haiku');
     expect(state.answeringModel(null)?.displayName, 'Claude');
     // With repositories, a new chat reads all of them.
-    expect(state.scopeAll, isTrue);
+    expect(state.allRepositories, isTrue);
     expect(state.repositories.map((r) => r.name), ['docs']);
 
     chat.dispatch(SetRepositoryScopeAction(all: false, ids: [UuidValue.fromString(_repositoryId)]));
@@ -231,8 +231,8 @@ void main() {
 
     // Opened from a repository's page: the new chat reads only that repository.
     await chat.dispatchAsync(NewChatAction(repositoryIds: [UuidValue.fromString(_repositoryId)]));
-    expect(container.read(chatProvider).scopeAll, isFalse);
-    expect(container.read(chatProvider).scopeIds, [UuidValue.fromString(_repositoryId)]);
+    expect(container.read(chatProvider).allRepositories, isFalse);
+    expect(container.read(chatProvider).repositoryIds, [UuidValue.fromString(_repositoryId)]);
   });
 
   test('a previous chat is listed and opened with its messages, following its answer', () async {

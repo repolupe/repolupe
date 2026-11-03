@@ -14,15 +14,14 @@ import 'support/rust.dart';
 const _userId = '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12';
 
 /// A completed call of the tool [name] with [input], whose repository is [repositoryId].
-ToolCallSummaryDto _toolCall({required String name, required Map<String, dynamic> input, String? repositoryId}) =>
-    ToolCallSummaryDto(
-      id: UuidValue.fromString('0199a8d4-6d5e-7c3a-9b1f-000000000007'),
-      name: name,
-      input: jsonEncode(input),
-      repositoryId: repositoryId == null ? null : UuidValue.fromString(repositoryId),
-      status: ToolCallStatus.completed,
-      createdAt: DateTime.utc(2026, 11, 2, 12),
-    );
+ToolCallSummaryDto _toolCall({required String name, required Map<String, dynamic> input, String? repositoryId}) => ToolCallSummaryDto(
+  id: UuidValue.fromString('0199a8d4-6d5e-7c3a-9b1f-000000000007'),
+  name: name,
+  input: jsonEncode(input),
+  repositoryId: repositoryId == null ? null : UuidValue.fromString(repositoryId),
+  status: ToolCallStatus.completed,
+  createdAt: DateTime.utc(2026, 11, 2, 12),
+);
 
 /// Shows the location of [toolCall] in a chat without repositories.
 Future<void> _pumpLocation(WidgetTester tester, ToolCallSummaryDto toolCall, {String? path}) async {
@@ -32,7 +31,9 @@ Future<void> _pumpLocation(WidgetTester tester, ToolCallSummaryDto toolCall, {St
       container: container,
       child: TranslationProvider(
         child: MaterialApp(
-          home: Scaffold(body: ToolCallLocation(toolCall: toolCall, path: path)),
+          home: Scaffold(
+            body: ToolCallLocation(toolCall: toolCall, path: path),
+          ),
         ),
       ),
     ),

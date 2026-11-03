@@ -644,8 +644,6 @@ class _Translations$flutter$chat$de extends Translations$flutter$chat$en {
   @override
   late final _Translations$flutter$chat$markdownContent$de markdownContent = _Translations$flutter$chat$markdownContent$de._(_root);
   @override
-  late final _Translations$flutter$chat$repositorySheet$de repositorySheet = _Translations$flutter$chat$repositorySheet$de._(_root);
-  @override
   late final _Translations$flutter$chat$toolCallPage$de toolCallPage = _Translations$flutter$chat$toolCallPage$de._(_root);
   @override
   late final _Translations$flutter$chat$fileContent$de fileContent = _Translations$flutter$chat$fileContent$de._(_root);
@@ -2030,19 +2028,6 @@ class _Translations$flutter$chat$markdownContent$de extends Translations$flutter
   // Translations
   @override
   String openLinkFailed({required Object link}) => '${link} konnte nicht geöffnet werden';
-}
-
-// Path: flutter.chat.repositorySheet
-class _Translations$flutter$chat$repositorySheet$de extends Translations$flutter$chat$repositorySheet$en {
-  _Translations$flutter$chat$repositorySheet$de._(TranslationsDe root) : this._root = root, super.internal(root);
-
-  final TranslationsDe _root; // ignore: unused_field
-
-  // Translations
-  @override
-  String get fixedHint => 'Ein Chat behält die Repositories, mit denen er gestartet wurde.';
-  @override
-  String get unavailable => 'Nicht verfügbares Repository';
 }
 
 // Path: flutter.chat.toolCallPage

@@ -5,6 +5,7 @@ import 'package:app/service/message_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/util/tool_call.dart';
 import 'package:app/widget/chat/tool_call_info.dart';
+import 'package:app/widget/list_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -59,48 +60,32 @@ class ToolCallSheet extends StatelessWidget {
     required UuidValue messageId,
     required List<ToolCallSummaryDto> toolCalls,
   }) async {
-    await showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
+    await ListSheet.show<void>(
+      context,
       builder: (_) => ToolCallSheet(chatId: chatId, messageId: messageId, toolCalls: toolCalls),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     // The answer being generated as the MessageService follows it, else as the chat has it.
     final running = context.watch(messageProvider.select((m) => m != null && m.id == messageId ? m.toolCalls : null));
     final finished = context.watch(chatProvider.select((s) => s.messages.where((m) => m.id == messageId).firstOrNull?.toolCalls));
     final toolCalls = running ?? finished ?? this.toolCalls;
     final ref = context.ref;
 
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Text(context.t.base.chat.assistantMessage.toolCount(count: toolCalls.length), style: theme.textTheme.titleSmall),
+    return ListSheet(
+      title: context.t.base.chat.assistantMessage.toolCount(count: toolCalls.length),
+      children: [
+        for (final toolCall in toolCalls)
+          ListTile(
+            title: ToolCallLabel(toolCall: toolCall),
+            trailing: toolCall.status == ToolCallStatus.completed ? null : ToolCallStatusIcon(status: toolCall.status),
+            onTap: () async {
+              await ref.global.dispatchAsync(NavigateAction.push(ToolCallPage(chatId: chatId, toolCall: toolCall)));
+            },
           ),
-          Flexible(
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                for (final toolCall in toolCalls)
-                  ListTile(
-                    title: ToolCallLabel(toolCall: toolCall),
-                    trailing: toolCall.status == ToolCallStatus.completed ? null : ToolCallStatusIcon(status: toolCall.status),
-                    onTap: () async {
-                      await ref.global.dispatchAsync(NavigateAction.push(ToolCallPage(chatId: chatId, toolCall: toolCall)));
-                    },
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 }

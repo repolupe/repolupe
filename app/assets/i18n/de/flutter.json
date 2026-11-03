@@ -33,10 +33,6 @@
     "markdownContent": {
       "openLinkFailed": "{link} konnte nicht geöffnet werden"
     },
-    "repositorySheet": {
-      "fixedHint": "Ein Chat behält die Repositories, mit denen er gestartet wurde.",
-      "unavailable": "Nicht verfügbares Repository"
-    },
     "toolCallPage": {
       "commit": "Commit {sha}"
     },
@@ -151,8 +147,8 @@
         "loginDisabled": "Deaktiviert (überall abgemeldet)",
         "repositoriesManage": "Kann eigene verwalten und teilen",
         "repositoriesReadOnly": "Nur lesen (kann nur Fragen zu Repositories stellen, die mit ihm geteilt wurden)",
-      "mcpServersManage": "Kann eigene verwalten",
-      "mcpServersUseOnly": "Nur nutzen (kann keine hinzufügen oder ändern)",
+        "mcpServersManage": "Kann eigene verwalten",
+        "mcpServersUseOnly": "Nur nutzen (kann keine hinzufügen oder ändern)",
         "identity": "Benutzername und E-Mail",
         "identityEditable": "Der Benutzer kann sie ändern",
         "identityFixed": "Fest (nur Admins können sie ändern)",
@@ -160,11 +156,11 @@
       },
       "form": {
         "adminNote": "Admins können umbenannt, aber nie eingeschränkt werden.",
-      "canManageMcpServersHint": "Ohne diese Berechtigung kann der Benutzer keine MCP-Server hinzufügen oder ändern. Diese werden in der Weboberfläche verwaltet."
+        "canManageMcpServersHint": "Ohne diese Berechtigung kann der Benutzer keine MCP-Server hinzufügen oder ändern. Diese werden in der Weboberfläche verwaltet."
       },
       "flags": {
         "repositoriesReadOnly": "Repositories nur lesen",
-      "mcpServersUseOnly": "MCP-Server nur nutzen",
+        "mcpServersUseOnly": "MCP-Server nur nutzen",
         "identityFixed": "Benutzername und E-Mail fest"
       }
     },

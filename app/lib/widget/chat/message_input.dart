@@ -1,7 +1,7 @@
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/chat_service.dart';
 import 'package:app/service/me_service.dart';
-import 'package:app/util/format.dart';
+import 'package:app/widget/chat/attachment_label.dart';
 import 'package:app/widget/chat/input_options_sheet.dart';
 import 'package:app/widget/chat/mcp_server_sheet.dart';
 import 'package:app/widget/chat/model_sheet.dart';
@@ -80,7 +80,6 @@ class _MessageInputState extends State<MessageInput> with Refena {
     final answering = state.answer != null;
     final canSend = state.canSend(_controller.text);
     final attachment = state.attachment;
-    final idle = !state.loading && !state.sending;
     // A new chat has options to choose; assumed while it loads, so the attach button does not turn into the plus.
     final options = state.chat == null && !state.loading && (!state.loaded || state.repositories.isNotEmpty || state.mcpServers.isNotEmpty);
     // Only the scopes that are not all items, so the default takes no space.
@@ -92,7 +91,7 @@ class _MessageInputState extends State<MessageInput> with Refena {
           icon: RepositorySheet.icon(state),
           label: RepositorySheet.summary(context, state),
           tooltip: context.t.base.repositories.title,
-          enabled: idle,
+          enabled: !state.busy,
           onPressed: () async => RepositorySheet.show(context),
           onDeleted: () => ref.redux(chatProvider).dispatch(SetRepositoryScopeAction(all: true, ids: const [])),
         ),
@@ -102,7 +101,7 @@ class _MessageInputState extends State<MessageInput> with Refena {
           icon: McpServerSheet.icon(state),
           label: McpServerSheet.summary(context, state),
           tooltip: context.t.base.mcpServers.title,
-          enabled: idle,
+          enabled: !state.busy,
           onPressed: () async => McpServerSheet.show(context),
           onDeleted: () => ref.redux(chatProvider).dispatch(SetMcpServerScopeAction(all: true, ids: const [])),
         ),
@@ -168,14 +167,14 @@ class _MessageInputState extends State<MessageInput> with Refena {
                       key: const ValueKey('chat.options'),
                       icon: const Icon(Icons.add),
                       tooltip: context.t.base.chat.messageInput.options,
-                      onPressed: idle && state.loaded ? _showOptions : null,
+                      onPressed: !state.busy && state.loaded ? _showOptions : null,
                     )
                   else
                     IconButton(
                       key: const ValueKey('chat.attach'),
                       icon: const Icon(Icons.attach_file),
                       tooltip: context.t.base.chat.messageInput.attach,
-                      onPressed: idle ? _attach : null,
+                      onPressed: state.busy ? null : _attach,
                     ),
                   Expanded(
                     // Taps on the free space focus the text field, as if the box were the field.
@@ -187,7 +186,7 @@ class _MessageInputState extends State<MessageInput> with Refena {
                         height: 48,
                         child: Align(
                           alignment: Alignment.centerRight,
-                          child: state.models.isEmpty ? null : _ModelButton(state: state, enabled: idle),
+                          child: state.models.isEmpty ? null : _ModelButton(state: state, enabled: !state.busy),
                         ),
                       ),
                     ),
@@ -235,24 +234,16 @@ class _AttachmentChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return InputChip(
       key: const ValueKey('chat.attachment'),
       isEnabled: enabled,
       avatar: attachment.uploaded == null
           ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
           : const Icon(Icons.attach_file),
-      label: Text.rich(
-        TextSpan(
-          text: attachment.fileName,
-          children: [
-            TextSpan(
-              text: '  ${formatBytes(attachment.size)}',
-              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
-            ),
-          ],
-        ),
-        overflow: TextOverflow.ellipsis,
+      label: AttachmentLabel(
+        fileName: attachment.fileName,
+        size: attachment.size,
+        sizeColor: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
       onDeleted: () => context.redux(chatProvider).dispatch(RemoveAttachmentAction()),
     );

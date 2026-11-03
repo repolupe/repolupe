@@ -1,100 +1,46 @@
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/chat_service.dart';
 import 'package:app/widget/chat/scope_choices.dart';
+import 'package:app/widget/list_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
-/// The repositories the chat reads: chosen for a new chat, shown for an existing one, which keeps those it was
-/// created with.
+/// The repositories a new chat reads, chosen among those the user can read (see [ChatState.repositories]).
 class RepositorySheet extends StatelessWidget {
   const RepositorySheet();
 
   static Future<void> show(BuildContext context) async {
-    await showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      builder: (_) => const RepositorySheet(),
-    );
+    await ListSheet.show<void>(context, builder: (_) => const RepositorySheet());
   }
 
   /// E.g. "All Repositories", the name of the only repository, or "3 repositories".
   static String summary(BuildContext context, ChatState state) {
-    if (state.scopeAll) {
+    if (state.allRepositories) {
       return context.t.base.chat.allRepositories;
     }
-    final ids = state.scopeIds;
+    final ids = state.repositoryIds;
     final name = ids.length == 1 ? state.repositories.where((r) => r.id == ids.first).firstOrNull?.name : null;
     return name ?? context.t.base.chat.repositoryCount(count: ids.length);
   }
 
   /// A folder, crossed out while no repository is chosen.
-  static IconData icon(ChatState state) => !state.scopeAll && state.scopeIds.isEmpty ? Icons.folder_off_outlined : Icons.folder_outlined;
+  static IconData icon(ChatState state) => !state.allRepositories && state.repositoryIds.isEmpty ? Icons.folder_off_outlined : Icons.folder_outlined;
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch(chatProvider);
-    final theme = Theme.of(context);
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Text(context.t.base.repositories.title, style: theme.textTheme.titleSmall),
-          ),
-          if (state.chat != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text(
-                context.t.flutter.chat.repositorySheet.fixedHint,
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              ),
-            ),
-          Flexible(
-            child: ListView(
-              shrinkWrap: true,
-              children: state.chat == null ? _choices(context, state) : _chosen(context, state),
-            ),
-          ),
+    final chat = context.redux(chatProvider);
+    return ListSheet(
+      title: context.t.base.repositories.title,
+      children: scopeChoices(
+        allTitle: context.t.base.chat.allRepositories,
+        all: state.allRepositories,
+        ids: state.repositoryIds,
+        items: [
+          for (final repository in state.repositories) (id: repository.id, title: repository.name, subtitle: repository.description),
         ],
+        onChanged: (all, ids) => chat.dispatch(SetRepositoryScopeAction(all: all, ids: ids)),
       ),
     );
-  }
-
-  /// Checkboxes for all repositories and each one.
-  List<Widget> _choices(BuildContext context, ChatState state) {
-    final chat = context.redux(chatProvider);
-    return scopeChoices(
-      allTitle: context.t.base.chat.allRepositories,
-      all: state.allRepositories,
-      ids: state.repositoryIds,
-      items: [
-        for (final repository in state.repositories) (id: repository.id, title: repository.name, subtitle: repository.description),
-      ],
-      onChanged: (all, ids) => chat.dispatch(SetRepositoryScopeAction(all: all, ids: ids)),
-    );
-  }
-
-  /// The repositories of the existing chat, without choices.
-  List<Widget> _chosen(BuildContext context, ChatState state) {
-    if (state.scopeAll) {
-      return [ListTile(leading: const Icon(Icons.folder_copy_outlined), title: Text(context.t.base.chat.allRepositories))];
-    }
-    if (state.scopeIds.isEmpty) {
-      return [ListTile(leading: const Icon(Icons.folder_off_outlined), title: Text(context.t.base.chat.repositoryCount(count: 0)))];
-    }
-    return [
-      for (final id in state.scopeIds)
-        ListTile(
-          leading: const Icon(Icons.folder_outlined),
-          // Deleted, or no longer shared with the user.
-          title: Text(
-            state.repositories.where((r) => r.id == id).firstOrNull?.name ?? context.t.flutter.chat.repositorySheet.unavailable,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-    ];
   }
 }

@@ -2,6 +2,7 @@ import 'package:app/gen/strings.g.dart';
 import 'package:app/service/chat_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/mcp.dart';
 import 'package:app/widget/chat/scope_choices.dart';
+import 'package:app/widget/list_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
@@ -10,11 +11,7 @@ class McpServerSheet extends StatelessWidget {
   const McpServerSheet();
 
   static Future<void> show(BuildContext context) async {
-    await showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      builder: (_) => const McpServerSheet(),
-    );
+    await ListSheet.show<void>(context, builder: (_) => const McpServerSheet());
   }
 
   /// E.g. "All MCP Servers", the name of the only server, or "3 MCP servers".
@@ -34,32 +31,17 @@ class McpServerSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch(chatProvider);
-    final theme = Theme.of(context);
     final chat = context.redux(chatProvider);
-    return SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Text(context.t.base.mcpServers.title, style: theme.textTheme.titleSmall),
-          ),
-          Flexible(
-            child: ListView(
-              shrinkWrap: true,
-              children: scopeChoices(
-                allTitle: context.t.base.chat.allMcpServers,
-                all: state.allMcpServers,
-                ids: state.mcpServerIds,
-                items: [
-                  for (final server in state.mcpServers) (id: server.id, title: server.name, subtitle: _problem(context, server)),
-                ],
-                onChanged: (all, ids) => chat.dispatch(SetMcpServerScopeAction(all: all, ids: ids)),
-              ),
-            ),
-          ),
+    return ListSheet(
+      title: context.t.base.mcpServers.title,
+      children: scopeChoices(
+        allTitle: context.t.base.chat.allMcpServers,
+        all: state.allMcpServers,
+        ids: state.mcpServerIds,
+        items: [
+          for (final server in state.mcpServers) (id: server.id, title: server.name, subtitle: _problem(context, server)),
         ],
+        onChanged: (all, ids) => chat.dispatch(SetMcpServerScopeAction(all: all, ids: ids)),
       ),
     );
   }
@@ -68,13 +50,14 @@ class McpServerSheet extends StatelessWidget {
   /// are turned off. Like the web's `isMcpServerUsed`, for a server that is on.
   static String? _problem(BuildContext context, McpServerDto server) {
     final texts = context.t.base;
-    if (server.status != McpServerStatus.ready) {
-      return switch (server.status) {
-        McpServerStatus.ready => texts.status.ready,
-        McpServerStatus.authorizationRequired => texts.mcpServers.status.authorizationRequired,
-        McpServerStatus.failed => texts.status.failed,
-        McpServerStatus.unknown => texts.mcpServers.status.unknown,
-      };
+    switch (server.status) {
+      case McpServerStatus.authorizationRequired:
+        return texts.mcpServers.status.authorizationRequired;
+      case McpServerStatus.failed:
+        return texts.status.failed;
+      case McpServerStatus.unknown:
+        return texts.mcpServers.status.unknown;
+      case McpServerStatus.ready:
     }
     final count = server.tools.length;
     final enabled = server.tools.where((tool) => !server.disabledTools.contains(tool.name)).length;

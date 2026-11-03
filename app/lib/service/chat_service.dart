@@ -51,7 +51,7 @@ class ChatState with ChatStateMappable {
   final List<RepositoryDto> repositories;
 
   /// Whether the new chat reads all repositories of the user (then [repositoryIds] is empty).
-  /// The chat keeps the repositories it was created with, see [scopeAll].
+  /// The chat keeps the repositories it was created with.
   final bool allRepositories;
 
   /// The repositories the new chat reads, unless [allRepositories].
@@ -128,10 +128,13 @@ class ChatState with ChatStateMappable {
         epoch: 0,
       );
 
+  /// Whether a previous chat is being opened or a message is being sent, so the chat can't be changed for now.
+  bool get busy => loading || sending;
+
   /// Whether a message can be sent with [content]: none is being sent or answered, and it has text or an uploaded
   /// attachment (then it may be blank).
   bool canSend(String content) {
-    if (loading || sending || answer != null) {
+    if (busy || answer != null) {
       return false;
     }
     final attachment = this.attachment;
@@ -144,12 +147,6 @@ class ChatState with ChatStateMappable {
 
   /// The name of the model [modelId], `null` if it no longer exists.
   String? modelName(UuidValue? modelId) => models.where((m) => m.id == modelId).firstOrNull?.displayName;
-
-  /// Whether the chat (or the new one) reads all repositories of the user.
-  bool get scopeAll => chat?.allRepositories ?? allRepositories;
-
-  /// The repositories the chat (or the new one) reads, unless [scopeAll].
-  List<UuidValue> get scopeIds => chat?.repositoryIds ?? repositoryIds;
 
   /// The model chosen for the chat (or the new one), `null` for the user's model.
   UuidValue? get chosenModelId => chat == null ? modelId : chat!.modelId;
@@ -169,8 +166,7 @@ class ChatState with ChatStateMappable {
 
   /// The model that answers in the chat: the chosen one, else the [fallbackModel] of [defaultModelId].
   /// A model that no longer exists counts as not chosen, like on the server.
-  ModelDto? answeringModel(UuidValue? defaultModelId) =>
-      models.where((m) => m.id == chosenModelId).firstOrNull ?? fallbackModel(defaultModelId);
+  ModelDto? answeringModel(UuidValue? defaultModelId) => models.where((m) => m.id == chosenModelId).firstOrNull ?? fallbackModel(defaultModelId);
 }
 
 /// Turned on by its owner, and by the user if it is shared with them. Only then its tools may be used in chats.
@@ -394,7 +390,7 @@ class AttachFileAction extends AsyncReduxAction<ChatService, ChatState> with Glo
 
   @override
   Future<ChatState> reduce() async {
-    if (notifier._api.state == null || state.loading || state.sending) {
+    if (notifier._api.state == null || state.busy) {
       return state;
     }
     if (size > maxAttachmentBytes) {

@@ -721,7 +721,6 @@ class Translations$flutter$chat$en {
     _root,
   );
   late final Translations$flutter$chat$markdownContent$en markdownContent = Translations$flutter$chat$markdownContent$en.internal(_root);
-  late final Translations$flutter$chat$repositorySheet$en repositorySheet = Translations$flutter$chat$repositorySheet$en.internal(_root);
   late final Translations$flutter$chat$toolCallPage$en toolCallPage = Translations$flutter$chat$toolCallPage$en.internal(_root);
   late final Translations$flutter$chat$fileContent$en fileContent = Translations$flutter$chat$fileContent$en.internal(_root);
   late final Translations$flutter$chat$proposedCommitPage$en proposedCommitPage = Translations$flutter$chat$proposedCommitPage$en.internal(_root);
@@ -2456,21 +2455,6 @@ class Translations$flutter$chat$markdownContent$en {
 
   /// en: 'Could not open {link}'
   String openLinkFailed({required Object link}) => 'Could not open ${link}';
-}
-
-// Path: flutter.chat.repositorySheet
-class Translations$flutter$chat$repositorySheet$en {
-  Translations$flutter$chat$repositorySheet$en.internal(this._root);
-
-  final Translations _root; // ignore: unused_field
-
-  // Translations
-
-  /// en: 'A chat keeps the repositories it was started with.'
-  String get fixedHint => 'A chat keeps the repositories it was started with.';
-
-  /// en: 'Unavailable repository'
-  String get unavailable => 'Unavailable repository';
 }
 
 // Path: flutter.chat.toolCallPage

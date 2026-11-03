@@ -11,6 +11,9 @@ import 'package:flutter/material.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+/// The width of the messages, and of the message input below them.
+const _maxWidth = 800.0;
+
 /// A chat with the model of the active account, a new one every time the page opens.
 /// The drawer lists the previous chats to open instead, and the accounts.
 class ChatPage extends StatefulWidget {
@@ -78,9 +81,9 @@ class _ChatPageState extends State<ChatPage> with Refena {
               if (chat == null)
                 IconButton(
                   key: const ValueKey('chat.temporary'),
-                  icon: Icon(state.isTemporary ? Icons.close : Icons.history_toggle_off),
+                  icon: Icon(state.temporary ? Icons.close : Icons.history_toggle_off),
                   tooltip: state.temporary ? context.t.flutter.chat.page.temporaryOff : context.t.base.chat.temporary,
-                  onPressed: state.loading || state.sending
+                  onPressed: state.busy
                       ? null
                       : () {
                           context.redux(chatProvider).dispatch(SetTemporaryAction(!state.temporary));
@@ -109,7 +112,7 @@ class _ChatPageState extends State<ChatPage> with Refena {
         bottom: false,
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 800),
+            constraints: const BoxConstraints(maxWidth: _maxWidth),
             child: state.loading
                 ? const SafeArea(child: Center(child: CircularProgressIndicator()))
                 : chat == null || state.messages.isEmpty
@@ -137,7 +140,7 @@ class _MessageInputBar extends StatelessWidget {
       child: Center(
         heightFactor: 1,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
+          constraints: const BoxConstraints(maxWidth: _maxWidth),
           child: const MessageInput(),
         ),
       ),

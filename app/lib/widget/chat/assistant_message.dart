@@ -146,8 +146,21 @@ class _AssistantMessageState extends State<AssistantMessage> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (final change in changes) _ChangeButton(chatId: widget.chatId, change: change),
-              for (final file in files) _FileButton(chatId: widget.chatId, file: file),
+              for (final (:toolCall, :path) in changes)
+                _PageButton(
+                  icon: toolCall.icon,
+                  label: switch (toolCall.moves.length) {
+                    final count when count > 1 => context.t.base.chat.moveCount(count: count),
+                    _ => fileName(path),
+                  },
+                  page: ProposedCommitPage(chatId: widget.chatId, toolCall: toolCall, path: path),
+                ),
+              for (final (:toolCall, :path) in files)
+                _PageButton(
+                  icon: Icons.description_outlined,
+                  label: fileName(path),
+                  page: PresentedFilePage(chatId: widget.chatId, toolCall: toolCall, path: path),
+                ),
             ],
           ),
         ],
@@ -179,42 +192,22 @@ class _AssistantMessageState extends State<AssistantMessage> {
   }
 }
 
-/// Opens the diff of a change the model proposed.
-class _ChangeButton extends StatelessWidget {
-  final UuidValue chatId;
-  final ToolCallFile change;
+/// Opens a page about a file of the answer: a change the model proposed, or a file it showed.
+class _PageButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Widget page;
 
-  const _ChangeButton({required this.chatId, required this.change});
-
-  @override
-  Widget build(BuildContext context) {
-    final moves = change.toolCall.moves;
-    final ref = context.ref;
-    return FilledButton.tonalIcon(
-      icon: Icon(change.toolCall.icon),
-      label: Text(moves.length > 1 ? context.t.base.chat.moveCount(count: moves.length) : fileName(change.path), overflow: TextOverflow.ellipsis),
-      onPressed: () async {
-        await ref.global.dispatchAsync(NavigateAction.push(ProposedCommitPage(chatId: chatId, toolCall: change.toolCall, path: change.path)));
-      },
-    );
-  }
-}
-
-/// Opens a file the model showed.
-class _FileButton extends StatelessWidget {
-  final UuidValue chatId;
-  final ToolCallFile file;
-
-  const _FileButton({required this.chatId, required this.file});
+  const _PageButton({required this.icon, required this.label, required this.page});
 
   @override
   Widget build(BuildContext context) {
     final ref = context.ref;
     return FilledButton.tonalIcon(
-      icon: const Icon(Icons.description_outlined),
-      label: Text(fileName(file.path), overflow: TextOverflow.ellipsis),
+      icon: Icon(icon),
+      label: Text(label, overflow: TextOverflow.ellipsis),
       onPressed: () async {
-        await ref.global.dispatchAsync(NavigateAction.push(PresentedFilePage(chatId: chatId, toolCall: file.toolCall, path: file.path)));
+        await ref.global.dispatchAsync(NavigateAction.push(page));
       },
     );
   }
@@ -234,44 +227,39 @@ class _Footer extends StatelessWidget {
   Widget build(BuildContext context) {
     final modelName = this.modelName;
     final duration = this.duration;
-    final cost = message.cost;
-    final usage = message.usage;
-    if (modelName == null && duration == null && cost == null) {
+    final style = this.style?.copyWith(letterSpacing: 0.2);
+    final tabular = style?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
+    final parts = [
+      if (modelName != null)
+        Flexible(
+          child: Tooltip(
+            message: modelName,
+            child: _IconText(icon: Icons.smart_toy_outlined, text: modelName, style: style),
+          ),
+        ),
+      if (duration != null) Text(duration, style: tabular),
+      // A cost is only computed from a usage, so an answer with one always has the other.
+      if ((message.cost, message.usage) case (final cost?, final usage?))
+        GestureDetector(
+          key: ValueKey('chat.message.${message.id}.cost'),
+          behavior: HitTestBehavior.opaque,
+          onTap: () => UsageSheet.show(context, usage: usage, cost: cost, modelName: modelName),
+          child: Text(formatCost(cost.amount, cost.currency), style: tabular),
+        ),
+    ];
+    if (parts.isEmpty) {
       return const SizedBox.shrink();
     }
 
-    final style = this.style?.copyWith(letterSpacing: 0.2);
-    final tabular = style?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
-    // A cost is only computed from a usage, so an answer with one always has the other.
-    final costLink = switch ((cost, usage)) {
-      (final cost?, final usage?) => GestureDetector(
-        key: ValueKey('chat.message.${message.id}.cost'),
-        behavior: HitTestBehavior.opaque,
-        onTap: () => UsageSheet.show(context, usage: usage, cost: cost, modelName: modelName),
-        child: Text(formatCost(cost.amount, cost.currency), style: tabular),
-      ),
-      _ => null,
-    };
     final separator = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
       child: Text('•', style: style),
     );
-
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Row(
         children: [
-          if (modelName != null)
-            Flexible(
-              child: Tooltip(
-                message: modelName,
-                child: _IconText(icon: Icons.smart_toy_outlined, text: modelName, style: style),
-              ),
-            ),
-          if (modelName != null && (duration != null || costLink != null)) separator,
-          if (duration != null) Text(duration, style: tabular),
-          if (duration != null && costLink != null) separator,
-          ?costLink,
+          for (final (i, part) in parts.indexed) ...[if (i > 0) separator, part],
         ],
       ),
     );
