@@ -33,6 +33,7 @@ use repolupe::dto::llm::{
     CreateLlmProviderRequest, LlmModelDto, LlmModelRequest, LlmProviderDto, ModelDto,
     RemoteModelDto, SetDefaultModelRequest, UpdateLlmProviderRequest,
 };
+use repolupe::dto::mcp::McpServerDto;
 use repolupe::dto::repository::{
     AddRepositoryUserRequest, CreateRepositoryRequest, RepositoryDto, RepositoryUserDto,
     UpdateRepositoryRequest, UpdateRepositoryUserRequest,
@@ -496,6 +497,13 @@ impl Client {
     pub async fn remove_repository_user(&self, id: Uuid, user_id: Uuid) -> Result<(), ClientError> {
         self.post_empty(format!("/api/v1/repositories/{id}/users/{user_id}/delete"))
             .await
+    }
+
+    // MCP servers
+
+    /// `GET /api/v1/mcp-servers`: owned and shared ones, managed in the web app.
+    pub async fn list_mcp_servers(&self) -> Result<Vec<McpServerDto>, ClientError> {
+        self.get("/api/v1/mcp-servers".into()).await
     }
 
     // Users (admins)

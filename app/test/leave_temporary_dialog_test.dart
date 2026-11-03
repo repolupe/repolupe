@@ -5,6 +5,7 @@ import 'package:app/service/chat_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/mcp.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -61,6 +62,7 @@ Future<RefenaContainer> _startTemporaryChat(WidgetTester tester) async {
         mock.on<ApiListModelsAction>((state, action) => (state, const <ModelDto>[]));
         mock.on<ApiGetMeAction>((state, action) => (state, fakeUser(id: _userId)));
         mock.on<ApiListRepositoriesAction>((state, action) => (state, const <RepositoryDto>[]));
+        mock.on<ApiListMcpServersAction>((state, action) => (state, const <McpServerDto>[]));
         mock.on<ApiListChatsAction>((state, action) => (state, ChatPageDto(items: [_chat(_savedId, 'Saved chat', temporary: false)])));
         mock.on<ApiCreateChatAction>((state, action) {
           expect(action.temporary, isTrue);

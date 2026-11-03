@@ -1,8 +1,8 @@
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/chat_service.dart';
+import 'package:app/widget/chat/scope_choices.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/refena_flutter.dart';
-import 'package:uuid/uuid.dart';
 
 /// The repositories the chat reads: chosen for a new chat, shown for an existing one, which keeps those it was
 /// created with.
@@ -26,6 +26,9 @@ class RepositorySheet extends StatelessWidget {
     final name = ids.length == 1 ? state.repositories.where((r) => r.id == ids.first).firstOrNull?.name : null;
     return name ?? context.t.base.chat.repositoryCount(count: ids.length);
   }
+
+  /// A folder, crossed out while no repository is chosen.
+  static IconData icon(ChatState state) => !state.scopeAll && state.scopeIds.isEmpty ? Icons.folder_off_outlined : Icons.folder_outlined;
 
   @override
   Widget build(BuildContext context) {
@@ -59,30 +62,18 @@ class RepositorySheet extends StatelessWidget {
     );
   }
 
-  /// Checkboxes for all repositories and each one; picking one while all are chosen chooses only that one.
+  /// Checkboxes for all repositories and each one.
   List<Widget> _choices(BuildContext context, ChatState state) {
     final chat = context.redux(chatProvider);
-    return [
-      CheckboxListTile(
-        title: Text(context.t.base.chat.allRepositories),
-        value: state.allRepositories,
-        onChanged: (all) => chat.dispatch(SetRepositoryScopeAction(all: all ?? false, ids: const [])),
-      ),
-      const Divider(),
-      for (final repository in state.repositories)
-        CheckboxListTile(
-          title: Text(repository.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-          subtitle: repository.description == null ? null : Text(repository.description!, maxLines: 1, overflow: TextOverflow.ellipsis),
-          value: !state.allRepositories && state.repositoryIds.contains(repository.id),
-          onChanged: (selected) {
-            final ids = <UuidValue>[
-              if (!state.allRepositories) ...state.repositoryIds.where((id) => id != repository.id),
-              if (selected ?? false) repository.id,
-            ];
-            chat.dispatch(SetRepositoryScopeAction(all: false, ids: ids));
-          },
-        ),
-    ];
+    return scopeChoices(
+      allTitle: context.t.base.chat.allRepositories,
+      all: state.allRepositories,
+      ids: state.repositoryIds,
+      items: [
+        for (final repository in state.repositories) (id: repository.id, title: repository.name, subtitle: repository.description),
+      ],
+      onChanged: (all, ids) => chat.dispatch(SetRepositoryScopeAction(all: all, ids: ids)),
+    );
   }
 
   /// The repositories of the existing chat, without choices.

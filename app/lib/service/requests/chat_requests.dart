@@ -57,13 +57,15 @@ class ApiGetChatAction extends AsyncReduxActionWithResult<ApiService, AccountCli
 }
 
 /// Creates a chat with [content] as its first message (may be blank with [attachmentId]), and starts the answer.
-/// It reads all repositories of the user if [allRepositories], else those of [repositoryIds]; [modelId] `null` uses
-/// the user's model. A [temporary] chat is not listed, and is deleted a day after its last message.
+/// It reads all repositories of the user if [allRepositories], else those of [repositoryIds], and gets the tools of all
+/// MCP servers if [allMcpServers], else those of [mcpServerIds]; [modelId] `null` uses the user's model. A [temporary] chat is not listed, and is deleted a day after its last message.
 class ApiCreateChatAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, ChatDetailDto> {
   final String content;
   final UuidValue? attachmentId;
   final bool allRepositories;
   final List<UuidValue> repositoryIds;
+  final bool allMcpServers;
+  final List<UuidValue> mcpServerIds;
   final UuidValue? modelId;
   final bool temporary;
 
@@ -72,6 +74,8 @@ class ApiCreateChatAction extends AsyncReduxActionWithResult<ApiService, Account
     required this.attachmentId,
     required this.allRepositories,
     required this.repositoryIds,
+    required this.allMcpServers,
+    required this.mcpServerIds,
     required this.modelId,
     required this.temporary,
   });
@@ -86,7 +90,8 @@ class ApiCreateChatAction extends AsyncReduxActionWithResult<ApiService, Account
             attachmentId: attachmentId,
             allRepositories: allRepositories,
             repositoryIds: allRepositories ? const [] : repositoryIds,
-            allMcpServers: true,
+            allMcpServers: allMcpServers,
+            mcpServerIds: allMcpServers ? const [] : mcpServerIds,
             modelId: modelId,
             temporary: temporary,
             utcOffsetMinutes: DateTime.now().timeZoneOffset.inMinutes,
@@ -99,7 +104,7 @@ class ApiCreateChatAction extends AsyncReduxActionWithResult<ApiService, Account
 
   @override
   String toString() =>
-      'ApiCreateChatAction(attachmentId: $attachmentId, allRepositories: $allRepositories, repositoryIds: $repositoryIds, modelId: $modelId, temporary: $temporary)';
+      'ApiCreateChatAction(attachmentId: $attachmentId, allRepositories: $allRepositories, repositoryIds: $repositoryIds, allMcpServers: $allMcpServers, mcpServerIds: $mcpServerIds, modelId: $modelId, temporary: $temporary)';
 }
 
 /// Renames the chat [chatId] to [title] and lets [modelId] answer in it (`null` uses the user's model).

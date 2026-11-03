@@ -24,6 +24,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/extraction.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/instance.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/mcp.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/server.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
@@ -178,6 +179,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LoginRequest dco_decode_box_autoadd_login_request(dynamic raw);
+
+  @protected
+  McpServerShareDto dco_decode_box_autoadd_mcp_server_share_dto(dynamic raw);
 
   @protected
   MessageDto dco_decode_box_autoadd_message_dto(dynamic raw);
@@ -366,6 +370,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   InstanceDto dco_decode_instance_dto(dynamic raw);
 
   @protected
+  List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
   List<UuidValue> dco_decode_list_Uuid(dynamic raw);
 
   @protected
@@ -400,6 +407,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<LlmProviderSuggestionDto> dco_decode_list_llm_provider_suggestion_dto(dynamic raw);
+
+  @protected
+  List<McpServerDto> dco_decode_list_mcp_server_dto(dynamic raw);
+
+  @protected
+  List<McpToolDto> dco_decode_list_mcp_tool_dto(dynamic raw);
 
   @protected
   List<MessageDto> dco_decode_list_message_dto(dynamic raw);
@@ -462,6 +475,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LoginResponse dco_decode_login_response(dynamic raw);
 
   @protected
+  McpServerAuth dco_decode_mcp_server_auth(dynamic raw);
+
+  @protected
+  McpServerDto dco_decode_mcp_server_dto(dynamic raw);
+
+  @protected
+  McpServerShareDto dco_decode_mcp_server_share_dto(dynamic raw);
+
+  @protected
+  McpServerStatus dco_decode_mcp_server_status(dynamic raw);
+
+  @protected
+  McpToolDto dco_decode_mcp_tool_dto(dynamic raw);
+
+  @protected
   MessageDto dco_decode_message_dto(dynamic raw);
 
   @protected
@@ -520,6 +548,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+
+  @protected
+  McpServerShareDto? dco_decode_opt_box_autoadd_mcp_server_share_dto(dynamic raw);
 
   @protected
   RemoteSettings? dco_decode_opt_box_autoadd_remote_settings(dynamic raw);
@@ -812,6 +843,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LoginRequest sse_decode_box_autoadd_login_request(SseDeserializer deserializer);
 
   @protected
+  McpServerShareDto sse_decode_box_autoadd_mcp_server_share_dto(SseDeserializer deserializer);
+
+  @protected
   MessageDto sse_decode_box_autoadd_message_dto(SseDeserializer deserializer);
 
   @protected
@@ -998,6 +1032,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   InstanceDto sse_decode_instance_dto(SseDeserializer deserializer);
 
   @protected
+  List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
   List<UuidValue> sse_decode_list_Uuid(SseDeserializer deserializer);
 
   @protected
@@ -1032,6 +1069,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<LlmProviderSuggestionDto> sse_decode_list_llm_provider_suggestion_dto(SseDeserializer deserializer);
+
+  @protected
+  List<McpServerDto> sse_decode_list_mcp_server_dto(SseDeserializer deserializer);
+
+  @protected
+  List<McpToolDto> sse_decode_list_mcp_tool_dto(SseDeserializer deserializer);
 
   @protected
   List<MessageDto> sse_decode_list_message_dto(SseDeserializer deserializer);
@@ -1094,6 +1137,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LoginResponse sse_decode_login_response(SseDeserializer deserializer);
 
   @protected
+  McpServerAuth sse_decode_mcp_server_auth(SseDeserializer deserializer);
+
+  @protected
+  McpServerDto sse_decode_mcp_server_dto(SseDeserializer deserializer);
+
+  @protected
+  McpServerShareDto sse_decode_mcp_server_share_dto(SseDeserializer deserializer);
+
+  @protected
+  McpServerStatus sse_decode_mcp_server_status(SseDeserializer deserializer);
+
+  @protected
+  McpToolDto sse_decode_mcp_tool_dto(SseDeserializer deserializer);
+
+  @protected
   MessageDto sse_decode_message_dto(SseDeserializer deserializer);
 
   @protected
@@ -1152,6 +1210,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
+  McpServerShareDto? sse_decode_opt_box_autoadd_mcp_server_share_dto(SseDeserializer deserializer);
 
   @protected
   RemoteSettings? sse_decode_opt_box_autoadd_remote_settings(SseDeserializer deserializer);
@@ -1448,6 +1509,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_login_request(LoginRequest self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_mcp_server_share_dto(McpServerShareDto self, SseSerializer serializer);
+
+  @protected
   void sse_encode_box_autoadd_message_dto(MessageDto self, SseSerializer serializer);
 
   @protected
@@ -1634,6 +1698,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_instance_dto(InstanceDto self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_Uuid(List<UuidValue> self, SseSerializer serializer);
 
   @protected
@@ -1668,6 +1735,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_list_llm_provider_suggestion_dto(List<LlmProviderSuggestionDto> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_mcp_server_dto(List<McpServerDto> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_mcp_tool_dto(List<McpToolDto> self, SseSerializer serializer);
 
   @protected
   void sse_encode_list_message_dto(List<MessageDto> self, SseSerializer serializer);
@@ -1730,6 +1803,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_login_response(LoginResponse self, SseSerializer serializer);
 
   @protected
+  void sse_encode_mcp_server_auth(McpServerAuth self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_mcp_server_dto(McpServerDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_mcp_server_share_dto(McpServerShareDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_mcp_server_status(McpServerStatus self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_mcp_tool_dto(McpToolDto self, SseSerializer serializer);
+
+  @protected
   void sse_encode_message_dto(MessageDto self, SseSerializer serializer);
 
   @protected
@@ -1788,6 +1876,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_box_autoadd_i_64(PlatformInt64? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_mcp_server_share_dto(McpServerShareDto? self, SseSerializer serializer);
 
   @protected
   void sse_encode_opt_box_autoadd_remote_settings(RemoteSettings? self, SseSerializer serializer);

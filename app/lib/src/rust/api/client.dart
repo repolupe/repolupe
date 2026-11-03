@@ -16,6 +16,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/extraction.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/instance.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/mcp.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/server.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
@@ -112,6 +113,9 @@ abstract class Client implements RustOpaqueInterface {
 
   /// `GET /api/v1/llm-providers`, with their models.
   Future<List<LlmProviderDto>> listLlmProviders();
+
+  /// `GET /api/v1/mcp-servers`: owned and shared ones, managed in the web app.
+  Future<List<McpServerDto>> listMcpServers();
 
   /// `GET /api/v1/models`: the models users can choose.
   Future<List<ModelDto>> listModels();

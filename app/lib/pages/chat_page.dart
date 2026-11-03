@@ -7,8 +7,10 @@ import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/util/format.dart';
 import 'package:app/widget/app_drawer.dart';
 import 'package:app/widget/chat/assistant_message.dart';
+import 'package:app/widget/chat/input_options_sheet.dart';
 import 'package:app/widget/chat/instance_hero.dart';
 import 'package:app/widget/chat/leave_temporary_dialog.dart';
+import 'package:app/widget/chat/mcp_server_sheet.dart';
 import 'package:app/widget/chat/model_sheet.dart';
 import 'package:app/widget/chat/repository_sheet.dart';
 import 'package:app/widget/chat/user_message.dart';
@@ -74,10 +76,8 @@ class _ChatPageState extends State<ChatPage> with Refena {
                 onPressed: () => Scaffold.of(context).openDrawer(),
               ),
             ),
-            title: switch (state.chat) {
-              final chat? => Text(chat.title, overflow: TextOverflow.ellipsis),
-              null => const _RepositoryButton(),
-            },
+            // A new chat chooses its repositories in the message input.
+            title: chat == null ? null : Text(chat.title, overflow: TextOverflow.ellipsis),
             actions: [
               if (chat == null)
                 IconButton(
@@ -140,7 +140,6 @@ class _ChatPageState extends State<ChatPage> with Refena {
                         ),
                 ),
                 const _MessageInput(),
-                const _ModelButton(),
               ],
             ),
           ),
@@ -172,8 +171,10 @@ class _Answer extends StatelessWidget {
   }
 }
 
-/// The text field with the button that attaches a file, the attached one above, and the button that sends the
-/// message, or stops the answer being generated.
+/// The text field and below it the actions, in one box: a plus button with the options of a new chat (or, without
+/// options to choose, a button that attaches a file), the model, and the button that sends the message, or stops the
+/// answer being generated. The attached file is above the text field, the repositories and MCP servers of the new chat
+/// (unless all) above the plus button.
 class _MessageInput extends StatefulWidget {
   const _MessageInput();
 
@@ -183,6 +184,7 @@ class _MessageInput extends StatefulWidget {
 
 class _MessageInputState extends State<_MessageInput> with Refena {
   final _controller = TextEditingController();
+  final _focusNode = FocusNode();
 
   @override
   void initState() {
@@ -193,6 +195,7 @@ class _MessageInputState extends State<_MessageInput> with Refena {
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -216,82 +219,165 @@ class _MessageInputState extends State<_MessageInput> with Refena {
     await ref.redux(chatProvider).dispatchAsync(AttachFileAction(fileName: file.name, size: size, read: file.readAsBytes));
   }
 
+  Future<void> _showOptions() async {
+    final option = await InputOptionsSheet.show(context);
+    if (!mounted) {
+      return;
+    }
+    switch (option) {
+      case InputOption.attach:
+        await _attach();
+      case InputOption.repositories:
+        await RepositorySheet.show(context);
+      case InputOption.mcpServers:
+        await McpServerSheet.show(context);
+      case null:
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch(chatProvider);
     final answering = state.answer != null;
     final canSend = state.canSend(_controller.text);
     final attachment = state.attachment;
-    // Stopping keeps the keyboard open, sending closes it.
+    final idle = !state.loading && !state.sending;
+    // A new chat has options to choose; assumed while it loads, so the attach button does not turn into the plus.
+    final options = state.chat == null && !state.loading && (!state.loaded || state.repositories.isNotEmpty || state.mcpServers.isNotEmpty);
+    // Only the scopes that are not all items, so the default takes no space.
+    final newChat = state.chat == null && state.loaded;
+    final chips = [
+      if (newChat && state.repositories.isNotEmpty && !state.allRepositories)
+        _ScopeChip(
+          key: const ValueKey('chat.repositories'),
+          icon: RepositorySheet.icon(state),
+          label: RepositorySheet.summary(context, state),
+          tooltip: context.t.base.repositories.title,
+          enabled: idle,
+          onPressed: () async => RepositorySheet.show(context),
+          onDeleted: () => ref.redux(chatProvider).dispatch(SetRepositoryScopeAction(all: true, ids: const [])),
+        ),
+      if (newChat && state.mcpServers.isNotEmpty && !state.allMcpServers)
+        _ScopeChip(
+          key: const ValueKey('chat.mcpServers'),
+          icon: McpServerSheet.icon(state),
+          label: McpServerSheet.summary(context, state),
+          tooltip: context.t.base.mcpServers.title,
+          enabled: idle,
+          onPressed: () async => McpServerSheet.show(context),
+          onDeleted: () => ref.redux(chatProvider).dispatch(SetMcpServerScopeAction(all: true, ids: const [])),
+        ),
+    ];
     final colors = Theme.of(context).colorScheme;
     return TextFieldTapRegion(
       child: AnimatedContainer(
         // Fades with the page's background.
         duration: const Duration(milliseconds: 250),
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.all(4),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         decoration: BoxDecoration(
           // A shade darker than the page's background,
           // but white on the light temporary background, which is about as dark.
           color: state.isTemporary && colors.brightness == Brightness.light ? colors.surfaceContainerLowest : colors.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (attachment != null)
               Padding(
-                padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
                 child: _AttachmentChip(attachment: attachment, enabled: !state.sending),
               ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                IconButton(
-                  key: const ValueKey('chat.attach'),
-                  icon: const Icon(Icons.attach_file),
-                  tooltip: context.t.base.chat.messageInput.attach,
-                  onPressed: state.loading || state.sending ? null : _attach,
+            TextField(
+              key: const ValueKey('chat.input'),
+              controller: _controller,
+              focusNode: _focusNode,
+              minLines: 1,
+              maxLines: 6,
+              keyboardType: TextInputType.multiline,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: context.t.base.chat.placeholder,
+                border: InputBorder.none,
+                // Lines up with the icon of the button below.
+                contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              ),
+            ),
+            // Above the plus button, so the model has the rest of the row below.
+            if (chips.isNotEmpty)
+              GestureDetector(
+                // Taps on the free space focus the text field, as if the box were the field.
+                behavior: HitTestBehavior.opaque,
+                onTap: _focusNode.requestFocus,
+                child: Padding(
+                  // As far from the edge as the buttons below.
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Wrap(spacing: 8, children: chips),
+                  ),
                 ),
-                Expanded(
-                  child: TextField(
-                    key: const ValueKey('chat.input'),
-                    controller: _controller,
-                    minLines: 1,
-                    maxLines: 6,
-                    keyboardType: TextInputType.multiline,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: InputDecoration(
-                      hintText: context.t.base.chat.placeholder,
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            // The buttons are as far from the edges as from the bottom.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
+              child: Row(
+                children: [
+                  if (options)
+                    IconButton(
+                      key: const ValueKey('chat.options'),
+                      icon: const Icon(Icons.add),
+                      tooltip: context.t.base.chat.messageInput.options,
+                      onPressed: idle && state.loaded ? _showOptions : null,
+                    )
+                  else
+                    IconButton(
+                      key: const ValueKey('chat.attach'),
+                      icon: const Icon(Icons.attach_file),
+                      tooltip: context.t.base.chat.messageInput.attach,
+                      onPressed: idle ? _attach : null,
+                    ),
+                  Expanded(
+                    // Taps on the free space focus the text field, as if the box were the field.
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _focusNode.requestFocus,
+                      // The model next to the send button, as wide as its name, up to all of the space.
+                      child: SizedBox(
+                        height: 48,
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: state.models.isEmpty ? null : _ModelButton(state: state, enabled: idle),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                if (answering)
-                  IconButton.filledTonal(
-                    key: const ValueKey('chat.stop'),
-                    icon: const Icon(Icons.stop),
-                    tooltip: context.t.base.chat.messageInput.stop,
-                    onPressed: () async {
-                      await ref.redux(chatProvider).dispatchAsync(CancelAnswerAction());
-                    },
-                  )
-                else
-                  IconButton.filled(
-                    key: const ValueKey('chat.send'),
-                    icon: state.sending
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.send),
-                    tooltip: context.t.base.chat.messageInput.send,
-                    onPressed: canSend ? _send : null,
-                  ),
-              ],
+                  const SizedBox(width: 4),
+                  // Stopping keeps the keyboard open, sending closes it.
+                  if (answering)
+                    IconButton.filledTonal(
+                      key: const ValueKey('chat.stop'),
+                      icon: const Icon(Icons.stop),
+                      tooltip: context.t.base.chat.messageInput.stop,
+                      onPressed: () async {
+                        await ref.redux(chatProvider).dispatchAsync(CancelAnswerAction());
+                      },
+                    )
+                  else
+                    IconButton.filled(
+                      key: const ValueKey('chat.send'),
+                      icon: state.sending
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.send),
+                      tooltip: context.t.base.chat.messageInput.send,
+                      onPressed: canSend ? _send : null,
+                    ),
+                ],
+              ),
             ),
           ],
         ),
@@ -333,50 +419,60 @@ class _AttachmentChip extends StatelessWidget {
   }
 }
 
-/// The title of a new chat: the repositories it reads, opening a sheet to choose them.
-/// Just "New chat" while the user has none. Fades in once the repositories are loaded.
-class _RepositoryButton extends StatelessWidget {
-  const _RepositoryButton();
+/// A scope of the new chat while it is not all items, opening the sheet to choose them. Removing it chooses all again.
+class _ScopeChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  /// What the items are, e.g. "Repositories".
+  final String tooltip;
+  final bool enabled;
+  final VoidCallback onPressed;
+  final VoidCallback onDeleted;
+
+  const _ScopeChip({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.tooltip,
+    required this.enabled,
+    required this.onPressed,
+    required this.onDeleted,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch(chatProvider);
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
-      child: switch (state) {
-        ChatState(loaded: false) || ChatState(loading: true, repositories: []) => const SizedBox.shrink(),
-        ChatState(repositories: []) => Text(context.t.base.app.navigation.newChat),
-        _ => TextButton.icon(
-          icon: const Icon(Icons.folder_outlined),
-          label: Text(RepositorySheet.summary(context, state), overflow: TextOverflow.ellipsis),
-          onPressed: !state.loading && !state.sending ? () async => RepositorySheet.show(context) : null,
-        ),
-      },
+    return InputChip(
+      isEnabled: enabled,
+      avatar: Icon(icon),
+      label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+      tooltip: tooltip,
+      onPressed: onPressed,
+      onDeleted: onDeleted,
     );
   }
 }
 
-/// The model that answers in the chat, opening a sheet to choose another.
-/// Hidden while there are none to choose.
+/// The model that answers in the chat, as quiet text next to the send button, opening a sheet to choose another.
 class _ModelButton extends StatelessWidget {
-  const _ModelButton();
+  final ChatState state;
+  final bool enabled;
+
+  const _ModelButton({required this.state, required this.enabled});
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch(chatProvider);
-    if (state.models.isEmpty) {
-      // The space below the input.
-      return const SizedBox(height: 16);
-    }
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton.icon(
-          icon: const Icon(Icons.smart_toy_outlined),
-          label: Text(state.answeringModel?.displayName ?? context.t.base.common.kDefault, overflow: TextOverflow.ellipsis),
-          onPressed: !state.loading && !state.sending ? () async => ModelSheet.show(context) : null,
-        ),
+    return TextButton(
+      key: const ValueKey('chat.model'),
+      style: TextButton.styleFrom(
+        foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+      ),
+      onPressed: enabled ? () async => ModelSheet.show(context) : null,
+      child: Text(
+        state.answeringModel?.displayName ?? context.t.base.common.kDefault,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

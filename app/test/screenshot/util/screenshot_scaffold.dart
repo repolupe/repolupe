@@ -7,6 +7,7 @@ import 'package:app/service/api_service.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/error.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/mcp.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -158,6 +159,7 @@ Future<RefenaContainer> _loggedIn(WidgetTester tester, SampleApi api) async {
         mock.on<ApiGetInstanceAction>((state, _) => (state, api.instance));
         mock.on<ApiListModelsAction>((state, _) => (state, api.models));
         mock.on<ApiListRepositoriesAction>((state, _) => (state, api.repositories));
+        mock.on<ApiListMcpServersAction>((state, _) => (state, const <McpServerDto>[]));
         mock.on<ApiGetRepositoryAction>((state, action) => (state, _found(_repository(api, action.id))));
         mock.on<ApiListRepositoryDocumentsAction>((state, action) => (state, _found(api.repositoryDocuments[action.id])));
         mock.on<ApiListRepositoryUsersAction>((state, action) => (state, _found(api.repositoryUsers[action.id])));

@@ -9,6 +9,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/attachment.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/mcp.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
 import 'package:app/util/format.dart';
 import 'package:dart_mappable/dart_mappable.dart';
@@ -59,6 +60,17 @@ class ChatState with ChatStateMappable {
   /// The repositories the new chat reads, unless [allRepositories].
   final List<UuidValue> repositoryIds;
 
+  /// The MCP servers that are on (see [isMcpServerOn]), to choose those of a new chat. The others give no tools in
+  /// any chat.
+  final List<McpServerDto> mcpServers;
+
+  /// Whether the new chat gets the tools of all MCP servers of the user (then [mcpServerIds] is empty), including ones
+  /// turned on later. The chat keeps the servers it was created with.
+  final bool allMcpServers;
+
+  /// The MCP servers whose tools the new chat gets, unless [allMcpServers].
+  final List<UuidValue> mcpServerIds;
+
   /// The model chosen for the new chat, `null` uses the user's model. The chat has its own, see [chosenModelId].
   final UuidValue? modelId;
 
@@ -74,7 +86,7 @@ class ChatState with ChatStateMappable {
   /// Whether a previous chat is being opened, see [OpenChatAction].
   final bool loading;
 
-  /// Whether the models and repositories have been loaded by [NewChatAction].
+  /// Whether the models, repositories and MCP servers have been loaded by [NewChatAction].
   final bool loaded;
 
   /// Incremented by [NewChatAction] and [OpenChatAction], so the results of requests for the previous chat are dropped.
@@ -88,6 +100,9 @@ class ChatState with ChatStateMappable {
     required this.repositories,
     required this.allRepositories,
     required this.repositoryIds,
+    required this.mcpServers,
+    required this.allMcpServers,
+    required this.mcpServerIds,
     required this.modelId,
     required this.temporary,
     required this.attachment,
@@ -106,6 +121,9 @@ class ChatState with ChatStateMappable {
         repositories: const [],
         allRepositories: false,
         repositoryIds: const [],
+        mcpServers: const [],
+        allMcpServers: true,
+        mcpServerIds: const [],
         modelId: null,
         temporary: false,
         attachment: null,
@@ -157,6 +175,9 @@ class ChatState with ChatStateMappable {
   ModelDto? get answeringModel => models.where((m) => m.id == chosenModelId).firstOrNull ?? fallbackModel;
 }
 
+/// Turned on by its owner, and by the user if it is shared with them. Only then its tools may be used in chats.
+bool isMcpServerOn(McpServerDto server) => server.enabled && (server.shared?.enabled ?? true);
+
 final chatProvider = ReduxProvider<ChatService, ChatState>((ref) {
   return ChatService(
     api: ref.notifier(apiProvider),
@@ -182,9 +203,9 @@ class ChatService extends ReduxNotifier<ChatState> {
   ChatState init() => ChatState.empty();
 }
 
-/// Starts a new chat for the active account (dropping the current one) and loads the models, the user's model and the
-/// repositories. The new chat reads all repositories, if there are any, or only [repositoryIds] if given (e.g. opened
-/// from a repository's page).
+/// Starts a new chat for the active account (dropping the current one) and loads the models, the user's model, the
+/// repositories and the MCP servers. The new chat reads all repositories, if there are any, or only [repositoryIds] if
+/// given (e.g. opened from a repository's page), and gets the tools of all MCP servers.
 class NewChatAction extends AsyncReduxAction<ChatService, ChatState> {
   final List<UuidValue>? repositoryIds;
 
@@ -200,10 +221,11 @@ class NewChatAction extends AsyncReduxAction<ChatService, ChatState> {
     }
 
     final api = external(notifier._api);
-    final (models, user, repositories) = await (
+    final (models, user, repositories, mcpServers) = await (
       _loadOrNull(() => api.dispatchAsyncTakeResult(ApiListModelsAction())),
       _loadOrNull(() => api.dispatchAsyncTakeResult(ApiGetMeAction())),
       _loadOrNull(() => api.dispatchAsyncTakeResult(ApiListRepositoriesAction())),
+      _loadOrNull(() => api.dispatchAsyncTakeResult(ApiListMcpServersAction())),
     ).wait;
     if (epoch != state.epoch) {
       return state;
@@ -216,6 +238,9 @@ class NewChatAction extends AsyncReduxAction<ChatService, ChatState> {
       // Without repositories, "all" would be misleading.
       allRepositories: repositoryIds == null && repositories != null && repositories.isNotEmpty,
       repositoryIds: repositoryIds ?? const [],
+      // Without them (or if they fail to load), they are not offered, and the chat gets all of them anyway, so
+      // turning one on later applies to it.
+      mcpServers: mcpServers?.where(isMcpServerOn).toList() ?? const [],
       loaded: true,
     );
   }
@@ -248,13 +273,14 @@ class OpenChatAction extends AsyncReduxAction<ChatService, ChatState> with Globa
 
     external(notifier._messages).dispatch(StopFollowMessageAction());
     final epoch = dispatch(_IncrementEpochAction()).epoch;
-    // The models and repositories belong to the account, which stays the same.
+    // The models, repositories and MCP servers belong to the account, which stays the same.
     dispatch(
       _SetStateAction(
         ChatState.empty().copyWith(
           models: state.models,
           defaultModelId: state.defaultModelId,
           repositories: state.repositories,
+          mcpServers: state.mcpServers,
           loading: true,
           loaded: state.loaded,
           epoch: epoch,
@@ -314,6 +340,8 @@ class SendMessageAction extends AsyncReduxActionWithResult<ChatService, ChatStat
             attachmentId: attachmentId,
             allRepositories: state.allRepositories,
             repositoryIds: state.repositoryIds,
+            allMcpServers: state.allMcpServers,
+            mcpServerIds: state.mcpServerIds,
             modelId: state.modelId,
             temporary: state.temporary,
           ),
@@ -432,6 +460,26 @@ class SetRepositoryScopeAction extends ReduxAction<ChatService, ChatState> {
 
   @override
   String toString() => 'SetRepositoryScopeAction(all: $all, ids: $ids)';
+}
+
+/// Chooses the MCP servers whose tools the new chat gets: all of the user's if [all], else [ids].
+/// A chat keeps the servers it was created with, so this does nothing once it exists.
+class SetMcpServerScopeAction extends ReduxAction<ChatService, ChatState> {
+  final bool all;
+  final List<UuidValue> ids;
+
+  SetMcpServerScopeAction({required this.all, required this.ids});
+
+  @override
+  ChatState reduce() {
+    if (state.chat != null) {
+      return state;
+    }
+    return state.copyWith(allMcpServers: all, mcpServerIds: all ? const [] : ids);
+  }
+
+  @override
+  String toString() => 'SetMcpServerScopeAction(all: $all, ids: $ids)';
 }
 
 /// Makes the new chat temporary or not, see [ChatState.isTemporary].

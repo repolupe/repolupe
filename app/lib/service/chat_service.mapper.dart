@@ -210,6 +210,21 @@ class ChatStateMapper extends ClassMapperBase<ChatState> {
     'repositoryIds',
     _$repositoryIds,
   );
+  static List<McpServerDto> _$mcpServers(ChatState v) => v.mcpServers;
+  static const Field<ChatState, List<McpServerDto>> _f$mcpServers = Field(
+    'mcpServers',
+    _$mcpServers,
+  );
+  static bool _$allMcpServers(ChatState v) => v.allMcpServers;
+  static const Field<ChatState, bool> _f$allMcpServers = Field(
+    'allMcpServers',
+    _$allMcpServers,
+  );
+  static List<UuidValue> _$mcpServerIds(ChatState v) => v.mcpServerIds;
+  static const Field<ChatState, List<UuidValue>> _f$mcpServerIds = Field(
+    'mcpServerIds',
+    _$mcpServerIds,
+  );
   static UuidValue? _$modelId(ChatState v) => v.modelId;
   static const Field<ChatState, UuidValue> _f$modelId = Field(
     'modelId',
@@ -243,6 +258,9 @@ class ChatStateMapper extends ClassMapperBase<ChatState> {
     #repositories: _f$repositories,
     #allRepositories: _f$allRepositories,
     #repositoryIds: _f$repositoryIds,
+    #mcpServers: _f$mcpServers,
+    #allMcpServers: _f$allMcpServers,
+    #mcpServerIds: _f$mcpServerIds,
     #modelId: _f$modelId,
     #temporary: _f$temporary,
     #attachment: _f$attachment,
@@ -261,6 +279,9 @@ class ChatStateMapper extends ClassMapperBase<ChatState> {
       repositories: data.dec(_f$repositories),
       allRepositories: data.dec(_f$allRepositories),
       repositoryIds: data.dec(_f$repositoryIds),
+      mcpServers: data.dec(_f$mcpServers),
+      allMcpServers: data.dec(_f$allMcpServers),
+      mcpServerIds: data.dec(_f$mcpServerIds),
       modelId: data.dec(_f$modelId),
       temporary: data.dec(_f$temporary),
       attachment: data.dec(_f$attachment),
@@ -341,6 +362,10 @@ abstract class ChatStateCopyWith<$R, $In extends ChatState, $Out>
   get repositories;
   ListCopyWith<$R, UuidValue, ObjectCopyWith<$R, UuidValue, UuidValue>>
   get repositoryIds;
+  ListCopyWith<$R, McpServerDto, ObjectCopyWith<$R, McpServerDto, McpServerDto>>
+  get mcpServers;
+  ListCopyWith<$R, UuidValue, ObjectCopyWith<$R, UuidValue, UuidValue>>
+  get mcpServerIds;
   PendingAttachmentCopyWith<$R, PendingAttachment, PendingAttachment>?
   get attachment;
   $R call({
@@ -351,6 +376,9 @@ abstract class ChatStateCopyWith<$R, $In extends ChatState, $Out>
     List<RepositoryDto>? repositories,
     bool? allRepositories,
     List<UuidValue>? repositoryIds,
+    List<McpServerDto>? mcpServers,
+    bool? allMcpServers,
+    List<UuidValue>? mcpServerIds,
     UuidValue? modelId,
     bool? temporary,
     PendingAttachment? attachment,
@@ -403,6 +431,20 @@ class _ChatStateCopyWithImpl<$R, $Out>
     (v) => call(repositoryIds: v),
   );
   @override
+  ListCopyWith<$R, McpServerDto, ObjectCopyWith<$R, McpServerDto, McpServerDto>>
+  get mcpServers => ListCopyWith(
+    $value.mcpServers,
+    (v, t) => ObjectCopyWith(v, $identity, t),
+    (v) => call(mcpServers: v),
+  );
+  @override
+  ListCopyWith<$R, UuidValue, ObjectCopyWith<$R, UuidValue, UuidValue>>
+  get mcpServerIds => ListCopyWith(
+    $value.mcpServerIds,
+    (v, t) => ObjectCopyWith(v, $identity, t),
+    (v) => call(mcpServerIds: v),
+  );
+  @override
   PendingAttachmentCopyWith<$R, PendingAttachment, PendingAttachment>?
   get attachment =>
       $value.attachment?.copyWith.$chain((v) => call(attachment: v));
@@ -415,6 +457,9 @@ class _ChatStateCopyWithImpl<$R, $Out>
     List<RepositoryDto>? repositories,
     bool? allRepositories,
     List<UuidValue>? repositoryIds,
+    List<McpServerDto>? mcpServers,
+    bool? allMcpServers,
+    List<UuidValue>? mcpServerIds,
     Object? modelId = $none,
     bool? temporary,
     Object? attachment = $none,
@@ -431,6 +476,9 @@ class _ChatStateCopyWithImpl<$R, $Out>
       if (repositories != null) #repositories: repositories,
       if (allRepositories != null) #allRepositories: allRepositories,
       if (repositoryIds != null) #repositoryIds: repositoryIds,
+      if (mcpServers != null) #mcpServers: mcpServers,
+      if (allMcpServers != null) #allMcpServers: allMcpServers,
+      if (mcpServerIds != null) #mcpServerIds: mcpServerIds,
       if (modelId != $none) #modelId: modelId,
       if (temporary != null) #temporary: temporary,
       if (attachment != $none) #attachment: attachment,
@@ -449,6 +497,9 @@ class _ChatStateCopyWithImpl<$R, $Out>
     repositories: data.get(#repositories, or: $value.repositories),
     allRepositories: data.get(#allRepositories, or: $value.allRepositories),
     repositoryIds: data.get(#repositoryIds, or: $value.repositoryIds),
+    mcpServers: data.get(#mcpServers, or: $value.mcpServers),
+    allMcpServers: data.get(#allMcpServers, or: $value.allMcpServers),
+    mcpServerIds: data.get(#mcpServerIds, or: $value.mcpServerIds),
     modelId: data.get(#modelId, or: $value.modelId),
     temporary: data.get(#temporary, or: $value.temporary),
     attachment: data.get(#attachment, or: $value.attachment),
