@@ -285,7 +285,7 @@ async fn reads_attachments(db: SqlitePool) {
 #[sqlx::test]
 async fn passes_attachments_to_scripts(db: SqlitePool) {
     let app = TestApp::new(db).await;
-    let sum = "attachments[1].trim().split('\\n').slice(1)\
+    let sum = "$attachments[1].trim().split('\\n').slice(1)\
         .map((line) => Number(line.split(',')[1])).reduce((a, b) => a + b, 0).toFixed(2)";
     let llm = MockLlm::start(vec![
         tool_use_response(
@@ -297,7 +297,7 @@ async fn passes_attachments_to_scripts(db: SqlitePool) {
         tool_use_response(
             "toolu_2",
             "run_script",
-            json!({"code": "attachments[2].includes('42 requests')", "attachments": [2]}),
+            json!({"code": "$attachments[2].includes('42 requests')", "attachments": [2]}),
         ),
         text_response("It mentions the limit."),
         tool_use_response(

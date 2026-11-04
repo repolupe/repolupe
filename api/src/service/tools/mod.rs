@@ -2,7 +2,8 @@
 //! ([`CHANGE_FILE`], [`MOVE_FILES`], [`SAVE_ATTACHMENT`]). Each repository is pinned to one
 //! commit, so all tool calls of an answer see the same version, even during a sync.
 //! [`READ_ATTACHMENT`] and [`RUN_SCRIPT`] need no repository, so chats without one get them too,
-//! and so do the tools of the user's MCP servers ([`mcp`]).
+//! and so do the tools of the user's MCP servers ([`mcp`]), whose results only scripts read
+//! unless they are short ([`support::results`]).
 //!
 //! Each tool is a module with a `definition`, a `parse` into a [`Call`], and a `run`; shared
 //! code is in [`support`]. A new tool also needs a name below, a variant of [`Call`], and an
@@ -36,6 +37,7 @@ use serde_json::Value;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 use support::format_size;
+use support::results::StoredResults;
 use uuid::Uuid;
 
 pub(crate) use mcp::{
@@ -79,6 +81,8 @@ pub(crate) struct RepositoryTools {
     /// [`Self::with_auto_commit`].
     auto_commit: bool,
     mcp: mcp::McpTools,
+    /// Of the MCP tools, for [`RUN_SCRIPT`].
+    results: StoredResults,
 }
 
 /// The files sent in the chat, which [`READ_ATTACHMENT`] reads, [`RUN_SCRIPT`] passes to
@@ -132,6 +136,7 @@ pub(crate) struct Invocation<'a> {
     attachments: &'a ChatAttachments,
     auto_commit: bool,
     mcp: &'a mcp::McpTools,
+    results: &'a StoredResults,
     call: Call,
 }
 
@@ -206,6 +211,7 @@ impl RepositoryTools {
             attachments: ChatAttachments::default(),
             auto_commit: false,
             mcp: mcp::McpTools::default(),
+            results: StoredResults::default(),
         }
     }
 
@@ -358,6 +364,7 @@ impl RepositoryTools {
             attachments: &self.attachments,
             auto_commit: self.auto_commit,
             mcp: &self.mcp,
+            results: &self.results,
             call,
         })
     }
@@ -425,7 +432,7 @@ impl Invocation<'_> {
             }
             Call::ReadAttachment(args) => read_attachment::run(self, args).await,
             Call::RunScript(args) => run_script::run(self, args).await,
-            Call::Mcp(args) => self.mcp.run(args).await,
+            Call::Mcp(args) => self.mcp.run(args, self.results).await,
         };
         match result {
             Ok(content) => ToolOutput {

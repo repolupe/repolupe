@@ -8,6 +8,7 @@ pub(super) mod fixture;
 pub(super) mod glob;
 pub(super) mod markdown;
 pub(super) mod patch;
+pub(super) mod results;
 
 use super::{LIST_FILES, RepositoryTools, ToolError, ToolRepository};
 use crate::config::error::AppError;

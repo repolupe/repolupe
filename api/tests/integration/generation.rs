@@ -806,7 +806,7 @@ async fn proposes_changes_where_commits_are_allowed(db: SqlitePool) {
 async fn runs_scripts_with_and_without_repositories(db: SqlitePool) {
     let app = TestApp::new(db).await;
     let alice = app.user("alice@example.com").await;
-    let sum = "files['prices.csv'].trim().split('\\n').slice(1)\
+    let sum = "$files['prices.csv'].trim().split('\\n').slice(1)\
         .map((line) => Number(line.split(',')[1])).reduce((a, b) => a + b, 0).toFixed(2)";
     let llm = MockLlm::start(vec![
         tool_use_response("toolu_1", "run_script", json!({"code": "6 * 7"})),

@@ -87,6 +87,13 @@ async fn sign_in(client: &TestClient, mcp: &MockMcp, id: &str) -> Value {
     server
 }
 
+/// Asserts that `result` is of a successful call of an MCP tool, which is stored.
+fn assert_stored(result: &Value) {
+    assert_eq!(result["is_error"], false, "{result}");
+    let content = result["content"].as_str().unwrap();
+    assert!(content.starts_with("Stored in `$results["), "{result}");
+}
+
 /// The names of the tools the model got in `request`.
 fn offered(request: &Value) -> Vec<String> {
     request["tools"]
@@ -429,6 +436,11 @@ async fn answers_with_the_tools_of_enabled_servers(db: SqlitePool) {
     let mcp = MockMcp::start(McpAuth::Token).await;
     let llm = MockLlm::start(vec![
         tool_use_response("toolu_1", "mcp__echo_server__echo", json!({"text": "hi"})),
+        tool_use_response(
+            "toolu_2",
+            "run_script",
+            json!({"code": "$results[1].toUpperCase()"}),
+        ),
         text_response("It said hi."),
         text_response("No tools."),
     ])
@@ -457,9 +469,21 @@ async fn answers_with_the_tools_of_enabled_servers(db: SqlitePool) {
         system.contains("(MCP servers): \\\"Echo Server\\\""),
         "{system}"
     );
+    let script = &requests[0]["tools"][0];
+    assert!(
+        script["input_schema"]["properties"]["results"].is_null(),
+        "{script}"
+    );
+    let description = script["description"].as_str().unwrap();
+    assert!(description.contains("`$results[1]`"), "{description}");
+    // The model sees the short result, and can still read it with run_script.
     let result = tool_result(&requests[1]);
-    assert_eq!(result["content"], "echo: hi");
+    assert_eq!(
+        result["content"],
+        "Stored in `$results[1]` for run_script as a string. Here is all of it:\necho: hi"
+    );
     assert_eq!(result["is_error"], false);
+    assert_eq!(tool_result(&requests[2])["content"], "Result: ECHO: HI");
 
     // Disabled, the model doesn't get them.
     let id = server["id"].as_str().unwrap();
@@ -473,7 +497,10 @@ async fn answers_with_the_tools_of_enabled_servers(db: SqlitePool) {
     assert_eq!(server["enabled"], false);
     let answer = ask(&admin, "Anything?").await;
     assert_eq!(answer["status"], "COMPLETED", "{answer}");
-    assert_eq!(offered(&llm.requests()[2]), ["run_script"]);
+    let request = &llm.requests()[3];
+    assert_eq!(offered(request), ["run_script"]);
+    let description = request["tools"][0]["description"].as_str().unwrap();
+    assert!(!description.contains("$results"), "{description}");
 }
 
 #[sqlx::test]
@@ -913,14 +940,15 @@ async fn answers_with_the_tools_of_shared_servers_the_user_turned_on(db: SqliteP
     assert_eq!(
         requests[1]["tools"][1]["description"],
         "A tool of the MCP server \"Echo Server\", an external service admin shared with the \
-        user. Echoes the text."
+        user. Its result is stored for run_script, and shown to you only if it is short. Echoes \
+        the text."
     );
     let system = requests[1]["system"].to_string();
     assert!(
         system.contains("\\\"Echo Server\\\" (shared with the user by admin)"),
         "{system}"
     );
-    assert_eq!(tool_result(&requests[2])["content"], "echo: hi");
+    assert_stored(&tool_result(&requests[2]));
 
     let (status, body) = turn_on(&alice, id, false).await;
     assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
@@ -1090,7 +1118,7 @@ async fn fails_only_the_calls_the_server_refuses(db: SqlitePool) {
         "{refused}"
     );
     // The session is still usable.
-    assert_eq!(tool_result(&requests[3])["content"], "echo: hi");
+    assert_stored(&tool_result(&requests[3]));
     assert_eq!(mcp.calls(), [json!({"text": "hi"})]);
 
     // The server stays as it was, with its tools.
@@ -1137,7 +1165,7 @@ async fn tells_the_model_when_a_call_was_lost(db: SqlitePool) {
         "The connection to the MCP server \"Echo\" was lost during the call. The tool may or \
         may not have run, so check that before calling it again."
     );
-    assert_eq!(tool_result(&requests[2])["content"], "echo: after the loss");
+    assert_stored(&tool_result(&requests[2]));
     // It may have run, so it was not sent again.
     let expected = [
         json!({"text": LOSE_RESULT}),
@@ -1217,8 +1245,8 @@ async fn signs_in_with_oauth(db: SqlitePool) {
     let refreshes = mcp.refreshes();
     let answer = ask(&admin, "Echo something").await;
     assert_eq!(answer["status"], "COMPLETED", "{answer}");
-    let result = tool_result(&llm.requests()[1]);
-    assert_eq!(result["content"], "echo: signed in", "{result}");
+    assert_stored(&tool_result(&llm.requests()[1]));
+    assert_eq!(mcp.calls(), [json!({"text": "signed in"})]);
     assert!(mcp.refreshes() > refreshes);
 
     // Revoked, the server needs a new sign-in, and its tools are withdrawn until then.
@@ -1354,8 +1382,8 @@ async fn refreshes_tokens_with_the_client_secret(db: SqlitePool) {
 
     let answer = ask(&admin, "Echo something").await;
     assert_eq!(answer["status"], "COMPLETED", "{answer}");
-    let result = tool_result(&llm.requests()[1]);
-    assert_eq!(result["content"], "echo: refreshed", "{result}");
+    assert_stored(&tool_result(&llm.requests()[1]));
+    assert_eq!(mcp.calls(), [json!({"text": "refreshed"})]);
     assert!(mcp.refreshes() > refreshes);
 }
 
@@ -1436,9 +1464,12 @@ async fn refreshes_tokens_one_connection_at_a_time(db: SqlitePool) {
         assert_eq!(answer["status"], "COMPLETED", "{answer}");
     }
     for request in &llm.requests()[2..] {
-        let result = tool_result(request);
-        assert_eq!(result["content"], "echo: together", "{result}");
+        assert_stored(&tool_result(request));
     }
+    assert_eq!(
+        mcp.calls(),
+        [json!({"text": "together"}), json!({"text": "together"})]
+    );
     assert_eq!(mcp.rejected_refreshes(), 0);
     let (_, list) = admin.get("/api/v1/mcp-servers").await;
     assert_eq!(list[0]["status"], "READY", "{list}");

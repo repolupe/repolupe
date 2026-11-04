@@ -1,10 +1,14 @@
 //! [`RUN_SCRIPT`]: JavaScript the model writes to calculate, count or transform data, run by
 //! QuickJS in the API process. QuickJS has no I/O of its own (no `std` or `os` modules), so the
 //! script only sees what it is given: the files it asks for in `files`, read from the pinned
-//! commit before it starts, the attachments it asks for in `attachments`, and `console` to
-//! print. Each call gets its own runtime, limited in
-//! memory, stack and time, so calls share no state, and at most [`MAX_SCRIPTS`] run at once.
+//! commit before it starts, as `$files`, the attachments it asks for in `attachments` as
+//! `$attachments`, the stored results of tool calls as `$results` (see
+//! [`super::support::results`]), loaded when the script first reads them, and `console` to
+//! print. The globals start with `$`, so they don't collide with the script's own variables.
+//! Each call gets its own runtime, limited in memory, stack and time, so calls share no state,
+//! and at most [`MAX_SCRIPTS`] run at once.
 
+use super::support::results::{StoredResult, dropped_message};
 use super::support::{
     MAX_OUTPUT_CHARS, Text, file_path_schema, format_size, normalize_path, parse_args, read_text,
     repository_schema,
@@ -17,24 +21,28 @@ use crate::service::llm::ToolDefinition;
 use rquickjs::allocator::{Allocator, RustAllocator};
 use rquickjs::context::EvalOptions;
 use rquickjs::promise::PromiseState;
-use rquickjs::{CatchResultExt, CaughtError, Context, Ctx, Function, Object, Runtime, Value};
+use rquickjs::{
+    CatchResultExt, CaughtError, Context, Ctx, Exception, Function, Object, Runtime, Value,
+};
 use serde::Deserialize;
 use serde_json::{Value as Json, json};
 use std::cell::{Cell, RefCell};
 use std::ptr;
 use std::rc::Rc;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Semaphore;
 
 const MAX_DURATION: Duration = Duration::from_secs(5);
-const MAX_MEMORY: usize = 64 * 1024 * 1024;
+const MAX_MEMORY: usize = 128 * 1024 * 1024;
 /// Below the 2 MiB of the threads of `spawn_blocking`, so deep recursion is a `RangeError`
 /// instead of a stack overflow.
 const MAX_STACK: usize = 512 * 1024;
 /// Files and attachments of a call together.
-const MAX_FILES: usize = 20;
+const MAX_INPUTS: usize = 20;
 /// Of all files and attachments of a call together, so they fit into [`MAX_MEMORY`] as UTF-16.
-const MAX_FILES_BYTES: usize = 16 * 1024 * 1024;
+/// Also the largest result stored for scripts, see [`super::support::results`].
+pub(super) const MAX_INPUT_BYTES: usize = 16 * 1024 * 1024;
 const FILE_NAME: &str = "script.js";
 /// Scripts running at once in this process. Each may use [`MAX_MEMORY`] plus its files, so
 /// without a limit many calls in one round, or several chats at once, could run the server or
@@ -92,6 +100,28 @@ const PRELUDE: &str = r#"
 }
 "#;
 
+/// Installs `$results`, with a getter for each stored result that loads it with `load` and
+/// then replaces itself with the value, so a script only parses the results it reads. Dropped
+/// results are left out of the keys, and their getters throw.
+const RESULTS: &str = r#"
+(load, kept) => {
+  const results = {};
+  kept.forEach((isKept, index) => {
+    const key = String(index + 1);
+    const set = (value) => Object.defineProperty(results, key, {
+      value, writable: true, enumerable: true, configurable: true,
+    });
+    Object.defineProperty(results, key, {
+      get() { const value = load(index + 1); set(value); return value; },
+      set,
+      enumerable: isKept,
+      configurable: true,
+    });
+  });
+  globalThis.$results = results;
+}
+"#;
+
 pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
     let mut description = format!(
         "Run JavaScript (ES2023) to calculate, count, sort, or transform data, instead of \
@@ -115,13 +145,13 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
     if has_files {
         description.push_str(
             " To compute with files of a repository, e.g. sum up a column of a CSV file, list \
-            them in `files`: their text is in the global object `files`, keyed by path, e.g. \
-            `files['data/prices.csv']`.",
+            them in `files`: their text is in the global object `$files`, keyed by path, e.g. \
+            `$files['data/prices.csv']`.",
         );
         properties["files"] = json!({
             "type": "array",
             "items": file_path_schema(),
-            "maxItems": MAX_FILES,
+            "maxItems": MAX_INPUTS,
             "description": "Files to pass to the script.",
         });
         properties["repository"] = repository_schema(tools);
@@ -130,18 +160,26 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
         description.push_str(&format!(
             " To compute with files the user attached to the chat, list their numbers in \
             `attachments` instead of reading them with {READ_ATTACHMENT} and copying the data \
-            into the script: their text is in the global object `attachments`, keyed by \
-            number, e.g. `attachments[1]`."
+            into the script: their text is in the global object `$attachments`, keyed by \
+            number, e.g. `$attachments[1]`."
         ));
         properties["attachments"] = json!({
             "type": "array",
             "items": {"type": "integer", "enum": tools.attachments.numbers()},
-            "maxItems": MAX_FILES,
+            "maxItems": MAX_INPUTS,
             "description": "Numbers of the attachments to pass to the script.",
         });
     }
     if has_files || has_attachments {
         description.push_str(" PDFs are passed as Markdown converted from them.");
+    }
+    if tools.mcp.has_tools() {
+        description.push_str(
+            " The results of the MCP tools (named `mcp__…`) are stored, numbered from 1, and \
+            shown to you only if they are short. They are always in the global object `$results`, keyed by number, \
+            e.g. `$results[1]`, as text, or parsed if they are JSON. A result is stored once its \
+            call is complete, so use it in a later response than the call.",
+        );
     }
     ToolDefinition {
         name: RUN_SCRIPT.to_string(),
@@ -185,14 +223,14 @@ pub(super) fn parse(input: &Json) -> Result<(Option<String>, Call), String> {
     let input_files = input.files.unwrap_or_default();
     let input_attachments = input.attachments.unwrap_or_default();
     let count = input_files.len() + input_attachments.len();
-    if count > MAX_FILES {
+    if count > MAX_INPUTS {
         return Err(format!(
-            "Pass at most {MAX_FILES} files and attachments together, not {count}."
+            "Pass at most {MAX_INPUTS} files and attachments together, not {count}."
         ));
     }
     let mut files = Vec::new();
     for path in input_files {
-        // The paths are the keys in `files`, so they must be written as the script reads them.
+        // The paths are the keys in `$files`, so they must be written as the script reads them.
         let normalized = normalize_path(&path)?;
         if normalized.is_empty() {
             return Err(format!("`files` takes paths of files, not `{path}`."));
@@ -244,12 +282,10 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Stri
         let content = inputs.take(text)?;
         inputs.attachments.push((number.to_string(), content));
     }
-    let Inputs {
-        files,
-        attachments,
-        mut notes,
-        ..
-    } = inputs;
+    if invocation.mcp.has_tools() {
+        inputs.results = Some(invocation.results.snapshot());
+    }
+    let mut notes = std::mem::take(&mut inputs.notes);
     let code = args.code.clone();
     // The permit moves into the thread, which keeps running until the deadline even if the
     // generation is cancelled and this future dropped.
@@ -257,7 +293,7 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Stri
         let _permit = permit;
         #[cfg(test)]
         let _running = tests::Running::start();
-        execute(&code, &files, &attachments)
+        execute(&code, &inputs)
     })
     .await
     .map_err(|e| AppError::InternalServerError(format!("The script panicked: {e}")))??;
@@ -272,19 +308,22 @@ struct Inputs {
     files: Vec<(String, String)>,
     /// Attachments, by number.
     attachments: Vec<(String, String)>,
+    /// The stored results, by number from 1, `None` for those dropped. `None` without MCP
+    /// tools, which then don't get `$results`.
+    results: Option<Vec<Option<Arc<StoredResult>>>>,
     /// What the model should know about them, e.g. that they were recognized with OCR.
     notes: Vec<String>,
     bytes: usize,
 }
 
 impl Inputs {
-    /// The content of `text`, counted against [`MAX_FILES_BYTES`].
+    /// The content of `text`, counted against [`MAX_INPUT_BYTES`].
     fn take(&mut self, text: Text) -> Result<String, ToolError> {
         self.bytes += text.content.len();
-        if self.bytes > MAX_FILES_BYTES {
+        if self.bytes > MAX_INPUT_BYTES {
             return Err(ToolError::Invalid(format!(
                 "The files are too large to pass to a script together, the limit is {}.",
-                format_size(MAX_FILES_BYTES as u64)
+                format_size(MAX_INPUT_BYTES as u64)
             )));
         }
         self.notes.extend(text.note);
@@ -447,13 +486,10 @@ fn cut(mut text: String, what: &str) -> String {
     text
 }
 
-/// Runs `code` with `files` and `attachments` as the globals of the same names, each left out
-/// if empty. Blocks for up to [`MAX_DURATION`].
-fn execute(
-    code: &str,
-    files: &[(String, String)],
-    attachments: &[(String, String)],
-) -> Result<String, ToolError> {
+/// Runs `code` with the files, attachments and results of `inputs` as the globals `$files`,
+/// `$attachments` and `$results`, the first two left out if empty. Blocks for up to
+/// [`MAX_DURATION`].
+fn execute(code: &str, inputs: &Inputs) -> Result<String, ToolError> {
     let internal = |e: rquickjs::Error| {
         ToolError::Internal(AppError::InternalServerError(format!(
             "Could not set up the script runtime: {e}"
@@ -478,7 +514,10 @@ fn execute(
         };
         let install: Function = ctx.eval(PRELUDE)?;
         let inspect: Function = install.call((print,))?;
-        for (name, entries) in [("files", files), ("attachments", attachments)] {
+        for (name, entries) in [
+            ("$files", &inputs.files),
+            ("$attachments", &inputs.attachments),
+        ] {
             if !entries.is_empty() {
                 let object = Object::new(ctx.clone())?;
                 for (key, content) in entries {
@@ -486,6 +525,11 @@ fn execute(
                 }
                 ctx.globals().set(name, object)?;
             }
+        }
+        if let Some(results) = &inputs.results {
+            let kept: Vec<bool> = results.iter().map(Option::is_some).collect();
+            let install: Function = ctx.eval(RESULTS)?;
+            install.call::<_, ()>((result_loader(&ctx, results.clone())?, kept))?;
         }
         Ok(rquickjs::Persistent::save(&ctx, inspect))
     });
@@ -541,6 +585,29 @@ fn execute(
     }
 }
 
+/// The function that loads a result for `$results`: a string for text, the value for JSON.
+/// Throws for a dropped result, and returns `undefined` for unknown numbers.
+fn result_loader<'js>(
+    ctx: &Ctx<'js>,
+    results: Vec<Option<Arc<StoredResult>>>,
+) -> rquickjs::Result<Function<'js>> {
+    Function::new(
+        ctx.clone(),
+        move |ctx: Ctx<'js>, number: usize| -> rquickjs::Result<Value<'js>> {
+            let Some(result) = number.checked_sub(1).and_then(|i| results.get(i)) else {
+                return Ok(Value::new_undefined(ctx));
+            };
+            match result.as_deref() {
+                Some(StoredResult::Text(text)) => {
+                    Ok(rquickjs::String::from_str(ctx, text)?.into_value())
+                }
+                Some(StoredResult::Json(json)) => ctx.json_parse(json.as_str()),
+                None => Err(Exception::throw_message(&ctx, &dropped_message(number))),
+            }
+        },
+    )
+}
+
 /// The value of a promise, e.g. from `main()` with `async function main()`, once the jobs it
 /// waits for ran. The interrupt handler stops each job at the deadline, but not an endless
 /// chain of short ones, so the loop checks it too.
@@ -590,7 +657,9 @@ fn describe_error<'js>(
 mod tests {
     use super::*;
     use crate::service::llm::ToolUse;
+    use crate::service::tools::mcp::McpTools;
     use crate::service::tools::support::fixture::{Fixture, identities};
+    use crate::service::tools::support::results::ResultValue;
     use crate::service::tools::{ToolOutput, unused_db};
     use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -617,6 +686,10 @@ mod tests {
     /// Runs a script in a chat without repositories.
     async fn script(code: &str) -> ToolOutput {
         let tools = RepositoryTools::new(Vec::new(), unused_db(), identities());
+        script_with(&tools, code).await
+    }
+
+    async fn script_with(tools: &RepositoryTools, code: &str) -> ToolOutput {
         let tool_use = ToolUse {
             id: "call".to_string(),
             name: RUN_SCRIPT.to_string(),
@@ -745,7 +818,7 @@ mod tests {
         );
         assert_eq!(
             error("const a = []; while (true) a.push('x'.repeat(1000) + a.length);").await,
-            "The script ran out of memory, it may use at most 64.0 MB."
+            "The script ran out of memory, it may use at most 128.0 MB."
         );
         // Also when the memory is freed before the error is reported, and when QuickJS can
         // still create the error.
@@ -758,7 +831,7 @@ mod tests {
         ] {
             assert_eq!(
                 error(code).await,
-                "The script ran out of memory, it may use at most 64.0 MB.",
+                "The script ran out of memory, it may use at most 128.0 MB.",
                 "{code}"
             );
         }
@@ -799,7 +872,7 @@ mod tests {
             ("data/prices.csv", b"item,price\napple,1.20\npear,0.85\n"),
             ("logo.png", b"\x89PNG\r\n\x1a\n\0\0\0"),
         ]);
-        let sum = "files['data/prices.csv'].trim().split('\\n').slice(1)\
+        let sum = "$files['data/prices.csv'].trim().split('\\n').slice(1)\
             .map((line) => Number(line.split(',')[1])).reduce((a, b) => a + b, 0).toFixed(2)";
         assert_eq!(
             fixture
@@ -827,10 +900,106 @@ mod tests {
         );
         assert_eq!(
             fixture
-                .error(RUN_SCRIPT, json!({"code": "files", "files": []}))
+                .error(RUN_SCRIPT, json!({"code": "$files", "files": []}))
                 .await,
-            "Uncaught ReferenceError: files is not defined\n    at <eval> (script.js:1:1)"
+            "Uncaught ReferenceError: $files is not defined\n    at <eval> (script.js:1:1)"
         );
+    }
+
+    #[tokio::test]
+    async fn passes_results() {
+        let mut tools = RepositoryTools::new(Vec::new(), unused_db(), identities());
+        // Without MCP tools there are no results.
+        assert_eq!(
+            script_with(&tools, "$results").await.content,
+            "Uncaught ReferenceError: $results is not defined\n    at <eval> (script.js:1:1)"
+        );
+        assert!(!tools.definitions()[0].description.contains("$results"));
+
+        tools.mcp = McpTools::unconnected("Docs", &["search"]);
+        let definitions = tools.definitions();
+        let definition = definitions.iter().find(|d| d.name == RUN_SCRIPT).unwrap();
+        assert!(definition.description.contains("`$results[1]`"));
+        assert!(definition.input_schema["properties"]["results"].is_null());
+        // Also before a tool stored one.
+        let ok = async |code: &str| {
+            let output = script_with(&tools, code).await;
+            assert!(!output.is_error, "{}", output.content);
+            output.content
+        };
+        assert_eq!(ok("Object.keys($results)").await, "Result: []");
+
+        let text = ResultValue::Text("one\ntwo".to_string());
+        assert!(tools.results.store(text).is_ok());
+        let json = ResultValue::Json(json!({"items": [{"price": 1.5}, {"price": 2}]}));
+        assert!(tools.results.store(json).is_ok());
+        let sum = "$results[1].split('\\n').length \
+            + $results[2].items.reduce((sum, item) => sum + item.price, 0)";
+        assert_eq!(ok(sum).await, "Result: 5.5");
+        assert_eq!(ok("Object.keys($results)").await, "Result: [\"1\", \"2\"]");
+        assert_eq!(
+            ok("$results[3]").await,
+            "(no output, print results with console.log)"
+        );
+        // Loaded once, and the script may change them or use the names itself.
+        assert_eq!(
+            ok("$results[2].items.pop(); $results[2].items.length").await,
+            "Result: 1"
+        );
+        assert_eq!(ok("$results[1] = 'x'; $results[1]").await, "Result: x");
+        assert_eq!(
+            ok("const $results = [1]; $results.length").await,
+            "Result: 1"
+        );
+    }
+
+    #[test]
+    fn throws_for_dropped_results() {
+        let inputs = Inputs {
+            results: Some(vec![
+                None,
+                Some(Arc::new(StoredResult::Text("b".to_string()))),
+            ]),
+            ..Inputs::default()
+        };
+        match execute("$results[1]", &inputs) {
+            Err(ToolError::Invalid(message)) => assert!(
+                message.starts_with(
+                    "Uncaught Error: Result 1 is no longer stored, the results of this answer \
+                    took more than 32.0 MB. Call the tool again."
+                ),
+                "{message}"
+            ),
+            _ => panic!("reading a dropped result should throw"),
+        }
+        match execute("[Object.keys($results), $results[2]]", &inputs) {
+            Ok(output) => assert_eq!(output, "Result: [[\"2\"], \"b\"]"),
+            _ => panic!("the other results should be readable"),
+        }
+    }
+
+    #[test]
+    fn loads_results_when_read() {
+        // Within the bytes, but an array of numbers takes 16 bytes per item in QuickJS.
+        let items = MAX_INPUT_BYTES / 2 - 1;
+        let json = format!("[{}0]", "0,".repeat(items - 1));
+        assert!(json.len() <= MAX_INPUT_BYTES);
+        let inputs = Inputs {
+            results: Some(vec![Some(Arc::new(StoredResult::Json(json)))]),
+            ..Inputs::default()
+        };
+        // Not parsed unless the script reads it.
+        match execute("1 + 1", &inputs) {
+            Ok(output) => assert_eq!(output, "Result: 2"),
+            _ => panic!("the result should not be loaded"),
+        }
+        match execute("$results[1].length", &inputs) {
+            Err(ToolError::Invalid(message)) => assert_eq!(
+                message,
+                "The script ran out of memory, it may use at most 128.0 MB."
+            ),
+            _ => panic!("the result should not fit"),
+        }
     }
 
     #[tokio::test]

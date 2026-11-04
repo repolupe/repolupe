@@ -9,9 +9,14 @@
 //!
 //! An answer gets at most [`MAX_TOOLS`] MCP tools, with definitions of at most
 //! [`MAX_DEFINITION_BYTES`] together, shared fairly by the servers (see [`select`]).
+//!
+//! The model sees only errors and short results of the tools: the results are stored for
+//! [`RUN_SCRIPT`], so the model processes them with scripts instead of reading them, see
+//! [`super::support::results`].
 
 use super::support::MAX_OUTPUT_CHARS;
-use super::{Call, ToolError};
+use super::support::results::{ResultValue, StoredResults};
+use super::{Call, RUN_SCRIPT, ToolError};
 use crate::model::mcp_server::McpTool;
 use crate::service::llm::ToolDefinition;
 use crate::service::mcp::{
@@ -129,6 +134,11 @@ impl McpTools {
         }
     }
 
+    /// Whether the model gets any MCP tools.
+    pub(super) fn has_tools(&self) -> bool {
+        !self.names.is_empty()
+    }
+
     /// The names of the servers whose tools the model gets, with the owner's user name for the
     /// ones shared with the user.
     pub(super) fn server_names(&self) -> Vec<(&str, Option<&str>)> {
@@ -150,7 +160,9 @@ impl McpTools {
                 ToolDefinition {
                     name: name.clone(),
                     description: format!(
-                        "A tool of the MCP server \"{}\", an external service {}. {about}",
+                        "A tool of the MCP server \"{}\", an external service {}. Its result \
+                        is stored for {RUN_SCRIPT}, and shown to you only if it is short. \
+                        {about}",
                         server.name,
                         match &server.shared_by {
                             Some(owner) => format!("{owner} shared with the user"),
@@ -183,7 +195,12 @@ impl McpTools {
         })
     }
 
-    pub(super) async fn run(&self, args: &Args) -> Result<String, ToolError> {
+    /// Stores the result in `results`, the model only gets errors and short results.
+    pub(super) async fn run(
+        &self,
+        args: &Args,
+        results: &StoredResults,
+    ) -> Result<String, ToolError> {
         let server = &self.servers[args.server];
         let (_, tool) = &server.tools[args.tool];
         let session = self.session(server).await?;
@@ -215,12 +232,12 @@ impl McpTools {
                 )));
             }
         };
-        let is_error = result.is_error == Some(true);
-        let text = result_text(result);
-        if is_error {
-            Err(ToolError::Invalid(text))
-        } else {
-            Ok(text)
+        if result.is_error == Some(true) {
+            return Err(ToolError::Invalid(error_text(result)));
+        }
+        match result_value(result) {
+            Some(value) => results.store(value),
+            None => Ok("The tool returned nothing.".to_string()),
         }
     }
 
@@ -291,6 +308,14 @@ impl McpTools {
     }
 }
 
+#[cfg(test)]
+impl McpTools {
+    /// The tools `tools` of a server named `name`, without a client, so calls fail.
+    pub(super) fn unconnected(name: &str, tools: &[&str]) -> Self {
+        Self::build(None, vec![tests::server(name, tools)])
+    }
+}
+
 /// Leaves out the tools beyond [`MAX_TOOLS`] and [`MAX_DEFINITION_BYTES`]. The servers take
 /// turns, one tool each in their order, so each gets a fair share. A tool too large for the
 /// bytes left is skipped, the following ones may still fit.
@@ -348,11 +373,47 @@ pub(crate) fn definition_bytes(tool: &McpTool, schema_bytes: usize) -> usize {
     schema_bytes.saturating_add(tool.name.len() + about.map_or(0, String::len))
 }
 
-/// The content of the result as text, cut at [`MAX_OUTPUT_CHARS`]. Images and audio are only
-/// described, since tool results are text here.
-fn result_text(result: CallToolResult) -> String {
-    let mut parts: Vec<String> = result
-        .content
+/// What the tool returned: its structured content, or else its content as text, parsed if it
+/// is a JSON object or array, as tools often return JSON as text. `None` if it returned nothing.
+fn result_value(result: CallToolResult) -> Option<ResultValue> {
+    if let Some(structured) = result.structured_content {
+        return Some(ResultValue::Json(structured));
+    }
+    let text = content_text(result.content);
+    if text.is_empty() {
+        return None;
+    }
+    if text.trim_start().starts_with(['{', '['])
+        && let Ok(value) = serde_json::from_str(&text)
+    {
+        return Some(ResultValue::Json(value));
+    }
+    Some(ResultValue::Text(text))
+}
+
+/// What a failed call returned, cut at [`MAX_OUTPUT_CHARS`].
+fn error_text(result: CallToolResult) -> String {
+    let mut text = content_text(result.content);
+    if text.is_empty()
+        && let Some(structured) = result.structured_content
+    {
+        text = serde_json::to_string_pretty(&structured).unwrap_or_default();
+    }
+    if text.is_empty() {
+        return "The tool failed without saying why.".to_string();
+    }
+    match text.char_indices().nth(MAX_OUTPUT_CHARS) {
+        Some((end, _)) => format!(
+            "{}\n\n[The result was cut at {MAX_OUTPUT_CHARS} characters.]",
+            &text[..end]
+        ),
+        None => text,
+    }
+}
+
+/// The content as text. Images and audio are only described, since tool results are text here.
+fn content_text(content: Vec<ContentBlock>) -> String {
+    content
         .into_iter()
         .map(|block| match block {
             ContentBlock::Text(text) => text.text,
@@ -371,23 +432,8 @@ fn result_text(result: CallToolResult) -> String {
             ContentBlock::ResourceLink(link) => format!("[Resource {}: {}]", link.name, link.uri),
             _ => "[Content of an unknown kind not shown]".to_string(),
         })
-        .collect();
-    if parts.is_empty()
-        && let Some(structured) = result.structured_content
-    {
-        parts.push(serde_json::to_string_pretty(&structured).unwrap_or_default());
-    }
-    let text = parts.join("\n\n");
-    if text.is_empty() {
-        return "The tool returned nothing.".to_string();
-    }
-    match text.char_indices().nth(MAX_OUTPUT_CHARS) {
-        Some((end, _)) => format!(
-            "{}\n\n[The result was cut at {MAX_OUTPUT_CHARS} characters.]",
-            &text[..end]
-        ),
-        None => text,
-    }
+        .collect::<Vec<_>>()
+        .join("\n\n")
 }
 
 /// Lowercase ASCII letters and digits, separated by single `_`.
@@ -451,7 +497,7 @@ mod tests {
         }
     }
 
-    fn server(name: &str, tools: &[&str]) -> McpServerTools {
+    pub(super) fn server(name: &str, tools: &[&str]) -> McpServerTools {
         McpServerTools {
             target: McpTarget {
                 id: Uuid::now_v7(),
@@ -524,13 +570,14 @@ mod tests {
         let descriptions: Vec<String> = tools.definitions().map(|d| d.description).collect();
         assert_eq!(
             descriptions[0],
-            "A tool of the MCP server \"Docs\", an external service the user connected. Does \
-            things."
+            "A tool of the MCP server \"Docs\", an external service the user connected. Its \
+            result is stored for run_script, and shown to you only if it is short. Does things."
         );
         assert_eq!(
             descriptions[3],
             "A tool of the MCP server \"Wiki\", an external service alice shared with the user. \
-            Does things."
+            Its result is stored for run_script, and shown to you only if it is short. Does \
+            things."
         );
     }
 
@@ -601,15 +648,47 @@ mod tests {
     }
 
     #[test]
-    fn formats_results() {
+    fn converts_results() {
         let text = |t: &str| ContentBlock::text(t);
-        let mut result = CallToolResult::success(vec![text("one"), text("two")]);
-        assert_eq!(result_text(result.clone()), "one\n\ntwo");
-        result.content.clear();
-        assert_eq!(result_text(result.clone()), "The tool returned nothing.");
-        result.structured_content = Some(json!({"a": 1}));
-        assert_eq!(result_text(result), "{\n  \"a\": 1\n}");
-        let long = CallToolResult::success(vec![text(&"x".repeat(MAX_OUTPUT_CHARS + 1))]);
-        assert!(result_text(long).ends_with("[The result was cut at 40000 characters.]"));
+        let value = |content: Vec<ContentBlock>, structured: Option<Value>| {
+            let mut result = CallToolResult::success(content);
+            result.structured_content = structured;
+            result_value(result).map(|value| match value {
+                ResultValue::Text(text) => json!({"text": text}),
+                ResultValue::Json(json) => json!({"json": json}),
+            })
+        };
+        assert_eq!(
+            value(vec![text("one"), text("two")], None),
+            Some(json!({"text": "one\n\ntwo"}))
+        );
+        // Tools often return JSON as text.
+        assert_eq!(
+            value(vec![text(" [1, {\"a\": 2}]")], None),
+            Some(json!({"json": [1, {"a": 2}]}))
+        );
+        assert_eq!(
+            value(vec![text("{not JSON}")], None),
+            Some(json!({"text": "{not JSON}"}))
+        );
+        assert_eq!(value(vec![text("42")], None), Some(json!({"text": "42"})));
+        assert_eq!(
+            value(vec![text("summary")], Some(json!({"a": 1}))),
+            Some(json!({"json": {"a": 1}}))
+        );
+        assert_eq!(value(Vec::new(), None), None);
+    }
+
+    #[test]
+    fn shows_errors() {
+        let mut failed = CallToolResult::error(Vec::new());
+        assert_eq!(
+            error_text(failed.clone()),
+            "The tool failed without saying why."
+        );
+        failed.structured_content = Some(json!({"a": 1}));
+        assert_eq!(error_text(failed.clone()), "{\n  \"a\": 1\n}");
+        failed.content = vec![ContentBlock::text("x".repeat(MAX_OUTPUT_CHARS + 1))];
+        assert!(error_text(failed).ends_with("[The result was cut at 40000 characters.]"));
     }
 }
