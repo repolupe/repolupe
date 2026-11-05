@@ -257,6 +257,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   UsageDto dco_decode_box_autoadd_usage_dto(dynamic raw);
 
   @protected
+  UsageUpdateDto dco_decode_box_autoadd_usage_update_dto(dynamic raw);
+
+  @protected
   ChangePasswordRequest dco_decode_change_password_request(dynamic raw);
 
   @protected
@@ -698,6 +701,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   UsageDto dco_decode_usage_dto(dynamic raw);
 
   @protected
+  UsageUpdateDto dco_decode_usage_update_dto(dynamic raw);
+
+  @protected
   UserDto dco_decode_user_dto(dynamic raw);
 
   @protected
@@ -917,6 +923,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   UsageDto sse_decode_box_autoadd_usage_dto(SseDeserializer deserializer);
+
+  @protected
+  UsageUpdateDto sse_decode_box_autoadd_usage_update_dto(SseDeserializer deserializer);
 
   @protected
   ChangePasswordRequest sse_decode_change_password_request(SseDeserializer deserializer);
@@ -1360,6 +1369,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   UsageDto sse_decode_usage_dto(SseDeserializer deserializer);
 
   @protected
+  UsageUpdateDto sse_decode_usage_update_dto(SseDeserializer deserializer);
+
+  @protected
   UserDto sse_decode_user_dto(SseDeserializer deserializer);
 
   @protected
@@ -1583,6 +1595,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_autoadd_usage_dto(UsageDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_usage_update_dto(UsageUpdateDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_change_password_request(ChangePasswordRequest self, SseSerializer serializer);
@@ -2024,6 +2039,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_usage_dto(UsageDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_usage_update_dto(UsageUpdateDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_user_dto(UserDto self, SseSerializer serializer);

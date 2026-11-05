@@ -2791,6 +2791,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  UsageUpdateDto dco_decode_box_autoadd_usage_update_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_usage_update_dto(raw);
+  }
+
+  @protected
   ChangePasswordRequest dco_decode_change_password_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -3586,10 +3592,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           toolCall: dco_decode_box_autoadd_tool_call_finished_dto(raw[1]),
         );
       case 4:
+        return MessageEvent_Usage(
+          update: dco_decode_box_autoadd_usage_update_dto(raw[1]),
+        );
+      case 5:
         return MessageEvent_Done(
           message: dco_decode_box_autoadd_message_dto(raw[1]),
         );
-      case 5:
+      case 6:
         return MessageEvent_Error(
           error: dco_decode_box_autoadd_client_error(raw[1]),
         );
@@ -4239,6 +4249,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  UsageUpdateDto dco_decode_usage_update_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return UsageUpdateDto(
+      usage: dco_decode_usage_dto(arr[0]),
+      cost: dco_decode_opt_box_autoadd_cost_dto(arr[1]),
+    );
+  }
+
+  @protected
   UserDto dco_decode_user_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -4729,6 +4750,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   UsageDto sse_decode_box_autoadd_usage_dto(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_usage_dto(deserializer));
+  }
+
+  @protected
+  UsageUpdateDto sse_decode_box_autoadd_usage_update_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_usage_update_dto(deserializer));
   }
 
   @protected
@@ -5652,9 +5679,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         var var_toolCall = sse_decode_box_autoadd_tool_call_finished_dto(deserializer);
         return MessageEvent_ToolCallFinished(toolCall: var_toolCall);
       case 4:
+        var var_update = sse_decode_box_autoadd_usage_update_dto(deserializer);
+        return MessageEvent_Usage(update: var_update);
+      case 5:
         var var_message = sse_decode_box_autoadd_message_dto(deserializer);
         return MessageEvent_Done(message: var_message);
-      case 5:
+      case 6:
         var var_error = sse_decode_box_autoadd_client_error(deserializer);
         return MessageEvent_Error(error: var_error);
       default:
@@ -6378,6 +6408,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  UsageUpdateDto sse_decode_usage_update_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_usage = sse_decode_usage_dto(deserializer);
+    var var_cost = sse_decode_opt_box_autoadd_cost_dto(deserializer);
+    return UsageUpdateDto(usage: var_usage, cost: var_cost);
+  }
+
+  @protected
   UserDto sse_decode_user_dto(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_id = sse_decode_Uuid(deserializer);
@@ -6874,6 +6912,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_box_autoadd_usage_dto(UsageDto self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usage_dto(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_usage_update_dto(UsageUpdateDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usage_update_dto(self, serializer);
   }
 
   @protected
@@ -7574,11 +7618,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case MessageEvent_ToolCallFinished(toolCall: final toolCall):
         sse_encode_i_32(3, serializer);
         sse_encode_box_autoadd_tool_call_finished_dto(toolCall, serializer);
-      case MessageEvent_Done(message: final message):
+      case MessageEvent_Usage(update: final update):
         sse_encode_i_32(4, serializer);
+        sse_encode_box_autoadd_usage_update_dto(update, serializer);
+      case MessageEvent_Done(message: final message):
+        sse_encode_i_32(5, serializer);
         sse_encode_box_autoadd_message_dto(message, serializer);
       case MessageEvent_Error(error: final error):
-        sse_encode_i_32(5, serializer);
+        sse_encode_i_32(6, serializer);
         sse_encode_box_autoadd_client_error(error, serializer);
     }
   }
@@ -8179,6 +8226,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_64(self.outputTokens, serializer);
     sse_encode_i_64(self.cacheReadTokens, serializer);
     sse_encode_i_64(self.cacheWriteTokens, serializer);
+  }
+
+  @protected
+  void sse_encode_usage_update_dto(UsageUpdateDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usage_dto(self.usage, serializer);
+    sse_encode_opt_box_autoadd_cost_dto(self.cost, serializer);
   }
 
   @protected

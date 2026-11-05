@@ -58,6 +58,11 @@ fn describe(event: &MessageEvent) -> String {
         MessageEvent::ToolCallFinished { tool_call } => {
             format!("finished {}", name(&tool_call.status))
         }
+        MessageEvent::Usage { update } => format!(
+            "usage {} {:?}",
+            update.usage.output_tokens,
+            update.cost.as_ref().map(|cost| &cost.amount)
+        ),
         MessageEvent::Done { message } => {
             format!("done {} {:?}", name(&message.status), message.content)
         }
@@ -445,12 +450,15 @@ fn streams_a_generation(remote: bool) {
     gate.add_permits(1);
     let mut events = vec![forwarded.next()];
     events.extend(forwarded.finish());
+    // The total usage after each response, without prices no cost.
     assert_eq!(
         events,
         [
+            "usage 1 None",
             "started read_attachment RUNNING",
             "finished COMPLETED",
             r#"delta "It says hello.""#,
+            "usage 2 None",
             r#"done COMPLETED "It says hello.""#,
         ]
     );

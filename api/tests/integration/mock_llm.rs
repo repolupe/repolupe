@@ -11,7 +11,7 @@ use std::convert::Infallible;
 use std::sync::{Arc, Mutex};
 use std::task::Poll;
 use std::time::Duration;
-use tokio::sync::watch;
+use tokio::sync::{Notify, watch};
 use tokio::task::JoinHandle;
 
 /// The models [`MockLlm`] lists, oldest first.
@@ -108,10 +108,16 @@ impl Drop for MockLlm {
 
 async fn messages(State(state): State<Arc<MockState>>, Json(body): Json<Value>) -> Response {
     state.requests.lock().unwrap().push(body);
-    match state.responses.lock().unwrap().pop_front() {
-        Some(response) => {
-            let body = stream::once(async move { Ok::<_, Infallible>(response.sse) });
-            let body = if response.stall {
+    let response = state.responses.lock().unwrap().pop_front();
+    match response {
+        Some(MockResponse { sse, stall, gate }) => {
+            let body = stream::once(async move {
+                if let Some(gate) = gate {
+                    gate.notified().await;
+                }
+                Ok::<_, Infallible>(sse)
+            });
+            let body = if stall {
                 let guard = StallGuard::new(state.clone());
                 let pending = stream::poll_fn(move |_| {
                     let _guard = &guard;
@@ -170,6 +176,16 @@ pub struct MockResponse {
     /// Keeps the stream open after `sse` until the client disconnects, so the answer stays
     /// `GENERATING`. Counted in [`MockLlm::stalled`].
     stall: bool,
+    /// Holds `sse` back until notified, see [`gated`].
+    gate: Option<Arc<Notify>>,
+}
+
+/// `response`, whose body is held back after the status until the returned gate is opened
+/// with `notify_one` (also before the request arrives).
+pub fn gated(mut response: MockResponse) -> (MockResponse, Arc<Notify>) {
+    let gate = Arc::new(Notify::new());
+    response.gate = Some(gate.clone());
+    (response, gate)
 }
 
 /// A response with one text block.
@@ -235,6 +251,7 @@ pub fn stalled_response() -> MockResponse {
             json!({"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": "Let me"}}),
         ]),
         stall: true,
+        gate: None,
     }
 }
 
@@ -262,6 +279,7 @@ fn complete(events: &[Value]) -> MockResponse {
     MockResponse {
         sse: sse(events),
         stall: false,
+        gate: None,
     }
 }
 

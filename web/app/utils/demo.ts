@@ -5,6 +5,7 @@ import samplePdfUrl from '~/assets/demo/sample_scan.pdf?url';
 import {
     type AttachmentDto,
     type ChatDetailDto,
+    type CostDto,
     DiffFileKind,
     DiffLineKind,
     ErrorCode,
@@ -269,6 +270,7 @@ function startAnswer(chat: ChatDetailDto): MessageDto {
             message.content += word;
             emit({type: 'content_delta', data: {text: word}});
         }
+        addUsage(message, emit, text.length / 4 | 0);
         finishAnswer(message, MessageStatus.COMPLETED);
     })();
 
@@ -328,6 +330,8 @@ async function callTool(message: MessageDto, generation: Generation, emit: (even
         status: ToolCallStatus.RUNNING,
         created_at: new Date().toISOString(),
     };
+    // of the response that called the tool
+    addUsage(message, emit, 40);
     message.tool_calls.push(toolCall);
     emit({type: 'tool_call_started', data: toolCall});
 
@@ -356,19 +360,34 @@ function finishAnswer(message: MessageDto, status: MessageStatus) {
     }
     message.status = status;
     message.finished_at = new Date().toISOString();
-    const usage = {
-        input_tokens: 1_200,
-        output_tokens: message.content.length / 4 | 0,
-        cache_read_tokens: 3_400,
-        cache_write_tokens: 0,
-    };
-    message.usage = usage;
-    if (message.model_id === HOSTED_MODEL_ID) {
-        const amount = (usage.input_tokens * PRICES.input + usage.output_tokens * PRICES.output
-            + usage.cache_read_tokens * PRICES.cache_read + usage.cache_write_tokens * PRICES.cache_write) / 1_000_000;
-        message.cost = {amount: amount.toFixed(8).replace(/\.?0+$/, ''), currency: 'USD'};
+    // like the API, an answer cancelled before its first response used no tokens
+    if (!message.usage) {
+        message.usage = {input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, cache_write_tokens: 0};
+        message.cost = cost(message);
     }
     generation.listeners.forEach(l => l({type: 'done', data: copy(message)}));
+}
+
+/** Like `Generation::add_usage`: adds the tokens of one response and sends the total so far. */
+function addUsage(message: MessageDto, emit: (event: MessageStreamEvent) => void, outputTokens: number) {
+    const usage = message.usage ?? {input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, cache_write_tokens: 0};
+    usage.input_tokens += 1_200;
+    usage.output_tokens += outputTokens;
+    usage.cache_read_tokens += 3_400;
+    message.usage = usage;
+    message.cost = cost(message);
+    emit({type: 'usage', data: {usage, cost: message.cost}});
+}
+
+/** Of the message's usage, `null` unless written by the hosted model, which is the only one with prices. */
+function cost(message: MessageDto): CostDto | null {
+    const usage = message.usage;
+    if (!usage || message.model_id !== HOSTED_MODEL_ID) {
+        return null;
+    }
+    const amount = (usage.input_tokens * PRICES.input + usage.output_tokens * PRICES.output
+        + usage.cache_read_tokens * PRICES.cache_read + usage.cache_write_tokens * PRICES.cache_write) / 1_000_000;
+    return {amount: amount.toFixed(8).replace(/\.?0+$/, ''), currency: 'USD'};
 }
 
 function createChat(body: Record<string, any>): ChatDetailDto {

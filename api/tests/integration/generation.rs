@@ -1,8 +1,8 @@
 use super::mock_llm::{
-    MODELS, MockLlm, error_response, stalled_response, text_and_tool_use_response, text_response,
-    tool_result, tool_use_response,
+    MODELS, MockLlm, error_response, gated, stalled_response, text_and_tool_use_response,
+    text_response, tool_result, tool_use_response,
 };
-use super::support::TestApp;
+use super::support::{TestApp, read_events};
 use axum::http::StatusCode;
 use serde_json::{Value, json};
 use sqlx::SqlitePool;
@@ -350,6 +350,113 @@ async fn records_usage_and_cost_of_all_rounds(db: SqlitePool) {
     let answer = alice.wait_for_answer(id).await;
     assert_eq!(answer["usage"]["input_tokens"], 1, "{answer}");
     assert_eq!(answer["cost"], json!(null));
+}
+
+#[sqlx::test]
+async fn streams_the_usage_after_each_round(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let alice = app.user("alice@example.com").await;
+    // Held back, so the stream is open before the first round ends
+    let (first, gate) = gated(tool_use_response("toolu_1", "unknown_tool", json!({})));
+    let llm = MockLlm::start(vec![first, text_response("Done.")]).await;
+    let configured = app.configure_llm(&llm).await;
+    let (status, model) = app
+        .admin()
+        .post(
+            &format!("/api/v1/models/{}/update", configured.model_id),
+            json!({"api_name": "mock-model", "display_name": "Mock Model", "input_price": "3", "output_price": "15.50"}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{model}");
+
+    let (status, chat) = alice
+        .post(
+            "/api/v1/chats",
+            json!({"content": "Hello?", "all_repositories": true}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{chat}");
+    let id = chat["id"].as_str().unwrap();
+    let message_id = chat["messages"][1]["id"].as_str().unwrap();
+    let stream = alice.open_stream(id, message_id).await;
+    gate.notify_one();
+    let events = read_events(stream).await;
+
+    let (name, snapshot) = &events[0];
+    assert_eq!(name, "snapshot");
+    assert_eq!(snapshot["usage"], json!(null), "{snapshot}");
+    assert_eq!(snapshot["cost"], json!(null), "{snapshot}");
+    // Each response uses 1 input and 1 output token, the totals so far are sent after each
+    let updates: Vec<&Value> = events
+        .iter()
+        .filter(|(name, _)| name == "usage")
+        .map(|(_, data)| data)
+        .collect();
+    assert_eq!(
+        updates,
+        [
+            &json!({
+                "usage": {"input_tokens": 1, "output_tokens": 1, "cache_read_tokens": 0, "cache_write_tokens": 0},
+                "cost": {"amount": "0.0000185", "currency": "EUR"},
+            }),
+            &json!({
+                "usage": {"input_tokens": 2, "output_tokens": 2, "cache_read_tokens": 0, "cache_write_tokens": 0},
+                "cost": {"amount": "0.000037", "currency": "EUR"},
+            }),
+        ],
+        "{events:?}"
+    );
+    // The last one matches the final message
+    let (name, done) = events.last().unwrap();
+    assert_eq!(name, "done");
+    assert_eq!(done["status"], "COMPLETED", "{done}");
+    assert_eq!(done["usage"], updates[1]["usage"]);
+    assert_eq!(done["cost"], updates[1]["cost"]);
+}
+
+#[sqlx::test]
+async fn snapshot_has_the_usage_so_far(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let alice = app.user("alice@example.com").await;
+    let llm = MockLlm::start(vec![
+        tool_use_response("toolu_1", "unknown_tool", json!({})),
+        stalled_response(),
+    ])
+    .await;
+    app.configure_llm(&llm).await;
+
+    let (status, chat) = alice
+        .post(
+            "/api/v1/chats",
+            json!({"content": "Hello?", "all_repositories": true}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{chat}");
+    let id = chat["id"].as_str().unwrap();
+    let message_id = chat["messages"][1]["id"].as_str().unwrap();
+    // The first round is done once the second request is stalled
+    llm.wait_for_stalled(1).await;
+    let stream = alice.open_stream(id, message_id).await;
+    let (status, body) = alice
+        .post(
+            &format!("/api/v1/chats/{id}/messages/{message_id}/cancel"),
+            json!({}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+    let events = read_events(stream).await;
+
+    let names: Vec<&str> = events.iter().map(|(name, _)| name.as_str()).collect();
+    assert_eq!(names, ["snapshot", "done"], "{events:?}");
+    let usage = json!({"input_tokens": 1, "output_tokens": 1, "cache_read_tokens": 0, "cache_write_tokens": 0});
+    let (snapshot, done) = (&events[0].1, &events[1].1);
+    assert_eq!(snapshot["status"], "GENERATING", "{snapshot}");
+    assert_eq!(snapshot["usage"], usage, "{snapshot}");
+    // No prices, so no cost
+    assert_eq!(snapshot["cost"], json!(null), "{snapshot}");
+    // The response that was cut off reports no tokens
+    assert_eq!(done["status"], "CANCELLED", "{done}");
+    assert_eq!(done["usage"], usage, "{done}");
 }
 
 #[sqlx::test]

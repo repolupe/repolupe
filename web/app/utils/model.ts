@@ -527,7 +527,10 @@ export interface MessageDto {
     created_at: string;
     /** When the answer reached its final status, `null` for user messages, while `GENERATING`, or if it was interrupted by a restart. */
     finished_at: string | null;
-    /** Tokens used for the answer, `null` for user messages, while `GENERATING`, or if unknown. */
+    /**
+     * Tokens used for the answer, `null` for user messages or if unknown. While `GENERATING`, only the message stream
+     * has them: the tokens so far, `null` before the first response of the language model.
+     */
     usage: UsageDto | null;
     /** At the prices when the answer finished, `null` if the model had no prices or the usage is unknown. */
     cost: CostDto | null;
@@ -688,14 +691,22 @@ export interface FileDiffDto {
  * Events of `GET /api/v1/chats/{id}/messages/{message_id}/stream`. The stream starts with a
  * `snapshot` of the message so far and ends with `done`, both carrying the full message.
  * While generating, the content includes the preambles to tool calls ("Let me look…"), which
- * `done` leaves out.
+ * `done` leaves out. `usage` follows each response of the language model with the tokens so far.
  */
 export type MessageStreamEvent =
     | { type: 'snapshot', data: MessageDto }
     | { type: 'content_delta', data: { text: string } }
     | { type: 'tool_call_started', data: ToolCallSummaryDto }
     | { type: 'tool_call_finished', data: { id: string, status: ToolCallStatus } }
+    | { type: 'usage', data: UsageUpdateDto }
     | { type: 'done', data: MessageDto };
+
+/** The `usage` event of the message stream: the tokens used so far, not only by the last response. */
+export interface UsageUpdateDto {
+    usage: UsageDto;
+    /** `null` if the model has no prices. */
+    cost: CostDto | null;
+}
 
 /** Stable error codes of the API (`ErrorCode` in api/src/config/error.rs). Branch on these, never on the message. */
 export enum ErrorCode {

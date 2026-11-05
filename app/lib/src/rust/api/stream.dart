@@ -52,6 +52,12 @@ sealed class MessageEvent with _$MessageEvent {
     required ToolCallFinishedDto toolCall,
   }) = MessageEvent_ToolCallFinished;
 
+  /// The tokens used so far and their cost, after each response of the language model:
+  /// replace the message's `usage` and `cost`.
+  const factory MessageEvent.usage({
+    required UsageUpdateDto update,
+  }) = MessageEvent_Usage;
+
   /// The final message (`COMPLETED`, `FAILED` or `CANCELLED`), the last event.
   const factory MessageEvent.done({
     required MessageDto message,

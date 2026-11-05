@@ -56,14 +56,15 @@ extension MessageEventPatterns on MessageEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( MessageEvent_Snapshot value)?  snapshot,TResult Function( MessageEvent_ContentDelta value)?  contentDelta,TResult Function( MessageEvent_ToolCallStarted value)?  toolCallStarted,TResult Function( MessageEvent_ToolCallFinished value)?  toolCallFinished,TResult Function( MessageEvent_Done value)?  done,TResult Function( MessageEvent_Error value)?  error,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( MessageEvent_Snapshot value)?  snapshot,TResult Function( MessageEvent_ContentDelta value)?  contentDelta,TResult Function( MessageEvent_ToolCallStarted value)?  toolCallStarted,TResult Function( MessageEvent_ToolCallFinished value)?  toolCallFinished,TResult Function( MessageEvent_Usage value)?  usage,TResult Function( MessageEvent_Done value)?  done,TResult Function( MessageEvent_Error value)?  error,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case MessageEvent_Snapshot() when snapshot != null:
 return snapshot(_that);case MessageEvent_ContentDelta() when contentDelta != null:
 return contentDelta(_that);case MessageEvent_ToolCallStarted() when toolCallStarted != null:
 return toolCallStarted(_that);case MessageEvent_ToolCallFinished() when toolCallFinished != null:
-return toolCallFinished(_that);case MessageEvent_Done() when done != null:
+return toolCallFinished(_that);case MessageEvent_Usage() when usage != null:
+return usage(_that);case MessageEvent_Done() when done != null:
 return done(_that);case MessageEvent_Error() when error != null:
 return error(_that);case _:
   return orElse();
@@ -83,14 +84,15 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( MessageEvent_Snapshot value)  snapshot,required TResult Function( MessageEvent_ContentDelta value)  contentDelta,required TResult Function( MessageEvent_ToolCallStarted value)  toolCallStarted,required TResult Function( MessageEvent_ToolCallFinished value)  toolCallFinished,required TResult Function( MessageEvent_Done value)  done,required TResult Function( MessageEvent_Error value)  error,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( MessageEvent_Snapshot value)  snapshot,required TResult Function( MessageEvent_ContentDelta value)  contentDelta,required TResult Function( MessageEvent_ToolCallStarted value)  toolCallStarted,required TResult Function( MessageEvent_ToolCallFinished value)  toolCallFinished,required TResult Function( MessageEvent_Usage value)  usage,required TResult Function( MessageEvent_Done value)  done,required TResult Function( MessageEvent_Error value)  error,}){
 final _that = this;
 switch (_that) {
 case MessageEvent_Snapshot():
 return snapshot(_that);case MessageEvent_ContentDelta():
 return contentDelta(_that);case MessageEvent_ToolCallStarted():
 return toolCallStarted(_that);case MessageEvent_ToolCallFinished():
-return toolCallFinished(_that);case MessageEvent_Done():
+return toolCallFinished(_that);case MessageEvent_Usage():
+return usage(_that);case MessageEvent_Done():
 return done(_that);case MessageEvent_Error():
 return error(_that);}
 }
@@ -106,14 +108,15 @@ return error(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( MessageEvent_Snapshot value)?  snapshot,TResult? Function( MessageEvent_ContentDelta value)?  contentDelta,TResult? Function( MessageEvent_ToolCallStarted value)?  toolCallStarted,TResult? Function( MessageEvent_ToolCallFinished value)?  toolCallFinished,TResult? Function( MessageEvent_Done value)?  done,TResult? Function( MessageEvent_Error value)?  error,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( MessageEvent_Snapshot value)?  snapshot,TResult? Function( MessageEvent_ContentDelta value)?  contentDelta,TResult? Function( MessageEvent_ToolCallStarted value)?  toolCallStarted,TResult? Function( MessageEvent_ToolCallFinished value)?  toolCallFinished,TResult? Function( MessageEvent_Usage value)?  usage,TResult? Function( MessageEvent_Done value)?  done,TResult? Function( MessageEvent_Error value)?  error,}){
 final _that = this;
 switch (_that) {
 case MessageEvent_Snapshot() when snapshot != null:
 return snapshot(_that);case MessageEvent_ContentDelta() when contentDelta != null:
 return contentDelta(_that);case MessageEvent_ToolCallStarted() when toolCallStarted != null:
 return toolCallStarted(_that);case MessageEvent_ToolCallFinished() when toolCallFinished != null:
-return toolCallFinished(_that);case MessageEvent_Done() when done != null:
+return toolCallFinished(_that);case MessageEvent_Usage() when usage != null:
+return usage(_that);case MessageEvent_Done() when done != null:
 return done(_that);case MessageEvent_Error() when error != null:
 return error(_that);case _:
   return null;
@@ -132,13 +135,14 @@ return error(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( MessageDto message)?  snapshot,TResult Function( ContentDeltaDto delta)?  contentDelta,TResult Function( ToolCallSummaryDto toolCall)?  toolCallStarted,TResult Function( ToolCallFinishedDto toolCall)?  toolCallFinished,TResult Function( MessageDto message)?  done,TResult Function( ClientError error)?  error,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( MessageDto message)?  snapshot,TResult Function( ContentDeltaDto delta)?  contentDelta,TResult Function( ToolCallSummaryDto toolCall)?  toolCallStarted,TResult Function( ToolCallFinishedDto toolCall)?  toolCallFinished,TResult Function( UsageUpdateDto update)?  usage,TResult Function( MessageDto message)?  done,TResult Function( ClientError error)?  error,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case MessageEvent_Snapshot() when snapshot != null:
 return snapshot(_that.message);case MessageEvent_ContentDelta() when contentDelta != null:
 return contentDelta(_that.delta);case MessageEvent_ToolCallStarted() when toolCallStarted != null:
 return toolCallStarted(_that.toolCall);case MessageEvent_ToolCallFinished() when toolCallFinished != null:
-return toolCallFinished(_that.toolCall);case MessageEvent_Done() when done != null:
+return toolCallFinished(_that.toolCall);case MessageEvent_Usage() when usage != null:
+return usage(_that.update);case MessageEvent_Done() when done != null:
 return done(_that.message);case MessageEvent_Error() when error != null:
 return error(_that.error);case _:
   return orElse();
@@ -158,13 +162,14 @@ return error(_that.error);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( MessageDto message)  snapshot,required TResult Function( ContentDeltaDto delta)  contentDelta,required TResult Function( ToolCallSummaryDto toolCall)  toolCallStarted,required TResult Function( ToolCallFinishedDto toolCall)  toolCallFinished,required TResult Function( MessageDto message)  done,required TResult Function( ClientError error)  error,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( MessageDto message)  snapshot,required TResult Function( ContentDeltaDto delta)  contentDelta,required TResult Function( ToolCallSummaryDto toolCall)  toolCallStarted,required TResult Function( ToolCallFinishedDto toolCall)  toolCallFinished,required TResult Function( UsageUpdateDto update)  usage,required TResult Function( MessageDto message)  done,required TResult Function( ClientError error)  error,}) {final _that = this;
 switch (_that) {
 case MessageEvent_Snapshot():
 return snapshot(_that.message);case MessageEvent_ContentDelta():
 return contentDelta(_that.delta);case MessageEvent_ToolCallStarted():
 return toolCallStarted(_that.toolCall);case MessageEvent_ToolCallFinished():
-return toolCallFinished(_that.toolCall);case MessageEvent_Done():
+return toolCallFinished(_that.toolCall);case MessageEvent_Usage():
+return usage(_that.update);case MessageEvent_Done():
 return done(_that.message);case MessageEvent_Error():
 return error(_that.error);}
 }
@@ -180,13 +185,14 @@ return error(_that.error);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( MessageDto message)?  snapshot,TResult? Function( ContentDeltaDto delta)?  contentDelta,TResult? Function( ToolCallSummaryDto toolCall)?  toolCallStarted,TResult? Function( ToolCallFinishedDto toolCall)?  toolCallFinished,TResult? Function( MessageDto message)?  done,TResult? Function( ClientError error)?  error,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( MessageDto message)?  snapshot,TResult? Function( ContentDeltaDto delta)?  contentDelta,TResult? Function( ToolCallSummaryDto toolCall)?  toolCallStarted,TResult? Function( ToolCallFinishedDto toolCall)?  toolCallFinished,TResult? Function( UsageUpdateDto update)?  usage,TResult? Function( MessageDto message)?  done,TResult? Function( ClientError error)?  error,}) {final _that = this;
 switch (_that) {
 case MessageEvent_Snapshot() when snapshot != null:
 return snapshot(_that.message);case MessageEvent_ContentDelta() when contentDelta != null:
 return contentDelta(_that.delta);case MessageEvent_ToolCallStarted() when toolCallStarted != null:
 return toolCallStarted(_that.toolCall);case MessageEvent_ToolCallFinished() when toolCallFinished != null:
-return toolCallFinished(_that.toolCall);case MessageEvent_Done() when done != null:
+return toolCallFinished(_that.toolCall);case MessageEvent_Usage() when usage != null:
+return usage(_that.update);case MessageEvent_Done() when done != null:
 return done(_that.message);case MessageEvent_Error() when error != null:
 return error(_that.error);case _:
   return null;
@@ -462,6 +468,74 @@ class _$MessageEvent_ToolCallFinishedCopyWithImpl<$Res>
   return _then(MessageEvent_ToolCallFinished(
 toolCall: null == toolCall ? _self.toolCall : toolCall // ignore: cast_nullable_to_non_nullable
 as ToolCallFinishedDto,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class MessageEvent_Usage extends MessageEvent {
+  const MessageEvent_Usage({required this.update}): super._();
+  
+
+ final  UsageUpdateDto update;
+
+/// Create a copy of MessageEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MessageEvent_UsageCopyWith<MessageEvent_Usage> get copyWith => _$MessageEvent_UsageCopyWithImpl<MessageEvent_Usage>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is MessageEvent_Usage&&(identical(other.update, update) || other.update == update));
+}
+
+
+@override
+int get hashCode {
+    return Object.hash(runtimeType,update);
+}
+
+@override
+String toString() {
+    return 'MessageEvent.usage(update: $update)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $MessageEvent_UsageCopyWith<$Res> implements $MessageEventCopyWith<$Res> {
+  factory $MessageEvent_UsageCopyWith(MessageEvent_Usage value, $Res Function(MessageEvent_Usage) _then) = _$MessageEvent_UsageCopyWithImpl;
+@useResult
+$Res call({
+ UsageUpdateDto update
+});
+
+
+
+
+}
+/// @nodoc
+class _$MessageEvent_UsageCopyWithImpl<$Res>
+    implements $MessageEvent_UsageCopyWith<$Res> {
+  _$MessageEvent_UsageCopyWithImpl(this._self, this._then);
+
+  final MessageEvent_Usage _self;
+  final $Res Function(MessageEvent_Usage) _then;
+
+/// Create a copy of MessageEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? update = null,}) {
+  return _then(MessageEvent_Usage(
+update: null == update ? _self.update : update // ignore: cast_nullable_to_non_nullable
+as UsageUpdateDto,
   ));
 }
 

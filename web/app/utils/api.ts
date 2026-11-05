@@ -588,7 +588,7 @@ export async function commitProposedCommit(chatId: string, toolCallId: string): 
     return await makeRequest({route: `chats/${chatId}/tool-calls/${toolCallId}/commit`, method: 'POST'});
 }
 
-const STREAM_EVENTS = ['snapshot', 'content_delta', 'tool_call_started', 'tool_call_finished', 'done'] as const;
+const STREAM_EVENTS = ['snapshot', 'content_delta', 'tool_call_started', 'tool_call_finished', 'usage', 'done'] as const;
 
 /**
  * Follows a `GENERATING` answer. `onEvent` gets a `snapshot` first (again after each reconnect, so

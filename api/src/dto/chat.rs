@@ -93,7 +93,9 @@ pub struct MessageDto {
     /// When the answer reached its final status, `null` for user messages, while `GENERATING`,
     /// or if it was interrupted by a restart.
     pub finished_at: Option<DateTime<Utc>>,
-    /// Tokens used for the answer, `null` for user messages, while `GENERATING`, or if unknown.
+    /// Tokens used for the answer, `null` for user messages or if unknown. While `GENERATING`,
+    /// only the message stream has them: the tokens so far, `null` before the first response of
+    /// the language model.
     pub usage: Option<UsageDto>,
     /// At the prices when the answer finished, `null` if the model had no prices or the usage
     /// is unknown.
@@ -327,6 +329,15 @@ pub struct RetryMessageRequest {
 #[derive(Serialize, Deserialize)]
 pub struct ContentDeltaDto {
     pub text: String,
+}
+
+/// The `usage` event of `GET .../messages/{id}/stream`, sent after each response of the language
+/// model: the tokens used so far, not only by that response.
+#[derive(Serialize, Deserialize)]
+pub struct UsageUpdateDto {
+    pub usage: UsageDto,
+    /// `null` if the model has no prices.
+    pub cost: Option<CostDto>,
 }
 
 /// The `tool_call_finished` event of `GET .../messages/{id}/stream`.

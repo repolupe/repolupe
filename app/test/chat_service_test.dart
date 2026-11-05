@@ -517,7 +517,7 @@ void main() {
     expect(state.messages, hasLength(2));
   });
 
-  test('the tool calls of an answer are added and finished as their events arrive', () async {
+  test('the tool calls and usage of an answer are updated as their events arrive', () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     addTearDown(() => server.close(force: true));
     final finish = Completer<void>();
@@ -535,6 +535,11 @@ void main() {
       response.write('event: snapshot\ndata: ${jsonEncode(_message(id: _answerId, role: 'ASSISTANT', content: '', status: 'GENERATING'))}\n\n');
       response.write('event: tool_call_started\ndata: ${jsonEncode(toolCall)}\n\n');
       response.write('event: tool_call_finished\ndata: ${jsonEncode({'id': _toolCallId, 'status': 'COMPLETED'})}\n\n');
+      final usage = {
+        'usage': {'input_tokens': 4, 'output_tokens': 2, 'cache_read_tokens': 0, 'cache_write_tokens': 0},
+        'cost': {'amount': '0.0012', 'currency': 'USD'},
+      };
+      response.write('event: usage\ndata: ${jsonEncode(usage)}\n\n');
       await response.flush();
       await finish.future;
       final done = _message(
@@ -571,16 +576,21 @@ void main() {
         .dispatchAsyncTakeResult(
           FollowMessageAction(chatId: UuidValue.fromString(_chatId), message: answer),
         );
-    for (var i = 0; i < 100 && container.read(messageProvider)?.toolCalls.firstOrNull?.status != ToolCallStatus.completed; i++) {
+    // The usage is the last event before `done`.
+    for (var i = 0; i < 100 && container.read(messageProvider)?.usage == null; i++) {
       await Future<void>.delayed(const Duration(milliseconds: 50));
     }
     final running = container.read(messageProvider)!;
     expect(running.toolCalls.map((t) => (t.name, t.status)), [('read_file', ToolCallStatus.completed)]);
     expect(running.toolCalls.single.path, 'README.md');
+    expect(running.status, MessageStatus.generating);
+    expect((running.usage?.inputTokens.toInt(), running.usage?.outputTokens.toInt()), (4, 2));
+    expect((running.cost?.amount, running.cost?.currency), ('0.0012', 'USD'));
 
     finish.complete();
     final finished = await followed;
     expect(finished?.toolCalls.single.status, ToolCallStatus.completed);
+    expect(finished?.cost?.amount, '0.0042');
   });
 
   test('presented files and proposed changes are shown once each, the last change of a file winning', () {

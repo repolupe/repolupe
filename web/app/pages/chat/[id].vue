@@ -311,6 +311,10 @@ const applyStreamEvent = (messageId: string, event: MessageStreamEvent) => {
       }
       break;
     }
+    case 'usage':
+      message.usage = event.data.usage;
+      message.cost = event.data.cost;
+      break;
     case 'done': {
       messages[index] = event.data;
       // an answer that proposes a single change, or else shows a single file, opens it right away,

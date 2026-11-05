@@ -145,6 +145,7 @@ class _ApplyEventAction extends ReduxAction<MessageService, MessageDto?> {
         current,
         toolCalls: [for (final t in current.toolCalls) t.id == toolCall.id ? _copyToolCall(t, status: toolCall.status) : t],
       ),
+      MessageEvent_Usage(:final update) => _copyMessage(current, usage: update.usage, cost: update.cost),
       MessageEvent_Error() => current,
     };
   }
@@ -177,6 +178,8 @@ MessageDto _copyMessage(
   MessageStatus? status,
   String? error,
   List<ToolCallSummaryDto>? toolCalls,
+  UsageDto? usage,
+  CostDto? cost,
 }) {
   return MessageDto(
     id: m.id,
@@ -188,8 +191,8 @@ MessageDto _copyMessage(
     toolCalls: toolCalls ?? m.toolCalls,
     createdAt: m.createdAt,
     finishedAt: m.finishedAt,
-    usage: m.usage,
-    cost: m.cost,
+    usage: usage ?? m.usage,
+    cost: cost ?? m.cost,
     attachment: m.attachment,
   );
 }

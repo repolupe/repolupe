@@ -2,9 +2,10 @@ use crate::config::error::AppError;
 use crate::config::state::AppState;
 use crate::dto::chat::MessageStatus;
 use crate::dto::chat::{
-    ChatDetailDto, ChatDto, ChatPageDto, ContentDeltaDto, CreateChatRequest, FileDiffDto,
+    ChatDetailDto, ChatDto, ChatPageDto, ContentDeltaDto, CostDto, CreateChatRequest, FileDiffDto,
     ListChatsQuery, MessageDto, ProposedCommitDto, RetryMessageRequest, SendMessageRequest,
     ToolCallDto, ToolCallFinishedDto, ToolCallStatus, ToolCallSummaryDto, UpdateChatRequest,
+    UsageUpdateDto,
 };
 use crate::dto::error::ErrorCode;
 use crate::middleware::auth::AuthenticatedUser;
@@ -278,9 +279,10 @@ pub(crate) async fn send_message(
 }
 
 /// Server-sent events of a message: `snapshot` with the state so far, then `content_delta`,
-/// `tool_call_started` and `tool_call_finished` while generating, and finally `done`. The
-/// content while generating includes the preambles to tool calls, which `done` leaves out.
-/// A finished message gets `snapshot` and `done` right away.
+/// `tool_call_started`, `tool_call_finished` and `usage` (the total after each LLM response)
+/// while generating, and finally `done`. The content while generating includes the preambles
+/// to tool calls, which `done` leaves out. A finished message gets `snapshot` and `done` right
+/// away.
 pub(crate) async fn stream_message(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthenticatedUser>,
@@ -703,6 +705,15 @@ fn generation_event(event: GenerationEvent) -> Result<Event, axum::Error> {
                 id,
                 status: ToolCallStatus::new(true, is_error),
             }),
+        GenerationEvent::Usage { usage, cost } => {
+            Event::default().event("usage").json_data(UsageUpdateDto {
+                usage: usage.into(),
+                cost: cost.map(|(amount, currency)| CostDto {
+                    amount: amount.to_string(),
+                    currency,
+                }),
+            })
+        }
         GenerationEvent::Done {
             message,
             tool_calls,

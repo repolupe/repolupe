@@ -3,6 +3,7 @@ use axum::Router;
 use axum::body::Body;
 use axum::http::{Method, Request, StatusCode, header, request};
 use chrono::{TimeDelta, Utc};
+use futures_util::StreamExt;
 use repolupe::{
     Config, DEFAULT_INITIAL_ADMIN_PASSWORD, DEFAULT_SESSION_IDLE_TIMEOUT, INITIAL_ADMIN_USER_NAME,
     Repolupe, RuntimeConfig,
@@ -520,6 +521,19 @@ impl TestClient {
         send(&self.router, request).await
     }
 
+    /// Opens the event stream of a message. Its `snapshot` is taken before this returns, read
+    /// the events with [`read_events`].
+    pub async fn open_stream(&self, chat_id: &str, message_id: &str) -> axum::response::Response {
+        let path = format!("/api/v1/chats/{chat_id}/messages/{message_id}/stream");
+        let request = self
+            .request(Method::GET, &path)
+            .body(Body::empty())
+            .unwrap();
+        let response = self.response(request).await;
+        assert_eq!(response.status(), StatusCode::OK);
+        response
+    }
+
     /// Polls the chat until its last message is no longer `GENERATING`, and returns it.
     pub async fn wait_for_answer(&self, chat_id: &str) -> Value {
         let path = format!("/api/v1/chats/{chat_id}");
@@ -538,6 +552,43 @@ impl TestClient {
             .await
             .expect("answer did not finish in time")
     }
+}
+
+/// The events of a message stream up to and including `done`, as their names and data.
+pub async fn read_events(response: axum::response::Response) -> Vec<(String, Value)> {
+    let mut body = response.into_body().into_data_stream();
+    let mut buffer = Vec::new();
+    let mut events = Vec::new();
+    let read = async {
+        while let Some(chunk) = body.next().await {
+            buffer.extend_from_slice(&chunk.unwrap());
+            while let Some(end) = buffer.windows(2).position(|w| w == b"\n\n") {
+                let block: Vec<u8> = buffer.drain(..end + 2).collect();
+                let block = String::from_utf8(block).unwrap();
+                let field = |name: &str| {
+                    block
+                        .lines()
+                        .find_map(|line| line.strip_prefix(name))
+                        .map(|value| value.trim_start().to_string())
+                };
+                // Keep-alive comments have no event
+                let Some(name) = field("event:") else {
+                    continue;
+                };
+                let data = serde_json::from_str(&field("data:").unwrap()).unwrap();
+                let done = name == "done";
+                events.push((name, data));
+                if done {
+                    return;
+                }
+            }
+        }
+        panic!("the stream ended before `done`: {events:?}");
+    };
+    tokio::time::timeout(ANSWER_TIMEOUT, read)
+        .await
+        .expect("the stream did not end in time");
+    events
 }
 
 async fn send(router: &Router, request: Request<Body>) -> (StatusCode, Value) {

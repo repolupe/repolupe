@@ -11,6 +11,8 @@ use crate::service::llm::{LlmConfig, Usage};
 use crate::service::llm_config::AnsweringModel;
 use crate::service::pricing::Pricing;
 use chrono::{DateTime, FixedOffset, Utc};
+use rust_decimal::Decimal;
+use sqlx::types::Text;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
@@ -136,8 +138,9 @@ struct GenerationState {
     /// shown while generating and dropped when the message is finished.
     answer_start: usize,
     tool_calls: Vec<ToolCallSummary>,
-    /// Of the LLM responses so far. A response that was cut off (e.g. cancelled) reports none.
-    usage: Usage,
+    /// Of the LLM responses so far, `None` before the first. A response that was cut off (e.g.
+    /// cancelled) reports none.
+    usage: Option<Usage>,
     /// Set by the first [`finish`], after which nothing is appended anymore.
     finished: bool,
     /// The final message, once [`GenerationEvent::Done`] was sent.
@@ -159,6 +162,12 @@ pub(crate) enum GenerationEvent {
     ToolCallFinished {
         id: Uuid,
         is_error: bool,
+    },
+    /// The tokens used so far, sent after each LLM response.
+    Usage {
+        usage: TokenUsage,
+        /// The amount and its currency, `None` if the model has no prices.
+        cost: Option<(Decimal, String)>,
     },
     /// The final message, sent once.
     Done {
@@ -204,6 +213,8 @@ impl Generation {
                 tool_calls: tool_calls.clone(),
             };
         }
+        let usage = state.usage.as_ref().map(token_usage);
+        let cost = state.usage.as_ref().and_then(|usage| self.cost(usage));
         Subscription::Live {
             message: Message {
                 id: self.message_id,
@@ -214,12 +225,12 @@ impl Generation {
                 model_id: Some(self.model_id),
                 created_at: self.created_at,
                 finished_at: None,
-                input_tokens: None,
-                output_tokens: None,
-                cache_read_tokens: None,
-                cache_write_tokens: None,
-                cost: None,
-                cost_currency: None,
+                input_tokens: usage.map(|usage| usage.input),
+                output_tokens: usage.map(|usage| usage.output),
+                cache_read_tokens: usage.map(|usage| usage.cache_read),
+                cache_write_tokens: usage.map(|usage| usage.cache_write),
+                cost: cost.map(|(amount, _)| Text(amount)),
+                cost_currency: cost.map(|(_, currency)| currency.to_string()),
             },
             tool_calls: state.tool_calls.clone(),
             events: self.events.subscribe(),
@@ -231,14 +242,28 @@ impl Generation {
         self.cancel.cancelled()
     }
 
-    /// Adds the usage of one LLM response.
+    /// Adds the usage of one LLM response and sends the total so far.
     pub(crate) fn add_usage(&self, usage: &Usage) -> Result<(), GenerationError> {
         let mut state = self.state.lock().unwrap();
         if state.finished {
             return Err(GenerationError::Stopped);
         }
-        state.usage += usage;
+        let total = state.usage.get_or_insert_default();
+        *total += usage;
+        let _ = self.events.send(GenerationEvent::Usage {
+            usage: token_usage(total),
+            cost: self
+                .cost(total)
+                .map(|(amount, currency)| (amount, currency.to_string())),
+        });
         Ok(())
+    }
+
+    /// The amount and its currency, `None` if the model has no prices.
+    fn cost(&self, usage: &Usage) -> Option<(Decimal, &str)> {
+        self.pricing
+            .as_ref()
+            .map(|pricing| (pricing.cost(usage), pricing.currency.as_str()))
     }
 
     pub(crate) fn append_content(&self, text: &str) -> Result<(), GenerationError> {
@@ -388,15 +413,12 @@ pub(crate) async fn finish(
         generation_state.finished = true;
         (
             generation_state.answer().to_string(),
-            generation_state.usage.clone(),
+            generation_state.usage.clone().unwrap_or_default(),
         )
     };
     generation.cancel.cancel();
 
-    let cost = generation
-        .pricing
-        .as_ref()
-        .map(|pricing| (pricing.cost(&usage), pricing.currency.as_str()));
+    let cost = generation.cost(&usage);
     let finished = FinishedMessage {
         status,
         content: Some(&content),

@@ -4875,6 +4875,11 @@ const _: fn() = || {
         let _: i64 = UsageDto.cache_write_tokens;
     }
     {
+        let UsageUpdateDto = None::<repolupe::dto::chat::UsageUpdateDto>.unwrap();
+        let _: repolupe::dto::chat::UsageDto = UsageUpdateDto.usage;
+        let _: Option<repolupe::dto::chat::CostDto> = UsageUpdateDto.cost;
+    }
+    {
         let UserDto = None::<repolupe::dto::user::UserDto>.unwrap();
         let _: uuid::Uuid = UserDto.id;
         let _: repolupe::dto::user::UserRole = UserDto.role;
@@ -6301,12 +6306,17 @@ impl SseDecode for crate::api::stream::MessageEvent {
                 };
             }
             4 => {
+                let mut var_update =
+                    <repolupe::dto::chat::UsageUpdateDto>::sse_decode(deserializer);
+                return crate::api::stream::MessageEvent::Usage { update: var_update };
+            }
+            5 => {
                 let mut var_message = <repolupe::dto::chat::MessageDto>::sse_decode(deserializer);
                 return crate::api::stream::MessageEvent::Done {
                     message: var_message,
                 };
             }
-            5 => {
+            6 => {
                 let mut var_error = <crate::api::error::ClientError>::sse_decode(deserializer);
                 return crate::api::stream::MessageEvent::Error { error: var_error };
             }
@@ -7239,6 +7249,18 @@ impl SseDecode for repolupe::dto::chat::UsageDto {
             output_tokens: var_outputTokens,
             cache_read_tokens: var_cacheReadTokens,
             cache_write_tokens: var_cacheWriteTokens,
+        };
+    }
+}
+
+impl SseDecode for repolupe::dto::chat::UsageUpdateDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_usage = <repolupe::dto::chat::UsageDto>::sse_decode(deserializer);
+        let mut var_cost = <Option<repolupe::dto::chat::CostDto>>::sse_decode(deserializer);
+        return repolupe::dto::chat::UsageUpdateDto {
+            usage: var_usage,
+            cost: var_cost,
         };
     }
 }
@@ -8954,11 +8976,14 @@ impl flutter_rust_bridge::IntoDart for crate::api::stream::MessageEvent {
             crate::api::stream::MessageEvent::ToolCallFinished { tool_call } => {
                 [3.into_dart(), tool_call.into_into_dart().into_dart()].into_dart()
             }
+            crate::api::stream::MessageEvent::Usage { update } => {
+                [4.into_dart(), update.into_into_dart().into_dart()].into_dart()
+            }
             crate::api::stream::MessageEvent::Done { message } => {
-                [4.into_dart(), message.into_into_dart().into_dart()].into_dart()
+                [5.into_dart(), message.into_into_dart().into_dart()].into_dart()
             }
             crate::api::stream::MessageEvent::Error { error } => {
-                [5.into_dart(), error.into_into_dart().into_dart()].into_dart()
+                [6.into_dart(), error.into_into_dart().into_dart()].into_dart()
             }
             _ => {
                 unimplemented!("");
@@ -9844,6 +9869,27 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::chat::UsageDto>
     for repolupe::dto::chat::UsageDto
 {
     fn into_into_dart(self) -> FrbWrapper<repolupe::dto::chat::UsageDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::UsageUpdateDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.usage.into_into_dart().into_dart(),
+            self.0.cost.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<repolupe::dto::chat::UsageUpdateDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::chat::UsageUpdateDto>>
+    for repolupe::dto::chat::UsageUpdateDto
+{
+    fn into_into_dart(self) -> FrbWrapper<repolupe::dto::chat::UsageUpdateDto> {
         self.into()
     }
 }
@@ -10982,12 +11028,16 @@ impl SseEncode for crate::api::stream::MessageEvent {
                 <i32>::sse_encode(3, serializer);
                 <repolupe::dto::chat::ToolCallFinishedDto>::sse_encode(tool_call, serializer);
             }
-            crate::api::stream::MessageEvent::Done { message } => {
+            crate::api::stream::MessageEvent::Usage { update } => {
                 <i32>::sse_encode(4, serializer);
+                <repolupe::dto::chat::UsageUpdateDto>::sse_encode(update, serializer);
+            }
+            crate::api::stream::MessageEvent::Done { message } => {
+                <i32>::sse_encode(5, serializer);
                 <repolupe::dto::chat::MessageDto>::sse_encode(message, serializer);
             }
             crate::api::stream::MessageEvent::Error { error } => {
-                <i32>::sse_encode(5, serializer);
+                <i32>::sse_encode(6, serializer);
                 <crate::api::error::ClientError>::sse_encode(error, serializer);
             }
             _ => {
@@ -11708,6 +11758,14 @@ impl SseEncode for repolupe::dto::chat::UsageDto {
         <i64>::sse_encode(self.output_tokens, serializer);
         <i64>::sse_encode(self.cache_read_tokens, serializer);
         <i64>::sse_encode(self.cache_write_tokens, serializer);
+    }
+}
+
+impl SseEncode for repolupe::dto::chat::UsageUpdateDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <repolupe::dto::chat::UsageDto>::sse_encode(self.usage, serializer);
+        <Option<repolupe::dto::chat::CostDto>>::sse_encode(self.cost, serializer);
     }
 }
 

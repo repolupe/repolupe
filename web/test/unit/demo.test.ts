@@ -105,6 +105,12 @@ describe('demo API', () => {
         }]);
         expect(message.usage).not.toBeNull();
         expect(message.cost).toBeNull();
+        // the total so far after each response: the one that calls the tool, then the answer
+        expect(events.filter(e => e.type !== 'content_delta').map(e => e.type))
+            .toEqual(['snapshot', 'usage', 'tool_call_started', 'tool_call_finished', 'usage', 'done']);
+        const usages = events.flatMap(e => e.type === 'usage' ? [e.data] : []);
+        expect(usages[0]!.usage.output_tokens).toBeLessThan(usages[1]!.usage.output_tokens);
+        expect(usages[1]).toEqual({usage: message.usage, cost: null});
     });
 
     it('serves the presented file', async () => {
@@ -223,6 +229,18 @@ describe('demo API', () => {
         expect(answer.model_id).toBe(hosted.id);
         expect(answer.cost?.currency).toBe('USD');
         expect(Number(answer.cost?.amount)).toBeGreaterThan(0);
+    });
+
+    it('counts no tokens of an answer cancelled before its first response', async () => {
+        const models = await request<ModelDto[]>('GET', 'models');
+        const hosted = models.find(m => !m.is_default)!;
+        const chat = await createChat('Where is the invoice?', {modelId: hosted.id});
+        await request('POST', `chats/${chat.id}/messages/${chat.messages[1]!.id}/cancel`);
+        const answer = await finished(chat.id, chat.messages[1]!.id);
+
+        expect(answer.status).toBe(MessageStatus.CANCELLED);
+        expect(answer.usage).toEqual({input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, cache_write_tokens: 0});
+        expect(answer.cost).toEqual({amount: '0', currency: 'USD'});
     });
 
     it('does not list temporary chats', async () => {

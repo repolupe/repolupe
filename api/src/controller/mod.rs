@@ -36,6 +36,7 @@ use crate::dto::user::UserDto;
 use crate::middleware::auth::AuthenticatedUser;
 use crate::model;
 use crate::model::tool_call::ToolCallSummary;
+use crate::repository::message::TokenUsage;
 use crate::repository::repository::StoredToken;
 use crate::service;
 use crate::service::extraction::{Conversion, ExtractionStatus};
@@ -423,6 +424,17 @@ impl MessageDto {
     ) -> Self {
         self.attachment = attachment.map(Into::into);
         self
+    }
+}
+
+impl From<TokenUsage> for UsageDto {
+    fn from(usage: TokenUsage) -> Self {
+        UsageDto {
+            input_tokens: usage.input,
+            output_tokens: usage.output,
+            cache_read_tokens: usage.cache_read,
+            cache_write_tokens: usage.cache_write,
+        }
     }
 }
 

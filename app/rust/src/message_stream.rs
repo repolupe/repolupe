@@ -7,7 +7,9 @@ use std::task::{Context, Poll, ready};
 
 use axum::http::StatusCode;
 use futures_util::stream::{Stream, StreamExt};
-use repolupe::dto::chat::{ContentDeltaDto, MessageDto, ToolCallFinishedDto, ToolCallSummaryDto};
+use repolupe::dto::chat::{
+    ContentDeltaDto, MessageDto, ToolCallFinishedDto, ToolCallSummaryDto, UsageUpdateDto,
+};
 use serde::de::DeserializeOwned;
 use tokio_util::sync::CancellationToken;
 
@@ -50,6 +52,9 @@ impl MessageEvents {
             "tool_call_finished" => self
                 .parse::<ToolCallFinishedDto>(&event)
                 .map(|tool_call| MessageEvent::ToolCallFinished { tool_call }),
+            "usage" => self
+                .parse::<UsageUpdateDto>(&event)
+                .map(|update| MessageEvent::Usage { update }),
             "done" => self
                 .parse::<MessageDto>(&event)
                 .map(|message| MessageEvent::Done { message }),
@@ -152,6 +157,11 @@ mod tests {
             MessageEvent::ToolCallFinished { tool_call } => {
                 format!("finished {}", name(&tool_call.status))
             }
+            MessageEvent::Usage { update } => format!(
+                "usage {} {:?}",
+                update.usage.output_tokens,
+                update.cost.as_ref().map(|cost| &cost.amount)
+            ),
             MessageEvent::Done { message } => {
                 format!("done {} {:?}", name(&message.status), message.content)
             }
@@ -199,10 +209,15 @@ mod tests {
             "created_at": "2026-10-20T10:00:01Z",
         });
         let finished = json!({"id": id, "status": "COMPLETED"});
+        let usage = json!({
+            "usage": {"input_tokens": 10, "output_tokens": 2, "cache_read_tokens": 0, "cache_write_tokens": 0},
+            "cost": {"amount": "0.00006", "currency": "USD"},
+        });
         let snapshot = message("GENERATING", "");
         let done = message("COMPLETED", "Hällo 😀");
         format!(
             "event: snapshot\ndata: {snapshot}\n\n:\n\n\
+             event: usage\ndata: {usage}\n\n\
              event: tool_call_started\ndata: {tool_call}\n\n\
              event: tool_call_finished\ndata: {finished}\n\n\
              event: title_changed\ndata: {{\"title\":\"newer server\"}}\n\n\
@@ -218,8 +233,9 @@ mod tests {
         block_on(events.map(|event| describe(&event)).collect())
     }
 
-    const ANSWER: [&str; 6] = [
+    const ANSWER: [&str; 7] = [
         r#"snapshot GENERATING """#,
+        r#"usage 2 Some("0.00006")"#,
         "started read_attachment RUNNING",
         "finished COMPLETED",
         r#"delta "Hällo""#,

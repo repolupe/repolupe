@@ -2,7 +2,9 @@
 //! cancels it.
 
 use flutter_rust_bridge::frb;
-use repolupe::dto::chat::{ContentDeltaDto, MessageDto, ToolCallFinishedDto, ToolCallSummaryDto};
+use repolupe::dto::chat::{
+    ContentDeltaDto, MessageDto, ToolCallFinishedDto, ToolCallSummaryDto, UsageUpdateDto,
+};
 
 use crate::api::error::ClientError;
 
@@ -23,6 +25,9 @@ pub enum MessageEvent {
     ToolCallStarted { tool_call: ToolCallSummaryDto },
     /// A tool call in the message's `tool_calls` finished with `status`.
     ToolCallFinished { tool_call: ToolCallFinishedDto },
+    /// The tokens used so far and their cost, after each response of the language model:
+    /// replace the message's `usage` and `cost`.
+    Usage { update: UsageUpdateDto },
     /// The final message (`COMPLETED`, `FAILED` or `CANCELLED`), the last event.
     Done { message: MessageDto },
     /// The stream broke off after it started (e.g. the connection was lost) or sent an event

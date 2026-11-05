@@ -386,7 +386,9 @@ class MessageDto {
   /// or if it was interrupted by a restart.
   final DateTime? finishedAt;
 
-  /// Tokens used for the answer, `null` for user messages, while `GENERATING`, or if unknown.
+  /// Tokens used for the answer, `null` for user messages or if unknown. While `GENERATING`,
+  /// only the message stream has them: the tokens so far, `null` before the first response of
+  /// the language model.
   final UsageDto? usage;
 
   /// At the prices when the answer finished, `null` if the model had no prices or the usage
@@ -724,4 +726,25 @@ class UsageDto {
           outputTokens == other.outputTokens &&
           cacheReadTokens == other.cacheReadTokens &&
           cacheWriteTokens == other.cacheWriteTokens;
+}
+
+/// The `usage` event of `GET .../messages/{id}/stream`, sent after each response of the language
+/// model: the tokens used so far, not only by that response.
+class UsageUpdateDto {
+  final UsageDto usage;
+
+  /// `null` if the model has no prices.
+  final CostDto? cost;
+
+  const UsageUpdateDto({
+    required this.usage,
+    this.cost,
+  });
+
+  @override
+  int get hashCode => usage.hashCode ^ cost.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is UsageUpdateDto && runtimeType == other.runtimeType && usage == other.usage && cost == other.cost;
 }
