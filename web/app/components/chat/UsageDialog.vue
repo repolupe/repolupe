@@ -1,6 +1,7 @@
 <template>
   <v-dialog v-model="dialog" max-width="480">
-    <v-card v-if="message?.usage">
+    <!-- keyed, so the numbers jump rather than count when another message's usage is shown -->
+    <v-card v-if="message?.usage" :key="message.id">
       <v-card-title class="pt-4">{{ $t('chat.usageDialog.title') }}</v-card-title>
       <v-card-subtitle v-if="modelName" class="pb-2">
         <IconText icon="mdi-robot-outline">{{ modelName }}</IconText>
@@ -20,17 +21,17 @@
               {{ row.label }}
               <div class="text-caption text-medium-emphasis">{{ row.hint }}</div>
             </td>
-            <td class="text-right tabular">{{ row.tokens.toLocaleString(formatLocale()) }}</td>
+            <td class="text-right tabular"><AnimatedNumber :value="row.tokens" :format="formatCount"/></td>
           </tr>
           </tbody>
           <tfoot>
           <tr class="font-weight-medium">
             <td>{{ $t('chat.usageDialog.total') }}</td>
-            <td class="text-right tabular">{{ total.toLocaleString(formatLocale()) }}</td>
+            <td class="text-right tabular"><AnimatedNumber :value="total" :format="formatCount"/></td>
           </tr>
           <tr v-if="message.cost" class="font-weight-medium">
             <td>{{ $t('chat.usageDialog.cost') }}</td>
-            <td class="text-right tabular">{{ formatExactCost(message.cost.amount, message.cost.currency) }}</td>
+            <td class="text-right tabular"><AnimatedNumber :value="Number(message.cost.amount)" :format="formatCostAt"/></td>
           </tr>
           </tfoot>
         </v-table>
@@ -51,6 +52,7 @@ import type {MessageDto} from "~/utils/model";
 import {formatExactCost, totalTokens} from "~/utils/utils";
 import {formatLocale} from "~/utils/i18n";
 import IconText from "~/components/IconText.vue";
+import AnimatedNumber from "~/components/AnimatedNumber.vue";
 
 const {t} = useI18n();
 
@@ -84,6 +86,20 @@ const rows = computed(() => {
 });
 
 const total = computed(() => message.value?.usage ? totalTokens(message.value.usage) : 0);
+
+/** The numbers update while the answer is generating, and count up to the new ones. */
+const formatCount = (value: number) => Math.round(value).toLocaleString(formatLocale());
+
+/** With as many decimals while counting as the cost has, so the width stays the same. */
+const formatCostAt = (value: number) => {
+  const cost = message.value?.cost;
+  if (!cost) {
+    return '';
+  }
+  const decimals = cost.amount.split('.')[1]?.length ?? 0;
+  const amount = value === Number(cost.amount) ? cost.amount : value.toFixed(Math.min(decimals, 100));
+  return formatExactCost(amount, cost.currency);
+};
 
 defineExpose({
   load: (value: MessageDto, name: string | null) => {

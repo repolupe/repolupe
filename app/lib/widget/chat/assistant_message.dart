@@ -6,6 +6,7 @@ import 'package:app/pages/proposed_commit_page.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/util/format.dart';
 import 'package:app/util/tool_call.dart';
+import 'package:app/widget/animated_number.dart';
 import 'package:app/widget/chat/markdown_content.dart';
 import 'package:app/widget/chat/smooth_text.dart';
 import 'package:app/widget/chat/tool_call_list.dart';
@@ -243,7 +244,7 @@ class _Footer extends StatelessWidget {
           key: ValueKey('chat.message.${message.id}.usage'),
           behavior: HitTestBehavior.opaque,
           onTap: () => UsageSheet.show(context, usage: usage, cost: message.cost, modelName: modelName),
-          child: Text(_usageLabel(usage, message.cost), style: tabular),
+          child: _UsageLabel(usage: usage, cost: message.cost, style: tabular),
         ),
     ];
     if (parts.isEmpty) {
@@ -265,9 +266,34 @@ class _Footer extends StatelessWidget {
   }
 }
 
-/// The cost, or the total tokens if the model has no prices.
-String _usageLabel(UsageDto usage, CostDto? cost) =>
-    cost != null ? formatCost(cost.amount, cost.currency) : formatTokens(usage.totalTokens);
+/// The cost, or the total tokens if the model has no prices, counting up as the usage of each response comes in while
+/// generating.
+class _UsageLabel extends StatelessWidget {
+  final UsageDto usage;
+  final CostDto? cost;
+  final TextStyle? style;
+
+  const _UsageLabel({required this.usage, required this.cost, required this.style});
+
+  @override
+  Widget build(BuildContext context) {
+    // Keyed, so that it jumps rather than counts from tokens to a cost or back.
+    return switch (cost) {
+      final cost? => AnimatedNumber(
+        key: const ValueKey('cost'),
+        value: double.tryParse(cost.amount) ?? 0,
+        format: (value) => formatCost('$value', cost.currency),
+        style: style,
+      ),
+      null => AnimatedNumber(
+        key: const ValueKey('tokens'),
+        value: usage.totalTokens.toDouble(),
+        format: (value) => formatTokens(value.round()),
+        style: style,
+      ),
+    };
+  }
+}
 
 class _IconText extends StatelessWidget {
   final IconData icon;
