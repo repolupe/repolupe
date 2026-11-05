@@ -1,15 +1,17 @@
 //! [`GREP`]: searches the text files of a repository with a regular expression, see
-//! [`Snapshot::grep`](crate::service::mirror::Snapshot::grep).
+//! [`Snapshot::grep`](crate::service::mirror::Snapshot::grep). Without `repository`, it searches
+//! all repositories in scope, which share the output.
 
 use super::support::{
-    Output, glob, glob_schema, missing_path, non_empty, normalize_path, parse_args, plural,
-    repository_schema, window,
+    MAX_OUTPUT_CHARS, Output, glob, glob_schema, missing_path, non_empty, normalize_path,
+    parse_args, plural, repository_schema, window,
 };
-use super::{Call, GREP, Invocation, READ_FILE, RepositoryTools, ToolError};
+use super::{Call, GREP, Invocation, READ_FILE, RepositoryTools, ToolError, ToolRepository};
 use crate::repository;
 use crate::service::extraction;
 use crate::service::llm::ToolDefinition;
-use crate::service::mirror::{GrepFile, GrepOptions, GrepOutput, PathEntry, TreeBlob};
+use crate::service::mirror::{GrepFile, GrepGroup, GrepOptions, GrepOutput, PathEntry, TreeBlob};
+use futures_util::future::try_join_all;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::{BTreeSet, HashMap};
@@ -19,24 +21,40 @@ const MAX_GREP_MATCHES: usize = 200;
 const MAX_GREP_CONTEXT: u32 = 10;
 /// Lines in grep results are cut to this many characters around the match.
 const MAX_GREP_LINE_CHARS: usize = 300;
-/// Matching lines collected at most. Matches after them are not counted.
+/// Matching lines collected at most, per repository. Matches after them are not counted.
 const MAX_GREP_OUTPUT_BYTES: usize = 4 * 1024 * 1024;
 
 pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
+    let mut description = format!(
+        "Search the contents of the text files in a repository with a regular \
+        expression. Returns the matching lines with line numbers, grouped by \
+        file, at most {MAX_GREP_MATCHES}. Use it to find where a topic is covered, \
+        then read the surrounding section with {READ_FILE}. PDFs are searched \
+        in the text converted from them, with the same line numbers as in \
+        {READ_FILE}."
+    );
+    let mut repository = repository_schema(tools);
+    let mut path = "File or directory to search, relative to the repository root. Searches the \
+        whole repository by default.";
+    let mut required = json!(["repository", "pattern"]);
+    // With one repository, leaving it out means that one.
+    if tools.repositories.len() > 1 {
+        description.push_str(
+            " Without `repository`, it searches all repositories, so leave it out unless you \
+            know which one covers the topic.",
+        );
+        repository["description"] = json!("The repository to search, all of them by default.");
+        path = "File or directory to search, relative to the root of `repository`, which it \
+            needs. Searches the whole repository by default.";
+        required = json!(["pattern"]);
+    }
     ToolDefinition {
         name: GREP.to_string(),
-        description: format!(
-            "Search the contents of the text files in a repository with a regular \
-            expression. Returns the matching lines with line numbers, grouped by \
-            file, at most {MAX_GREP_MATCHES}. Use it to find where a topic is covered, \
-            then read the surrounding section with {READ_FILE}. PDFs are searched \
-            in the text converted from them, with the same line numbers as in \
-            {READ_FILE}."
-        ),
+        description,
         input_schema: json!({
             "type": "object",
             "properties": {
-                "repository": repository_schema(tools),
+                "repository": repository,
                 "pattern": {
                     "type": "string",
                     "description": "Perl-compatible regular expression, e.g. \
@@ -44,8 +62,7 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
                 },
                 "path": {
                     "type": "string",
-                    "description": "File or directory to search, relative to the \
-                        repository root. Searches the whole repository by default.",
+                    "description": path,
                 },
                 "glob": glob_schema(),
                 "ignore_case": {
@@ -60,7 +77,7 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
                         0 by default.",
                 },
             },
-            "required": ["repository", "pattern"],
+            "required": required,
         }),
     }
 }
@@ -83,6 +100,22 @@ pub(super) struct Args {
     context: u32,
 }
 
+impl Args {
+    /// Whether the call can search all repositories, an error for the model if not: `path` is
+    /// relative to one.
+    pub(super) fn check_all(&self) -> Result<(), String> {
+        if self.path.is_empty() {
+            Ok(())
+        } else {
+            Err(
+                "`path` needs `repository`, since it is relative to the root of one. To search \
+                all repositories, leave out `path` and use `glob`."
+                    .to_string(),
+            )
+        }
+    }
+}
+
 pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
     let input: Input = parse_args(GREP, input)?;
     if input.pattern.is_empty() {
@@ -99,7 +132,85 @@ pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
 }
 
 pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<String, ToolError> {
-    let repository = invocation.target()?;
+    let Some(repository) = invocation.repository else {
+        return run_all(invocation, args).await;
+    };
+    let matches = search(invocation, repository, args).await?;
+    let path = args.path.as_str();
+    if matches.groups.is_empty()
+        && !path.is_empty()
+        && matches!(repository.snapshot.entry(path).await?, PathEntry::Missing)
+    {
+        return Err(missing_path(repository, path).await?);
+    }
+    let hint = "Narrow down with a more specific `pattern`, `path` or `glob`.";
+    Ok(matches
+        .render(None, MAX_GREP_MATCHES, MAX_OUTPUT_CHARS, hint)
+        .text)
+}
+
+/// Searches all repositories, one section each. They share the limits: each gets an equal part,
+/// and what one doesn't need goes to the others.
+async fn run_all(invocation: &Invocation<'_>, args: &Args) -> Result<String, ToolError> {
+    let repositories = invocation.repositories;
+    let results = try_join_all(
+        repositories
+            .iter()
+            .map(|repository| search(invocation, repository, args)),
+    )
+    .await?;
+    // Those with fewer matches first, so they pass on the rest of their part.
+    let mut order: Vec<usize> = (0..results.len()).collect();
+    order.sort_by_key(|&i| results[i].total());
+    let mut sections = vec![String::new(); results.len()];
+    let mut matches_left = MAX_GREP_MATCHES;
+    let mut chars_left = MAX_OUTPUT_CHARS;
+    for (done, &i) in order.iter().enumerate() {
+        let parts = order.len() - done;
+        let name = &repositories[i].name;
+        let hint = format!(
+            "To see more, search only `{name}` with `repository`, or narrow down with a more \
+            specific `pattern` or `glob`."
+        );
+        let rendered = results[i].render(
+            Some(&format!("Repository `{name}`")),
+            matches_left / parts,
+            chars_left / parts,
+            &hint,
+        );
+        matches_left = matches_left.saturating_sub(rendered.shown);
+        chars_left = chars_left.saturating_sub(rendered.chars);
+        sections[i] = rendered.text;
+    }
+    Ok(sections.join("\n\n"))
+}
+
+/// The matches in one repository.
+struct Matches {
+    groups: Vec<GrepGroup>,
+    /// Whether more lines match than `groups` has.
+    truncated: bool,
+    /// Documents among the files searched that were not converted to text (yet), so they were
+    /// not searched.
+    unconverted: usize,
+    /// Documents whose text was recognized with OCR.
+    ocr: BTreeSet<String>,
+}
+
+/// [`Matches`] as the model reads them.
+struct Rendered {
+    text: String,
+    /// Matching lines.
+    shown: usize,
+    /// Of the lines, which count towards the limit.
+    chars: usize,
+}
+
+async fn search(
+    invocation: &Invocation<'_>,
+    repository: &ToolRepository,
+    args: &Args,
+) -> Result<Matches, ToolError> {
     let path = args.path.as_str();
     let blobs = repository.snapshot.files().await?;
     let pattern_glob = args.glob.as_deref().map(glob::anchored);
@@ -139,7 +250,6 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Stri
             .map(|e| (e.blob_oid, (e.markdown.into(), e.ocr)))
             .collect()
     };
-    // Documents not converted (yet), and those recognized with OCR.
     let mut unconverted = 0;
     let mut ocr = BTreeSet::new();
     let files: Vec<GrepFile> = candidates
@@ -161,122 +271,154 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Stri
             })
         })
         .collect();
-    let unconverted_note = (unconverted > 0).then(|| {
-        format!(
-            "[{} not searched, {} not converted to text (yet). {READ_FILE} tells why.]",
-            plural(unconverted, "document"),
-            if unconverted == 1 {
-                "it was"
-            } else {
-                "they were"
-            }
-        )
-    });
 
     let options = GrepOptions {
         pattern: &args.pattern,
         ignore_case: args.ignore_case,
         context: args.context,
     };
-    let (groups, truncated) = match repository
+    match repository
         .snapshot
         .grep(files, &options, MAX_GREP_OUTPUT_BYTES)
         .await?
     {
-        GrepOutput::Groups { groups, truncated } => (groups, truncated),
+        GrepOutput::Groups { groups, truncated } => Ok(Matches {
+            groups,
+            truncated,
+            unconverted,
+            ocr,
+        }),
         GrepOutput::Rejected(message) => {
-            return Err(ToolError::Invalid(format!("Invalid search: {message}")));
+            Err(ToolError::Invalid(format!("Invalid search: {message}")))
         }
-    };
+    }
+}
 
-    if groups.is_empty() {
-        if !path.is_empty() && matches!(repository.snapshot.entry(path).await?, PathEntry::Missing)
-        {
-            return Err(missing_path(repository, path).await?);
-        }
-        return Ok(match unconverted_note {
-            Some(note) => format!("No matches.\n\n{note}"),
-            None => "No matches.".to_string(),
-        });
+impl Matches {
+    fn total(&self) -> usize {
+        self.groups.iter().map(|g| g.matches()).sum()
     }
 
-    let total: usize = groups.iter().map(|g| g.matches()).sum();
-    let files = groups
-        .iter()
-        .map(|g| &g.path)
-        .collect::<BTreeSet<_>>()
-        .len();
-    let mut output = Output::default();
-    output.line(&format!(
-        "{}{} in {}:",
-        if truncated { "More than " } else { "" },
-        plural(total, "matching line"),
-        plural(files, "file")
-    ));
-    let mut shown = 0;
-    let mut previous_path = None;
-    'groups: for group in &groups {
-        if shown >= MAX_GREP_MATCHES {
-            break;
-        }
-        if previous_path == Some(&group.path) {
-            output.line("--");
-        } else {
-            output.line("");
-            output.line(&group.path);
-            previous_path = Some(&group.path);
-        }
-        for line in &group.lines {
-            let text = match line.column {
-                Some(column) => {
-                    // The column is a 1-based byte offset.
-                    let byte = (column - 1).min(line.text.len());
-                    let byte = (0..=byte)
-                        .rev()
-                        .find(|&b| line.text.is_char_boundary(b))
-                        .unwrap_or(0);
-                    let char = line.text[..byte].chars().count();
-                    let start = char.saturating_sub(MAX_GREP_LINE_CHARS / 3);
-                    window(&line.text, start, MAX_GREP_LINE_CHARS)
+    /// With at most `max_matches` matching lines and `max_chars` characters of lines, under
+    /// `heading` if there is one. `hint` tells the model how to see the rest if they are cut.
+    fn render(
+        &self,
+        heading: Option<&str>,
+        max_matches: usize,
+        max_chars: usize,
+        hint: &str,
+    ) -> Rendered {
+        let mut output = Output::with_limit(max_chars);
+        let prefix = heading.map(|h| format!("{h}: ")).unwrap_or_default();
+        let unconverted_note = (self.unconverted > 0).then(|| {
+            format!(
+                "[{} not searched, {} not converted to text (yet). {READ_FILE} tells why.]",
+                plural(self.unconverted, "document"),
+                if self.unconverted == 1 {
+                    "it was"
+                } else {
+                    "they were"
                 }
-                None => window(&line.text, 0, MAX_GREP_LINE_CHARS),
-            };
-            let separator = if line.column.is_some() { ':' } else { '-' };
-            if !output.line(&format!("{}{separator}{text}", line.number)) {
-                break 'groups;
+            )
+        });
+
+        if self.groups.is_empty() {
+            output.line(&format!("{prefix}No matches."));
+            if let Some(note) = unconverted_note {
+                output.note(&note);
             }
-            if line.column.is_some() {
-                shown += 1;
+            return Rendered {
+                chars: output.chars,
+                text: output.text,
+                shown: 0,
+            };
+        }
+
+        let total = self.total();
+        let files = self
+            .groups
+            .iter()
+            .map(|g| &g.path)
+            .collect::<BTreeSet<_>>()
+            .len();
+        output.line(&format!(
+            "{prefix}{}{} in {}:",
+            if self.truncated { "More than " } else { "" },
+            plural(total, "matching line"),
+            plural(files, "file")
+        ));
+        let mut shown = 0;
+        let mut previous_path = None;
+        'groups: for group in &self.groups {
+            if shown >= max_matches {
+                break;
+            }
+            if previous_path == Some(&group.path) {
+                output.line("--");
+            } else {
+                output.line("");
+                output.line(&group.path);
+                previous_path = Some(&group.path);
+            }
+            for line in &group.lines {
+                // Consecutive matches are one group.
+                if line.column.is_some() && shown >= max_matches {
+                    break 'groups;
+                }
+                let text = match line.column {
+                    Some(column) => {
+                        // The column is a 1-based byte offset.
+                        let byte = (column - 1).min(line.text.len());
+                        let byte = (0..=byte)
+                            .rev()
+                            .find(|&b| line.text.is_char_boundary(b))
+                            .unwrap_or(0);
+                        let char = line.text[..byte].chars().count();
+                        let start = char.saturating_sub(MAX_GREP_LINE_CHARS / 3);
+                        window(&line.text, start, MAX_GREP_LINE_CHARS)
+                    }
+                    None => window(&line.text, 0, MAX_GREP_LINE_CHARS),
+                };
+                let separator = if line.column.is_some() { ':' } else { '-' };
+                if !output.line(&format!("{}{separator}{text}", line.number)) {
+                    break 'groups;
+                }
+                if line.column.is_some() {
+                    shown += 1;
+                }
             }
         }
+        if shown < total || self.truncated || output.truncated {
+            output.note(&format!("[Showing {shown} matching lines. {hint}]"));
+        }
+        let recognized: BTreeSet<_> = self
+            .groups
+            .iter()
+            .filter(|g| self.ocr.contains(&g.path))
+            .map(|g| format!("`{}`", g.path))
+            .collect();
+        if !recognized.is_empty() {
+            output.note(&format!(
+                "[Scanned pages of {} were recognized with OCR, their text may contain errors.]",
+                recognized.into_iter().collect::<Vec<_>>().join(", ")
+            ));
+        }
+        if let Some(note) = unconverted_note {
+            output.note(&note);
+        }
+        Rendered {
+            chars: output.chars,
+            text: output.text,
+            shown,
+        }
     }
-    if shown < total || truncated || output.truncated {
-        output.note(&format!(
-            "[Showing {shown} matching lines. Narrow down with a more specific `pattern`, \
-            `path` or `glob`.]"
-        ));
-    }
-    let recognized: BTreeSet<_> = groups
-        .iter()
-        .filter(|g| ocr.contains(&g.path))
-        .map(|g| format!("`{}`", g.path))
-        .collect();
-    if !recognized.is_empty() {
-        output.note(&format!(
-            "[Scanned pages of {} were recognized with OCR, their text may contain errors.]",
-            recognized.into_iter().collect::<Vec<_>>().join(", ")
-        ));
-    }
-    if let Some(note) = unconverted_note {
-        output.note(&note);
-    }
-    Ok(output.text)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::model::document_extraction::DocumentExtraction;
+    use crate::service::llm::ToolUse;
     use crate::service::tools::support::fixture::{Fixture, docs};
 
     #[tokio::test]
@@ -419,5 +561,126 @@ mod tests {
         assert!(shown.contains("needle"));
         assert!(shown.ends_with("b…"));
         assert_eq!(shown.chars().count(), "1:".len() + MAX_GREP_LINE_CHARS + 2);
+    }
+
+    #[tokio::test]
+    async fn greps_all_repositories() {
+        let fixture = Fixture::repositories(&[
+            (
+                "docs",
+                &[
+                    ("README.md", b"Find the API key in the settings.\n"),
+                    ("slides.pdf", b"%PDF-1.7 slides"),
+                ],
+            ),
+            (
+                "api",
+                &[("src/main.rs", b"fn main() { let api_key = 1; }\n")],
+            ),
+            ("wiki", &[("home.md", b"Welcome.\n")]),
+        ]);
+        let api = "Repository `api`: 1 matching line in 1 file:\n\nsrc/main.rs\n\
+            1:fn main() { let api_key = 1; }";
+        assert_eq!(
+            fixture
+                .ok(GREP, json!({"pattern": "api.?key", "ignore_case": true}))
+                .await,
+            format!(
+                "Repository `docs`: 1 matching line in 1 file:\n\nREADME.md\n\
+                1:Find the API key in the settings.\n\n[1 document not searched, it was not \
+                converted to text (yet). read_file tells why.]\n\n{api}\n\n\
+                Repository `wiki`: No matches."
+            )
+        );
+        // `glob` applies to all of them, `path` to one.
+        assert_eq!(
+            fixture
+                .ok(GREP, json!({"pattern": "key", "glob": "*.rs"}))
+                .await,
+            format!("Repository `docs`: No matches.\n\n{api}\n\nRepository `wiki`: No matches.")
+        );
+        assert_eq!(
+            fixture
+                .error(GREP, json!({"pattern": "key", "path": "src"}))
+                .await,
+            "`path` needs `repository`, since it is relative to the root of one. To search all \
+            repositories, leave out `path` and use `glob`."
+        );
+        assert_eq!(
+            fixture
+                .ok(
+                    GREP,
+                    json!({"repository": "api", "pattern": "key", "path": "src"})
+                )
+                .await,
+            "1 matching line in 1 file:\n\nsrc/main.rs\n1:fn main() { let api_key = 1; }"
+        );
+        let invalid = fixture.error(GREP, json!({"pattern": "foo("})).await;
+        assert!(invalid.starts_with("Invalid search: "), "{invalid}");
+
+        // Recorded without a repository.
+        let tool_use = ToolUse {
+            id: String::new(),
+            name: GREP.to_string(),
+            input: json!({"pattern": "key"}),
+            native: None,
+        };
+        assert!(
+            fixture
+                .tools
+                .parse(&tool_use)
+                .unwrap()
+                .repository()
+                .is_none()
+        );
+        assert_eq!(
+            definition(&fixture.tools).input_schema["required"],
+            json!(["pattern"])
+        );
+        assert_eq!(
+            definition(&docs().tools).input_schema["required"],
+            json!(["repository", "pattern"])
+        );
+    }
+
+    #[tokio::test]
+    async fn shares_the_output_between_repositories() {
+        let many: String = (1..=300).map(|i| format!("needle {i}\n")).collect();
+        let fixture = Fixture::repositories(&[
+            ("big", &[("a.md", many.as_bytes())]),
+            ("small", &[("b.md", b"needle 1\nneedle 2\n")]),
+        ]);
+        let output = fixture.ok(GREP, json!({"pattern": "needle"})).await;
+        let (big, small) = output.split_once("\n\nRepository `small`").unwrap();
+        assert!(
+            big.starts_with(
+                "Repository `big`: 300 matching lines in 1 file:\n\na.md\n1:needle 1\n"
+            ),
+            "{big}"
+        );
+        // What `small` doesn't need goes to `big`.
+        assert!(
+            big.ends_with(
+                "\n198:needle 198\n\n[Showing 198 matching lines. To see more, search only `big` \
+                with `repository`, or narrow down with a more specific `pattern` or `glob`.]"
+            ),
+            "{big}"
+        );
+        assert_eq!(
+            small,
+            ": 2 matching lines in 1 file:\n\nb.md\n1:needle 1\n2:needle 2"
+        );
+
+        // Also in one group of consecutive matches.
+        let one = fixture
+            .ok(GREP, json!({"repository": "big", "pattern": "needle"}))
+            .await;
+        assert!(
+            one.ends_with(
+                "\n200:needle 200\n\n[Showing 200 matching lines. Narrow down with a more \
+                specific `pattern`, `path` or `glob`.]"
+            ),
+            "{one}"
+        );
     }
 }

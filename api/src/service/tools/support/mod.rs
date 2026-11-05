@@ -294,19 +294,36 @@ pub(super) fn window(text: &str, start: usize, max: usize) -> String {
     window
 }
 
-/// Tool output, limited to [`MAX_OUTPUT_CHARS`].
-#[derive(Default)]
+/// Tool output, limited to [`MAX_OUTPUT_CHARS`] by default.
 pub(super) struct Output {
     pub(super) text: String,
-    chars: usize,
+    /// Of the lines, the notes don't count.
+    pub(super) chars: usize,
+    max_chars: usize,
     pub(super) truncated: bool,
 }
 
+impl Default for Output {
+    fn default() -> Self {
+        Self::with_limit(MAX_OUTPUT_CHARS)
+    }
+}
+
 impl Output {
+    /// For a part of the output, limited to `max_chars`.
+    pub(super) fn with_limit(max_chars: usize) -> Self {
+        Self {
+            text: String::new(),
+            chars: 0,
+            max_chars,
+            truncated: false,
+        }
+    }
+
     /// Appends a line, or returns `false` if it does not fit.
     pub(super) fn line(&mut self, line: &str) -> bool {
         let len = line.chars().count() + 1;
-        if self.truncated || self.chars + len > MAX_OUTPUT_CHARS {
+        if self.truncated || self.chars + len > self.max_chars {
             self.truncated = true;
             return false;
         }

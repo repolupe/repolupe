@@ -19,7 +19,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt::Display;
 use std::path::{Path, PathBuf};
 
-pub(crate) use grep::{GrepFile, GrepOptions, GrepOutput, grep};
+pub(crate) use grep::{GrepFile, GrepGroup, GrepOptions, GrepOutput, grep};
 pub(crate) use push::PushResult;
 pub(crate) use remote::{GitClient, TOKEN_USERNAME};
 

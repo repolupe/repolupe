@@ -12,9 +12,11 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use uuid::Uuid;
 
-/// A git repository with `files` committed, removed when dropped.
+/// Git repositories with files committed, removed when dropped.
 pub(crate) struct Fixture {
+    /// Of the first repository.
     pub(crate) dir: PathBuf,
+    root: PathBuf,
     pub(crate) tools: RepositoryTools,
 }
 
@@ -39,29 +41,43 @@ fn git(dir: &Path, args: &[&str]) -> String {
     String::from_utf8(output.stdout).unwrap()
 }
 
+/// Paths and contents of files to commit.
+pub(crate) type Files<'a> = &'a [(&'a str, &'a [u8])];
+
 impl Fixture {
-    pub(crate) fn new(files: &[(&str, &[u8])]) -> Self {
-        let dir = std::env::temp_dir().join(format!("repolupe-tools-{}", Uuid::now_v7()));
-        for (path, content) in files {
-            let path = dir.join(path);
-            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-            std::fs::write(path, content).unwrap();
-        }
-        git(&dir, &["init", "--quiet"]);
-        git(&dir, &["add", "--all"]);
-        git(&dir, &["commit", "--quiet", "--message", "init"]);
-        let commit = git(&dir, &["rev-parse", "HEAD"]).trim().to_string();
-        let tools = RepositoryTools::new(
-            vec![ToolRepository {
-                id: Uuid::now_v7(),
-                name: "docs".to_string(),
-                snapshot: Snapshot::at(dir.join(".git"), commit),
-                can_commit: true,
-            }],
-            test_db(),
-            identities(),
-        );
-        Self { dir, tools }
+    /// A repository named `docs`.
+    pub(crate) fn new(files: Files) -> Self {
+        Self::repositories(&[("docs", files)])
+    }
+
+    /// A repository for each name, with its files.
+    pub(crate) fn repositories(repositories: &[(&str, Files)]) -> Self {
+        let root = std::env::temp_dir().join(format!("repolupe-tools-{}", Uuid::now_v7()));
+        let dir = root.join(repositories[0].0);
+        let repositories = repositories
+            .iter()
+            .map(|(name, files)| {
+                let dir = root.join(name);
+                std::fs::create_dir_all(&dir).unwrap();
+                for (path, content) in *files {
+                    let path = dir.join(path);
+                    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+                    std::fs::write(path, content).unwrap();
+                }
+                git(&dir, &["init", "--quiet"]);
+                git(&dir, &["add", "--all"]);
+                git(&dir, &["commit", "--quiet", "--message", "init"]);
+                let commit = git(&dir, &["rev-parse", "HEAD"]).trim().to_string();
+                ToolRepository {
+                    id: Uuid::now_v7(),
+                    name: name.to_string(),
+                    snapshot: Snapshot::at(dir.join(".git"), commit),
+                    can_commit: true,
+                }
+            })
+            .collect();
+        let tools = RepositoryTools::new(repositories, test_db(), identities());
+        Self { dir, root, tools }
     }
 
     pub(crate) fn git(&self, args: &[&str]) -> String {
@@ -111,7 +127,7 @@ impl Fixture {
 
 impl Drop for Fixture {
     fn drop(&mut self) {
-        let _ = std::fs::remove_dir_all(&self.dir);
+        let _ = std::fs::remove_dir_all(&self.root);
     }
 }
 

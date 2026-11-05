@@ -27,7 +27,8 @@ use url::Url;
 use uuid::Uuid;
 
 pub(crate) use git::{
-    BlobMode, CommitInfo, GrepFile, GrepOptions, GrepOutput, PathEntry, Signature, TreeBlob,
+    BlobMode, CommitInfo, GrepFile, GrepGroup, GrepOptions, GrepOutput, PathEntry, Signature,
+    TreeBlob,
 };
 
 /// The mirrors in `REPOS_DIR`, with the clients that fetch them. Holds connection pools, so

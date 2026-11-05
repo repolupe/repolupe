@@ -129,8 +129,10 @@ impl ChatAttachments {
 
 /// A tool call that passed validation, see [`RepositoryTools::parse`].
 pub(crate) struct Invocation<'a> {
-    /// `None` for the tools bound to no repository, see [`Self::target`].
+    /// `None` for the tools bound to no repository, see [`Self::target`], and for a [`GREP`]
+    /// of all `repositories`.
     repository: Option<&'a ToolRepository>,
+    repositories: &'a [ToolRepository],
     db: &'a DatabasePool,
     identities: &'a CommitIdentities,
     attachments: &'a ChatAttachments,
@@ -343,6 +345,11 @@ impl RepositoryTools {
         let repository = match call {
             Call::ReadAttachment(_) | Call::Mcp(_) => None,
             Call::RunScript(ref args) if !args.reads_files() => None,
+            // Searches all of them, see `grep::run`.
+            Call::Grep(ref args) if repository.is_none() && self.repositories.len() > 1 => {
+                args.check_all()?;
+                None
+            }
             _ => Some(self.repository(repository.as_deref())?),
         };
         if let Some(repository) = repository
@@ -359,6 +366,7 @@ impl RepositoryTools {
         }
         Ok(Invocation {
             repository,
+            repositories: &self.repositories,
             db: &self.db,
             identities: &self.identities,
             attachments: &self.attachments,
@@ -405,7 +413,7 @@ impl RepositoryTools {
 
 impl Invocation<'_> {
     /// The repository the call reads, to record with the tool call, `None` for the tools bound
-    /// to no repository.
+    /// to no repository and for a [`GREP`] of all of them.
     pub(crate) fn repository(&self) -> Option<&ToolRepository> {
         self.repository
     }
