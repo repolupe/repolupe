@@ -14,8 +14,16 @@ import 'package:uuid/uuid.dart';
 /// The width of the messages, and of the message input below them.
 const _maxWidth = 800.0;
 
+/// From this window width on, the chats are a panel beside the chat instead of in the drawer: Material's expanded
+/// window class, which iPads have in portrait too. The chat beside it is still as wide as on a large phone.
+const _panelMinWidth = 840.0;
+
+/// Below this window height (Material's compact height class), i.e. on a phone in landscape, the chats stay in the
+/// drawer even if it is wide enough.
+const _panelMinHeight = 480.0;
+
 /// A chat with the model of the active account, a new one every time the page opens.
-/// The drawer lists the previous chats to open instead, and the accounts.
+/// The drawer, on wide screens a panel beside the chat, lists the previous chats to open instead, and the settings.
 class ChatPage extends StatefulWidget {
   /// The repositories the new chat reads instead of all of them, e.g. opened from a repository's page.
   final List<UuidValue>? repositoryIds;
@@ -41,6 +49,22 @@ class _ChatPageState extends State<ChatPage> with Refena {
   @override
   Widget build(BuildContext context) {
     final state = context.watch(chatProvider);
+    final size = MediaQuery.sizeOf(context);
+    final panel = size.width >= _panelMinWidth && size.height >= _panelMinHeight;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Not tinted for a temporary chat, which it doesn't list: only the chat beside it is temporary.
+        if (panel) ...[const AppDrawer(permanent: true), const VerticalDivider(width: 1)],
+        // The chat stays in its place with or without the panel (e.g. when resized in split view), keeping its state.
+        // The messages and the message input center in its width.
+        Expanded(child: _buildChat(state, panel: panel)),
+      ],
+    );
+  }
+
+  /// The chat itself, with the drawer unless the [panel] is beside it.
+  Widget _buildChat(ChatState state, {required bool panel}) {
     final chat = state.chat;
     // Fades to the temporary background, the app bar too because it has the page's color.
     return TweenAnimationBuilder<double>(
@@ -56,25 +80,22 @@ class _ChatPageState extends State<ChatPage> with Refena {
           // The input stays above the keyboard on its own, so the body extends behind it too.
           extendBody: true,
           resizeToAvoidBottomInset: false,
-          drawer: const AppDrawer(),
-          onDrawerChanged: (opened) async {
-            if (opened) {
-              await ref.redux(chatListProvider).dispatchAsync(LoadChatsAction(limit: 10));
-            }
-          },
+          drawer: panel ? null : const AppDrawer(),
           appBar: AppBar(
             backgroundColor: WidgetStateColor.resolveWith(
               (states) => states.contains(WidgetState.scrolledUnder) ? scrolledUnder : background,
             ),
-            leading: Builder(
-              // Below the Scaffold, to find it.
-              builder: (context) => IconButton(
-                key: const ValueKey('chat.drawer'),
-                icon: const Icon(Icons.menu),
-                tooltip: context.t.base.chat.title,
-                onPressed: () => Scaffold.of(context).openDrawer(),
-              ),
-            ),
+            leading: panel
+                ? null
+                : Builder(
+                    // Below the Scaffold, to find it.
+                    builder: (context) => IconButton(
+                      key: const ValueKey('chat.drawer'),
+                      icon: const Icon(Icons.menu),
+                      tooltip: context.t.base.chat.title,
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                    ),
+                  ),
             // A new chat chooses its repositories in the message input.
             title: chat == null ? null : Text(chat.title, overflow: TextOverflow.ellipsis),
             actions: [

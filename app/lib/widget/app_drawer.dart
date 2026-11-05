@@ -9,10 +9,57 @@ import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
+/// How many of the newest chats are listed, the others are behind "Older".
+const _chatCount = 10;
+
+/// The width of the [AppDrawer.permanent] panel, the same as the drawer's.
+const _panelWidth = 304.0;
+
 /// The newest chats of the account; tapping one opens it with its messages. Below them "Older", if there are
 /// more, opens the others. At the bottom, the settings.
-class AppDrawer extends StatelessWidget {
-  const AppDrawer();
+///
+/// The chats are loaded whenever it is built: when the drawer opens (its content is built only while it is open), or
+/// when the panel is shown.
+class AppDrawer extends StatefulWidget {
+  /// Whether it is the panel beside the chat on wide screens instead of the modal drawer. It stays open then, also
+  /// while the chat goes on beside it.
+  final bool permanent;
+
+  const AppDrawer({this.permanent = false});
+
+  @override
+  State<AppDrawer> createState() => _AppDrawerState();
+}
+
+class _AppDrawerState extends State<AppDrawer> with Refena {
+  @override
+  void initState() {
+    super.initState();
+    // After the ClearChatsAction of the page, whose post-frame callback is registered first, so that the panel of a
+    // new account doesn't keep showing the chats of the previous one.
+    ensureRef((ref) => _load());
+  }
+
+  Future<void> _load() => ref.redux(chatListProvider).dispatchAsync(LoadChatsAction(limit: _chatCount));
+
+  /// Closes the drawer before an action. The panel stays open, and popping would close the page instead.
+  void _close() {
+    if (!widget.permanent) {
+      Navigator.pop(context);
+    }
+  }
+
+  /// The drawer around [child], or the panel: in the drawer's color, but flat and square as part of the page, which
+  /// draws the divider beside it.
+  Widget _frame({required Widget child}) {
+    if (!widget.permanent) {
+      return Drawer(child: child);
+    }
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      child: SizedBox(width: _panelWidth, child: child),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,8 +67,18 @@ class AppDrawer extends StatelessWidget {
     final page = context.watch(chatListProvider);
     final chats = page?.items;
     final olderCursor = page?.nextCursor;
-    final openId = context.watch(chatProvider.select((state) => state.chat?.id));
-    return Drawer(
+    final (openId, _) = context.watch(
+      chatProvider.select((state) => (state.chat?.id, state.sending)),
+      // Sending a message creates its chat or moves it to the top, which the panel shows while the chat goes on beside
+      // it.
+      listener: (prev, next) {
+        if (prev.sending && !next.sending) {
+          // ignore: discarded_futures
+          _load();
+        }
+      },
+    );
+    return _frame(
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,7 +114,7 @@ class AppDrawer extends StatelessWidget {
                         }
                         // The drawer's context is gone once it is closed.
                         final ref = context.ref;
-                        Navigator.pop(context);
+                        _close();
                         if (leave) {
                           await ref.redux(chatProvider).dispatchAsync(NewChatAction());
                         }
@@ -95,7 +152,7 @@ class AppDrawer extends StatelessWidget {
                             }
                             // The drawer's context is gone once it is closed.
                             final ref = context.ref;
-                            Navigator.pop(context);
+                            _close();
                             await ref.redux(chatProvider).dispatchAsync(OpenChatAction(chat.id));
                           },
                         ),
@@ -117,7 +174,7 @@ class AppDrawer extends StatelessWidget {
                           onTap: () async {
                             // The drawer's context is gone once it is closed.
                             final ref = context.ref;
-                            Navigator.pop(context);
+                            _close();
                             await ref.global.dispatchAsync(NavigateAction.push(OlderChatsPage(cursor: olderCursor)));
                           },
                         ),
@@ -135,7 +192,7 @@ class AppDrawer extends StatelessWidget {
               onTap: () async {
                 // The drawer's context is gone once it is closed.
                 final ref = context.ref;
-                Navigator.pop(context);
+                _close();
                 await ref.global.dispatchAsync(NavigateAction.push(const SettingsPage()));
               },
             ),
