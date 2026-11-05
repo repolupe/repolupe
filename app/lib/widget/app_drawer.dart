@@ -57,18 +57,6 @@ class _AppDrawerState extends State<AppDrawer> with Refena {
     }
   }
 
-  /// The drawer around [child], or the panel: in the drawer's color, but flat and square as part of the page, which
-  /// draws the divider beside it.
-  Widget _frame({required Widget child}) {
-    if (!widget.permanent) {
-      return Drawer(child: child);
-    }
-    return Material(
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
-      child: SizedBox(width: _panelWidth, child: child),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final t = context.t;
@@ -88,7 +76,8 @@ class _AppDrawerState extends State<AppDrawer> with Refena {
     );
     final selectedId = _opening ?? openId;
     final title = Text(t.base.chat.title, style: Theme.of(context).textTheme.titleSmall);
-    return _frame(
+    return _Frame(
+      permanent: widget.permanent,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -234,6 +223,26 @@ class _AppDrawerState extends State<AppDrawer> with Refena {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The drawer around [child], or the [permanent] panel: in the drawer's color, but flat and square as part of the
+/// page, which draws the divider beside it.
+class _Frame extends StatelessWidget {
+  final bool permanent;
+  final Widget child;
+
+  const _Frame({required this.permanent, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!permanent) {
+      return Drawer(child: child);
+    }
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      child: SizedBox(width: _panelWidth, child: child),
     );
   }
 }

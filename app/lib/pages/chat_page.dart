@@ -52,7 +52,6 @@ class _ChatPageState extends State<ChatPage> with Refena {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch(chatProvider);
     final size = MediaQuery.sizeOf(context);
     final wide = size.width >= _panelMinWidth && size.height >= _panelMinHeight;
     final panelVisible = context.watch(_panelVisibleProvider);
@@ -63,15 +62,26 @@ class _ChatPageState extends State<ChatPage> with Refena {
         // The chat stays in its place with or without the panel (e.g. when resized in split view), keeping its state.
         // The messages and the message input center in its width.
         Expanded(
-          child: _buildChat(state, wide: wide, panel: wide && panelVisible),
+          child: _Chat(wide: wide, panel: wide && panelVisible),
         ),
       ],
     );
   }
+}
 
-  /// The chat itself, with the drawer on narrow screens. On [wide] ones, the button that opens the drawer shows the
-  /// [panel] instead while it is hidden.
-  Widget _buildChat(ChatState state, {required bool wide, required bool panel}) {
+/// The chat itself, with the drawer on narrow screens. On [wide] ones, the button that opens the drawer shows the
+/// [panel] instead while it is hidden.
+class _Chat extends StatelessWidget {
+  final bool wide;
+
+  /// Whether the panel is shown beside the chat.
+  final bool panel;
+
+  const _Chat({required this.wide, required this.panel});
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch(chatProvider);
     final chat = state.chat;
     // Fades to the temporary background, the app bar too because it has the page's color.
     return TweenAnimationBuilder<double>(
