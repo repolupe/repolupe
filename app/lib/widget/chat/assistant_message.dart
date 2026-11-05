@@ -213,8 +213,8 @@ class _PageButton extends StatelessWidget {
   }
 }
 
-/// One line on the left: the model (cut off when too long, in full on long press), the duration and the cost.
-/// Tapping the cost shows the token usage.
+/// One line on the left: the model (cut off when too long, in full on long press), the duration and the cost (or the
+/// total tokens if the model has no prices). Tapping the cost shows the token usage.
 class _Footer extends StatelessWidget {
   final MessageDto message;
   final String? modelName;
@@ -238,13 +238,12 @@ class _Footer extends StatelessWidget {
           ),
         ),
       if (duration != null) Text(duration, style: tabular),
-      // A cost is only computed from a usage, so an answer with one always has the other.
-      if ((message.cost, message.usage) case (final cost?, final usage?))
+      if (message.usage case final usage?)
         GestureDetector(
-          key: ValueKey('chat.message.${message.id}.cost'),
+          key: ValueKey('chat.message.${message.id}.usage'),
           behavior: HitTestBehavior.opaque,
-          onTap: () => UsageSheet.show(context, usage: usage, cost: cost, modelName: modelName),
-          child: Text(formatCost(cost.amount, cost.currency), style: tabular),
+          onTap: () => UsageSheet.show(context, usage: usage, cost: message.cost, modelName: modelName),
+          child: Text(_usageLabel(usage, message.cost), style: tabular),
         ),
     ];
     if (parts.isEmpty) {
@@ -265,6 +264,10 @@ class _Footer extends StatelessWidget {
     );
   }
 }
+
+/// The cost, or the total tokens if the model has no prices.
+String _usageLabel(UsageDto usage, CostDto? cost) =>
+    cost != null ? formatCost(cost.amount, cost.currency) : formatTokens(usage.totalTokens);
 
 class _IconText extends StatelessWidget {
   final IconData icon;

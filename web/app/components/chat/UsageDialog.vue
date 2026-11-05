@@ -48,7 +48,7 @@
 import {computed, ref} from "vue";
 import {useI18n} from "#i18n";
 import type {MessageDto} from "~/utils/model";
-import {formatExactCost} from "~/utils/utils";
+import {formatExactCost, totalTokens} from "~/utils/utils";
 import {formatLocale} from "~/utils/i18n";
 import IconText from "~/components/IconText.vue";
 
@@ -83,7 +83,7 @@ const rows = computed(() => {
   ];
 });
 
-const total = computed(() => rows.value.reduce((sum, row) => sum + row.tokens, 0));
+const total = computed(() => message.value?.usage ? totalTokens(message.value.usage) : 0);
 
 defineExpose({
   load: (value: MessageDto, name: string | null) => {

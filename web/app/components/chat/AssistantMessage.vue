@@ -34,23 +34,23 @@
     </div>
 
     <!-- One line on the left that never wraps, the model cut off when too long -->
-    <div v-if="props.modelName || toolCount || duration || cost"
+    <div v-if="props.modelName || toolCount || duration || usageLabel"
          class="footer d-flex align-center text-caption text-medium-emphasis mt-3">
       <IconText v-if="props.modelName" icon="mdi-robot-outline" class="footer-model" :title="props.modelName">
         <span class="text-truncate">{{ props.modelName }}</span>
       </IconText>
-      <span v-if="props.modelName && (toolCount || duration || cost)" class="mx-2">•</span>
+      <span v-if="props.modelName && (toolCount || duration || usageLabel)" class="mx-2">•</span>
       <span class="d-flex align-center flex-shrink-0">
         <button v-if="toolCount" type="button" class="footer-link tabular"
                 :title="$t('chat.assistantMessage.showToolCalls')" @click="emit('open-tool-calls')">
           {{ $t('chat.assistantMessage.toolCount', toolCount) }}
         </button>
-        <span v-if="toolCount && (duration || cost)" class="mx-2">•</span>
+        <span v-if="toolCount && (duration || usageLabel)" class="mx-2">•</span>
         <span v-if="duration" class="tabular">{{ duration }}</span>
-        <span v-if="duration && cost" class="mx-2">•</span>
-        <button v-if="cost" type="button" class="footer-link tabular" :title="$t('chat.assistantMessage.showUsage')"
+        <span v-if="duration && usageLabel" class="mx-2">•</span>
+        <button v-if="usageLabel" type="button" class="footer-link tabular" :title="$t('chat.assistantMessage.showUsage')"
                 @click="emit('open-usage')">
-          {{ cost }}
+          {{ usageLabel }}
         </button>
       </span>
     </div>
@@ -68,9 +68,11 @@ import {
   CHANGE_ICONS,
   fileName,
   formatCost,
+  formatTokens,
   presentedFiles as presentedFilesOf,
   proposedChanges,
   toolCallMoves,
+  totalTokens,
 } from "~/utils/utils";
 import MarkdownContent from "~/components/chat/MarkdownContent.vue";
 import IconText from "~/components/IconText.vue";
@@ -205,8 +207,14 @@ const duration = computed(() => {
           {minutes: Math.floor(seconds / 60), seconds: String(seconds % 60).padStart(2, '0')});
 });
 
-// A cost is only computed from a usage, so an answer with one always has the other.
-const cost = computed(() => props.message.cost && props.message.usage ? formatCost(props.message.cost.amount, props.message.cost.currency) : null);
+/** The cost, or the total tokens if the model has no prices. Opens the usage, so only shown with one. */
+const usageLabel = computed(() => {
+  const {usage, cost} = props.message;
+  if (!usage) {
+    return null;
+  }
+  return cost ? formatCost(cost.amount, cost.currency) : formatTokens(totalTokens(usage));
+});
 
 </script>
 

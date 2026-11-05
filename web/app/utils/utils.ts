@@ -11,6 +11,7 @@ import {
     type RepositoryDto,
     type RepositoryScope,
     type ToolCallSummaryDto,
+    type UsageDto,
 } from "~/utils/model";
 import {formatLocale, t} from "~/utils/i18n";
 
@@ -444,6 +445,16 @@ export function formatExactCost(amount: string, currency: string): string {
     } catch {
         return `${amount} ${currency}`;
     }
+}
+
+/** Input (including the cache) and output. */
+export function totalTokens(usage: UsageDto): number {
+    return usage.input_tokens + usage.cache_read_tokens + usage.cache_write_tokens + usage.output_tokens;
+}
+
+/** E.g. "12K" or "1.2M" in the UI's locale. */
+export function formatTokens(tokens: number): string {
+    return new Intl.NumberFormat(formatLocale(), {notation: 'compact', maximumFractionDigits: 1}).format(tokens);
 }
 
 /** A price per million tokens with all its decimals, e.g. "$0.075". */

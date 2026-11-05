@@ -44,6 +44,13 @@ String formatDuration(Duration duration) {
 /// E.g. `12,345`.
 String formatCount(int count) => NumberFormat.decimalPattern().format(count);
 
+/// E.g. `12.3K` or `1.2M`, or `12.345` in German, which abbreviates only millions (like the web's).
+String formatTokens(int tokens) {
+  final compact = (NumberFormat.compact()..maximumFractionDigits = 1).format(tokens);
+  // intl doesn't group the digits of a number it doesn't abbreviate
+  return compact == tokens.toString() ? formatCount(tokens) : compact;
+}
+
 /// E.g. `Oct 21, 2026 2:05 PM`, in the device's time zone.
 String formatDateTime(DateTime dateTime) => DateFormat.yMMMd().add_jm().format(dateTime.toLocal());
 

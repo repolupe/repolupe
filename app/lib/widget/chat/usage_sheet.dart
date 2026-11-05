@@ -3,6 +3,11 @@ import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/util/format.dart';
 import 'package:flutter/material.dart';
 
+extension UsageTotal on UsageDto {
+  /// Input (including the cache) and output.
+  int get totalTokens => (inputTokens + cacheReadTokens + cacheWriteTokens + outputTokens).toInt();
+}
+
 /// An answer's tokens by type with their total, and its exact cost (like the web's usage dialog).
 class UsageSheet extends StatelessWidget {
   final UsageDto usage;
@@ -32,7 +37,7 @@ class UsageSheet extends StatelessWidget {
       (labels.cacheWrite, labels.cacheWriteHint, usage.cacheWriteTokens.toInt()),
       (context.t.base.common.output, labels.outputHint, usage.outputTokens.toInt()),
     ];
-    final total = rows.fold(0, (sum, row) => sum + row.$3);
+    final total = usage.totalTokens;
     final tabular = theme.textTheme.bodyMedium?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);
     final strong = theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500);
     final strongTabular = tabular?.copyWith(fontWeight: FontWeight.w500);
