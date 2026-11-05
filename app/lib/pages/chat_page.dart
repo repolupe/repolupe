@@ -57,13 +57,12 @@ class _ChatPageState extends State<ChatPage> with Refena {
     final size = MediaQuery.sizeOf(context);
     final wide = size.width >= _panelMinWidth && size.height >= _panelMinHeight;
     final panelVisible = context.watch(_panelVisibleProvider);
-    // The same for every frame of the panel's animation, so that it doesn't rebuild the chat.
-    final chat = _Chat(wide: wide, panel: wide && panelVisible);
     return TweenAnimationBuilder<double>(
       tween: Tween(end: panelVisible ? 1 : 0),
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
-      builder: (context, shown, _) => Stack(
+      child: _Chat(wide: wide, panel: wide && panelVisible),
+      builder: (context, shown, chat) => Stack(
         fit: StackFit.expand,
         children: [
           Row(
@@ -72,7 +71,7 @@ class _ChatPageState extends State<ChatPage> with Refena {
               if (wide) _Panel(visible: panelVisible, shown: shown),
               // The chat stays in its place with or without the panel (e.g. when resized in split view), keeping its
               // state. The messages and the message input center in its width.
-              Expanded(child: chat),
+              Expanded(child: chat!),
             ],
           ),
           if (wide) _PanelButton(visible: panelVisible, shown: shown),
