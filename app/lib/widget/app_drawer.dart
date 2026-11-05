@@ -13,23 +13,21 @@ import 'package:uuid/uuid.dart';
 /// How many of the newest chats are listed, the others are behind "Older".
 const _chatCount = 10;
 
-/// The width of the [AppDrawer.permanent] panel, the same as the drawer's.
-const _panelWidth = 304.0;
-
 /// The newest chats of the account; tapping one opens it with its messages. Below them "Older", if there are
 /// more, opens the others. At the bottom, the settings.
 ///
 /// The chats are loaded whenever it is built: when the drawer opens (its content is built only while it is open), or
 /// when the panel is shown.
 class AppDrawer extends StatefulWidget {
+  /// The width of the [permanent] panel, the same as the drawer's.
+  static const panelWidth = 304.0;
+
   /// Whether it is the panel beside the chat on wide screens instead of the modal drawer. It stays open then, also
-  /// while the chat goes on beside it, until it is hidden with [onHide].
+  /// while the chat goes on beside it, until it is hidden. The end of its header is left free for the chat page's
+  /// button that hides it (where the web has its collapse button).
   final bool permanent;
 
-  /// Hides the [permanent] panel, with a button at the end of its header (where the web has its collapse button).
-  final VoidCallback? onHide;
-
-  const AppDrawer({this.permanent = false, this.onHide});
+  const AppDrawer({this.permanent = false});
 
   @override
   State<AppDrawer> createState() => _AppDrawerState();
@@ -82,8 +80,9 @@ class _AppDrawerState extends State<AppDrawer> with Refena {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (widget.onHide case final onHide?)
-              // As high as the chat's app bar beside it, so that the button lines up with the app bar's buttons.
+            if (widget.permanent)
+              // As high as the chat's app bar beside it, so that the button at its end lines up with the app bar's
+              // buttons. The button's space is as wide as the app bar's leading one, which it moves to.
               SizedBox(
                 height: AppBarTheme.of(context).toolbarHeight ?? kToolbarHeight,
                 child: Row(
@@ -91,13 +90,7 @@ class _AppDrawerState extends State<AppDrawer> with Refena {
                     Expanded(
                       child: Padding(padding: const EdgeInsetsDirectional.only(start: 16), child: title),
                     ),
-                    IconButton(
-                      key: const ValueKey('chat.drawer.hide'),
-                      icon: const Icon(Icons.menu_open),
-                      tooltip: t.base.app.navigation.collapseNavigation,
-                      onPressed: onHide,
-                    ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: kToolbarHeight),
                   ],
                 ),
               )
@@ -242,7 +235,7 @@ class _Frame extends StatelessWidget {
     }
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerLow,
-      child: SizedBox(width: _panelWidth, child: child),
+      child: SizedBox(width: AppDrawer.panelWidth, child: child),
     );
   }
 }

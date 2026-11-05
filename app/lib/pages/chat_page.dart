@@ -1,3 +1,5 @@
+import 'dart:ui' show lerpDouble;
+
 import 'package:app/config/theme.dart';
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/chat_list_service.dart';
@@ -55,22 +57,33 @@ class _ChatPageState extends State<ChatPage> with Refena {
     final size = MediaQuery.sizeOf(context);
     final wide = size.width >= _panelMinWidth && size.height >= _panelMinHeight;
     final panelVisible = context.watch(_panelVisibleProvider);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (wide) _Panel(visible: panelVisible),
-        // The chat stays in its place with or without the panel (e.g. when resized in split view), keeping its state.
-        // The messages and the message input center in its width.
-        Expanded(
-          child: _Chat(wide: wide, panel: wide && panelVisible),
-        ),
-      ],
+    // The same for every frame of the panel's animation, so that it doesn't rebuild the chat.
+    final chat = _Chat(wide: wide, panel: wide && panelVisible);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(end: panelVisible ? 1 : 0),
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      builder: (context, shown, _) => Stack(
+        fit: StackFit.expand,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (wide) _Panel(visible: panelVisible, shown: shown),
+              // The chat stays in its place with or without the panel (e.g. when resized in split view), keeping its
+              // state. The messages and the message input center in its width.
+              Expanded(child: chat),
+            ],
+          ),
+          if (wide) _PanelButton(visible: panelVisible, shown: shown),
+        ],
+      ),
     );
   }
 }
 
-/// The chat itself, with the drawer on narrow screens. On [wide] ones, the button that opens the drawer shows the
-/// [panel] instead while it is hidden.
+/// The chat itself, with the drawer on narrow screens. On [wide] ones, its app bar leaves the leading space free for
+/// the [_PanelButton] while the [panel] is hidden.
 class _Chat extends StatelessWidget {
   final bool wide;
 
@@ -102,21 +115,15 @@ class _Chat extends StatelessWidget {
             backgroundColor: WidgetStateColor.resolveWith(
               (states) => states.contains(WidgetState.scrolledUnder) ? scrolledUnder : background,
             ),
-            leading: panel
-                ? null
+            leading: wide
+                ? (panel ? null : const SizedBox())
                 : Builder(
                     // Below the Scaffold, to find it.
                     builder: (context) => IconButton(
                       key: const ValueKey('chat.drawer'),
                       icon: const Icon(Icons.menu),
-                      tooltip: wide ? context.t.base.app.navigation.expandNavigation : context.t.base.chat.title,
-                      onPressed: () {
-                        if (wide) {
-                          context.ref.notifier(_panelVisibleProvider).setState((_) => true);
-                        } else {
-                          Scaffold.of(context).openDrawer();
-                        }
-                      },
+                      tooltip: context.t.base.chat.title,
+                      onPressed: () => Scaffold.of(context).openDrawer(),
                     ),
                   ),
             // A new chat chooses its repositories in the message input.
@@ -172,36 +179,74 @@ class _Chat extends StatelessWidget {
 /// The [AppDrawer] as a panel beside the chat on wide screens, with the divider. Hidden, it slides out to the start,
 /// but stays built, so that it keeps its chats (and their scroll position) for when it is shown again.
 class _Panel extends StatelessWidget {
+  /// Whether it is shown, or being shown. While hidden, its tiles can't be reached with the keyboard or a screen
+  /// reader either.
   final bool visible;
 
-  const _Panel({required this.visible});
+  /// How far it is shown, from 0 to 1.
+  final double shown;
+
+  const _Panel({required this.visible, required this.shown});
 
   @override
   Widget build(BuildContext context) {
-    // While hidden, its tiles can't be reached with the keyboard or a screen reader either.
     return ExcludeFocus(
       excluding: !visible,
       child: ExcludeSemantics(
         excluding: !visible,
         child: ClipRect(
-          child: AnimatedAlign(
+          child: Align(
             alignment: AlignmentDirectional.centerEnd,
-            widthFactor: visible ? 1 : 0,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeInOut,
-            child: Row(
+            widthFactor: shown,
+            // Constant, so that the frames of the animation don't rebuild it.
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Not tinted for a temporary chat, which it doesn't list: only the chat beside it is temporary.
-                AppDrawer(
-                  permanent: true,
-                  onHide: () => context.ref.notifier(_panelVisibleProvider).setState((_) => false),
-                ),
-                const VerticalDivider(width: 1),
+                AppDrawer(permanent: true),
+                VerticalDivider(width: 1),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The button that hides the [_Panel] and shows it again, above the page, like the web's navigation: at the end of the
+/// panel's header while it is shown, else in the chat's app bar, where phones have the button that opens the drawer.
+/// It moves between them with the panel, while its arrow (pointing where the panel goes) turns into the menu icon.
+class _PanelButton extends StatelessWidget {
+  /// Whether the panel is shown, or being shown.
+  final bool visible;
+
+  /// How far the panel is shown, from 0 to 1.
+  final double shown;
+
+  const _PanelButton({required this.visible, required this.shown});
+
+  @override
+  Widget build(BuildContext context) {
+    final padding = MediaQuery.paddingOf(context);
+    // The app bar's leading space starts after the safe area, the space in the panel's header ends with the panel.
+    final inset = Directionality.of(context) == TextDirection.ltr ? padding.left : padding.right;
+    final navigation = context.t.base.app.navigation;
+    return PositionedDirectional(
+      top: padding.top,
+      start: lerpDouble(inset, AppDrawer.panelWidth - kToolbarHeight, shown),
+      // The app bar's leading space, and the one at the end of the panel's header.
+      width: kToolbarHeight,
+      height: AppBarTheme.of(context).toolbarHeight ?? kToolbarHeight,
+      child: Center(
+        child: IconButton(
+          key: const ValueKey('chat.panel'),
+          // In the color of the app bar's leading button.
+          style: IconButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
+          icon: AnimatedIcon(icon: AnimatedIcons.menu_arrow, progress: AlwaysStoppedAnimation(shown)),
+          tooltip: visible ? navigation.collapseNavigation : navigation.expandNavigation,
+          onPressed: () => context.ref.notifier(_panelVisibleProvider).setState((visible) => !visible),
         ),
       ),
     );

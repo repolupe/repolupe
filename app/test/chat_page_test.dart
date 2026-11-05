@@ -141,21 +141,29 @@ void main() {
 
   testWidgets('on a wide screen, the panel is hidden and shown again, and stays when a chat is opened', (tester) async {
     final container = await _pumpChatPage(tester, const Size(1376, 1032));
+    final button = find.byKey(const ValueKey('chat.panel'));
+    // At the end of the panel's header, in the middle of the space it leaves.
+    expect(tester.getCenter(button), const Offset(304 - 28, 28));
 
-    await tester.tap(find.byKey(const ValueKey('chat.drawer.hide')));
+    await tester.tap(button);
+    // It moves with the panel.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.getCenter(button).dx, inExclusiveRange(28, 304 - 28));
     await tester.pumpAndSettle();
     expect(_listed('Saved chat').hitTestable(), findsNothing);
-    // The chat takes the whole width.
+    // The chat takes the whole width, and the button is in its app bar.
     expect(tester.getCenter(find.byType(MessageInput)).dx, closeTo(1376 / 2, 0.01));
+    expect(tester.getCenter(button), const Offset(28, 28));
 
-    await tester.tap(find.byKey(const ValueKey('chat.drawer')));
+    await tester.tap(button);
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('chat.drawer')), findsNothing);
+    expect(tester.getCenter(button), const Offset(304 - 28, 28));
     await tester.tap(_listed('Saved chat'));
     await tester.pumpAndSettle();
     expect(container.read(chatProvider).chat?.id, _savedId);
     expect(_listed('Saved chat').hitTestable(), findsOneWidget);
-    expect(find.byKey(const ValueKey('chat.drawer')), findsNothing);
+    expect(tester.getCenter(button), const Offset(304 - 28, 28));
   });
 
   testWidgets('on a phone in landscape, the chats stay in the drawer', (tester) async {
