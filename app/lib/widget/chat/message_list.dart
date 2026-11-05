@@ -6,6 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+/// The space to the left and right of the messages. Answers put it inside them, so that their wide tables scroll
+/// through it to the screen's edges.
+const _horizontalPadding = 16.0;
+
 /// The messages of a chat, newest at the bottom. They scroll on behind the message input, whose height is the bottom
 /// padding (the Scaffold's body, which extends behind it), and fade into the background there.
 class MessageList extends StatelessWidget {
@@ -35,20 +39,29 @@ class MessageList extends StatelessWidget {
         key: const ValueKey('chat.messages'),
         // Starts at the bottom and stays there while the answer grows.
         reverse: true,
-        padding: EdgeInsets.fromLTRB(16, 16, 16, 24 + input),
+        padding: EdgeInsets.only(top: 16, bottom: 24 + input),
         itemCount: messages.length,
         separatorBuilder: (_, _) => const SizedBox(height: 24),
         itemBuilder: (context, index) {
           final message = messages[messages.length - 1 - index];
-          return switch (message.role) {
-            MessageRole.user => UserMessage(key: ValueKey(message.id), message: message),
-            MessageRole.assistant => _Answer(
-              key: ValueKey(message.id),
-              chatId: chatId,
-              message: message,
-              modelName: modelName(message.modelId),
-            ),
-          };
+          // The list's padding already makes room for the message input, so the messages don't see it. Otherwise the
+          // scrollbar of a wide table or code block would be drawn that far above its bottom edge.
+          return MediaQuery.removePadding(
+            context: context,
+            removeBottom: true,
+            child: switch (message.role) {
+              MessageRole.user => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: _horizontalPadding),
+                child: UserMessage(key: ValueKey(message.id), message: message),
+              ),
+              MessageRole.assistant => _Answer(
+                key: ValueKey(message.id),
+                chatId: chatId,
+                message: message,
+                modelName: modelName(message.modelId),
+              ),
+            },
+          );
         },
       ),
     );
@@ -73,6 +86,7 @@ class _Answer extends StatelessWidget {
       chatId: chatId,
       message: running != null && message.status == MessageStatus.generating ? running : message,
       modelName: modelName,
+      horizontalPadding: _horizontalPadding,
     );
   }
 }

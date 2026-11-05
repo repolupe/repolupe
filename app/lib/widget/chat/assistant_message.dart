@@ -25,7 +25,16 @@ class AssistantMessage extends StatefulWidget {
   /// The model that wrote the answer, if it still exists.
   final String? modelName;
 
-  const AssistantMessage({super.key, required this.chatId, required this.message, required this.modelName});
+  /// The space to the left and right of the content. Wide tables in the answer scroll through it to the edges.
+  final double horizontalPadding;
+
+  const AssistantMessage({
+    super.key,
+    required this.chatId,
+    required this.message,
+    required this.modelName,
+    this.horizontalPadding = 0,
+  });
 
   @override
   State<AssistantMessage> createState() => _AssistantMessageState();
@@ -105,12 +114,16 @@ class _AssistantMessageState extends State<AssistantMessage> {
     final files = completed ? presentedFiles(message) : const <ToolCallFile>[];
     final changes = completed ? proposedChanges(message) : const <ToolCallFile>[];
     final status = _statusLabel(context);
+    final padding = EdgeInsets.symmetric(horizontal: widget.horizontalPadding);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (message.toolCalls.isNotEmpty) ...[
-          ToolCallList(chatId: widget.chatId, messageId: message.id, toolCalls: message.toolCalls),
+          Padding(
+            padding: padding,
+            child: ToolCallList(chatId: widget.chatId, messageId: message.id, toolCalls: message.toolCalls),
+          ),
           const SizedBox(height: 8),
         ],
 
@@ -123,71 +136,88 @@ class _AssistantMessageState extends State<AssistantMessage> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  MarkdownContent(content: content),
+                  MarkdownContent(content: content, horizontalPadding: widget.horizontalPadding),
                   if (_generating || revealing) ...[
                     const SizedBox(height: 12),
-                    if (status != null) _Status(label: status, style: muted) else const _Spinner(),
+                    Padding(
+                      padding: padding,
+                      child: status != null ? _Status(label: status, style: muted) : const _Spinner(),
+                    ),
                   ],
                 ],
               );
             }
             if (status != null) {
-              return _Status(label: status, style: muted);
+              return Padding(
+                padding: padding,
+                child: _Status(label: status, style: muted),
+              );
             }
             if (completed && files.isEmpty && changes.isEmpty) {
-              return Text(context.t.base.chat.assistantMessage.noAnswer, style: muted);
+              return Padding(
+                padding: padding,
+                child: Text(context.t.base.chat.assistantMessage.noAnswer, style: muted),
+              );
             }
             return const SizedBox.shrink();
           },
         ),
 
-        if (files.isNotEmpty || changes.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+        Padding(
+          padding: padding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              for (final (:toolCall, :path) in changes)
-                _PageButton(
-                  icon: toolCall.icon,
-                  label: switch (toolCall.moves.length) {
-                    final count when count > 1 => context.t.base.chat.moveCount(count: count),
-                    _ => fileName(path),
-                  },
-                  page: ProposedCommitPage(chatId: widget.chatId, toolCall: toolCall, path: path),
+              if (files.isNotEmpty || changes.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final (:toolCall, :path) in changes)
+                      _PageButton(
+                        icon: toolCall.icon,
+                        label: switch (toolCall.moves.length) {
+                          final count when count > 1 => context.t.base.chat.moveCount(count: count),
+                          _ => fileName(path),
+                        },
+                        page: ProposedCommitPage(chatId: widget.chatId, toolCall: toolCall, path: path),
+                      ),
+                    for (final (:toolCall, :path) in files)
+                      _PageButton(
+                        icon: Icons.description_outlined,
+                        label: fileName(path),
+                        page: PresentedFilePage(chatId: widget.chatId, toolCall: toolCall, path: path),
+                      ),
+                  ],
                 ),
-              for (final (:toolCall, :path) in files)
-                _PageButton(
-                  icon: Icons.description_outlined,
-                  label: fileName(path),
-                  page: PresentedFilePage(chatId: widget.chatId, toolCall: toolCall, path: path),
+              ],
+
+              if (message.status == MessageStatus.failed) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    message.error ?? context.t.base.chat.assistantMessage.failed,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onErrorContainer),
+                  ),
                 ),
+              ],
+
+              if (message.status == MessageStatus.cancelled) ...[
+                const SizedBox(height: 12),
+                _IconText(icon: Icons.cancel_outlined, text: context.t.base.chat.assistantMessage.cancelled, style: caption),
+              ],
+
+              _Footer(message: message, modelName: widget.modelName, duration: _duration, style: caption),
             ],
           ),
-        ],
-
-        if (message.status == MessageStatus.failed) ...[
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.errorContainer,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              message.error ?? context.t.base.chat.assistantMessage.failed,
-              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onErrorContainer),
-            ),
-          ),
-        ],
-
-        if (message.status == MessageStatus.cancelled) ...[
-          const SizedBox(height: 12),
-          _IconText(icon: Icons.cancel_outlined, text: context.t.base.chat.assistantMessage.cancelled, style: caption),
-        ],
-
-        _Footer(message: message, modelName: widget.modelName, duration: _duration, style: caption),
+        ),
       ],
     );
   }
