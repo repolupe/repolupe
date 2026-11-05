@@ -22,6 +22,10 @@ const _panelMinWidth = 840.0;
 /// drawer even if it is wide enough.
 const _panelMinHeight = 480.0;
 
+/// Whether the panel is shown on wide screens: the user hides it and shows it again, like the web's navigation. It
+/// stays so when a chat is opened, and when the page opens again (e.g. for another account), until the app restarts.
+final _panelVisibleProvider = StateProvider<bool>((ref) => true, debugLabel: 'ChatPanelVisible');
+
 /// A chat with the model of the active account, a new one every time the page opens.
 /// The drawer, on wide screens a panel beside the chat, lists the previous chats to open instead, and the settings.
 class ChatPage extends StatefulWidget {
@@ -50,21 +54,24 @@ class _ChatPageState extends State<ChatPage> with Refena {
   Widget build(BuildContext context) {
     final state = context.watch(chatProvider);
     final size = MediaQuery.sizeOf(context);
-    final panel = size.width >= _panelMinWidth && size.height >= _panelMinHeight;
+    final wide = size.width >= _panelMinWidth && size.height >= _panelMinHeight;
+    final panelVisible = context.watch(_panelVisibleProvider);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Not tinted for a temporary chat, which it doesn't list: only the chat beside it is temporary.
-        if (panel) ...[const AppDrawer(permanent: true), const VerticalDivider(width: 1)],
+        if (wide) _Panel(visible: panelVisible),
         // The chat stays in its place with or without the panel (e.g. when resized in split view), keeping its state.
         // The messages and the message input center in its width.
-        Expanded(child: _buildChat(state, panel: panel)),
+        Expanded(
+          child: _buildChat(state, wide: wide, panel: wide && panelVisible),
+        ),
       ],
     );
   }
 
-  /// The chat itself, with the drawer unless the [panel] is beside it.
-  Widget _buildChat(ChatState state, {required bool panel}) {
+  /// The chat itself, with the drawer on narrow screens. On [wide] ones, the button that opens the drawer shows the
+  /// [panel] instead while it is hidden.
+  Widget _buildChat(ChatState state, {required bool wide, required bool panel}) {
     final chat = state.chat;
     // Fades to the temporary background, the app bar too because it has the page's color.
     return TweenAnimationBuilder<double>(
@@ -80,7 +87,7 @@ class _ChatPageState extends State<ChatPage> with Refena {
           // The input stays above the keyboard on its own, so the body extends behind it too.
           extendBody: true,
           resizeToAvoidBottomInset: false,
-          drawer: panel ? null : const AppDrawer(),
+          drawer: wide ? null : const AppDrawer(),
           appBar: AppBar(
             backgroundColor: WidgetStateColor.resolveWith(
               (states) => states.contains(WidgetState.scrolledUnder) ? scrolledUnder : background,
@@ -92,8 +99,14 @@ class _ChatPageState extends State<ChatPage> with Refena {
                     builder: (context) => IconButton(
                       key: const ValueKey('chat.drawer'),
                       icon: const Icon(Icons.menu),
-                      tooltip: context.t.base.chat.title,
-                      onPressed: () => Scaffold.of(context).openDrawer(),
+                      tooltip: wide ? context.t.base.app.navigation.expandNavigation : context.t.base.chat.title,
+                      onPressed: () {
+                        if (wide) {
+                          context.ref.notifier(_panelVisibleProvider).setState((_) => true);
+                        } else {
+                          Scaffold.of(context).openDrawer();
+                        }
+                      },
                     ),
                   ),
             // A new chat chooses its repositories in the message input.
@@ -141,6 +154,45 @@ class _ChatPageState extends State<ChatPage> with Refena {
                   ),
                 ),
               ),
+      ),
+    );
+  }
+}
+
+/// The [AppDrawer] as a panel beside the chat on wide screens, with the divider. Hidden, it slides out to the start,
+/// but stays built, so that it keeps its chats (and their scroll position) for when it is shown again.
+class _Panel extends StatelessWidget {
+  final bool visible;
+
+  const _Panel({required this.visible});
+
+  @override
+  Widget build(BuildContext context) {
+    // While hidden, its tiles can't be reached with the keyboard or a screen reader either.
+    return ExcludeFocus(
+      excluding: !visible,
+      child: ExcludeSemantics(
+        excluding: !visible,
+        child: ClipRect(
+          child: AnimatedAlign(
+            alignment: AlignmentDirectional.centerEnd,
+            widthFactor: visible ? 1 : 0,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Not tinted for a temporary chat, which it doesn't list: only the chat beside it is temporary.
+                AppDrawer(
+                  permanent: true,
+                  onHide: () => context.ref.notifier(_panelVisibleProvider).setState((_) => false),
+                ),
+                const VerticalDivider(width: 1),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

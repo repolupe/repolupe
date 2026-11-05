@@ -8,6 +8,7 @@ import 'package:app/widget/chat/leave_temporary_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 /// How many of the newest chats are listed, the others are behind "Older".
 const _chatCount = 10;
@@ -22,16 +23,23 @@ const _panelWidth = 304.0;
 /// when the panel is shown.
 class AppDrawer extends StatefulWidget {
   /// Whether it is the panel beside the chat on wide screens instead of the modal drawer. It stays open then, also
-  /// while the chat goes on beside it.
+  /// while the chat goes on beside it, until it is hidden with [onHide].
   final bool permanent;
 
-  const AppDrawer({this.permanent = false});
+  /// Hides the [permanent] panel, with a button at the end of its header (where the web has its collapse button).
+  final VoidCallback? onHide;
+
+  const AppDrawer({this.permanent = false, this.onHide});
 
   @override
   State<AppDrawer> createState() => _AppDrawerState();
 }
 
 class _AppDrawerState extends State<AppDrawer> with Refena {
+  /// The chat that is being opened, selected while it loads. The chat page has no chat then, which would select
+  /// "New chat" in the panel in between.
+  UuidValue? _opening;
+
   @override
   void initState() {
     super.initState();
@@ -78,15 +86,34 @@ class _AppDrawerState extends State<AppDrawer> with Refena {
         }
       },
     );
+    final selectedId = _opening ?? openId;
+    final title = Text(t.base.chat.title, style: Theme.of(context).textTheme.titleSmall);
     return _frame(
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(t.base.chat.title, style: Theme.of(context).textTheme.titleSmall),
-            ),
+            if (widget.onHide case final onHide?)
+              // As high as the chat's app bar beside it, so that the button lines up with the app bar's buttons.
+              SizedBox(
+                height: AppBarTheme.of(context).toolbarHeight ?? kToolbarHeight,
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Padding(padding: const EdgeInsetsDirectional.only(start: 16), child: title),
+                    ),
+                    IconButton(
+                      key: const ValueKey('chat.drawer.hide'),
+                      icon: const Icon(Icons.menu_open),
+                      tooltip: t.base.app.navigation.collapseNavigation,
+                      onPressed: onHide,
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                ),
+              )
+            else
+              Padding(padding: const EdgeInsets.fromLTRB(16, 16, 16, 8), child: title),
             Expanded(
               child: ListView(
                 key: const ValueKey('chat.drawer.chats'),
@@ -96,7 +123,7 @@ class _AppDrawerState extends State<AppDrawer> with Refena {
                     painter: _TimelinePainter(
                       first: true,
                       last: chats == null || chats.isEmpty,
-                      selected: openId == null,
+                      selected: selectedId == null,
                       colors: Theme.of(context).colorScheme,
                       textDirection: Directionality.of(context),
                     ),
@@ -104,7 +131,7 @@ class _AppDrawerState extends State<AppDrawer> with Refena {
                       key: const ValueKey('chat.drawer.newChat'),
                       contentPadding: const EdgeInsetsDirectional.only(start: _TimelinePainter.lineStart * 2, end: 16),
                       title: Text(t.base.app.navigation.newChat),
-                      selected: openId == null,
+                      selected: selectedId == null,
                       onTap: () async {
                         // Like the app bar's button, keeps the choices of a chat without messages.
                         final leave = context.read(chatProvider).messages.isNotEmpty;
@@ -115,6 +142,7 @@ class _AppDrawerState extends State<AppDrawer> with Refena {
                         // The drawer's context is gone once it is closed.
                         final ref = context.ref;
                         _close();
+                        setState(() => _opening = null);
                         if (leave) {
                           await ref.redux(chatProvider).dispatchAsync(NewChatAction());
                         }
@@ -136,7 +164,7 @@ class _AppDrawerState extends State<AppDrawer> with Refena {
                         painter: _TimelinePainter(
                           first: false,
                           last: olderCursor == null && chat == chats.last,
-                          selected: chat.id == openId,
+                          selected: chat.id == selectedId,
                           colors: Theme.of(context).colorScheme,
                           textDirection: Directionality.of(context),
                         ),
@@ -144,7 +172,7 @@ class _AppDrawerState extends State<AppDrawer> with Refena {
                           contentPadding: const EdgeInsetsDirectional.only(start: _TimelinePainter.lineStart * 2, end: 16),
                           title: Text(chat.title, maxLines: 1, overflow: TextOverflow.ellipsis),
                           subtitle: Text(formatDayTime(chat.updatedAt)),
-                          selected: chat.id == openId,
+                          selected: chat.id == selectedId,
                           onTap: () async {
                             // Asked above the drawer, which stays open if the user stays.
                             if (!await LeaveTemporaryDialog.confirm(context) || !context.mounted) {
@@ -153,7 +181,14 @@ class _AppDrawerState extends State<AppDrawer> with Refena {
                             // The drawer's context is gone once it is closed.
                             final ref = context.ref;
                             _close();
-                            await ref.redux(chatProvider).dispatchAsync(OpenChatAction(chat.id));
+                            setState(() => _opening = chat.id);
+                            try {
+                              await ref.redux(chatProvider).dispatchAsync(OpenChatAction(chat.id));
+                            } finally {
+                              if (mounted && _opening == chat.id) {
+                                setState(() => _opening = null);
+                              }
+                            }
                           },
                         ),
                       ),
