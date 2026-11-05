@@ -110,16 +110,16 @@ class _ChatPageState extends State<ChatPage> with Refena {
       child: SafeArea(
         // The bottom padding is the message input's height, which only the messages scroll behind.
         bottom: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: _maxWidth),
-            child: state.loading
-                ? const SafeArea(child: Center(child: CircularProgressIndicator()))
-                : chat == null || state.messages.isEmpty
-                ? SafeArea(child: InstanceHero(temporary: state.isTemporary))
-                : MessageList(chatId: chat.id, messages: state.messages, modelName: state.modelName),
-          ),
-        ),
+        child: !state.loading && chat != null && state.messages.isNotEmpty
+            ? MessageList(chatId: chat.id, messages: state.messages, modelName: state.modelName, maxWidth: _maxWidth)
+            : Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: _maxWidth),
+                  child: SafeArea(
+                    child: state.loading ? const Center(child: CircularProgressIndicator()) : InstanceHero(temporary: state.isTemporary),
+                  ),
+                ),
+              ),
       ),
     );
   }

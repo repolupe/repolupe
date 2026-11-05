@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:app/service/message_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/widget/chat/assistant_message.dart';
@@ -6,9 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-/// The space to the left and right of the messages. Answers put it inside them, so that their wide tables scroll
+/// The least space to the left and right of the messages. Answers put it inside them, so that their wide tables scroll
 /// through it to the screen's edges.
-const _horizontalPadding = 16.0;
+const _minHorizontalPadding = 16.0;
 
 /// The messages of a chat, newest at the bottom. They scroll on behind the message input, whose height is the bottom
 /// padding (the Scaffold's body, which extends behind it), and fade into the background there.
@@ -19,7 +21,17 @@ class MessageList extends StatelessWidget {
   /// The name of the model with the id, if it is still offered.
   final String? Function(UuidValue? modelId) modelName;
 
-  const MessageList({super.key, required this.chatId, required this.messages, required this.modelName});
+  /// The width of the messages, with their padding. The list itself spans the whole width and centers them, so that the
+  /// wide tables of answers scroll through the space beside them to the screen's edges.
+  final double maxWidth;
+
+  const MessageList({
+    super.key,
+    required this.chatId,
+    required this.messages,
+    required this.modelName,
+    this.maxWidth = double.infinity,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -35,31 +47,37 @@ class MessageList extends StatelessWidget {
         end: Alignment.bottomCenter,
         colors: [Colors.black, Colors.transparent],
       ).createShader(Rect.fromLTRB(0, bounds.bottom - input, bounds.right, bounds.bottom - keyboard)),
-      child: ListView.separated(
-        key: const ValueKey('chat.messages'),
-        // Starts at the bottom and stays there while the answer grows.
-        reverse: true,
-        padding: EdgeInsets.only(top: 16, bottom: 24 + input),
-        itemCount: messages.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 24),
-        itemBuilder: (context, index) {
-          final message = messages[messages.length - 1 - index];
-          // The list's padding already makes room for the message input, so the messages don't see it. Otherwise the
-          // scrollbar of a wide table or code block would be drawn that far above its bottom edge.
-          return MediaQuery.removePadding(
-            context: context,
-            removeBottom: true,
-            child: switch (message.role) {
-              MessageRole.user => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: _horizontalPadding),
-                child: UserMessage(key: ValueKey(message.id), message: message),
-              ),
-              MessageRole.assistant => _Answer(
-                key: ValueKey(message.id),
-                chatId: chatId,
-                message: message,
-                modelName: modelName(message.modelId),
-              ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final horizontalPadding = _minHorizontalPadding + max(0.0, (constraints.maxWidth - maxWidth) / 2);
+          return ListView.separated(
+            key: const ValueKey('chat.messages'),
+            // Starts at the bottom and stays there while the answer grows.
+            reverse: true,
+            padding: EdgeInsets.only(top: 16, bottom: 24 + input),
+            itemCount: messages.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 24),
+            itemBuilder: (context, index) {
+              final message = messages[messages.length - 1 - index];
+              // The list's padding already makes room for the message input, so the messages don't see it. Otherwise
+              // the scrollbar of a wide table or code block would be drawn that far above its bottom edge.
+              return MediaQuery.removePadding(
+                context: context,
+                removeBottom: true,
+                child: switch (message.role) {
+                  MessageRole.user => Padding(
+                    padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                    child: UserMessage(key: ValueKey(message.id), message: message),
+                  ),
+                  MessageRole.assistant => _Answer(
+                    key: ValueKey(message.id),
+                    chatId: chatId,
+                    message: message,
+                    modelName: modelName(message.modelId),
+                    horizontalPadding: horizontalPadding,
+                  ),
+                },
+              );
             },
           );
         },
@@ -76,8 +94,15 @@ class _Answer extends StatelessWidget {
   /// The answer as the chat has it, shown until the [MessageService] follows it, and once it is finished.
   final MessageDto message;
   final String? modelName;
+  final double horizontalPadding;
 
-  const _Answer({super.key, required this.chatId, required this.message, required this.modelName});
+  const _Answer({
+    super.key,
+    required this.chatId,
+    required this.message,
+    required this.modelName,
+    required this.horizontalPadding,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -86,7 +111,7 @@ class _Answer extends StatelessWidget {
       chatId: chatId,
       message: running != null && message.status == MessageStatus.generating ? running : message,
       modelName: modelName,
-      horizontalPadding: _horizontalPadding,
+      horizontalPadding: horizontalPadding,
     );
   }
 }
