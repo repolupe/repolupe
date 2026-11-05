@@ -5,6 +5,7 @@ import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
 import 'package:app/util/locales.dart';
+import 'package:app/widget/page_list_view.dart';
 import 'package:app/widget/settings/default_model_sheet.dart';
 import 'package:app/widget/settings/locale_sheet.dart';
 import 'package:flutter/material.dart';
@@ -153,7 +154,7 @@ class _PreferencesPageState extends State<PreferencesPage> with Refena {
       appBar: AppBar(title: Text(t.base.settings.preferences.title)),
       body: user == null
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
+          : PageListView(
               padding: EdgeInsets.only(top: 8, bottom: 8 + MediaQuery.paddingOf(context).bottom),
               children: [
                 ListTile(

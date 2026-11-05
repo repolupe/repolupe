@@ -5,6 +5,7 @@ import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/util/format.dart';
 import 'package:app/widget/chat/leave_temporary_dialog.dart';
+import 'package:app/widget/page_list_view.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -84,7 +85,7 @@ class _OlderChatsPageState extends State<OlderChatsPage> with Refena {
       appBar: AppBar(title: Text(t.base.chat.olderPage.title)),
       body: _chats.isEmpty && !more
           ? Center(child: Text(t.base.chat.noChats))
-          : ListView.builder(
+          : PageListView.builder(
               key: const ValueKey('olderChats.list'),
               padding: EdgeInsets.only(bottom: 8 + MediaQuery.paddingOf(context).bottom),
               // The last item loads the next page, or offers to try again.

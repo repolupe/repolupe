@@ -9,6 +9,7 @@ import 'package:app/util/format.dart';
 import 'package:app/widget/admin/remote_models_sheet.dart';
 import 'package:app/widget/confirm_dialog.dart';
 import 'package:app/widget/delete_dialog.dart';
+import 'package:app/widget/page_list_view.dart';
 import 'package:app/widget/repositories/info_card.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
@@ -226,7 +227,7 @@ class _LlmPageState extends State<LlmPage> with Refena {
                   )
           : providers.isEmpty
           ? _EmptyState(onCreate: _createProvider)
-          : ListView(
+          : PageListView(
               key: const ValueKey('llm.list'),
               padding: EdgeInsets.only(bottom: 88 + MediaQuery.paddingOf(context).bottom),
               children: [
@@ -283,28 +284,31 @@ class _EmptyState extends StatelessWidget {
     final t = context.t;
     final theme = Theme.of(context);
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.smart_toy_outlined, size: 64, color: theme.colorScheme.onSurfaceVariant),
-            const SizedBox(height: 16),
-            Text(t.base.admin.llm.page.emptyTitle, style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(
-              t.base.admin.llm.page.emptyText,
-              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              key: const ValueKey('llm.empty.newProvider'),
-              onPressed: onCreate,
-              icon: const Icon(Icons.add),
-              label: Text(t.base.admin.llm.newProvider),
-            ),
-          ],
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: pageMaxWidth),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.smart_toy_outlined, size: 64, color: theme.colorScheme.onSurfaceVariant),
+              const SizedBox(height: 16),
+              Text(t.base.admin.llm.page.emptyTitle, style: theme.textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Text(
+                t.base.admin.llm.page.emptyText,
+                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                key: const ValueKey('llm.empty.newProvider'),
+                onPressed: onCreate,
+                icon: const Icon(Icons.add),
+                label: Text(t.base.admin.llm.newProvider),
+              ),
+            ],
+          ),
         ),
       ),
     );

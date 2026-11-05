@@ -8,6 +8,7 @@ import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/extraction.dart';
 import 'package:app/util/format.dart';
 import 'package:app/util/poller.dart';
+import 'package:app/widget/page_list_view.dart';
 import 'package:app/widget/repositories/document_details_sheet.dart';
 import 'package:app/widget/repositories/document_status_chip.dart';
 import 'package:app/widget/repositories/info_card.dart';
@@ -207,7 +208,7 @@ class _ExtractionPageState extends State<ExtractionPage> with Refena {
                       label: Text(t.base.common.retry),
                     ),
                   )
-          : ListView(
+          : PageListView(
               key: const ValueKey('extraction.list'),
               padding: EdgeInsets.only(bottom: 24 + MediaQuery.paddingOf(context).bottom),
               children: [

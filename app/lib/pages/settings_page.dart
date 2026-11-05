@@ -20,6 +20,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
 import 'package:app/util/locales.dart';
 import 'package:app/widget/account_sheet.dart';
 import 'package:app/widget/app_logo.dart';
+import 'package:app/widget/page_list_view.dart';
 import 'package:app/widget/theme_mode_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
@@ -180,7 +181,7 @@ class _SettingsPageState extends State<SettingsPage> with Refena {
     final local = context.watch(accountProvider.select((state) => state.active?.isLocal ?? false));
     return Scaffold(
       appBar: AppBar(title: Text(t.base.settings.title)),
-      body: ListView(
+      body: PageListView(
         key: const ValueKey('settings.sections'),
         padding: EdgeInsets.only(top: 24, bottom: 64 + MediaQuery.paddingOf(context).bottom),
         children: [

@@ -1,6 +1,7 @@
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
+import 'package:app/widget/page_list_view.dart';
 import 'package:app/widget/settings/profile_field_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -34,7 +35,7 @@ class _ProfilePageState extends State<ProfilePage> with Refena {
       appBar: AppBar(title: Text(t.base.settings.profile.title)),
       body: user == null
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
+          : PageListView(
               padding: EdgeInsets.only(top: 8, bottom: 8 + MediaQuery.paddingOf(context).bottom),
               children: [
                 Padding(

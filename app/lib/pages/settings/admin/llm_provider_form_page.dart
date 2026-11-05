@@ -6,6 +6,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
 import 'package:app/util/currencies.dart';
 import 'package:app/util/validation.dart';
 import 'package:app/widget/flag_emoji.dart';
+import 'package:app/widget/page_list_view.dart';
 import 'package:app/widget/unsaved_changes_guard.dart';
 import 'package:flutter/material.dart';
 import 'package:moform/moform.dart';
@@ -187,7 +188,7 @@ class _LlmProviderFormPageState extends State<LlmProviderFormPage> with Refena {
           ],
         ),
         body: SafeArea(
-          child: ListView(
+          child: PageListView(
             padding: const EdgeInsets.all(16),
             children: [
               TextField(

@@ -10,6 +10,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
 import 'package:app/util/format.dart';
 import 'package:app/util/validation.dart';
+import 'package:app/widget/page_list_view.dart';
 import 'package:app/widget/repositories/repository_kind_sheet.dart';
 import 'package:app/widget/unsaved_changes_guard.dart';
 import 'package:flutter/material.dart';
@@ -209,7 +210,7 @@ class _RepositoryFormPageState extends State<RepositoryFormPage> with Refena {
           ],
         ),
         body: SafeArea(
-          child: ListView(
+          child: PageListView(
             padding: const EdgeInsets.all(16),
             children: [
               if (_isRemote) ...[

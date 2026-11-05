@@ -5,6 +5,7 @@ import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/config.dart';
 import 'package:app/widget/admin/mistral_key_sheet.dart';
 import 'package:app/widget/admin/override_sheet.dart';
+import 'package:app/widget/page_list_view.dart';
 import 'package:app/widget/status_chip.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
@@ -100,7 +101,7 @@ class _ConfigPageState extends State<ConfigPage> with Refena {
                       label: Text(t.base.common.retry),
                     ),
                   )
-          : ListView(
+          : PageListView(
               key: const ValueKey('config.list'),
               padding: EdgeInsets.only(bottom: 24 + MediaQuery.paddingOf(context).bottom),
               children: [

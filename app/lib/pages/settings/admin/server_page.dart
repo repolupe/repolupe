@@ -3,6 +3,7 @@ import 'package:app/service/account_service.dart';
 import 'package:app/service/api_service.dart';
 import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/server.dart';
+import 'package:app/widget/page_list_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:refena_flutter/addons.dart';
@@ -63,7 +64,7 @@ class _ServerPageState extends State<ServerPage> with Refena {
     final version = _server?.version;
     return Scaffold(
       appBar: AppBar(title: Text(t.base.admin.server.title)),
-      body: ListView(
+      body: PageListView(
         padding: EdgeInsets.only(bottom: 24 + MediaQuery.paddingOf(context).bottom),
         children: [
           ListTile(

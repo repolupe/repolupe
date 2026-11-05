@@ -16,6 +16,7 @@ import 'package:app/util/poller.dart';
 import 'package:app/widget/chat/leave_temporary_dialog.dart';
 import 'package:app/widget/confirm_dialog.dart';
 import 'package:app/widget/delete_dialog.dart';
+import 'package:app/widget/page_list_view.dart';
 import 'package:app/widget/repositories/info_card.dart';
 import 'package:app/widget/repositories/repository_documents_card.dart';
 import 'package:app/widget/repositories/repository_users_card.dart';
@@ -269,7 +270,7 @@ class _Body extends StatelessWidget {
     final token = remote?.token;
     final muted = theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     final page = context.t.base.repositories.page;
-    return ListView(
+    return PageListView(
       key: const ValueKey('repository.body'),
       padding: EdgeInsets.only(bottom: 24 + MediaQuery.paddingOf(context).bottom),
       children: [

@@ -6,6 +6,7 @@ import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
 import 'package:app/util/format.dart';
 import 'package:app/util/poller.dart';
+import 'package:app/widget/page_list_view.dart';
 import 'package:app/widget/repositories/repository_kind_sheet.dart';
 import 'package:app/widget/repositories/sync_status_chip.dart';
 import 'package:flutter/material.dart';
@@ -156,7 +157,7 @@ class _RepositoriesPageState extends State<RepositoriesPage> with Refena {
                   )
           : repositories.isEmpty
           ? _EmptyState(onCreate: _create)
-          : ListView(
+          : PageListView(
               key: const ValueKey('repositories.list'),
               padding: EdgeInsets.only(bottom: 88 + MediaQuery.paddingOf(context).bottom),
               children: [
@@ -245,28 +246,31 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.source, size: 64, color: theme.colorScheme.onSurfaceVariant),
-            const SizedBox(height: 16),
-            Text(context.t.base.repositories.listPage.emptyTitle, style: theme.textTheme.titleLarge, textAlign: TextAlign.center),
-            const SizedBox(height: 8),
-            Text(
-              context.t.base.repositories.listPage.emptyText,
-              style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              key: const ValueKey('repositories.new'),
-              onPressed: onCreate,
-              icon: const Icon(Icons.add),
-              label: Text(context.t.base.repositories.newRepository),
-            ),
-          ],
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: pageMaxWidth),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.source, size: 64, color: theme.colorScheme.onSurfaceVariant),
+              const SizedBox(height: 16),
+              Text(context.t.base.repositories.listPage.emptyTitle, style: theme.textTheme.titleLarge, textAlign: TextAlign.center),
+              const SizedBox(height: 8),
+              Text(
+                context.t.base.repositories.listPage.emptyText,
+                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                key: const ValueKey('repositories.new'),
+                onPressed: onCreate,
+                icon: const Icon(Icons.add),
+                label: Text(context.t.base.repositories.newRepository),
+              ),
+            ],
+          ),
         ),
       ),
     );

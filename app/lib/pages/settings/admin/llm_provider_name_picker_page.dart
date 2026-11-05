@@ -2,6 +2,7 @@ import 'package:app/gen/strings.g.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
 import 'package:app/util/currencies.dart';
 import 'package:app/widget/flag_emoji.dart';
+import 'package:app/widget/page_list_view.dart';
 import 'package:flutter/material.dart';
 
 /// The name of a new provider: one of the common providers, which fills in the rest of the form, or a name of the
@@ -67,7 +68,7 @@ class _LlmProviderNamePickerPageState extends State<LlmProviderNamePickerPage> {
             final suggestions = snapshot.data ?? const [];
             final filtered = _filtered(suggestions);
             final isSuggestion = suggestions.any((s) => s.name.toLowerCase() == name.toLowerCase());
-            return ListView(
+            return PageListView(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),

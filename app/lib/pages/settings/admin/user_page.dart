@@ -7,6 +7,7 @@ import 'package:app/util/format.dart';
 import 'package:app/widget/admin/set_password_sheet.dart';
 import 'package:app/widget/admin/user_flag_chips.dart';
 import 'package:app/widget/delete_dialog.dart';
+import 'package:app/widget/page_list_view.dart';
 import 'package:app/widget/repositories/info_card.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
@@ -83,7 +84,7 @@ class _UserPageState extends State<UserPage> with Refena {
     final muted = theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant);
     return Scaffold(
       appBar: AppBar(title: Text(user.userName, overflow: TextOverflow.ellipsis)),
-      body: ListView(
+      body: PageListView(
         key: const ValueKey('user.body'),
         padding: EdgeInsets.only(top: 8, bottom: 24 + MediaQuery.paddingOf(context).bottom),
         children: [

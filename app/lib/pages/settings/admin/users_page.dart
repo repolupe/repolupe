@@ -6,6 +6,7 @@ import 'package:app/service/api_service.dart';
 import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
 import 'package:app/widget/admin/user_flag_chips.dart';
+import 'package:app/widget/page_list_view.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -117,7 +118,7 @@ class _UsersPageState extends State<UsersPage> with Refena {
                       label: Text(t.base.common.retry),
                     ),
                   )
-          : ListView(
+          : PageListView(
               key: const ValueKey('users.list'),
               padding: EdgeInsets.only(bottom: (local ? 16 : 88) + MediaQuery.paddingOf(context).bottom),
               children: [
