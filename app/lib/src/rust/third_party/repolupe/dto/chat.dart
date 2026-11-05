@@ -40,8 +40,8 @@ class ChatDto {
   /// later.
   final bool allMcpServers;
 
-  /// Empty if `all_mcp_servers` is true. Only the ones that are enabled and connected (and,
-  /// if shared, turned on) give the model tools.
+  /// Empty if `all_mcp_servers` is true. Only the ones the user turned on that are connected
+  /// give the model tools.
   final List<UuidValue> mcpServerIds;
 
   /// `null` uses the user's model.

@@ -1738,10 +1738,6 @@ class _Translations$base$mcpServers$page$de extends Translations$base$mcpServers
   @override
   String allToolsDisabled({required Object name}) => 'Alle Tools von ${name} deaktiviert.';
   @override
-  String allToolsOff({required Object name}) => 'Alle Tools sind deaktiviert, daher wird ${name} nicht mehr in Chats verwendet.';
-  @override
-  String usedAgain({required Object name}) => '${name} wird wieder in Chats verwendet.';
-  @override
   String refreshed({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
     count,
     zero: 'Verbunden, der Server bietet keine Tools an.',

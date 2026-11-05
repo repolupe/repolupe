@@ -625,8 +625,6 @@
       "toolDisabled": "Tool {name} disabled.",
       "allToolsEnabled": "All tools of {name} enabled.",
       "allToolsDisabled": "All tools of {name} disabled.",
-      "allToolsOff": "All tools are off, so {name} is no longer used in chats.",
-      "usedAgain": "{name} is used in chats again.",
       "refreshed": {
         "zero": "Connected, the server offers no tools.",
         "one": "Connected, the server offers 1 tool.",

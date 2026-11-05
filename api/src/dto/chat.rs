@@ -53,8 +53,8 @@ pub struct ChatDto {
     /// Whether the model gets the tools of all MCP servers the user can use, including ones added
     /// later.
     pub all_mcp_servers: bool,
-    /// Empty if `all_mcp_servers` is true. Only the ones that are enabled and connected (and,
-    /// if shared, turned on) give the model tools.
+    /// Empty if `all_mcp_servers` is true. Only the ones the user turned on that are connected
+    /// give the model tools.
     pub mcp_server_ids: Vec<Uuid>,
     /// `null` uses the user's model.
     pub model_id: Option<Uuid>,

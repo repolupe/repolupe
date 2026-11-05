@@ -35,9 +35,12 @@ export function repositoryScopeSummary(scope: RepositoryScope, repositories: Rep
     return name ?? t('chat.repositoryCount', ids.length);
 }
 
-/** Turned on by its owner, and by the user if it is shared with them. Only then its tools may be used in chats. */
+/**
+ * Turned on by the user for their chats: by its owner for their own server, by the user it is shared with for theirs,
+ * whether or not the owner uses it. Only then its tools may be used in the user's chats.
+ */
 export function isMcpServerOn(server: McpServerDto): boolean {
-    return server.enabled && (server.shared?.enabled ?? true);
+    return server.shared ? server.shared.enabled : server.enabled;
 }
 
 export function isMcpToolEnabled(server: McpServerDto, tool: McpToolDto): boolean {

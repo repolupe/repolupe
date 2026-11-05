@@ -220,6 +220,7 @@ void main() {
         _mcpServer(id: _issuesId, name: 'Issues', status: McpServerStatus.authorizationRequired),
         _mcpServer(id: '0199a8d4-6d5e-7c3a-9b1f-000000000043', name: 'Turned off', enabled: false),
         _mcpServer(id: '0199a8d4-6d5e-7c3a-9b1f-000000000044', name: 'Shared, not turned on', shared: false),
+        _mcpServer(id: '0199a8d4-6d5e-7c3a-9b1f-000000000045', name: 'Shared, off for its owner', enabled: false, shared: true),
       ],
       created: created,
     );
@@ -238,6 +239,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Turned off'), findsNothing);
     expect(find.text('Shared, not turned on'), findsNothing);
+    // The owner turning it off for their chats leaves the user's alone.
+    expect(find.text('Shared, off for its owner'), findsOneWidget);
     // Why the model doesn't get its tools for now.
     expect(find.text('Sign-in required'), findsOneWidget);
     await tester.tap(find.text('Search'));

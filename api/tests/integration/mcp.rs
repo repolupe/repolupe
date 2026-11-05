@@ -912,6 +912,8 @@ async fn answers_with_the_tools_of_shared_servers_the_user_turned_on(db: SqliteP
         tool_use_response("toolu_1", "mcp__echo_server__echo", json!({"text": "hi"})),
         text_response("It said hi."),
         text_response("Off again."),
+        text_response("Still there."),
+        text_response("Not in mine."),
         text_response("Turned off by the owner."),
         text_response("Shared again."),
     ])
@@ -956,10 +958,28 @@ async fn answers_with_the_tools_of_shared_servers_the_user_turned_on(db: SqliteP
     assert_eq!(answer["status"], "COMPLETED", "{answer}");
     assert_eq!(offered(&llm.requests()[3]), ["run_script"]);
 
-    // The owner turns its tools off for everyone.
+    // The owner turning it off for their chats leaves hers alone.
     let (status, body) = turn_on(&alice, id, true).await;
     assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
     let update = format!("/api/v1/mcp-servers/{id}/update");
+    let (status, body) = admin
+        .post(
+            &update,
+            json!({"name": "Echo Server", "enabled": false, "disabled_tools": []}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let answer = ask(&alice, "Still there?").await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    assert_eq!(
+        offered(&llm.requests()[4]),
+        ["run_script", "mcp__echo_server__echo"]
+    );
+    let answer = ask(&admin, "And in mine?").await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    assert_eq!(offered(&llm.requests()[5]), ["run_script"]);
+
+    // The owner turns its tools off for everyone.
     let (status, body) = admin
         .post(
             &update,
@@ -969,7 +989,7 @@ async fn answers_with_the_tools_of_shared_servers_the_user_turned_on(db: SqliteP
     assert_eq!(status, StatusCode::OK, "{body}");
     let answer = ask(&alice, "Anything?").await;
     assert_eq!(answer["status"], "COMPLETED", "{answer}");
-    assert_eq!(offered(&llm.requests()[4]), ["run_script"]);
+    assert_eq!(offered(&llm.requests()[6]), ["run_script"]);
 
     // On again, but no longer shared with her. Shared again, it is off again.
     let (status, body) = admin
@@ -986,7 +1006,7 @@ async fn answers_with_the_tools_of_shared_servers_the_user_turned_on(db: SqliteP
     share(&admin, id, "alice").await;
     let answer = ask(&alice, "And now?").await;
     assert_eq!(answer["status"], "COMPLETED", "{answer}");
-    assert_eq!(offered(&llm.requests()[5]), ["run_script"]);
+    assert_eq!(offered(&llm.requests()[7]), ["run_script"]);
 }
 
 #[sqlx::test]

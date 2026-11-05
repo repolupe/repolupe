@@ -26,7 +26,8 @@ enum McpServerAuth {
 
 /// Users the server is shared with use it in their chats once they turn it on, as the owner set
 /// it up (with the owner's token or OAuth sign-in, and only the tools the owner enabled), but
-/// only the owner manages it.
+/// only the owner manages it. Each user turns it on or off for their own chats only: the owner
+/// with `enabled`, the others with `shared.enabled`.
 class McpServerDto {
   final UuidValue id;
   final UuidValue ownerId;
@@ -39,8 +40,8 @@ class McpServerDto {
   /// servers take a key in the path or the query, which is the owner's.
   final String url;
 
-  /// Whether the owner turned it on: its tools are offered in the owner's chats (once it is
-  /// `READY`), and in those of the users it is shared with who turned it on as well.
+  /// Whether the owner turned it on for their own chats: its tools are offered there once it is
+  /// `READY`. It doesn't affect the users it is shared with, see [`McpServerShareDto::enabled`].
   final bool enabled;
   final McpServerAuth auth;
 
@@ -128,7 +129,8 @@ class McpServerShareDto {
   /// The user name of the owner, who shared it.
   final String ownerName;
 
-  /// Whether the user turned it on for their chats. Off when it is shared, see
+  /// Whether the user turned it on for their chats, where its tools are then offered once it is
+  /// `READY`, also if the owner turned it off for theirs. Off when it is shared, see
   /// [`UpdateMcpServerUserRequest`].
   final bool enabled;
 
@@ -155,7 +157,8 @@ class McpServerShareDto {
 }
 
 enum McpServerStatus {
-  /// The last connection succeeded. While enabled, its tools are offered in chats.
+  /// The last connection succeeded. Its tools are offered in the chats of the users who turned
+  /// it on.
   ready,
 
   /// The server asks for authentication: the user signs in with OAuth (see

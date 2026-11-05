@@ -58,7 +58,7 @@ class ChatState with ChatStateMappable {
   final List<UuidValue> repositoryIds;
 
   /// The MCP servers that are on (see [isMcpServerOn]), to choose those of a new chat. The others give no tools in
-  /// any chat.
+  /// the user's chats.
   final List<McpServerDto> mcpServers;
 
   /// Whether the new chat gets the tools of all MCP servers of the user (then [mcpServerIds] is empty), including ones
@@ -169,8 +169,9 @@ class ChatState with ChatStateMappable {
   ModelDto? answeringModel(UuidValue? defaultModelId) => models.where((m) => m.id == chosenModelId).firstOrNull ?? fallbackModel(defaultModelId);
 }
 
-/// Turned on by its owner, and by the user if it is shared with them. Only then its tools may be used in chats.
-bool isMcpServerOn(McpServerDto server) => server.enabled && (server.shared?.enabled ?? true);
+/// Turned on by the user for their chats: by its owner for their own server, by the user it is shared with for theirs,
+/// whether or not the owner uses it. Only then its tools may be used in the user's chats.
+bool isMcpServerOn(McpServerDto server) => server.shared?.enabled ?? server.enabled;
 
 final chatProvider = ReduxProvider<ChatService, ChatState>((ref) {
   return ChatService(

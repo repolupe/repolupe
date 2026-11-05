@@ -93,10 +93,11 @@ pub(crate) async fn list_mcp_servers(
         .collect())
 }
 
-/// The servers whose tools the model gets in the chat: those of its user that it allows, their
-/// own and the ones shared with them that they turned on, enabled by the owner and connected at
-/// the last check. In the order they were added, so the tools stay in the same order. With the
-/// schemas of the tools, unlike the other queries. Empty if the chat does not exist.
+/// The servers whose tools the model gets in the chat: those of its user that it allows and
+/// that they turned on, their own and the ones shared with them, connected at the last check.
+/// The owner turning a server off leaves it out only of their own chats. In the order they
+/// were added, so the tools stay in the same order. With the schemas of the tools, unlike the
+/// other queries. Empty if the chat does not exist.
 pub(crate) async fn list_usable_mcp_servers(
     db: &DatabasePool,
     chat_id: Uuid,
@@ -111,11 +112,11 @@ pub(crate) async fn list_usable_mcp_servers(
                   s.updated_at AS "updated_at: DateTime<Utc>"
            FROM chats c
            JOIN mcp_servers s
-                ON s.user_id = c.user_id
+                ON (s.user_id = c.user_id AND s.enabled)
                     OR s.id IN (SELECT mcp_server_id FROM mcp_server_users WHERE user_id = c.user_id AND enabled)
            JOIN users u ON u.id = s.user_id
            WHERE c.id = $1
-             AND s.enabled AND s.status = 'READY'
+             AND s.status = 'READY'
              AND (c.all_mcp_servers
                   OR EXISTS (SELECT 1
                              FROM chat_mcp_servers cm

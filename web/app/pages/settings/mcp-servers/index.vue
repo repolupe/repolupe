@@ -380,15 +380,17 @@ const doLeave = async () => {
   }
 };
 
-/** A server is never on without tools, so turning on one whose tools are all off turns them all on. */
+/**
+ * Turns the owner's server on or off for their own chats. The users it is shared with turn it on or off for theirs, and
+ * its tools are the same for everyone, so this leaves them alone.
+ */
 const doToggle = async (server: McpServerDto, enabled: boolean) => {
   busy.value = {id: server.id, action: 'toggle'};
   try {
-    const allOff = server.tools.length !== 0 && enabledMcpToolCount(server) === 0;
     replaceServer(await updateMcpServer(server.id, {
       name: server.name,
       enabled,
-      disabled_tools: enabled && allOff ? withAllToolsOn(server) : server.disabled_tools,
+      disabled_tools: server.disabled_tools,
     }));
     showSnackbar(t(enabled ? 'mcpServers.page.enabled' : 'mcpServers.page.disabled', {name: server.name}));
   } catch (e) {
@@ -414,37 +416,15 @@ const doToggleShared = async (server: McpServerDto, enabled: boolean) => {
 };
 
 /**
- * Saves which tools are off. A server is never on without tools, so turning off its last tool turns it off, and
- * turning on a tool of a server that is off turns the server on. Returns how the server changed.
+ * Saves which tools are off, for everyone who uses the server. Whether the owner uses it stays, since the users it is
+ * shared with may use it while the owner does not.
  */
-const saveDisabledTools = async (
-    server: McpServerDto,
-    disabledTools: string[],
-    turningOn: boolean,
-): Promise<'on' | 'off' | null> => {
-  const allOff = server.tools.length !== 0 && server.tools.every(tool => disabledTools.includes(tool.name));
-  const enabled = !allOff && (server.enabled || turningOn);
+const saveDisabledTools = async (server: McpServerDto, disabledTools: string[]) => {
   replaceServer(await updateMcpServer(server.id, {
     name: server.name,
-    enabled,
+    enabled: server.enabled,
     disabled_tools: disabledTools,
   }));
-  if (enabled === server.enabled) {
-    return null;
-  }
-  return enabled ? 'on' : 'off';
-};
-
-/** The snackbar after changing tools: whether that turned the server on or off, otherwise `message`. */
-const toolsSavedMessage = (server: McpServerDto, change: 'on' | 'off' | null, message: string): string => {
-  switch (change) {
-    case 'on':
-      return t('mcpServers.page.usedAgain', {name: server.name});
-    case 'off':
-      return t('mcpServers.page.allToolsOff', {name: server.name});
-    default:
-      return message;
-  }
 };
 
 /** Names the server no longer lists stay in `disabled_tools`, so those tools stay off if they return. */
@@ -454,9 +434,8 @@ const doToggleTool = async (server: McpServerDto, tool: McpToolDto, enabled: boo
     const disabledTools = enabled
         ? server.disabled_tools.filter(name => name !== tool.name)
         : [...server.disabled_tools, tool.name];
-    const change = await saveDisabledTools(server, disabledTools, enabled);
-    showSnackbar(toolsSavedMessage(server, change,
-        t(enabled ? 'mcpServers.page.toolEnabled' : 'mcpServers.page.toolDisabled', {name: tool.name})));
+    await saveDisabledTools(server, disabledTools);
+    showSnackbar(t(enabled ? 'mcpServers.page.toolEnabled' : 'mcpServers.page.toolDisabled', {name: tool.name}));
   } catch (e) {
     showSnackbar(t('mcpServers.page.toggleToolFailed', {error: errorMessage(e)}));
   } finally {
@@ -471,9 +450,8 @@ const doToggleAllTools = async (server: McpServerDto, enabled: boolean) => {
     const disabledTools = enabled
         ? withAllToolsOn(server)
         : [...new Set([...server.disabled_tools, ...server.tools.map(tool => tool.name)])];
-    const change = await saveDisabledTools(server, disabledTools, enabled);
-    showSnackbar(toolsSavedMessage(server, change,
-        t(enabled ? 'mcpServers.page.allToolsEnabled' : 'mcpServers.page.allToolsDisabled', {name: server.name})));
+    await saveDisabledTools(server, disabledTools);
+    showSnackbar(t(enabled ? 'mcpServers.page.allToolsEnabled' : 'mcpServers.page.allToolsDisabled', {name: server.name}));
   } catch (e) {
     showSnackbar(t('mcpServers.page.toggleAllToolsFailed', {error: errorMessage(e)}));
   } finally {
@@ -557,7 +535,7 @@ onMounted(async () => {
   font-weight: 600;
 }
 
-/* the tools are not used while the server is off, turning one on turns the server on */
+/* the tools are not used in the user's chats while the server is off for them */
 .server-off .tool-text {
   opacity: var(--v-disabled-opacity);
 }

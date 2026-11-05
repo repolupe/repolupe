@@ -274,8 +274,8 @@ async fn stream_response(
 }
 
 /// The MCP servers whose tools the model gets, those the chat allows of the user's own and the
-/// ones shared with them that they turned on, without the tools the owner turned off. One whose token cannot be decrypted is
-/// left out.
+/// ones shared with them that they turned on, without the tools the owner turned off. One whose
+/// token cannot be decrypted is left out.
 async fn mcp_servers(
     state: &AppState,
     generation: &Generation,

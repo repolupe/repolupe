@@ -585,8 +585,6 @@
       "toolDisabled": "Tool {name} deaktiviert.",
       "allToolsEnabled": "Alle Tools von {name} aktiviert.",
       "allToolsDisabled": "Alle Tools von {name} deaktiviert.",
-      "allToolsOff": "Alle Tools sind deaktiviert, daher wird {name} nicht mehr in Chats verwendet.",
-      "usedAgain": "{name} wird wieder in Chats verwendet.",
       "refreshed": "Verbunden, der Server bietet keine Tools an. | Verbunden, der Server bietet 1 Tool an. | Verbunden, der Server bietet {count} Tools an.",
       "refreshedSignIn": "{name} verlangt eine Anmeldung.",
       "refreshedFailed": "Keine Verbindung zu {name} möglich.",

@@ -2104,12 +2104,6 @@ class Translations$base$mcpServers$page$en {
   /// en: 'All tools of {name} disabled.'
   String allToolsDisabled({required Object name}) => 'All tools of ${name} disabled.';
 
-  /// en: 'All tools are off, so {name} is no longer used in chats.'
-  String allToolsOff({required Object name}) => 'All tools are off, so ${name} is no longer used in chats.';
-
-  /// en: '{name} is used in chats again.'
-  String usedAgain({required Object name}) => '${name} is used in chats again.';
-
   /// en: '(zero) {Connected, the server offers no tools.} (one) {Connected, the server offers 1 tool.} (other) {Connected, the server offers {count} tools.}'
   String refreshed({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
     count,
