@@ -171,6 +171,10 @@ abstract class Client implements RustOpaqueInterface {
   /// `POST /api/v1/chats/{id}/messages/{message_id}/retry`: the new answer being generated.
   Future<MessageDto> retryMessage({required UuidValue chatId, required UuidValue messageId, required RetryMessageRequest request});
 
+  /// `GET /api/v1/chats/search`: the chats in which every word of `query` occurs in the title or
+  /// in a message, newest first. Paged like [`Self::list_chats`].
+  Future<ChatPageDto> searchChats({required String query, PlatformInt64? limit, String? cursor});
+
   /// `POST /api/v1/chats/{id}/messages`: the user message and the answer being generated.
   Future<List<MessageDto>> sendMessage({required UuidValue chatId, required SendMessageRequest request});
 

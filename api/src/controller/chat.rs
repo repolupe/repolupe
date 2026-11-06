@@ -3,9 +3,9 @@ use crate::config::state::AppState;
 use crate::dto::chat::MessageStatus;
 use crate::dto::chat::{
     ChatDetailDto, ChatDto, ChatPageDto, ContentDeltaDto, CostDto, CreateChatRequest, FileDiffDto,
-    ListChatsQuery, MessageDto, ProposedCommitDto, RetryMessageRequest, SendMessageRequest,
-    ToolCallDto, ToolCallFinishedDto, ToolCallStatus, ToolCallSummaryDto, UpdateChatRequest,
-    UsageUpdateDto,
+    ListChatsQuery, MessageDto, ProposedCommitDto, RetryMessageRequest, SearchChatsQuery,
+    SendMessageRequest, ToolCallDto, ToolCallFinishedDto, ToolCallStatus, ToolCallSummaryDto,
+    UpdateChatRequest, UsageUpdateDto,
 };
 use crate::dto::error::ErrorCode;
 use crate::middleware::auth::AuthenticatedUser;
@@ -46,28 +46,52 @@ pub(crate) async fn list_chats(
     Extension(auth): Extension<AuthenticatedUser>,
     QueryParams(query): QueryParams<ListChatsQuery>,
 ) -> Result<Json<ChatPageDto>, AppError> {
-    let limit = query.limit.unwrap_or(DEFAULT_PAGE_SIZE);
-    if !(1..=MAX_PAGE_SIZE).contains(&limit) {
-        return Err(
-            ValidationError(format!("`limit` must be between 1 and {MAX_PAGE_SIZE}")).into(),
-        );
-    }
-    let after = query.cursor.as_deref().map(decode_cursor).transpose()?;
-
+    let (limit, after) = parse_page(query.limit, query.cursor.as_deref())?;
     // One extra row tells whether there is a next page.
-    let mut chats =
+    let chats =
         repository::chat::list_chats(&state.db, auth.user_id, after.as_ref(), limit + 1).await?;
+    Ok(Json(chat_page(chats, limit)))
+}
+
+pub(crate) async fn search_chats(
+    State(state): State<AppState>,
+    Extension(auth): Extension<AuthenticatedUser>,
+    QueryParams(query): QueryParams<SearchChatsQuery>,
+) -> Result<Json<ChatPageDto>, AppError> {
+    let words = util::validation::parse_chat_search(&query.query)?;
+    let (limit, after) = parse_page(query.limit, query.cursor.as_deref())?;
+    // One extra row tells whether there is a next page.
+    let chats =
+        repository::chat::search_chats(&state.db, auth.user_id, &words, after.as_ref(), limit + 1)
+            .await?;
+    Ok(Json(chat_page(chats, limit)))
+}
+
+fn parse_page(
+    limit: Option<i64>,
+    cursor: Option<&str>,
+) -> Result<(i64, Option<ChatCursor>), ValidationError> {
+    let limit = limit.unwrap_or(DEFAULT_PAGE_SIZE);
+    if !(1..=MAX_PAGE_SIZE).contains(&limit) {
+        return Err(ValidationError(format!(
+            "`limit` must be between 1 and {MAX_PAGE_SIZE}"
+        )));
+    }
+    Ok((limit, cursor.map(decode_cursor).transpose()?))
+}
+
+/// The first `limit` of `chats`, which holds one more if there is a next page.
+fn chat_page(mut chats: Vec<Chat>, limit: i64) -> ChatPageDto {
     let next_cursor = if chats.len() as i64 > limit {
         chats.truncate(limit as usize);
         chats.last().map(encode_cursor)
     } else {
         None
     };
-
-    Ok(Json(ChatPageDto {
+    ChatPageDto {
         items: chats.into_iter().map(Into::into).collect(),
         next_cursor,
-    }))
+    }
 }
 
 pub(crate) async fn get_chat(

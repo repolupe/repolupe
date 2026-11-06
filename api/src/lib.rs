@@ -196,6 +196,7 @@ fn configure_routes(state: config::state::AppState) -> Router<config::state::App
         .route("/api/v1/mcp-servers/{id}/users/{user_id}/update", post(controller::mcp::update_mcp_server_user))
         .route("/api/v1/mcp-servers/{id}/users/{user_id}/delete", post(controller::mcp::remove_mcp_server_user))
         .route("/api/v1/chats", get(controller::chat::list_chats).post(controller::chat::create_chat))
+        .route("/api/v1/chats/search", get(controller::chat::search_chats))
         .route("/api/v1/chats/{id}", get(controller::chat::get_chat))
         .route("/api/v1/chats/{id}/update", post(controller::chat::update_chat))
         .route("/api/v1/chats/{id}/delete", post(controller::chat::delete_chat))

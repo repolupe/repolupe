@@ -1126,6 +1126,8 @@ class _Translations$base$chat$olderPage$vi extends Translations$base$chat$olderP
   // Translations
   @override
   String get title => 'Đoạn chat cũ hơn';
+  @override
+  String get noResults => 'Không tìm thấy đoạn chat nào';
 }
 
 // Path: base.settings.themeMode

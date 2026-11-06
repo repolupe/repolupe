@@ -271,7 +271,8 @@
       "cost": "Cost"
     },
     "olderPage": {
-      "title": "Older Chats"
+      "title": "Older Chats",
+      "noResults": "No chats found"
     },
     "loadFailed": "Could not load the chats: {error}"
   },

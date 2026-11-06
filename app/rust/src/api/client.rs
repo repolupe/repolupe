@@ -20,8 +20,8 @@ use repolupe::dto::attachment::{AttachmentDto, UploadAttachmentQuery};
 use repolupe::dto::auth::{LoginRequest, LoginResponse};
 use repolupe::dto::chat::{
     ChatDetailDto, ChatDto, ChatPageDto, CreateChatRequest, FileDiffDto, ListChatsQuery,
-    MessageDto, ProposedCommitDto, RetryMessageRequest, SendMessageRequest, ToolCallDto,
-    UpdateChatRequest,
+    MessageDto, ProposedCommitDto, RetryMessageRequest, SearchChatsQuery, SendMessageRequest,
+    ToolCallDto, UpdateChatRequest,
 };
 use repolupe::dto::config::ConfigEntryDto;
 use repolupe::dto::extraction::{
@@ -216,6 +216,22 @@ impl Client {
     ) -> Result<ChatPageDto, ClientError> {
         let query = query(&ListChatsQuery { limit, cursor })?;
         self.get(format!("/api/v1/chats{query}")).await
+    }
+
+    /// `GET /api/v1/chats/search`: the chats in which every word of `query` occurs in the title or
+    /// in a message, newest first. Paged like [`Self::list_chats`].
+    pub async fn search_chats(
+        &self,
+        query: String,
+        limit: Option<i64>,
+        cursor: Option<String>,
+    ) -> Result<ChatPageDto, ClientError> {
+        let query = self::query(&SearchChatsQuery {
+            query,
+            limit,
+            cursor,
+        })?;
+        self.get(format!("/api/v1/chats/search{query}")).await
     }
 
     /// `POST /api/v1/chats`: creates a chat with its first message and starts the answer.

@@ -95,3 +95,85 @@ async fn removes_expired_temporary_chats(db: SqlitePool) {
         assert_eq!(status, StatusCode::OK, "{body}");
     }
 }
+
+#[sqlx::test]
+async fn searches_chats(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let alice = app.user("alice@example.com").await;
+    let bob = app.user("bob@example.com").await;
+    let llm = MockLlm::start(vec![
+        text_response("Sync mirrors 1000 repositories."),
+        text_response("Tokens are 100% encrypted."),
+        text_response("Sync is not listed."),
+        text_response("Sync belongs to Bob."),
+    ])
+    .await;
+    app.configure_llm(&llm).await;
+
+    let mut ids = Vec::new();
+    for (user, content, temporary) in [
+        (&alice, "How does sync work?", false),
+        (&alice, "Where are tokens stored?", false),
+        (&alice, "Temporary sync?", true),
+        (&bob, "Bob's sync?", false),
+    ] {
+        let (status, chat) = user
+            .post(
+                "/api/v1/chats",
+                json!({"content": content, "all_repositories": true, "temporary": temporary}),
+            )
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{chat}");
+        let id = chat["id"].as_str().unwrap().to_string();
+        user.wait_for_answer(&id).await;
+        ids.push(id);
+    }
+    let (sync, tokens) = (&ids[0], &ids[1]);
+    let (status, body) = alice
+        .post(
+            &format!("/api/v1/chats/{tokens}/update"),
+            json!({"title": "Secrets"}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+
+    let search = async |query: &str| -> Vec<String> {
+        let (status, page) = alice.get(&format!("/api/v1/chats/search?{query}")).await;
+        assert_eq!(status, StatusCode::OK, "{page}");
+        page["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|chat| chat["id"].as_str().unwrap().to_string())
+            .collect()
+    };
+    // In the first message, ignoring case, but not in temporary or other users' chats
+    assert_eq!(search("query=SYNC").await, vec![sync.clone()]);
+    // In the title
+    assert_eq!(search("query=secrets").await, vec![tokens.clone()]);
+    // Every word, in any message
+    assert_eq!(search("query=+mirrors%20work+").await, vec![sync.clone()]);
+    assert!(search("query=sync+secrets").await.is_empty());
+    // Wildcards are matched literally
+    assert_eq!(search("query=100%25").await, vec![tokens.clone()]);
+    assert!(search("query=1_00").await.is_empty());
+
+    // Newest first, one page at a time
+    let (status, page) = alice.get("/api/v1/chats/search?query=re&limit=1").await;
+    assert_eq!(status, StatusCode::OK, "{page}");
+    assert_eq!(page["items"][0]["id"], tokens.as_str());
+    let cursor = page["next_cursor"].as_str().unwrap();
+    let (status, page) = alice
+        .get(&format!(
+            "/api/v1/chats/search?query=re&limit=1&cursor={cursor}"
+        ))
+        .await;
+    assert_eq!(status, StatusCode::OK, "{page}");
+    assert_eq!(page["items"][0]["id"], sync.as_str());
+    assert!(page["next_cursor"].is_null(), "{page}");
+
+    for query in ["query=+", "query=", ""] {
+        let (status, body) = alice.get(&format!("/api/v1/chats/search?{query}")).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{query}: {body}");
+    }
+}

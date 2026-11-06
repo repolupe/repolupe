@@ -438,16 +438,29 @@ function retryMessage(chatId: string, messageId: string): MessageDto {
     return copy(startAnswer(chat));
 }
 
-function getChats(params: Record<string, unknown>) {
+function getChats(params: Record<string, unknown>, filter: (chat: ChatDetailDto) => boolean = () => true) {
     const offset = Number(params.cursor ?? 0);
     const limit = Number(params.limit ?? 10);
     // like the API, temporary chats are not listed
-    const sorted = state.chats.filter(c => !c.temporary).sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+    const sorted = state.chats.filter(c => !c.temporary && filter(c))
+        .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
     const next = offset + limit;
     return {
         items: sorted.slice(offset, next).map(chatSummary),
         next_cursor: next < sorted.length ? String(next) : null,
     };
+}
+
+/** Like the API: every word in the title or a message, ignoring case. */
+function searchChats(params: Record<string, unknown>) {
+    const words = String(params.query ?? '').toLowerCase().split(/\s+/).filter(w => w !== '');
+    if (words.length === 0) {
+        throw new DemoError(400, ErrorCode.VALIDATION_ERROR, 'Search must not be empty');
+    }
+    return getChats(params, chat => {
+        const texts = [chat.title, ...chat.messages.map(m => m.content)].map(text => text.toLowerCase());
+        return words.every(word => texts.some(text => text.includes(word)));
+    });
 }
 
 async function presentedFile(chatId: string, toolCallId: string): Promise<Response> {
@@ -577,6 +590,7 @@ async function route(method: 'GET' | 'POST', route: string, body: Record<string,
             return repository;
         }
         if (route === 'chats') return getChats(params);
+        if (route === 'chats/search') return searchChats(params);
         if (match('chats/*')) return copy(findChat(parts[1]!));
         if (match('chats/*/tool-calls/*')) {
             const toolCall = findToolCall(parts[1]!, parts[3]!);

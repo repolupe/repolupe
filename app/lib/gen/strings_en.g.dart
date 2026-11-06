@@ -1301,6 +1301,9 @@ class Translations$base$chat$olderPage$en {
 
   /// en: 'Older Chats'
   String get title => 'Older Chats';
+
+  /// en: 'No chats found'
+  String get noResults => 'No chats found';
 }
 
 // Path: base.settings.themeMode

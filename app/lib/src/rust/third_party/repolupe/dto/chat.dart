@@ -8,7 +8,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/attachment.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:uuid/uuid.dart';
 
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ListChatsQuery`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ListChatsQuery`, `SearchChatsQuery`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `compatible`, `compatible`, `compatible`, `decode`, `decode`, `decode`, `encode_by_ref`, `encode_by_ref`, `encode_by_ref`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `hash`, `hash`, `size_hint`, `size_hint`, `size_hint`, `type_info`, `type_info`, `type_info`
 
 class ChatDetailDto {

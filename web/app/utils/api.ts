@@ -401,6 +401,11 @@ export async function getChats(cursor: string | null = null, limit: number = 10)
     return await makeRequest({route: 'chats', method: 'GET', params: {cursor, limit}});
 }
 
+/** The chats in which every word of `query` occurs in the title or a message, newest first. */
+export async function searchChats(query: string, cursor: string | null = null, limit: number = 10): Promise<ChatPageDto> {
+    return await makeRequest({route: 'chats/search', method: 'GET', params: {query, cursor, limit}});
+}
+
 export async function getChat(id: string): Promise<ChatDetailDto> {
     return await makeRequest({route: `chats/${id}`, method: 'GET'});
 }

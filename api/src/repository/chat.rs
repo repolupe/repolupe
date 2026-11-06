@@ -116,6 +116,71 @@ pub(crate) async fn list_chats(
     Ok(chats)
 }
 
+/// Like [`list_chats`], but only the chats in which each of `words` occurs in the title or in a
+/// message. SQLite's `LIKE` ignores the case of ASCII letters only.
+pub(crate) async fn search_chats(
+    db: &DatabasePool,
+    user_id: Uuid,
+    words: &[&str],
+    after: Option<&ChatCursor>,
+    limit: i64,
+) -> Result<Vec<Chat>, AppError> {
+    let patterns = Json(
+        words
+            .iter()
+            .map(|word| format!("%{}%", escape_like(word)))
+            .collect::<Vec<_>>(),
+    );
+    let after_updated_at = after.map(|c| c.updated_at);
+    let after_id = after.map(|c| c.id);
+    let chats = sqlx::query_as!(
+        Chat,
+        r#"SELECT c.id AS "id: Uuid", c.title, c.all_repositories,
+                  (SELECT json_group_array(lower(hex(cr.repository_id)) ORDER BY cr.repository_id)
+                   FROM chat_repositories cr
+                   WHERE cr.chat_id = c.id) AS "repository_ids!: Json<Vec<Uuid>>",
+                  c.all_mcp_servers,
+                  (SELECT json_group_array(lower(hex(cm.mcp_server_id)) ORDER BY cm.mcp_server_id)
+                   FROM chat_mcp_servers cm
+                   WHERE cm.chat_id = c.id) AS "mcp_server_ids!: Json<Vec<Uuid>>",
+                  c.model_id AS "model_id: Uuid", c.temporary, c.created_at AS "created_at: DateTime<Utc>",
+                  c.updated_at AS "updated_at: DateTime<Utc>"
+           FROM chats c
+           WHERE c.user_id = $1
+             AND NOT c.temporary
+             AND ($2 IS NULL OR (c.updated_at, c.id) < ($2, $3))
+             AND NOT EXISTS (SELECT 1
+                             FROM json_each($4) w
+                             WHERE c.title NOT LIKE w.value ESCAPE '\'
+                               AND NOT EXISTS (SELECT 1
+                                               FROM messages m
+                                               WHERE m.chat_id = c.id
+                                                 AND m.content LIKE w.value ESCAPE '\'))
+           ORDER BY c.updated_at DESC, c.id DESC
+           LIMIT $5"#,
+        user_id,
+        after_updated_at,
+        after_id,
+        patterns,
+        limit,
+    )
+    .fetch_all(db)
+    .await?;
+    Ok(chats)
+}
+
+/// Escapes the wildcards of `LIKE ... ESCAPE '\'`.
+fn escape_like(text: &str) -> String {
+    let mut escaped = String::with_capacity(text.len());
+    for c in text.chars() {
+        if matches!(c, '\\' | '%' | '_') {
+            escaped.push('\\');
+        }
+        escaped.push(c);
+    }
+    escaped
+}
+
 pub(crate) async fn get_chat(
     db: &DatabasePool,
     user_id: Uuid,

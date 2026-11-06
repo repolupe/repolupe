@@ -42,7 +42,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -623496216;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1449678835;
 
 // Section: executor
 
@@ -2811,6 +2811,70 @@ fn wire__crate__api__client__Client_retry_message_impl(
                             api_chat_id,
                             api_message_id,
                             api_request,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__client__Client_search_chats_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Client_search_chats",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Client>,
+            >>::sse_decode(&mut deserializer);
+            let api_query = <String>::sse_decode(&mut deserializer);
+            let api_limit = <Option<i64>>::sse_decode(&mut deserializer);
+            let api_cursor = <Option<String>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::error::ClientError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::Client::search_chats(
+                            &*api_that_guard,
+                            api_query,
+                            api_limit,
+                            api_cursor,
                         )
                         .await?;
                         std::result::Result::Ok(output_ok)
@@ -7668,92 +7732,93 @@ fn pde_ffi_dispatcher_primary_impl(
         48 => {
             wire__crate__api__client__Client_retry_message_impl(port, ptr, rust_vec_len, data_len)
         }
-        49 => wire__crate__api__client__Client_send_message_impl(port, ptr, rust_vec_len, data_len),
-        51 => wire__crate__api__client__Client_set_config_impl(port, ptr, rust_vec_len, data_len),
-        52 => wire__crate__api__client__Client_set_default_model_impl(
+        49 => wire__crate__api__client__Client_search_chats_impl(port, ptr, rust_vec_len, data_len),
+        50 => wire__crate__api__client__Client_send_message_impl(port, ptr, rust_vec_len, data_len),
+        52 => wire__crate__api__client__Client_set_config_impl(port, ptr, rust_vec_len, data_len),
+        53 => wire__crate__api__client__Client_set_default_model_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        53 => wire__crate__api__client__Client_set_locale_impl(port, ptr, rust_vec_len, data_len),
-        54 => wire__crate__api__client__Client_set_my_auto_commit_impl(
+        54 => wire__crate__api__client__Client_set_locale_impl(port, ptr, rust_vec_len, data_len),
+        55 => wire__crate__api__client__Client_set_my_auto_commit_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        55 => wire__crate__api__client__Client_set_my_default_model_impl(
+        56 => wire__crate__api__client__Client_set_my_default_model_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        57 => {
+        58 => {
             wire__crate__api__client__Client_stream_message_impl(port, ptr, rust_vec_len, data_len)
         }
-        58 => {
+        59 => {
             wire__crate__api__client__Client_sync_repository_impl(port, ptr, rust_vec_len, data_len)
         }
-        60 => wire__crate__api__client__Client_update_chat_impl(port, ptr, rust_vec_len, data_len),
-        61 => {
+        61 => wire__crate__api__client__Client_update_chat_impl(port, ptr, rust_vec_len, data_len),
+        62 => {
             wire__crate__api__client__Client_update_identity_impl(port, ptr, rust_vec_len, data_len)
         }
-        62 => wire__crate__api__client__Client_update_llm_model_impl(
+        63 => wire__crate__api__client__Client_update_llm_model_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        63 => wire__crate__api__client__Client_update_llm_provider_impl(
+        64 => wire__crate__api__client__Client_update_llm_provider_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        64 => wire__crate__api__client__Client_update_mcp_server_impl(
+        65 => wire__crate__api__client__Client_update_mcp_server_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        65 => wire__crate__api__client__Client_update_mcp_server_user_impl(
+        66 => wire__crate__api__client__Client_update_mcp_server_user_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        66 => {
+        67 => {
             wire__crate__api__client__Client_update_profile_impl(port, ptr, rust_vec_len, data_len)
         }
-        67 => wire__crate__api__client__Client_update_repository_impl(
+        68 => wire__crate__api__client__Client_update_repository_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        68 => wire__crate__api__client__Client_update_repository_user_impl(
+        69 => wire__crate__api__client__Client_update_repository_user_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        69 => wire__crate__api__client__Client_update_user_impl(port, ptr, rust_vec_len, data_len),
-        70 => wire__crate__api__client__Client_upload_attachment_impl(
+        70 => wire__crate__api__client__Client_update_user_impl(port, ptr, rust_vec_len, data_len),
+        71 => wire__crate__api__client__Client_upload_attachment_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        72 => wire__crate__api__local__LocalHandle_shutdown_impl(port, ptr, rust_vec_len, data_len),
-        75 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
-        76 => wire__repolupe__dto__llm__llm_provider_suggestions_impl(
+        73 => wire__crate__api__local__LocalHandle_shutdown_impl(port, ptr, rust_vec_len, data_len),
+        76 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        77 => wire__repolupe__dto__llm__llm_provider_suggestions_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        78 => wire__crate__api__local__start_local_impl(port, ptr, rust_vec_len, data_len),
+        79 => wire__crate__api__local__start_local_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -7775,15 +7840,15 @@ fn pde_ffi_dispatcher_sync_impl(
         3 => wire__crate__api__stream__CancellationToken_new_impl(ptr, rust_vec_len, data_len),
         39 => wire__crate__api__client__Client_local_impl(ptr, rust_vec_len, data_len),
         44 => wire__crate__api__client__Client_remote_impl(ptr, rust_vec_len, data_len),
-        50 => {
+        51 => {
             wire__crate__api__client__Client_set_accept_language_impl(ptr, rust_vec_len, data_len)
         }
-        56 => wire__crate__api__client__Client_set_token_impl(ptr, rust_vec_len, data_len),
-        59 => wire__crate__api__client__Client_token_impl(ptr, rust_vec_len, data_len),
-        71 => wire__crate__api__local__LocalHandle_is_running_impl(ptr, rust_vec_len, data_len),
-        73 => wire__crate__api__local__generate_secret_impl(ptr, rust_vec_len, data_len),
-        74 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
-        77 => wire__crate__api__local__local_admin_user_name_impl(ptr, rust_vec_len, data_len),
+        57 => wire__crate__api__client__Client_set_token_impl(ptr, rust_vec_len, data_len),
+        60 => wire__crate__api__client__Client_token_impl(ptr, rust_vec_len, data_len),
+        72 => wire__crate__api__local__LocalHandle_is_running_impl(ptr, rust_vec_len, data_len),
+        74 => wire__crate__api__local__generate_secret_impl(ptr, rust_vec_len, data_len),
+        75 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
+        78 => wire__crate__api__local__local_admin_user_name_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }

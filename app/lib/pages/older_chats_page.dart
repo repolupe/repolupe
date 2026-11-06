@@ -6,6 +6,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/util/format.dart';
 import 'package:app/widget/chat/leave_temporary_dialog.dart';
 import 'package:app/widget/page_list_view.dart';
+import 'package:app/widget/toned_string_field.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -14,7 +15,7 @@ import 'package:refena_flutter/refena_flutter.dart';
 const _pageSize = 50;
 
 /// The chats older than those in the drawer, newest first; more are loaded when scrolled to the end.
-/// Tapping one opens it.
+/// A search above them lists the matching chats of all instead. Tapping one opens it.
 class OlderChatsPage extends StatefulWidget {
   /// The drawer's `nextCursor`, so the list starts after its last chat.
   final String cursor;
@@ -26,10 +27,21 @@ class OlderChatsPage extends StatefulWidget {
 }
 
 class _OlderChatsPageState extends State<OlderChatsPage> with Refena {
+  /// The text in the search field.
+  String _input = '';
+
+  /// The submitted search, `null` lists the older chats.
+  String? _search;
+
+  /// Incremented by every search, so the pages still loading for the previous list are dropped.
+  int _epoch = 0;
+
   List<ChatDto> _chats = const [];
 
-  /// Where the next page starts, `null` once all are loaded.
-  late String? _nextCursor = widget.cursor;
+  /// Where the next page starts, `null` for the first page of a search.
+  late String? _cursor = widget.cursor;
+
+  bool _more = true;
 
   /// From the start, since the first load follows the first build.
   bool _loading = true;
@@ -45,31 +57,37 @@ class _OlderChatsPageState extends State<OlderChatsPage> with Refena {
   }
 
   Future<void> _loadMore() async {
-    final cursor = _nextCursor;
-    if (cursor == null) {
+    if (!_more) {
       return;
     }
+    final epoch = _epoch;
+    final search = _search;
+    final cursor = _cursor;
     setState(() {
       _loading = true;
       _failed = false;
     });
     try {
-      final page = await ref.redux(apiProvider).dispatchAsyncTakeResult(ApiListChatsAction(limit: _pageSize, cursor: cursor));
-      if (mounted) {
+      final api = ref.redux(apiProvider);
+      final page = search == null
+          ? await api.dispatchAsyncTakeResult(ApiListChatsAction(limit: _pageSize, cursor: cursor))
+          : await api.dispatchAsyncTakeResult(ApiSearchChatsAction(query: search, limit: _pageSize, cursor: cursor));
+      if (mounted && epoch == _epoch) {
         setState(() {
           _chats = [..._chats, ...page.items];
-          _nextCursor = page.nextCursor;
+          _cursor = page.nextCursor;
+          _more = page.nextCursor != null;
         });
       }
     } on ClientError catch (e) {
-      ref.global.dispatch(ShowSnackBarAction(message: t.base.chat.loadFailed(error: e.userMessage)));
-      if (mounted) {
+      if (mounted && epoch == _epoch) {
+        ref.global.dispatch(ShowSnackBarAction(message: t.base.chat.loadFailed(error: e.userMessage)));
         setState(() {
           _failed = true;
         });
       }
     } finally {
-      if (mounted) {
+      if (mounted && epoch == _epoch) {
         setState(() {
           _loading = false;
         });
@@ -77,66 +95,127 @@ class _OlderChatsPageState extends State<OlderChatsPage> with Refena {
     }
   }
 
+  /// Lists the chats found for the search field, or the older chats again if it is empty.
+  void _submit() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final query = _input.trim();
+    setState(() {
+      _search = query.isEmpty ? null : query;
+      _epoch++;
+      _chats = const [];
+      _cursor = _search == null ? widget.cursor : null;
+      _more = true;
+      _loading = false;
+      _failed = false;
+    });
+    // ignore: discarded_futures
+    _loadMore();
+  }
+
+  void _clear() {
+    setState(() {
+      _input = '';
+    });
+    if (_search != null) {
+      _submit();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = context.t;
-    final more = _nextCursor != null;
     return Scaffold(
       appBar: AppBar(title: Text(t.base.chat.olderPage.title)),
-      body: _chats.isEmpty && !more
-          ? Center(child: Text(t.base.chat.noChats))
-          : PageListView.builder(
-              key: const ValueKey('olderChats.list'),
-              padding: EdgeInsets.only(bottom: 8 + MediaQuery.paddingOf(context).bottom),
-              // The last item loads the next page, or offers to try again.
-              itemCount: _chats.length + (more ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index < _chats.length) {
-                  final chat = _chats[index];
-                  return ListTile(
-                    title: Text(chat.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                    subtitle: Text(formatDayTime(chat.updatedAt)),
-                    onTap: () async {
-                      if (!await LeaveTemporaryDialog.confirm(context) || !context.mounted) {
-                        return;
-                      }
-                      // The page's context is gone once it is closed.
-                      final ref = context.ref;
-                      Navigator.pop(context);
-                      await ref.redux(chatProvider).dispatchAsync(OpenChatAction(chat.id));
-                    },
-                  );
-                }
-                if (_failed) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: FilledButton.tonalIcon(
-                        key: const ValueKey('olderChats.retry'),
-                        onPressed: _loadMore,
-                        icon: const Icon(Icons.refresh),
-                        label: Text(t.base.common.retry),
-                      ),
-                    ),
-                  );
-                }
-                if (!_loading) {
-                  // Built while scrolled to the end.
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (mounted && !_loading && !_failed) {
-                      // ignore: discarded_futures
-                      _loadMore();
-                    }
+      body: PageListView.builder(
+        key: const ValueKey('olderChats.list'),
+        padding: EdgeInsets.only(bottom: 8 + MediaQuery.paddingOf(context).bottom),
+        // The search, the chats, then the last item loads the next page, offers to try again, or tells there are none.
+        itemCount: 1 + _chats.length + (_more || _chats.isEmpty ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == 0) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: TonedStringField(
+                key: const ValueKey('olderChats.search'),
+                value: _input,
+                onChanged: (value) {
+                  setState(() {
+                    _input = value;
                   });
-                }
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: CircularProgressIndicator(),
+                },
+                onSubmitted: (_) => _submit(),
+                hint: t.base.common.search,
+                textInputAction: TextInputAction.search,
+                actions: [
+                  if (_input.isNotEmpty)
+                    IconButton(
+                      key: const ValueKey('olderChats.clear'),
+                      icon: const Icon(Icons.clear),
+                      tooltip: MaterialLocalizations.of(context).clearButtonTooltip,
+                      onPressed: _clear,
+                    ),
+                  IconButton(
+                    key: const ValueKey('olderChats.searchButton'),
+                    icon: const Icon(Icons.search),
+                    tooltip: t.base.common.search,
+                    onPressed: _submit,
                   ),
-                );
+                ],
+              ),
+            );
+          }
+          if (index <= _chats.length) {
+            final chat = _chats[index - 1];
+            return ListTile(
+              title: Text(chat.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+              subtitle: Text(formatDayTime(chat.updatedAt)),
+              onTap: () async {
+                if (!await LeaveTemporaryDialog.confirm(context) || !context.mounted) {
+                  return;
+                }
+                // The page's context is gone once it is closed.
+                final ref = context.ref;
+                Navigator.pop(context);
+                await ref.redux(chatProvider).dispatchAsync(OpenChatAction(chat.id));
               },
+            );
+          }
+          if (!_more) {
+            return Padding(
+              padding: const EdgeInsets.all(32),
+              child: Center(child: Text(_search == null ? t.base.chat.noChats : t.base.chat.olderPage.noResults)),
+            );
+          }
+          if (_failed) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: FilledButton.tonalIcon(
+                  key: const ValueKey('olderChats.retry'),
+                  onPressed: _loadMore,
+                  icon: const Icon(Icons.refresh),
+                  label: Text(t.base.common.retry),
+                ),
+              ),
+            );
+          }
+          if (!_loading) {
+            // Built while scrolled to the end.
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && !_loading && !_failed) {
+                // ignore: discarded_futures
+                _loadMore();
+              }
+            });
+          }
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: CircularProgressIndicator(),
             ),
+          );
+        },
+      ),
     );
   }
 }

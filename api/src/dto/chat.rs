@@ -261,6 +261,15 @@ pub struct ListChatsQuery {
     pub cursor: Option<String>,
 }
 
+/// `GET /api/v1/chats/search`: the chats in which every word of `query` occurs in the title or in
+/// a message, case-insensitively for ASCII letters. Paged like `GET /api/v1/chats`.
+#[derive(Serialize, Deserialize)]
+pub struct SearchChatsQuery {
+    pub query: String,
+    pub limit: Option<i64>,
+    pub cursor: Option<String>,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct CreateChatRequest {
     /// The first message, may be blank with an attachment.

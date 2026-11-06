@@ -1127,6 +1127,8 @@ class _Translations$base$chat$olderPage$de extends Translations$base$chat$olderP
   // Translations
   @override
   String get title => 'Ältere Chats';
+  @override
+  String get noResults => 'Keine Chats gefunden';
 }
 
 // Path: base.settings.themeMode

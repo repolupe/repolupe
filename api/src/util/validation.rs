@@ -21,6 +21,8 @@ const MAX_MODEL_API_NAME_LENGTH: usize = 200;
 pub(crate) const MIN_POLL_INTERVAL_SECONDS: i32 = 60;
 const MAX_CHAT_TITLE_LENGTH: usize = 200;
 const MAX_MESSAGE_LENGTH: usize = 32_000;
+const MAX_CHAT_SEARCH_LENGTH: usize = 200;
+const MAX_CHAT_SEARCH_WORDS: usize = 10;
 const MAX_REPOSITORIES_PER_CHAT: usize = 100;
 /// More than a user gets tools from, since shares they turned off can be selected too.
 const MAX_MCP_SERVERS_PER_CHAT: usize = 100;
@@ -394,6 +396,25 @@ pub(crate) fn validate_message(content: &str) -> Result<(), ValidationError> {
         )));
     }
     Ok(())
+}
+
+/// The words of a chat search, at least one.
+pub(crate) fn parse_chat_search(query: &str) -> Result<Vec<&str>, ValidationError> {
+    if query.chars().count() > MAX_CHAT_SEARCH_LENGTH {
+        return Err(ValidationError(format!(
+            "Search must be at most {MAX_CHAT_SEARCH_LENGTH} characters long"
+        )));
+    }
+    let words: Vec<&str> = query.split_whitespace().collect();
+    if words.is_empty() {
+        return Err(ValidationError("Search must not be empty".to_string()));
+    }
+    if words.len() > MAX_CHAT_SEARCH_WORDS {
+        return Err(ValidationError(format!(
+            "Search must have at most {MAX_CHAT_SEARCH_WORDS} words"
+        )));
+    }
+    Ok(words)
 }
 
 pub(crate) fn validate_repository_selection(ids: &[uuid::Uuid]) -> Result<(), ValidationError> {

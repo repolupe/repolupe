@@ -254,7 +254,8 @@
       "cost": "Chi phí"
     },
     "olderPage": {
-      "title": "Đoạn chat cũ hơn"
+      "title": "Đoạn chat cũ hơn",
+      "noResults": "Không tìm thấy đoạn chat nào"
     },
     "loadFailed": "Không thể tải danh sách đoạn chat: {error}"
   },

@@ -85,7 +85,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -623496216;
+  int get rustContentHash => -1449678835;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'repolupe_ffi',
@@ -205,6 +205,8 @@ abstract class RustLibApi extends BaseApi {
     required UuidValue messageId,
     required RetryMessageRequest request,
   });
+
+  Future<ChatPageDto> crateApiClientClientSearchChats({required Client that, required String query, PlatformInt64? limit, String? cursor});
 
   Future<List<MessageDto>> crateApiClientClientSendMessage({required Client that, required UuidValue chatId, required SendMessageRequest request});
 
@@ -1581,6 +1583,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<ChatPageDto> crateApiClientClientSearchChats({required Client that, required String query, PlatformInt64? limit, String? cursor}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
+          sse_encode_String(query, serializer);
+          sse_encode_opt_box_autoadd_i_64(limit, serializer);
+          sse_encode_opt_String(cursor, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 49, port: port_);
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_chat_page_dto,
+          decodeErrorData: sse_decode_client_error,
+        ),
+        constMeta: kCrateApiClientClientSearchChatsConstMeta,
+        argValues: [that, query, limit, cursor],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientClientSearchChatsConstMeta => const TaskConstMeta(
+    debugName: 'Client_search_chats',
+    argNames: ['that', 'query', 'limit', 'cursor'],
+  );
+
+  @override
   Future<List<MessageDto>> crateApiClientClientSendMessage({required Client that, required UuidValue chatId, required SendMessageRequest request}) {
     return handler.executeNormal(
       NormalTask(
@@ -1589,7 +1619,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_Uuid(chatId, serializer);
           sse_encode_box_autoadd_send_message_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 49, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 50, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_list_message_dto,
@@ -1615,7 +1645,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_opt_String(acceptLanguage, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 50)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 51)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -1641,7 +1671,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_Map_String_String_None(overrides, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 51, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 52, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_list_config_entry_dto,
@@ -1667,7 +1697,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_box_autoadd_set_default_model_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 52, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 53, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -1693,7 +1723,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_box_autoadd_set_locale_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 53, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 54, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -1719,7 +1749,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_box_autoadd_set_auto_commit_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 54, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 55, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -1745,7 +1775,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_box_autoadd_set_my_default_model_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 55, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 56, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -1771,7 +1801,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_opt_String(token, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 56)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 57)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -1806,7 +1836,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_Uuid(messageId, serializer);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerCancellationToken(cancel, serializer);
           sse_encode_StreamSink_message_event_Sse(sink, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 57, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 58, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -1833,7 +1863,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_Uuid(id, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 58, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 59, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -1858,7 +1888,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 59)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 60)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_opt_String,
@@ -1885,7 +1915,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_Uuid(id, serializer);
           sse_encode_box_autoadd_update_chat_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 60, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 61, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_chat_dto,
@@ -1911,7 +1941,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_box_autoadd_update_identity_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 61, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 62, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_user_dto,
@@ -1938,7 +1968,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_Uuid(id, serializer);
           sse_encode_box_autoadd_llm_model_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 62, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 63, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_llm_model_dto,
@@ -1969,7 +1999,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_Uuid(id, serializer);
           sse_encode_box_autoadd_update_llm_provider_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 63, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 64, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_llm_provider_dto,
@@ -1996,7 +2026,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_Uuid(id, serializer);
           sse_encode_box_autoadd_update_mcp_server_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 64, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 65, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_mcp_server_dto,
@@ -2029,7 +2059,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_Uuid(id, serializer);
           sse_encode_Uuid(userId, serializer);
           sse_encode_box_autoadd_update_mcp_server_user_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 65, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 66, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -2055,7 +2085,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_box_autoadd_update_profile_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 66, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 67, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -2086,7 +2116,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_Uuid(id, serializer);
           sse_encode_box_autoadd_update_repository_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 67, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 68, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_repository_dto,
@@ -2119,7 +2149,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_Uuid(id, serializer);
           sse_encode_Uuid(userId, serializer);
           sse_encode_box_autoadd_update_repository_user_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 68, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 69, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -2146,7 +2176,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_Uuid(id, serializer);
           sse_encode_box_autoadd_update_user_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 69, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 70, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_user_dto,
@@ -2179,7 +2209,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(fileName, serializer);
           sse_encode_opt_String(contentType, serializer);
           sse_encode_list_prim_u_8_loose(content, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 70, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 71, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_attachment_dto,
@@ -2204,7 +2234,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalHandle(that, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 71)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 72)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -2229,7 +2259,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalHandle(that, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 72, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 73, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -2253,7 +2283,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 73)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 74)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -2278,7 +2308,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 74)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 75)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -2302,7 +2332,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 75, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 76, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -2326,7 +2356,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 76, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 77, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_list_llm_provider_suggestion_dto,
@@ -2350,7 +2380,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 77)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 78)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -2375,7 +2405,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_local_config(config, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 78, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 79, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalHandle,
@@ -8643,6 +8673,11 @@ class ClientImpl extends RustOpaque implements Client {
   /// `POST /api/v1/chats/{id}/messages/{message_id}/retry`: the new answer being generated.
   Future<MessageDto> retryMessage({required UuidValue chatId, required UuidValue messageId, required RetryMessageRequest request}) =>
       RustLib.instance.api.crateApiClientClientRetryMessage(that: this, chatId: chatId, messageId: messageId, request: request);
+
+  /// `GET /api/v1/chats/search`: the chats in which every word of `query` occurs in the title or
+  /// in a message, newest first. Paged like [`Self::list_chats`].
+  Future<ChatPageDto> searchChats({required String query, PlatformInt64? limit, String? cursor}) =>
+      RustLib.instance.api.crateApiClientClientSearchChats(that: this, query: query, limit: limit, cursor: cursor);
 
   /// `POST /api/v1/chats/{id}/messages`: the user message and the answer being generated.
   Future<List<MessageDto>> sendMessage({required UuidValue chatId, required SendMessageRequest request}) =>

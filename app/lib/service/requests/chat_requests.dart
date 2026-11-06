@@ -36,6 +36,29 @@ class ApiListChatsAction extends AsyncReduxActionWithResult<ApiService, AccountC
   String toString() => 'ApiListChatsAction(limit: $limit, cursor: $cursor)';
 }
 
+/// Lists [limit] of the chats in which every word of [query] occurs in the title or a message, newest first:
+/// the newest ones, or those after [cursor] (a page's `nextCursor`).
+class ApiSearchChatsAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, ChatPageDto> {
+  final String query;
+  final int limit;
+  final String? cursor;
+
+  ApiSearchChatsAction({required this.query, required this.limit, this.cursor});
+
+  @override
+  Future<(AccountClient?, ChatPageDto)> reduce() async {
+    final page = await dispatchAsyncTakeResult(
+      _ApiCallAction(
+        call: (client) => client.searchChats(query: query, limit: limit, cursor: cursor),
+      ),
+    );
+    return (state, page);
+  }
+
+  @override
+  String toString() => 'ApiSearchChatsAction(query: $query, limit: $limit, cursor: $cursor)';
+}
+
 /// Loads the chat [chatId] with its messages.
 class ApiGetChatAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, ChatDetailDto> {
   final UuidValue chatId;
