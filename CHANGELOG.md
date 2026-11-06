@@ -1,3 +1,14 @@
+## 1.1.1 (2026-11-06)
+
+- feat: the model can search all repositories of a chat at once
+- feat: the model can process the results of MCP tools in its JavaScript sandbox
+- feat: show live usage (cost / tokens) while the answer is generated
+- feat(app): chats are shown as a panel on larger screens, which can be hidden
+- feat(app): pages have a limited content width on larger screens
+- feat(app): wide tables in answers scroll horizontally
+- feat(app): add minimal mcp settings page to enable/disable
+- i18n: add Viet
+
 ## 1.1.0 (2026-11-04)
 
 - feat: MCP servers give the model more tools, connected with a token or by signing in (managed in the web app)

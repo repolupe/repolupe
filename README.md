@@ -18,6 +18,8 @@
 [app store]: https://apps.apple.com/app/id6823998189
 [play store]: https://play.google.com/store/apps/details?id=com.repolupe.app
 
+![Repolupe](resources/screenshot.webp)
+
 Chat with your private knowledge. Repolupe turns any git repository into a knowledge base you can talk to.
 Your documents stay in your repositories, on your servers, under your control.
 

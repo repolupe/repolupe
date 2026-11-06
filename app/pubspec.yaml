@@ -1,7 +1,7 @@
 name: app
 description: "Chat with your private knowledge."
 publish_to: 'none'
-version: 1.1.0+6
+version: 1.1.1+7
 
 environment:
   sdk: ^3.13.5
