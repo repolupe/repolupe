@@ -7,6 +7,9 @@ const maxUserNameLength = 64;
 const minPasswordLength = 8;
 const maxPasswordLength = 128;
 
+/// What the API checks of a chat title (`validate_chat_title`).
+const maxChatTitleLength = 200;
+
 final _userNamePattern = RegExp(r'^[A-Za-z0-9._-]+$');
 
 /// Why the API would reject this trimmed user name and email, `null` if they are valid.
@@ -20,6 +23,18 @@ String? userNameOrEmailError(String userName, String email) {
   }
   if (email.isNotEmpty && !_isValidEmail(email)) {
     return t.base.user.emailInvalid;
+  }
+  return null;
+}
+
+/// Why the API would reject this trimmed chat title, `null` if it is valid. It counts characters like the API (Unicode
+/// scalar values, not UTF-16 code units).
+String? chatTitleError(String title) {
+  if (title.isEmpty) {
+    return t.base.common.required;
+  }
+  if (title.runes.length > maxChatTitleLength) {
+    return t.base.chat.renameDialog.maxLength(max: maxChatTitleLength);
   }
   return null;
 }

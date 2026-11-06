@@ -28,14 +28,14 @@ const _userId = '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12';
 final _savedId = UuidValue.fromString('0199a8d4-6d5e-7c3a-9b1f-000000000001');
 final _newId = UuidValue.fromString('0199a8d4-6d5e-7c3a-9b1f-000000000002');
 
-ChatDto _chat(UuidValue id, String title) => ChatDto(
+ChatDto _chat(UuidValue id, String title, {bool temporary = false}) => ChatDto(
   id: id,
   title: title,
   allRepositories: false,
   repositoryIds: const [],
   allMcpServers: true,
   mcpServerIds: const [],
-  temporary: false,
+  temporary: temporary,
   createdAt: DateTime.utc(2026, 10, 21, 12),
   updatedAt: DateTime.utc(2026, 10, 21, 12),
 );
@@ -62,7 +62,8 @@ List<MessageDto> _messages(String question) => [
 ];
 
 /// The chat page in a window of [size] on the server `Acme Docs`, with the saved chat listed. A new chat is titled
-/// after its question and listed first from then on. The panel was hidden before unless [panelVisible]. The [user] is
+/// after its question and listed first from then on, unless it is temporary. Chats are renamed and deleted in the list,
+/// except that deleting fails if [deleteFails]. The panel was hidden before unless [panelVisible]. The [user] is
 /// loaded, if given. The server has the [models], none by default.
 Future<RefenaContainer> _pumpChatPage(
   WidgetTester tester,
@@ -70,6 +71,7 @@ Future<RefenaContainer> _pumpChatPage(
   bool panelVisible = true,
   UserDto? user,
   List<ModelDto> models = const [],
+  bool deleteFails = false,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -88,9 +90,23 @@ Future<RefenaContainer> _pumpChatPage(
         mock.on<ApiListMcpServersAction>((state, action) => (state, const <McpServerDto>[]));
         mock.on<ApiListChatsAction>((state, action) => (state, ChatPageDto(items: [...listed])));
         mock.on<ApiCreateChatAction>((state, action) {
-          final chat = _chat(_newId, action.content);
-          listed.insert(0, chat);
+          final chat = _chat(_newId, action.content, temporary: action.temporary);
+          if (!action.temporary) {
+            listed.insert(0, chat);
+          }
           return (state, ChatDetailDto(chat: chat, messages: _messages(action.content)));
+        });
+        mock.on<ApiUpdateChatAction>((state, action) {
+          final chat = _chat(action.chatId, action.title);
+          listed.replaceRange(0, listed.length, [for (final c in listed) c.id == chat.id ? chat : c]);
+          return (state, chat);
+        });
+        mock.on<ApiDeleteChatAction>((state, action) {
+          if (deleteFails) {
+            throw apiError(ErrorCode.internalError, status: 500, message: 'Disk full');
+          }
+          listed.removeWhere((c) => c.id == action.chatId);
+          return state;
         });
         mock.on<ApiGetChatAction>((state, action) {
           if (action.chatId != _savedId) {
@@ -212,6 +228,93 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('chat.drawer')));
     await tester.pumpAndSettle();
     expect(_listed('Saved chat'), findsOneWidget);
+  });
+
+  testWidgets('a chat is renamed from its menu right of "New chat", also in the panel', (tester) async {
+    final container = await _pumpChatPage(tester, const Size(1376, 1032));
+    await tester.tap(_listed('Saved chat'));
+    await tester.pumpAndSettle();
+
+    final menu = find.byKey(const ValueKey('chat.menu'));
+    expect(tester.getCenter(menu).dx, greaterThan(tester.getCenter(find.byKey(const ValueKey('chat.newChat'))).dx));
+    await tester.tap(menu);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('chat.menu.rename')));
+    await tester.pumpAndSettle();
+    final field = find.byKey(const ValueKey('chat.renameDialog.title'));
+    expect(find.descendant(of: field, matching: find.text('Saved chat')), findsOneWidget);
+
+    // A blank title is not sent.
+    await tester.enterText(field, '   ');
+    await tester.tap(find.byKey(const ValueKey('chat.renameDialog.save')));
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: find.byKey(const ValueKey('chat.renameDialog.error')), matching: find.text('Required.')), findsOneWidget);
+    expect(container.read(chatProvider).chat?.title, 'Saved chat');
+
+    await tester.enterText(field, '  Renamed chat ');
+    await tester.tap(find.byKey(const ValueKey('chat.renameDialog.save')));
+    await tester.pumpAndSettle();
+    expect(field, findsNothing);
+    expect(_appBarTitle('Renamed chat'), findsOneWidget);
+    expect(_listed('Renamed chat'), findsOneWidget);
+    expect(_listed('Saved chat'), findsNothing);
+    expect(find.text('Chat renamed.'), findsOneWidget);
+  });
+
+  testWidgets('a chat is deleted from its menu after confirming, leaving a new chat', (tester) async {
+    final container = await _pumpChatPage(tester, const Size(1376, 1032));
+    await tester.tap(_listed('Saved chat'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('chat.menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('chat.menu.delete')));
+    await tester.pumpAndSettle();
+    expect(find.text('Are you sure you want to delete "Saved chat" with all its messages?'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('chat.delete.confirm')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(container.read(chatProvider).chat, isNull);
+    expect(_appBarTitle('Acme Docs'), findsOneWidget);
+    expect(_listed('Saved chat'), findsNothing);
+    expect(find.byKey(const ValueKey('chat.menu')), findsNothing);
+    expect(find.text('Chat deleted.'), findsOneWidget);
+  });
+
+  testWidgets('a chat that fails to be deleted stays open, with the error in the dialog', (tester) async {
+    final container = await _pumpChatPage(tester, const Size(1376, 1032), deleteFails: true);
+    await tester.tap(_listed('Saved chat'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('chat.menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('chat.menu.delete')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('chat.delete.confirm')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('chat.delete.confirm.error')), findsOneWidget);
+    expect(container.read(chatProvider).chat?.id, _savedId);
+    expect(_listed('Saved chat'), findsOneWidget);
+  });
+
+  testWidgets('neither a new chat nor a temporary one has a menu', (tester) async {
+    await _pumpChatPage(tester, _phone);
+    expect(find.byKey(const ValueKey('chat.menu')), findsNothing);
+    // In its place, right of "New chat".
+    final temporary = find.byKey(const ValueKey('chat.temporary'));
+    expect(tester.getCenter(temporary).dx, greaterThan(tester.getCenter(find.byKey(const ValueKey('chat.newChat'))).dx));
+
+    await tester.tap(find.byKey(const ValueKey('chat.temporary')));
+    await tester.pump();
+    await tester.enterText(find.byKey(const ValueKey('chat.input')), 'A question');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('chat.send')));
+    await tester.pumpAndSettle();
+    expect(_appBarTitle('A question'), findsOneWidget);
+    expect(find.byKey(const ValueKey('chat.newChat')), findsOneWidget);
+    expect(find.byKey(const ValueKey('chat.menu')), findsNothing);
   });
 
   testWidgets('a new chat greets the user by the time of day and their first name, with the server name as its title', (tester) async {

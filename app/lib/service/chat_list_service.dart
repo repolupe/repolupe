@@ -3,6 +3,7 @@ import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:logging/logging.dart';
 import 'package:refena_flutter/refena_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 final _logger = Logger('ChatListService');
 
@@ -43,6 +44,50 @@ class LoadChatsAction extends AsyncReduxAction<ChatListService, ChatPageDto?> {
       return state;
     }
   }
+}
+
+/// Shows the renamed [chat] in its place, since the panel beside the chat isn't loaded again on its own.
+class UpdateListedChatAction extends ReduxAction<ChatListService, ChatPageDto?> {
+  final ChatDto chat;
+
+  UpdateListedChatAction(this.chat);
+
+  @override
+  ChatPageDto? reduce() {
+    final page = state;
+    if (page == null) {
+      return null;
+    }
+    return ChatPageDto(
+      items: [for (final c in page.items) c.id == chat.id ? chat : c],
+      nextCursor: page.nextCursor,
+    );
+  }
+
+  @override
+  String toString() => 'UpdateListedChatAction(${chat.id})';
+}
+
+/// Removes the deleted chat [chatId], since the panel beside the chat isn't loaded again on its own.
+class RemoveListedChatAction extends ReduxAction<ChatListService, ChatPageDto?> {
+  final UuidValue chatId;
+
+  RemoveListedChatAction(this.chatId);
+
+  @override
+  ChatPageDto? reduce() {
+    final page = state;
+    if (page == null) {
+      return null;
+    }
+    return ChatPageDto(
+      items: page.items.where((c) => c.id != chatId).toList(),
+      nextCursor: page.nextCursor,
+    );
+  }
+
+  @override
+  String toString() => 'RemoveListedChatAction($chatId)';
 }
 
 /// Forgets the chats, e.g. when the account changes.

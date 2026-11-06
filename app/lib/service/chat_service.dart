@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/api_service.dart';
+import 'package:app/service/chat_list_service.dart';
 import 'package:app/service/message_service.dart';
 import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/attachment.dart';
@@ -12,6 +13,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/mcp.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
 import 'package:app/util/format.dart';
+import 'package:app/util/validation.dart';
 import 'package:dart_mappable/dart_mappable.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -177,6 +179,7 @@ final chatProvider = ReduxProvider<ChatService, ChatState>((ref) {
   return ChatService(
     api: ref.notifier(apiProvider),
     messages: ref.notifier(messageProvider),
+    chatList: ref.notifier(chatListProvider),
   );
 });
 
@@ -185,6 +188,7 @@ final chatProvider = ReduxProvider<ChatService, ChatState>((ref) {
 class ChatService extends ReduxNotifier<ChatState> {
   final ApiService _api;
   final MessageService _messages;
+  final ChatListService _chatList;
 
   /// The [PendingAttachment.key] of the next attached file.
   int _nextAttachmentKey = 1;
@@ -192,6 +196,7 @@ class ChatService extends ReduxNotifier<ChatState> {
   ChatService({
     required this._api,
     required this._messages,
+    required this._chatList,
   });
 
   @override
@@ -625,6 +630,72 @@ class ChooseModelAction extends AsyncReduxAction<ChatService, ChatState> with Gl
 
   @override
   String toString() => 'ChooseModelAction($modelId)';
+}
+
+/// Renames the chat to [title] (trimmed), keeping its model, and shows a snack bar. Returns why it failed, `null` if it
+/// was renamed.
+class RenameChatAction extends AsyncReduxActionWithResult<ChatService, ChatState, String?> with GlobalActions {
+  final String title;
+
+  RenameChatAction(this.title);
+
+  @override
+  Future<(ChatState, String?)> reduce() async {
+    final chat = state.chat;
+    if (notifier._api.state == null || chat == null) {
+      return (state, null);
+    }
+    final title = this.title.trim();
+    final error = chatTitleError(title);
+    if (error != null) {
+      return (state, error);
+    }
+
+    final epoch = state.epoch;
+    final ChatDto updated;
+    try {
+      updated = await external(
+        notifier._api,
+      ).dispatchAsyncTakeResult(ApiUpdateChatAction(chatId: chat.id, title: title, modelId: chat.modelId));
+    } on ClientError catch (e) {
+      return (state, e.code == ErrorCode.unknownModel ? t.base.chat.unknownModel : t.base.chat.page.renameFailed(error: e.userMessage));
+    }
+    external(notifier._chatList).dispatch(UpdateListedChatAction(updated));
+    global.dispatch(ShowSnackBarAction(message: t.base.chat.page.renamed));
+    if (epoch != state.epoch) {
+      return (state, null);
+    }
+    return (state.copyWith(chat: updated), null);
+  }
+
+  @override
+  String toString() => 'RenameChatAction(${title.length} chars)';
+}
+
+/// Deletes the chat with its messages, shows a snack bar and starts a new chat. Returns why it failed, `null` if it was
+/// deleted.
+class DeleteChatAction extends AsyncReduxActionWithResult<ChatService, ChatState, String?> with GlobalActions {
+  @override
+  Future<(ChatState, String?)> reduce() async {
+    final chat = state.chat;
+    if (notifier._api.state == null || chat == null) {
+      return (state, null);
+    }
+
+    final epoch = state.epoch;
+    try {
+      await external(notifier._api).dispatchAsync(ApiDeleteChatAction(chatId: chat.id));
+    } on ClientError catch (e) {
+      return (state, t.base.chat.page.deleteFailed(error: e.userMessage));
+    }
+    external(notifier._chatList).dispatch(RemoveListedChatAction(chat.id));
+    global.dispatch(ShowSnackBarAction(message: t.base.chat.page.deleted));
+    if (epoch == state.epoch) {
+      // Leaves the chat right away (stopping its answer), while the new one loads its choices.
+      unawaited(dispatchAsync(NewChatAction()));
+    }
+    return (state, null);
+  }
 }
 
 /// Stops the answer being generated. Its stream then ends with the cancelled message, which is put into the chat.

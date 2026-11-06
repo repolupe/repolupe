@@ -8,12 +8,15 @@ import 'package:app/service/chat_panel_service.dart';
 import 'package:app/service/chat_service.dart';
 import 'package:app/service/instance_name_provider.dart';
 import 'package:app/service/me_service.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
 import 'package:app/widget/app_drawer.dart';
 import 'package:app/widget/chat/greeting_hero.dart';
 import 'package:app/widget/chat/leave_temporary_dialog.dart';
 import 'package:app/widget/chat/message_input.dart';
 import 'package:app/widget/chat/message_list.dart';
+import 'package:app/widget/chat/rename_chat_sheet.dart';
+import 'package:app/widget/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -132,18 +135,8 @@ class _Chat extends StatelessWidget {
                   ),
             // A new chat, which chooses its repositories in the message input, shows the server's name instead.
             title: chat == null ? const _InstanceName() : Text(chat.title, overflow: TextOverflow.ellipsis),
+            // "New chat" stays second from the end: the last button is the toggle of a new chat, else the menu.
             actions: [
-              if (chat == null)
-                IconButton(
-                  key: const ValueKey('chat.temporary'),
-                  icon: Icon(state.temporary ? Icons.close : Icons.history_toggle_off),
-                  tooltip: state.temporary ? context.t.flutter.chat.page.temporaryOff : context.t.base.chat.temporary,
-                  onPressed: state.busy
-                      ? null
-                      : () {
-                          context.redux(chatProvider).dispatch(SetTemporaryAction(!state.temporary));
-                        },
-                ),
               IconButton(
                 key: const ValueKey('chat.newChat'),
                 icon: const Icon(Icons.add_comment_outlined),
@@ -156,6 +149,20 @@ class _Chat extends StatelessWidget {
                         }
                       },
               ),
+              if (chat == null)
+                IconButton(
+                  key: const ValueKey('chat.temporary'),
+                  icon: Icon(state.temporary ? Icons.close : Icons.history_toggle_off),
+                  tooltip: state.temporary ? context.t.flutter.chat.page.temporaryOff : context.t.base.chat.temporary,
+                  onPressed: state.busy
+                      ? null
+                      : () {
+                          context.redux(chatProvider).dispatch(SetTemporaryAction(!state.temporary));
+                        },
+                )
+              // A temporary chat is neither renamed nor deleted, it is deleted on its own.
+              else if (!chat.temporary)
+                _ChatMenu(chat: chat, enabled: !state.busy),
             ],
           ),
           body: body,
@@ -181,6 +188,55 @@ class _Chat extends StatelessWidget {
                 ),
               ),
       ),
+    );
+  }
+}
+
+enum _ChatMenuAction { rename, delete }
+
+/// The actions of the open [chat], like the web's menu beside its title: renaming and deleting it.
+class _ChatMenu extends StatelessWidget {
+  final ChatDto chat;
+  final bool enabled;
+
+  const _ChatMenu({required this.chat, required this.enabled});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.t;
+    return PopupMenuButton<_ChatMenuAction>(
+      key: const ValueKey('chat.menu'),
+      tooltip: t.base.chat.page.actions,
+      enabled: enabled,
+      onSelected: (action) async {
+        switch (action) {
+          case _ChatMenuAction.rename:
+            await RenameChatSheet.show(context, title: chat.title);
+          case _ChatMenuAction.delete:
+            final chats = context.redux(chatProvider);
+            await ConfirmDialog.show(
+              context,
+              title: t.base.chat.page.deleteTitle,
+              text: t.base.chat.page.deleteConfirm(title: chat.title),
+              confirmText: t.base.common.delete,
+              confirmIcon: Icons.delete,
+              confirmKey: 'chat.delete.confirm',
+              onConfirm: () => chats.dispatchAsyncTakeResult(DeleteChatAction()),
+            );
+        }
+      },
+      itemBuilder: (_) => [
+        PopupMenuItem(
+          key: const ValueKey('chat.menu.rename'),
+          value: _ChatMenuAction.rename,
+          child: ListTile(leading: const Icon(Icons.edit_outlined), title: Text(t.base.chat.page.rename), contentPadding: EdgeInsets.zero),
+        ),
+        PopupMenuItem(
+          key: const ValueKey('chat.menu.delete'),
+          value: _ChatMenuAction.delete,
+          child: ListTile(leading: const Icon(Icons.delete_outline), title: Text(t.base.common.delete), contentPadding: EdgeInsets.zero),
+        ),
+      ],
     );
   }
 }
