@@ -3,6 +3,7 @@ import 'dart:ui' show lerpDouble;
 import 'package:app/config/theme.dart';
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/chat_list_service.dart';
+import 'package:app/service/chat_panel_service.dart';
 import 'package:app/service/chat_service.dart';
 import 'package:app/widget/app_drawer.dart';
 import 'package:app/widget/chat/instance_hero.dart';
@@ -23,10 +24,6 @@ const _panelMinWidth = 840.0;
 /// Below this window height (Material's compact height class), i.e. on a phone in landscape, the chats stay in the
 /// drawer even if it is wide enough.
 const _panelMinHeight = 480.0;
-
-/// Whether the panel is shown on wide screens: the user hides it and shows it again, like the web's navigation. It
-/// stays so when a chat is opened, and when the page opens again (e.g. for another account), until the app restarts.
-final _panelVisibleProvider = StateProvider<bool>((ref) => true, debugLabel: 'ChatPanelVisible');
 
 /// A chat with the model of the active account, a new one every time the page opens.
 /// The drawer, on wide screens a panel beside the chat, lists the previous chats to open instead, and the settings.
@@ -56,7 +53,7 @@ class _ChatPageState extends State<ChatPage> with Refena {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final wide = size.width >= _panelMinWidth && size.height >= _panelMinHeight;
-    final panelVisible = context.watch(_panelVisibleProvider);
+    final panelVisible = context.watch(chatPanelProvider);
     return TweenAnimationBuilder<double>(
       tween: Tween(end: panelVisible ? 1 : 0),
       duration: const Duration(milliseconds: 200),
@@ -245,7 +242,7 @@ class _PanelButton extends StatelessWidget {
           style: IconButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.onSurface),
           icon: AnimatedIcon(icon: AnimatedIcons.menu_arrow, progress: AlwaysStoppedAnimation(shown)),
           tooltip: visible ? navigation.collapseNavigation : navigation.expandNavigation,
-          onPressed: () => context.ref.notifier(_panelVisibleProvider).setState((visible) => !visible),
+          onPressed: () => context.ref.redux(chatPanelProvider).dispatch(SetChatPanelVisibleAction(!visible)),
         ),
       ),
     );

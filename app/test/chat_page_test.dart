@@ -2,6 +2,7 @@ import 'package:app/gen/strings.g.dart';
 import 'package:app/pages/chat_page.dart';
 import 'package:app/service/api_service.dart';
 import 'package:app/service/chat_service.dart';
+import 'package:app/service/persistence_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
@@ -55,16 +56,17 @@ List<MessageDto> _messages(String question) => [
 ];
 
 /// The chat page in a window of [size], with the saved chat listed. A new chat is titled after its question and
-/// listed first from then on.
-Future<RefenaContainer> _pumpChatPage(WidgetTester tester, Size size) async {
+/// listed first from then on. The panel was hidden before unless [panelVisible].
+Future<RefenaContainer> _pumpChatPage(WidgetTester tester, Size size, {bool panelVisible = true}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
   final listed = [_chat(_savedId, 'Saved chat')];
-  final container = RefenaContainer(
-    overrides: [
-      apiProvider.overrideWithActions((mock) {
+  final container = (await tester.runAsync(() async {
+    final container = await mockContainer(
+      account: fakeAccount(userId: _userId),
+      api: (mock) {
         mock.on<ApiListModelsAction>((state, action) => (state, const <ModelDto>[]));
         mock.on<ApiListRepositoriesAction>((state, action) => (state, const <RepositoryDto>[]));
         mock.on<ApiListMcpServersAction>((state, action) => (state, const <McpServerDto>[]));
@@ -80,10 +82,11 @@ Future<RefenaContainer> _pumpChatPage(WidgetTester tester, Size size) async {
           }
           return (state, ChatDetailDto(chat: _chat(_savedId, 'Saved chat'), messages: _messages('Earlier')));
         });
-      }),
-    ],
-  );
-  container.redux(apiProvider).dispatch(ApiSetAccountAction(fakeAccount(userId: _userId)));
+      },
+    );
+    await container.read(persistenceProvider).setChatPanelVisible(panelVisible);
+    return container;
+  }))!;
 
   await tester.pumpWidget(
     RefenaScope.withContainer(
@@ -141,6 +144,7 @@ void main() {
 
   testWidgets('on a wide screen, the panel is hidden and shown again, and stays when a chat is opened', (tester) async {
     final container = await _pumpChatPage(tester, const Size(1376, 1032));
+    final persistence = container.read(persistenceProvider);
     final button = find.byKey(const ValueKey('chat.panel'));
     // At the end of the panel's header, in the middle of the space it leaves.
     expect(tester.getCenter(button), const Offset(304 - 28, 28));
@@ -155,15 +159,25 @@ void main() {
     // The chat takes the whole width, and the button is in its app bar.
     expect(tester.getCenter(find.byType(MessageInput)).dx, closeTo(1376 / 2, 0.01));
     expect(tester.getCenter(button), const Offset(28, 28));
+    expect(persistence.getChatPanelVisible(), isFalse);
 
     await tester.tap(button);
     await tester.pumpAndSettle();
     expect(tester.getCenter(button), const Offset(304 - 28, 28));
+    expect(persistence.getChatPanelVisible(), isTrue);
     await tester.tap(_listed('Saved chat'));
     await tester.pumpAndSettle();
     expect(container.read(chatProvider).chat?.id, _savedId);
     expect(_listed('Saved chat').hitTestable(), findsOneWidget);
     expect(tester.getCenter(button), const Offset(304 - 28, 28));
+  });
+
+  testWidgets('on a wide screen, a panel hidden before stays hidden', (tester) async {
+    await _pumpChatPage(tester, const Size(1376, 1032), panelVisible: false);
+
+    expect(_listed('Saved chat').hitTestable(), findsNothing);
+    expect(tester.getCenter(find.byType(MessageInput)).dx, closeTo(1376 / 2, 0.01));
+    expect(tester.getCenter(find.byKey(const ValueKey('chat.panel'))), const Offset(28, 28));
   });
 
   testWidgets('on a phone in landscape, the chats stay in the drawer', (tester) async {

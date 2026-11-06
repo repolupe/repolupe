@@ -55,9 +55,10 @@ List<MessageDto> _messages(String question) => [
 
 /// The chat page, whose drawer lists the saved chat, after sending a question in a new temporary chat.
 Future<RefenaContainer> _startTemporaryChat(WidgetTester tester) async {
-  final container = RefenaContainer(
-    overrides: [
-      apiProvider.overrideWithActions((mock) {
+  final container = (await tester.runAsync(
+    () => mockContainer(
+      account: fakeAccount(userId: _userId),
+      api: (mock) {
         mock.on<ApiListModelsAction>((state, action) => (state, const <ModelDto>[]));
         mock.on<ApiListRepositoriesAction>((state, action) => (state, const <RepositoryDto>[]));
         mock.on<ApiListMcpServersAction>((state, action) => (state, const <McpServerDto>[]));
@@ -72,10 +73,9 @@ Future<RefenaContainer> _startTemporaryChat(WidgetTester tester) async {
           }
           return (state, ChatDetailDto(chat: _chat(_savedId, 'Saved chat', temporary: false), messages: _messages('Earlier')));
         });
-      }),
-    ],
-  );
-  container.redux(apiProvider).dispatch(ApiSetAccountAction(fakeAccount(userId: _userId)));
+      },
+    ),
+  ))!;
 
   await tester.pumpWidget(
     RefenaScope.withContainer(

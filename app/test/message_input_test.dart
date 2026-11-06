@@ -72,9 +72,10 @@ Future<RefenaContainer> _pumpChatPage(
   List<McpServerDto> mcpServers = const [],
   List<ApiCreateChatAction>? created,
 }) async {
-  final container = RefenaContainer(
-    overrides: [
-      apiProvider.overrideWithActions((mock) {
+  final container = (await tester.runAsync(
+    () => mockContainer(
+      account: fakeAccount(userId: _userId),
+      api: (mock) {
         mock.on<ApiListModelsAction>((state, action) => (state, _models));
         mock.on<ApiListRepositoriesAction>((state, action) => (state, repositories));
         mock.on<ApiListMcpServersAction>((state, action) => (state, mcpServers));
@@ -101,10 +102,9 @@ Future<RefenaContainer> _pumpChatPage(
           );
           return (state, ChatDetailDto(chat: chat, messages: [message]));
         });
-      }),
-    ],
-  );
-  container.redux(apiProvider).dispatch(ApiSetAccountAction(fakeAccount(userId: _userId)));
+      },
+    ),
+  ))!;
 
   await tester.pumpWidget(
     RefenaScope.withContainer(

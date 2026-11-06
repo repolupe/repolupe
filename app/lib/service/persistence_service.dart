@@ -28,6 +28,9 @@ const _localInstance = 'local_instance';
 /// The [ThemeMode.name] chosen by the user, [ThemeMode.system] if unset.
 const _themeMode = 'theme_mode';
 
+/// Whether the panel with the chats is shown beside the chat on wide screens, shown if unset.
+const _chatPanelVisible = 'chat_panel_visible';
+
 /// This service abstracts the persistence layer.
 /// Secrets go into the secure storage (Keychain, Android Keystore), everything else into the shared preferences.
 class PersistenceService {
@@ -97,5 +100,13 @@ class PersistenceService {
 
   Future<void> setThemeMode(ThemeMode mode) async {
     await _prefs.setString(_themeMode, mode.name);
+  }
+
+  bool getChatPanelVisible() {
+    return _prefs.getBool(_chatPanelVisible) ?? true;
+  }
+
+  Future<void> setChatPanelVisible(bool visible) async {
+    await _prefs.setBool(_chatPanelVisible, visible);
   }
 }
