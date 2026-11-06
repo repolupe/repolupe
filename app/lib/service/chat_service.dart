@@ -315,6 +315,35 @@ class LoadRepositoriesAction extends AsyncReduxAction<ChatService, ChatState> {
   }
 }
 
+/// Loads the MCP servers again, keeping the chat, after the user turned servers or tools on or off in the settings,
+/// since the chat page stays open below them. The new chat no longer gets the chosen ones that are now off. If they
+/// fail to load, the ones loaded before stay.
+class LoadMcpServersAction extends AsyncReduxAction<ChatService, ChatState> {
+  @override
+  Future<ChatState> reduce() async {
+    if (notifier._api.state == null) {
+      return state;
+    }
+
+    final epoch = state.epoch;
+    final List<McpServerDto> servers;
+    try {
+      servers = (await external(notifier._api).dispatchAsyncTakeResult(ApiListMcpServersAction())).where(isMcpServerOn).toList();
+    } on ClientError {
+      // The failed request is logged as an action.
+      return state;
+    }
+    if (epoch != state.epoch) {
+      return state;
+    }
+    return state.copyWith(
+      mcpServers: servers,
+      // The chat keeps the servers it was created with.
+      mcpServerIds: state.chat != null ? state.mcpServerIds : state.mcpServerIds.where((id) => servers.any((s) => s.id == id)).toList(),
+    );
+  }
+}
+
 /// Opens the previous chat [chatId] with its messages (dropping the current one), and follows its answer if one is
 /// being generated. Shows a snack bar if it fails, leaving a new chat.
 class OpenChatAction extends AsyncReduxAction<ChatService, ChatState> with GlobalActions {

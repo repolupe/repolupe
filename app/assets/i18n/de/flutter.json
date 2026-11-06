@@ -83,6 +83,12 @@
       "canCommitOn": "Darf die vom Modell vorgeschlagenen Änderungen übernehmen"
     }
   },
+  "mcpServers": {
+    "page": {
+      "description": "Server werden in der Weboberfläche hinzugefügt, geändert und geteilt.",
+      "emptyText": "Füge in der Weboberfläche einen MCP-Server hinzu, damit das Modell seine Tools in deinen Chats verwenden kann."
+    }
+  },
   "documents": {
     "notSynced": "Noch nicht synchronisiert",
     "noDocuments": "Keine Dokumente",

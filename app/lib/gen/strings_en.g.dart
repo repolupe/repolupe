@@ -82,6 +82,7 @@ class Translations$flutter$en {
   late final Translations$flutter$settings$en settings = Translations$flutter$settings$en.internal(_root);
   late final Translations$flutter$validation$en validation = Translations$flutter$validation$en.internal(_root);
   late final Translations$flutter$repositories$en repositories = Translations$flutter$repositories$en.internal(_root);
+  late final Translations$flutter$mcpServers$en mcpServers = Translations$flutter$mcpServers$en.internal(_root);
   late final Translations$flutter$documents$en documents = Translations$flutter$documents$en.internal(_root);
   late final Translations$flutter$format$en format = Translations$flutter$format$en.internal(_root);
   late final Translations$flutter$admin$en admin = Translations$flutter$admin$en.internal(_root);
@@ -768,6 +769,16 @@ class Translations$flutter$repositories$en {
   late final Translations$flutter$repositories$page$en page = Translations$flutter$repositories$page$en.internal(_root);
   late final Translations$flutter$repositories$form$en form = Translations$flutter$repositories$form$en.internal(_root);
   late final Translations$flutter$repositories$usersCard$en usersCard = Translations$flutter$repositories$usersCard$en.internal(_root);
+}
+
+// Path: flutter.mcpServers
+class Translations$flutter$mcpServers$en {
+  Translations$flutter$mcpServers$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+  late final Translations$flutter$mcpServers$page$en page = Translations$flutter$mcpServers$page$en.internal(_root);
 }
 
 // Path: flutter.documents
@@ -2044,12 +2055,11 @@ class Translations$base$mcpServers$page$en {
   /// en: 'Shared by {name}'
   String sharedBy({required Object name}) => 'Shared by ${name}';
 
-  /// en: 'Only the owner can change this server, its tools and its sign-in.'
-  String get sharedWithYouHint => 'Only the owner can change this server, its tools and its sign-in.';
+  /// en: 'Only the owner can change this server and its tools.'
+  String get sharedWithYouHint => 'Only the owner can change this server and its tools.';
 
-  /// en: '{name} shared this server with you. Its tools are only used in your chats once you turn it on. The model may then send content from your chats and repositories to it, so only turn it on if you trust {name} and the server.'
-  String sharedOff({required Object name}) =>
-      '${name} shared this server with you. Its tools are only used in your chats once you turn it on. The model may then send content from your chats and repositories to it, so only turn it on if you trust ${name} and the server.';
+  /// en: '{name} shared this server with you. Its tools are only used in your chats once you turn it on.'
+  String sharedOff({required Object name}) => '${name} shared this server with you. Its tools are only used in your chats once you turn it on.';
 
   /// en: 'Sign in to {name}?'
   String signInTitle({required Object name}) => 'Sign in to ${name}?';
@@ -2600,6 +2610,21 @@ class Translations$flutter$repositories$usersCard$en {
 
   /// en: 'Applies the changes the model proposes to them'
   String get canCommitOn => 'Applies the changes the model proposes to them';
+}
+
+// Path: flutter.mcpServers.page
+class Translations$flutter$mcpServers$page$en {
+  Translations$flutter$mcpServers$page$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Servers are added, changed and shared in the web interface.'
+  String get description => 'Servers are added, changed and shared in the web interface.';
+
+  /// en: 'Add an MCP server in the web interface, so the model can use its tools in your chats.'
+  String get emptyText => 'Add an MCP server in the web interface, so the model can use its tools in your chats.';
 }
 
 // Path: flutter.documents.details

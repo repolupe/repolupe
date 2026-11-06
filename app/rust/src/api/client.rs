@@ -33,7 +33,7 @@ use repolupe::dto::llm::{
     CreateLlmProviderRequest, LlmModelDto, LlmModelRequest, LlmProviderDto, ModelDto,
     RemoteModelDto, SetDefaultModelRequest, UpdateLlmProviderRequest,
 };
-use repolupe::dto::mcp::McpServerDto;
+use repolupe::dto::mcp::{McpServerDto, UpdateMcpServerRequest, UpdateMcpServerUserRequest};
 use repolupe::dto::repository::{
     AddRepositoryUserRequest, CreateRepositoryRequest, RepositoryDto, RepositoryUserDto,
     UpdateRepositoryRequest, UpdateRepositoryUserRequest,
@@ -504,6 +504,29 @@ impl Client {
     /// `GET /api/v1/mcp-servers`: owned and shared ones, managed in the web app.
     pub async fn list_mcp_servers(&self) -> Result<Vec<McpServerDto>, ClientError> {
         self.get("/api/v1/mcp-servers".into()).await
+    }
+
+    /// `POST /api/v1/mcp-servers/{id}/update`: replaces the settings of the user's own server
+    /// (whether they use it, which tools are off).
+    pub async fn update_mcp_server(
+        &self,
+        id: Uuid,
+        request: UpdateMcpServerRequest,
+    ) -> Result<McpServerDto, ClientError> {
+        self.post(format!("/api/v1/mcp-servers/{id}/update"), &request)
+            .await
+    }
+
+    /// `POST /api/v1/mcp-servers/{id}/users/{user_id}/update`: turns a server shared with the
+    /// user (`user_id` is their own id) on or off for their chats.
+    pub async fn update_mcp_server_user(
+        &self,
+        id: Uuid,
+        user_id: Uuid,
+        request: UpdateMcpServerUserRequest,
+    ) -> Result<(), ClientError> {
+        let path = format!("/api/v1/mcp-servers/{id}/users/{user_id}/update");
+        self.post_unit(path, &request).await
     }
 
     // Users (admins)

@@ -42,7 +42,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1887729037;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -623496216;
 
 // Section: executor
 
@@ -3723,6 +3723,134 @@ fn wire__crate__api__client__Client_update_llm_provider_impl(
         },
     )
 }
+fn wire__crate__api__client__Client_update_mcp_server_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Client_update_mcp_server",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Client>,
+            >>::sse_decode(&mut deserializer);
+            let api_id = <uuid::Uuid>::sse_decode(&mut deserializer);
+            let api_request =
+                <repolupe::dto::mcp::UpdateMcpServerRequest>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::error::ClientError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::Client::update_mcp_server(
+                            &*api_that_guard,
+                            api_id,
+                            api_request,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__client__Client_update_mcp_server_user_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Client_update_mcp_server_user",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Client>,
+            >>::sse_decode(&mut deserializer);
+            let api_id = <uuid::Uuid>::sse_decode(&mut deserializer);
+            let api_user_id = <uuid::Uuid>::sse_decode(&mut deserializer);
+            let api_request =
+                <repolupe::dto::mcp::UpdateMcpServerUserRequest>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::error::ClientError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::Client::update_mcp_server_user(
+                            &*api_that_guard,
+                            api_id,
+                            api_user_id,
+                            api_request,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__client__Client_update_profile_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -4836,6 +4964,17 @@ const _: fn() = || {
         let _: Option<String> = UpdateLlmProviderRequest.base_url;
         let _: crate::api::mirror::ApiKeyChange = UpdateLlmProviderRequest.api_key;
         let _: Option<String> = UpdateLlmProviderRequest.currency;
+    }
+    {
+        let UpdateMcpServerRequest = None::<repolupe::dto::mcp::UpdateMcpServerRequest>.unwrap();
+        let _: String = UpdateMcpServerRequest.name;
+        let _: bool = UpdateMcpServerRequest.enabled;
+        let _: Vec<String> = UpdateMcpServerRequest.disabled_tools;
+    }
+    {
+        let UpdateMcpServerUserRequest =
+            None::<repolupe::dto::mcp::UpdateMcpServerUserRequest>.unwrap();
+        let _: bool = UpdateMcpServerUserRequest.enabled;
     }
     {
         let UpdateProfileRequest = None::<repolupe::dto::user::UpdateProfileRequest>.unwrap();
@@ -7174,6 +7313,30 @@ impl SseDecode for repolupe::dto::llm::UpdateLlmProviderRequest {
     }
 }
 
+impl SseDecode for repolupe::dto::mcp::UpdateMcpServerRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_enabled = <bool>::sse_decode(deserializer);
+        let mut var_disabledTools = <Vec<String>>::sse_decode(deserializer);
+        return repolupe::dto::mcp::UpdateMcpServerRequest {
+            name: var_name,
+            enabled: var_enabled,
+            disabled_tools: var_disabledTools,
+        };
+    }
+}
+
+impl SseDecode for repolupe::dto::mcp::UpdateMcpServerUserRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_enabled = <bool>::sse_decode(deserializer);
+        return repolupe::dto::mcp::UpdateMcpServerUserRequest {
+            enabled: var_enabled,
+        };
+    }
+}
+
 impl SseDecode for repolupe::dto::user::UpdateProfileRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -7548,37 +7711,49 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        64 => {
+        64 => wire__crate__api__client__Client_update_mcp_server_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        65 => wire__crate__api__client__Client_update_mcp_server_user_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        66 => {
             wire__crate__api__client__Client_update_profile_impl(port, ptr, rust_vec_len, data_len)
         }
-        65 => wire__crate__api__client__Client_update_repository_impl(
+        67 => wire__crate__api__client__Client_update_repository_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        66 => wire__crate__api__client__Client_update_repository_user_impl(
+        68 => wire__crate__api__client__Client_update_repository_user_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        67 => wire__crate__api__client__Client_update_user_impl(port, ptr, rust_vec_len, data_len),
-        68 => wire__crate__api__client__Client_upload_attachment_impl(
+        69 => wire__crate__api__client__Client_update_user_impl(port, ptr, rust_vec_len, data_len),
+        70 => wire__crate__api__client__Client_upload_attachment_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        70 => wire__crate__api__local__LocalHandle_shutdown_impl(port, ptr, rust_vec_len, data_len),
-        73 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
-        74 => wire__repolupe__dto__llm__llm_provider_suggestions_impl(
+        72 => wire__crate__api__local__LocalHandle_shutdown_impl(port, ptr, rust_vec_len, data_len),
+        75 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        76 => wire__repolupe__dto__llm__llm_provider_suggestions_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        76 => wire__crate__api__local__start_local_impl(port, ptr, rust_vec_len, data_len),
+        78 => wire__crate__api__local__start_local_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -7605,10 +7780,10 @@ fn pde_ffi_dispatcher_sync_impl(
         }
         56 => wire__crate__api__client__Client_set_token_impl(ptr, rust_vec_len, data_len),
         59 => wire__crate__api__client__Client_token_impl(ptr, rust_vec_len, data_len),
-        69 => wire__crate__api__local__LocalHandle_is_running_impl(ptr, rust_vec_len, data_len),
-        71 => wire__crate__api__local__generate_secret_impl(ptr, rust_vec_len, data_len),
-        72 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
-        75 => wire__crate__api__local__local_admin_user_name_impl(ptr, rust_vec_len, data_len),
+        71 => wire__crate__api__local__LocalHandle_is_running_impl(ptr, rust_vec_len, data_len),
+        73 => wire__crate__api__local__generate_secret_impl(ptr, rust_vec_len, data_len),
+        74 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
+        77 => wire__crate__api__local__local_admin_user_name_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -9754,6 +9929,45 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::llm::UpdateLlmP
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::mcp::UpdateMcpServerRequest> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.name.into_into_dart().into_dart(),
+            self.0.enabled.into_into_dart().into_dart(),
+            self.0.disabled_tools.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<repolupe::dto::mcp::UpdateMcpServerRequest>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::mcp::UpdateMcpServerRequest>>
+    for repolupe::dto::mcp::UpdateMcpServerRequest
+{
+    fn into_into_dart(self) -> FrbWrapper<repolupe::dto::mcp::UpdateMcpServerRequest> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::mcp::UpdateMcpServerUserRequest> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [self.0.enabled.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<repolupe::dto::mcp::UpdateMcpServerUserRequest>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::mcp::UpdateMcpServerUserRequest>>
+    for repolupe::dto::mcp::UpdateMcpServerUserRequest
+{
+    fn into_into_dart(self) -> FrbWrapper<repolupe::dto::mcp::UpdateMcpServerUserRequest> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::user::UpdateProfileRequest> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -11706,6 +11920,22 @@ impl SseEncode for repolupe::dto::llm::UpdateLlmProviderRequest {
         <Option<String>>::sse_encode(self.base_url, serializer);
         <crate::api::mirror::ApiKeyChange>::sse_encode(self.api_key, serializer);
         <Option<String>>::sse_encode(self.currency, serializer);
+    }
+}
+
+impl SseEncode for repolupe::dto::mcp::UpdateMcpServerRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.name, serializer);
+        <bool>::sse_encode(self.enabled, serializer);
+        <Vec<String>>::sse_encode(self.disabled_tools, serializer);
+    }
+}
+
+impl SseEncode for repolupe::dto::mcp::UpdateMcpServerUserRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.enabled, serializer);
     }
 }
 

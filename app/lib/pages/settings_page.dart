@@ -5,6 +5,7 @@ import 'package:app/pages/settings/admin/extraction_page.dart';
 import 'package:app/pages/settings/admin/llm_page.dart';
 import 'package:app/pages/settings/admin/server_page.dart';
 import 'package:app/pages/settings/admin/users_page.dart';
+import 'package:app/pages/settings/mcp_servers_page.dart';
 import 'package:app/pages/settings/preferences_page.dart';
 import 'package:app/pages/settings/profile_page.dart';
 import 'package:app/pages/settings/repositories_page.dart';
@@ -47,8 +48,17 @@ class SettingsSection {
 }
 
 /// The sections every user has, with their state. Repositories only for users who may manage them (the others only
-/// use the ones shared with them in chats). [repositoryCount] and [models] are `null` until they are loaded.
-List<SettingsSection> _sections(Translations t, UserDto? user, {required int? repositoryCount, required List<ModelDto>? models}) => [
+/// use the ones shared with them in chats). MCP servers also without the permission to manage them, to turn on the ones
+/// shared with the user, but not on the local instance, since they are added in the web app. [repositoryCount],
+/// [mcpServerCount] and [models] are `null` until they are loaded.
+List<SettingsSection> _sections(
+  Translations t,
+  UserDto? user, {
+  required bool local,
+  required int? repositoryCount,
+  required int? mcpServerCount,
+  required List<ModelDto>? models,
+}) => [
   if (user?.canManageRepositories ?? false)
     SettingsSection(
       key: 'settings.repositories',
@@ -56,6 +66,14 @@ List<SettingsSection> _sections(Translations t, UserDto? user, {required int? re
       title: t.base.repositories.title,
       subtitle: repositoryCount != null ? t.base.settings.page.repositoryCount(count: repositoryCount) : null,
       page: () => const RepositoriesPage(),
+    ),
+  if (!local)
+    SettingsSection(
+      key: 'settings.mcpServers',
+      icon: Icons.extension,
+      title: t.base.mcpServers.title,
+      subtitle: mcpServerCount != null ? t.base.settings.page.mcpServerCount(count: mcpServerCount) : null,
+      page: () => const McpServersPage(),
     ),
   SettingsSection(
     key: 'settings.account',
@@ -138,6 +156,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> with Refena {
   /// For the states of the sections, `null` until loaded (or if loading failed, then the state is left out).
   int? _repositoryCount;
+  int? _mcpServerCount;
   List<ModelDto>? _models;
 
   @override
@@ -153,13 +172,16 @@ class _SettingsPageState extends State<SettingsPage> with Refena {
   Future<void> _load() async {
     final api = ref.redux(apiProvider);
     final canManageRepositories = ref.read(meProvider)?.canManageRepositories ?? false;
-    final (repositories, models) = await (
+    final local = ref.read(accountProvider).active?.isLocal ?? false;
+    final (repositories, mcpServers, models) = await (
       canManageRepositories ? _loadOrNull(() => api.dispatchAsyncTakeResult(ApiListRepositoriesAction())) : Future.value(),
+      !local ? _loadOrNull(() => api.dispatchAsyncTakeResult(ApiListMcpServersAction())) : Future.value(),
       _loadOrNull(() => api.dispatchAsyncTakeResult(ApiListModelsAction())),
     ).wait;
     if (mounted) {
       setState(() {
         _repositoryCount = repositories?.length;
+        _mcpServerCount = mcpServers?.length;
         _models = models;
       });
     }
@@ -197,7 +219,14 @@ class _SettingsPageState extends State<SettingsPage> with Refena {
             },
           ),
           _GroupHeader(title: t.base.settings.page.user),
-          for (final section in _sections(t, user, repositoryCount: _repositoryCount, models: _models))
+          for (final section in _sections(
+            t,
+            user,
+            local: local,
+            repositoryCount: _repositoryCount,
+            mcpServerCount: _mcpServerCount,
+            models: _models,
+          ))
             // The page may have changed the state, e.g. added a repository.
             _SectionTile(section: section, onReturn: _load),
           if (user?.role == UserRole.admin) ...[

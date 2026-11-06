@@ -226,6 +226,14 @@ abstract class Client implements RustOpaqueInterface {
   /// `POST /api/v1/llm-providers/{id}/update`.
   Future<LlmProviderDto> updateLlmProvider({required UuidValue id, required UpdateLlmProviderRequest request});
 
+  /// `POST /api/v1/mcp-servers/{id}/update`: replaces the settings of the user's own server
+  /// (whether they use it, which tools are off).
+  Future<McpServerDto> updateMcpServer({required UuidValue id, required UpdateMcpServerRequest request});
+
+  /// `POST /api/v1/mcp-servers/{id}/users/{user_id}/update`: turns a server shared with the
+  /// user (`user_id` is their own id) on or off for their chats.
+  Future<void> updateMcpServerUser({required UuidValue id, required UuidValue userId, required UpdateMcpServerUserRequest request});
+
   /// `POST /api/v1/me/profile`.
   Future<void> updateProfile({required UpdateProfileRequest request});
 

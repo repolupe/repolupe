@@ -242,6 +242,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   UpdateLlmProviderRequest dco_decode_box_autoadd_update_llm_provider_request(dynamic raw);
 
   @protected
+  UpdateMcpServerRequest dco_decode_box_autoadd_update_mcp_server_request(dynamic raw);
+
+  @protected
+  UpdateMcpServerUserRequest dco_decode_box_autoadd_update_mcp_server_user_request(dynamic raw);
+
+  @protected
   UpdateProfileRequest dco_decode_box_autoadd_update_profile_request(dynamic raw);
 
   @protected
@@ -686,6 +692,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   UpdateLlmProviderRequest dco_decode_update_llm_provider_request(dynamic raw);
 
   @protected
+  UpdateMcpServerRequest dco_decode_update_mcp_server_request(dynamic raw);
+
+  @protected
+  UpdateMcpServerUserRequest dco_decode_update_mcp_server_user_request(dynamic raw);
+
+  @protected
   UpdateProfileRequest dco_decode_update_profile_request(dynamic raw);
 
   @protected
@@ -908,6 +920,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   UpdateLlmProviderRequest sse_decode_box_autoadd_update_llm_provider_request(SseDeserializer deserializer);
+
+  @protected
+  UpdateMcpServerRequest sse_decode_box_autoadd_update_mcp_server_request(SseDeserializer deserializer);
+
+  @protected
+  UpdateMcpServerUserRequest sse_decode_box_autoadd_update_mcp_server_user_request(SseDeserializer deserializer);
 
   @protected
   UpdateProfileRequest sse_decode_box_autoadd_update_profile_request(SseDeserializer deserializer);
@@ -1354,6 +1372,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   UpdateLlmProviderRequest sse_decode_update_llm_provider_request(SseDeserializer deserializer);
 
   @protected
+  UpdateMcpServerRequest sse_decode_update_mcp_server_request(SseDeserializer deserializer);
+
+  @protected
+  UpdateMcpServerUserRequest sse_decode_update_mcp_server_user_request(SseDeserializer deserializer);
+
+  @protected
   UpdateProfileRequest sse_decode_update_profile_request(SseDeserializer deserializer);
 
   @protected
@@ -1580,6 +1604,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_autoadd_update_llm_provider_request(UpdateLlmProviderRequest self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_update_mcp_server_request(UpdateMcpServerRequest self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_update_mcp_server_user_request(UpdateMcpServerUserRequest self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_update_profile_request(UpdateProfileRequest self, SseSerializer serializer);
@@ -2024,6 +2054,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_update_llm_provider_request(UpdateLlmProviderRequest self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_update_mcp_server_request(UpdateMcpServerRequest self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_update_mcp_server_user_request(UpdateMcpServerUserRequest self, SseSerializer serializer);
 
   @protected
   void sse_encode_update_profile_request(UpdateProfileRequest self, SseSerializer serializer);

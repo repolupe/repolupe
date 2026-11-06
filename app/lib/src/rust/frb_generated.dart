@@ -85,7 +85,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -1887729037;
+  int get rustContentHash => -623496216;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'repolupe_ffi',
@@ -243,6 +243,15 @@ abstract class RustLibApi extends BaseApi {
     required Client that,
     required UuidValue id,
     required UpdateLlmProviderRequest request,
+  });
+
+  Future<McpServerDto> crateApiClientClientUpdateMcpServer({required Client that, required UuidValue id, required UpdateMcpServerRequest request});
+
+  Future<void> crateApiClientClientUpdateMcpServerUser({
+    required Client that,
+    required UuidValue id,
+    required UuidValue userId,
+    required UpdateMcpServerUserRequest request,
   });
 
   Future<void> crateApiClientClientUpdateProfile({required Client that, required UpdateProfileRequest request});
@@ -1979,6 +1988,66 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<McpServerDto> crateApiClientClientUpdateMcpServer({required Client that, required UuidValue id, required UpdateMcpServerRequest request}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
+          sse_encode_Uuid(id, serializer);
+          sse_encode_box_autoadd_update_mcp_server_request(request, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 64, port: port_);
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_mcp_server_dto,
+          decodeErrorData: sse_decode_client_error,
+        ),
+        constMeta: kCrateApiClientClientUpdateMcpServerConstMeta,
+        argValues: [that, id, request],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientClientUpdateMcpServerConstMeta => const TaskConstMeta(
+    debugName: 'Client_update_mcp_server',
+    argNames: ['that', 'id', 'request'],
+  );
+
+  @override
+  Future<void> crateApiClientClientUpdateMcpServerUser({
+    required Client that,
+    required UuidValue id,
+    required UuidValue userId,
+    required UpdateMcpServerUserRequest request,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
+          sse_encode_Uuid(id, serializer);
+          sse_encode_Uuid(userId, serializer);
+          sse_encode_box_autoadd_update_mcp_server_user_request(request, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 65, port: port_);
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_client_error,
+        ),
+        constMeta: kCrateApiClientClientUpdateMcpServerUserConstMeta,
+        argValues: [that, id, userId, request],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientClientUpdateMcpServerUserConstMeta => const TaskConstMeta(
+    debugName: 'Client_update_mcp_server_user',
+    argNames: ['that', 'id', 'userId', 'request'],
+  );
+
+  @override
   Future<void> crateApiClientClientUpdateProfile({required Client that, required UpdateProfileRequest request}) {
     return handler.executeNormal(
       NormalTask(
@@ -1986,7 +2055,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_box_autoadd_update_profile_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 64, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 66, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -2017,7 +2086,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_Uuid(id, serializer);
           sse_encode_box_autoadd_update_repository_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 65, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 67, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_repository_dto,
@@ -2050,7 +2119,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_Uuid(id, serializer);
           sse_encode_Uuid(userId, serializer);
           sse_encode_box_autoadd_update_repository_user_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 66, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 68, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -2077,7 +2146,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_Uuid(id, serializer);
           sse_encode_box_autoadd_update_user_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 67, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 69, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_user_dto,
@@ -2110,7 +2179,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_String(fileName, serializer);
           sse_encode_opt_String(contentType, serializer);
           sse_encode_list_prim_u_8_loose(content, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 68, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 70, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_attachment_dto,
@@ -2135,7 +2204,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalHandle(that, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 69)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 71)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -2160,7 +2229,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalHandle(that, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 70, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 72, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -2184,7 +2253,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 71)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 73)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -2209,7 +2278,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(name, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 72)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 74)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -2233,7 +2302,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 73, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 75, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -2257,7 +2326,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 74, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 76, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_list_llm_provider_suggestion_dto,
@@ -2281,7 +2350,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 75)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 77)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -2306,7 +2375,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_box_autoadd_local_config(config, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 76, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 78, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerLocalHandle,
@@ -2758,6 +2827,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   UpdateLlmProviderRequest dco_decode_box_autoadd_update_llm_provider_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_update_llm_provider_request(raw);
+  }
+
+  @protected
+  UpdateMcpServerRequest dco_decode_box_autoadd_update_mcp_server_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_update_mcp_server_request(raw);
+  }
+
+  @protected
+  UpdateMcpServerUserRequest dco_decode_box_autoadd_update_mcp_server_user_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_update_mcp_server_user_request(raw);
   }
 
   @protected
@@ -4185,6 +4266,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  UpdateMcpServerRequest dco_decode_update_mcp_server_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return UpdateMcpServerRequest(
+      name: dco_decode_String(arr[0]),
+      enabled: dco_decode_bool(arr[1]),
+      disabledTools: dco_decode_list_String(arr[2]),
+    );
+  }
+
+  @protected
+  UpdateMcpServerUserRequest dco_decode_update_mcp_server_user_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1) throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return UpdateMcpServerUserRequest(
+      enabled: dco_decode_bool(arr[0]),
+    );
+  }
+
+  @protected
   UpdateProfileRequest dco_decode_update_profile_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -4720,6 +4823,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   UpdateLlmProviderRequest sse_decode_box_autoadd_update_llm_provider_request(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_update_llm_provider_request(deserializer));
+  }
+
+  @protected
+  UpdateMcpServerRequest sse_decode_box_autoadd_update_mcp_server_request(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_update_mcp_server_request(deserializer));
+  }
+
+  @protected
+  UpdateMcpServerUserRequest sse_decode_box_autoadd_update_mcp_server_user_request(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_update_mcp_server_user_request(deserializer));
   }
 
   @protected
@@ -6346,6 +6461,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  UpdateMcpServerRequest sse_decode_update_mcp_server_request(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_name = sse_decode_String(deserializer);
+    var var_enabled = sse_decode_bool(deserializer);
+    var var_disabledTools = sse_decode_list_String(deserializer);
+    return UpdateMcpServerRequest(name: var_name, enabled: var_enabled, disabledTools: var_disabledTools);
+  }
+
+  @protected
+  UpdateMcpServerUserRequest sse_decode_update_mcp_server_user_request(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_enabled = sse_decode_bool(deserializer);
+    return UpdateMcpServerUserRequest(enabled: var_enabled);
+  }
+
+  @protected
   UpdateProfileRequest sse_decode_update_profile_request(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_fullName = sse_decode_opt_String(deserializer);
@@ -6882,6 +7013,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_box_autoadd_update_llm_provider_request(UpdateLlmProviderRequest self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_update_llm_provider_request(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_update_mcp_server_request(UpdateMcpServerRequest self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_update_mcp_server_request(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_update_mcp_server_user_request(UpdateMcpServerUserRequest self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_update_mcp_server_user_request(self, serializer);
   }
 
   @protected
@@ -8185,6 +8328,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_update_mcp_server_request(UpdateMcpServerRequest self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.name, serializer);
+    sse_encode_bool(self.enabled, serializer);
+    sse_encode_list_String(self.disabledTools, serializer);
+  }
+
+  @protected
+  void sse_encode_update_mcp_server_user_request(UpdateMcpServerUserRequest self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bool(self.enabled, serializer);
+  }
+
+  @protected
   void sse_encode_update_profile_request(UpdateProfileRequest self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_opt_String(self.fullName, serializer);
@@ -8554,6 +8711,16 @@ class ClientImpl extends RustOpaque implements Client {
   /// `POST /api/v1/llm-providers/{id}/update`.
   Future<LlmProviderDto> updateLlmProvider({required UuidValue id, required UpdateLlmProviderRequest request}) =>
       RustLib.instance.api.crateApiClientClientUpdateLlmProvider(that: this, id: id, request: request);
+
+  /// `POST /api/v1/mcp-servers/{id}/update`: replaces the settings of the user's own server
+  /// (whether they use it, which tools are off).
+  Future<McpServerDto> updateMcpServer({required UuidValue id, required UpdateMcpServerRequest request}) =>
+      RustLib.instance.api.crateApiClientClientUpdateMcpServer(that: this, id: id, request: request);
+
+  /// `POST /api/v1/mcp-servers/{id}/users/{user_id}/update`: turns a server shared with the
+  /// user (`user_id` is their own id) on or off for their chats.
+  Future<void> updateMcpServerUser({required UuidValue id, required UuidValue userId, required UpdateMcpServerUserRequest request}) =>
+      RustLib.instance.api.crateApiClientClientUpdateMcpServerUser(that: this, id: id, userId: userId, request: request);
 
   /// `POST /api/v1/me/profile`.
   Future<void> updateProfile({required UpdateProfileRequest request}) =>

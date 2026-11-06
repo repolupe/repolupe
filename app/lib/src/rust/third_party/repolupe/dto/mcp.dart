@@ -7,7 +7,7 @@ import 'package:app/src/rust/frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:uuid/uuid.dart';
 
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AddMcpServerUserRequest`, `AuthorizationUrlDto`, `AuthorizeMcpServerRequest`, `CreateMcpServerRequest`, `McpAuthorizationCallbackRequest`, `McpServerKind`, `McpServerSuggestionDto`, `McpServerUserDto`, `UpdateMcpServerRequest`, `UpdateMcpServerUserRequest`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AddMcpServerUserRequest`, `AuthorizationUrlDto`, `AuthorizeMcpServerRequest`, `CreateMcpServerRequest`, `McpAuthorizationCallbackRequest`, `McpServerKind`, `McpServerSuggestionDto`, `McpServerUserDto`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `compatible`, `decode`, `encode_by_ref`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `size_hint`, `type_info`
 
 /// How requests to the server are authenticated.
@@ -192,4 +192,53 @@ class McpToolDto {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is McpToolDto && runtimeType == other.runtimeType && name == other.name && title == other.title && description == other.description;
+}
+
+/// Replaces all fields. The URL and the token of a server can't be changed: it is deleted and
+/// added again instead. Signing in again with OAuth goes through
+/// `POST /api/v1/mcp-servers/{id}/authorize`.
+class UpdateMcpServerRequest {
+  final String name;
+  final bool enabled;
+
+  /// The names of the tools to turn off, as the server names them. Names it doesn't list
+  /// are kept, duplicates removed.
+  final List<String> disabledTools;
+
+  const UpdateMcpServerRequest({
+    required this.name,
+    required this.enabled,
+    required this.disabledTools,
+  });
+
+  @override
+  int get hashCode => name.hashCode ^ enabled.hashCode ^ disabledTools.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is UpdateMcpServerRequest &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          enabled == other.enabled &&
+          disabledTools == other.disabledTools;
+}
+
+/// Turns a server shared with the user on or off for their chats. Only for that user, not for
+/// the owner, and also without the permission to manage MCP servers. Turning it on fails with
+/// `VALIDATION_ERROR` if the user has 20 servers already: their own and the shared ones they
+/// turned on.
+class UpdateMcpServerUserRequest {
+  final bool enabled;
+
+  const UpdateMcpServerUserRequest({
+    required this.enabled,
+  });
+
+  @override
+  int get hashCode => enabled.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is UpdateMcpServerUserRequest && runtimeType == other.runtimeType && enabled == other.enabled;
 }

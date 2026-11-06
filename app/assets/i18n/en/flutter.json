@@ -83,6 +83,12 @@
       "canCommitOn": "Applies the changes the model proposes to them"
     }
   },
+  "mcpServers": {
+    "page": {
+      "description": "Servers are added, changed and shared in the web interface.",
+      "emptyText": "Add an MCP server in the web interface, so the model can use its tools in your chats."
+    }
+  },
   "documents": {
     "notSynced": "Not synced yet",
     "noDocuments": "No documents",

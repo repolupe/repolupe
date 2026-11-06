@@ -9,6 +9,7 @@ import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
 import 'support/api.dart';
+import 'support/fake_mcp.dart';
 import 'support/fake_repository.dart';
 import 'support/fake_user.dart';
 import 'support/rust.dart';
@@ -23,7 +24,7 @@ String? _subtitle(WidgetTester tester, String key) {
   return subtitle == null ? null : (subtitle as Text).data;
 }
 
-/// Opens the settings for an admin with two repositories and one model (the default). With [local], the active
+/// Opens the settings for an admin with two repositories, an MCP server and one model (the default). With [local], the active
 /// account is the local instance's, while the requests are answered all the same.
 Future<void> _pumpPage(WidgetTester tester, {required bool local, String? fullName, String? locale}) async {
   final account = fakeAccount(userId: _adminId, userName: 'admin');
@@ -46,6 +47,9 @@ Future<void> _pumpPage(WidgetTester tester, {required bool local, String? fullNa
               fakeRepository(id: '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f16', ownerId: _adminId, name: 'handbook'),
             ],
           ),
+        );
+        mock.on<ApiListMcpServersAction>(
+          (state, _) => (state, [fakeMcpServer(id: '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f17', ownerId: _adminId)]),
         );
         mock.on<ApiListModelsAction>(
           (state, _) => (
@@ -106,10 +110,17 @@ void main() {
     expect(find.byKey(const ValueKey('settings.admin.llm')), findsOneWidget);
   });
 
+  testWidgets('the settings of the local instance offer no MCP servers, they are added in the web app', (tester) async {
+    await _pumpPage(tester, local: true);
+    await tester.pump();
+    expect(find.byKey(const ValueKey('settings.mcpServers')), findsNothing);
+  });
+
   testWidgets('the user sections show their state', (tester) async {
     await _pumpPage(tester, local: false, fullName: 'Ada Admin', locale: 'de-CH');
     await tester.pump();
     expect(find.text('2 repositories'), findsOneWidget);
+    expect(_subtitle(tester, 'settings.mcpServers'), '1 server');
     expect(_subtitle(tester, 'settings.account'), 'admin • alice@example.com');
     expect(_subtitle(tester, 'settings.profile'), 'Ada Admin');
     expect(_subtitle(tester, 'settings.preferences'), 'Fast • de-CH');

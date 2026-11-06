@@ -102,6 +102,8 @@ class _Translations$flutter$de extends Translations$flutter$en {
   @override
   late final _Translations$flutter$repositories$de repositories = _Translations$flutter$repositories$de._(_root);
   @override
+  late final _Translations$flutter$mcpServers$de mcpServers = _Translations$flutter$mcpServers$de._(_root);
+  @override
   late final _Translations$flutter$documents$de documents = _Translations$flutter$documents$de._(_root);
   @override
   late final _Translations$flutter$format$de format = _Translations$flutter$format$de._(_root);
@@ -696,6 +698,17 @@ class _Translations$flutter$repositories$de extends Translations$flutter$reposit
   late final _Translations$flutter$repositories$form$de form = _Translations$flutter$repositories$form$de._(_root);
   @override
   late final _Translations$flutter$repositories$usersCard$de usersCard = _Translations$flutter$repositories$usersCard$de._(_root);
+}
+
+// Path: flutter.mcpServers
+class _Translations$flutter$mcpServers$de extends Translations$flutter$mcpServers$en {
+  _Translations$flutter$mcpServers$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  late final _Translations$flutter$mcpServers$page$de page = _Translations$flutter$mcpServers$page$de._(_root);
 }
 
 // Path: flutter.documents
@@ -1696,10 +1709,10 @@ class _Translations$base$mcpServers$page$de extends Translations$base$mcpServers
   @override
   String sharedBy({required Object name}) => 'Geteilt von ${name}';
   @override
-  String get sharedWithYouHint => 'Nur der Besitzer kann diesen Server, seine Tools und seine Anmeldung ändern.';
+  String get sharedWithYouHint => 'Nur der Besitzer kann diesen Server und seine Tools ändern.';
   @override
   String sharedOff({required Object name}) =>
-      '${name} hat diesen Server mit dir geteilt. Seine Tools werden erst in deinen Chats verwendet, wenn du ihn aktivierst. Das Modell kann dann Inhalte aus deinen Chats und Repositories an ihn senden. Aktiviere ihn also nur, wenn du ${name} und dem Server vertraust.';
+      '${name} hat diesen Server mit dir geteilt. Seine Tools werden erst in deinen Chats verwendet, wenn du ihn aktivierst.';
   @override
   String signInTitle({required Object name}) => 'Bei ${name} anmelden?';
   @override
@@ -2157,6 +2170,19 @@ class _Translations$flutter$repositories$usersCard$de extends Translations$flutt
   String sharedRelative({required Object relative}) => 'Geteilt ${relative}';
   @override
   String get canCommitOn => 'Darf die vom Modell vorgeschlagenen Änderungen übernehmen';
+}
+
+// Path: flutter.mcpServers.page
+class _Translations$flutter$mcpServers$page$de extends Translations$flutter$mcpServers$page$en {
+  _Translations$flutter$mcpServers$page$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get description => 'Server werden in der Weboberfläche hinzugefügt, geändert und geteilt.';
+  @override
+  String get emptyText => 'Füge in der Weboberfläche einen MCP-Server hinzu, damit das Modell seine Tools in deinen Chats verwenden kann.';
 }
 
 // Path: flutter.documents.details
