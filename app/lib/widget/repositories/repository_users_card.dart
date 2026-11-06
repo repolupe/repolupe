@@ -1,11 +1,12 @@
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/api_service.dart';
 import 'package:app/src/rust/api/error.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
 import 'package:app/util/format.dart';
 import 'package:app/widget/confirm_dialog.dart';
 import 'package:app/widget/repositories/info_card.dart';
-import 'package:app/widget/repositories/share_repository_sheet.dart';
+import 'package:app/widget/share_user_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -70,7 +71,28 @@ class _RepositoryUsersCardState extends State<RepositoryUsersCard> with Refena {
   }
 
   Future<void> _share() async {
-    final shared = await ShareRepositorySheet.show(context, repositoryId: widget.repositoryId);
+    final shared = await ShareUserSheet.show(
+      context,
+      title: t.base.repositories.shareDialog.title,
+      description: t.base.repositories.shareDialog.description,
+      shareLabel: t.base.repositories.share,
+      keyPrefix: 'repository.share',
+      onShare: (userNameOrEmail) async {
+        try {
+          await ref
+              .redux(apiProvider)
+              .dispatchAsync(
+                ApiAddRepositoryUserAction(
+                  id: widget.repositoryId,
+                  request: AddRepositoryUserRequest(userNameOrEmail: userNameOrEmail),
+                ),
+              );
+          return null;
+        } on ClientError catch (e) {
+          return e.code == ErrorCode.unknownUser ? t.base.repositories.usersCard.unknownUser : e.userMessage;
+        }
+      },
+    );
     if (!shared || !mounted) {
       return;
     }

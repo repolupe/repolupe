@@ -543,9 +543,8 @@
     },
     "page": {
       "count": "{count} Server | {count} Server | {count} Server",
-      "intro": "MCP-Server geben dem Modell weitere Tools, z. B. um im Web zu suchen oder mit anderen Diensten zu arbeiten. Die Tools aktivierter Server stehen in deinen Chats zur Verfügung, außer du wählst beim Start eines Chats andere Server aus.",
+      "intro": "MCP-Server geben dem Modell weitere Tools, z. B. um im Web zu suchen oder mit anderen Diensten zu arbeiten.",
       "privacy": "Das Modell entscheidet selbst, wann es sie verwendet, und kann dabei Inhalte aus deinen Chats und Repositories an die Server senden. Füge nur Server hinzu, denen du vertraust.",
-      "authIntro": "Unterstützt ein Server es, meldest du dich mit deinem Konto dort an. Bei anderen kannst du einen Token eingeben.",
       "emptyTitle": "Noch keine MCP-Server",
       "emptyText": "Füge einen MCP-Server über seine URL hinzu, damit das Modell seine Tools in deinen Chats verwenden kann.",
       "emptyTextShared": "Es wurden keine MCP-Server mit dir geteilt. Wenn jemand einen teilt, kannst du ihn hier aktivieren, um seine Tools in deinen Chats zu verwenden.",
@@ -615,7 +614,7 @@
     },
     "sharing": {
       "title": "Teilen",
-      "description": "Benutzer, mit denen du diesen Server teilst, können ihn aktivieren, um seine aktivierten Tools in ihren Chats zu verwenden, mit deinem Token oder deiner Anmeldung. Teile ihn also nur mit Benutzern, die dort in deinem Namen handeln dürfen. Sie können ihn nicht ändern, seine Tools nicht auswählen und sich nicht bei ihm anmelden.",
+      "description": "Benutzer, mit denen du diesen Server teilst, müssen ihn aktivieren, um ihn in ihren Chats zu verwenden. Sie können nicht ändern, welche Tools aktiviert sind.",
       "notShared": "Mit niemandem geteilt",
       "sharedAt": "Geteilt {relative}",
       "share": "Teilen",

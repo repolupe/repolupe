@@ -42,7 +42,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1449678835;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -2079560512;
 
 // Section: executor
 
@@ -172,6 +172,69 @@ fn wire__crate__api__stream__CancellationToken_new_impl(
                 let output_ok = Ok::<_, ()>(crate::api::stream::CancellationToken::new())?;
                 std::result::Result::Ok(output_ok)
             })())
+        },
+    )
+}
+fn wire__crate__api__client__Client_add_mcp_server_user_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Client_add_mcp_server_user",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Client>,
+            >>::sse_decode(&mut deserializer);
+            let api_id = <uuid::Uuid>::sse_decode(&mut deserializer);
+            let api_request =
+                <repolupe::dto::mcp::AddMcpServerUserRequest>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::error::ClientError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::Client::add_mcp_server_user(
+                            &*api_that_guard,
+                            api_id,
+                            api_request,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
         },
     )
 }
@@ -606,6 +669,67 @@ fn wire__crate__api__client__Client_create_llm_provider_impl(
         },
     )
 }
+fn wire__crate__api__client__Client_create_mcp_server_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Client_create_mcp_server",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Client>,
+            >>::sse_decode(&mut deserializer);
+            let api_request =
+                <repolupe::dto::mcp::CreateMcpServerRequest>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::error::ClientError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::Client::create_mcp_server(
+                            &*api_that_guard,
+                            api_request,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__client__Client_create_repository_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -835,6 +959,64 @@ fn wire__crate__api__client__Client_delete_llm_provider_impl(
                             api_id,
                         )
                         .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__client__Client_delete_mcp_server_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Client_delete_mcp_server",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Client>,
+            >>::sse_decode(&mut deserializer);
+            let api_id = <uuid::Uuid>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::error::ClientError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok =
+                            crate::api::client::Client::delete_mcp_server(&*api_that_guard, api_id)
+                                .await?;
                         std::result::Result::Ok(output_ok)
                     })()
                     .await,
@@ -1854,6 +2036,66 @@ fn wire__crate__api__client__Client_list_llm_providers_impl(
         },
     )
 }
+fn wire__crate__api__client__Client_list_mcp_server_users_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Client_list_mcp_server_users",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Client>,
+            >>::sse_decode(&mut deserializer);
+            let api_id = <uuid::Uuid>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::error::ClientError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::Client::list_mcp_server_users(
+                            &*api_that_guard,
+                            api_id,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__client__Client_list_mcp_servers_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2479,6 +2721,66 @@ fn wire__crate__api__client__Client_me_impl(
         },
     )
 }
+fn wire__crate__api__client__Client_refresh_mcp_server_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Client_refresh_mcp_server",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Client>,
+            >>::sse_decode(&mut deserializer);
+            let api_id = <uuid::Uuid>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::error::ClientError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::Client::refresh_mcp_server(
+                            &*api_that_guard,
+                            api_id,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__client__Client_register_user_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2567,6 +2869,68 @@ fn wire__crate__api__client__Client_remote_impl(
                 let output_ok = crate::api::client::Client::remote(api_base_url, api_token)?;
                 std::result::Result::Ok(output_ok)
             })())
+        },
+    )
+}
+fn wire__crate__api__client__Client_remove_mcp_server_user_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Client_remove_mcp_server_user",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Client>,
+            >>::sse_decode(&mut deserializer);
+            let api_id = <uuid::Uuid>::sse_decode(&mut deserializer);
+            let api_user_id = <uuid::Uuid>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::error::ClientError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::Client::remove_mcp_server_user(
+                            &*api_that_guard,
+                            api_id,
+                            api_user_id,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
         },
     )
 }
@@ -4490,6 +4854,38 @@ fn wire__crate__api__local__local_admin_user_name_impl(
         },
     )
 }
+fn wire__repolupe__dto__mcp__mcp_server_suggestions_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "mcp_server_suggestions",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, ()>((move || {
+                    let output_ok = Ok::<_, ()>(repolupe::dto::mcp::mcp_server_suggestions())?;
+                    std::result::Result::Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__local__start_local_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -4531,6 +4927,10 @@ fn wire__crate__api__local__start_local_impl(
 
 #[allow(clippy::unnecessary_literal_unwrap)]
 const _: fn() = || {
+    {
+        let AddMcpServerUserRequest = None::<repolupe::dto::mcp::AddMcpServerUserRequest>.unwrap();
+        let _: String = AddMcpServerUserRequest.user_name_or_email;
+    }
     {
         let AddRepositoryUserRequest =
             None::<repolupe::dto::repository::AddRepositoryUserRequest>.unwrap();
@@ -4630,6 +5030,12 @@ const _: fn() = || {
         let _: Option<String> = CreateLlmProviderRequest.base_url;
         let _: Option<String> = CreateLlmProviderRequest.api_key;
         let _: Option<String> = CreateLlmProviderRequest.currency;
+    }
+    {
+        let CreateMcpServerRequest = None::<repolupe::dto::mcp::CreateMcpServerRequest>.unwrap();
+        let _: String = CreateMcpServerRequest.name;
+        let _: String = CreateMcpServerRequest.url;
+        let _: Option<String> = CreateMcpServerRequest.token;
     }
     {
         let CreateRepositoryRequest =
@@ -4813,6 +5219,20 @@ const _: fn() = || {
         let _: String = McpServerShareDto.owner_name;
         let _: bool = McpServerShareDto.enabled;
         let _: chrono::DateTime<chrono::Utc> = McpServerShareDto.created_at;
+    }
+    {
+        let McpServerSuggestionDto = None::<repolupe::dto::mcp::McpServerSuggestionDto>.unwrap();
+        let _: String = McpServerSuggestionDto.name;
+        let _: String = McpServerSuggestionDto.url;
+        let _: repolupe::dto::mcp::McpServerKind = McpServerSuggestionDto.kind;
+        let _: String = McpServerSuggestionDto.country_code;
+    }
+    {
+        let McpServerUserDto = None::<repolupe::dto::mcp::McpServerUserDto>.unwrap();
+        let _: uuid::Uuid = McpServerUserDto.user_id;
+        let _: String = McpServerUserDto.user_name;
+        let _: Option<String> = McpServerUserDto.email;
+        let _: chrono::DateTime<chrono::Utc> = McpServerUserDto.created_at;
     }
     {
         let McpToolDto = None::<repolupe::dto::mcp::McpToolDto>.unwrap();
@@ -5230,6 +5650,16 @@ impl SseDecode for uuid::Uuid {
     }
 }
 
+impl SseDecode for repolupe::dto::mcp::AddMcpServerUserRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_userNameOrEmail = <String>::sse_decode(deserializer);
+        return repolupe::dto::mcp::AddMcpServerUserRequest {
+            user_name_or_email: var_userNameOrEmail,
+        };
+    }
+}
+
 impl SseDecode for repolupe::dto::repository::AddRepositoryUserRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -5492,6 +5922,20 @@ impl SseDecode for repolupe::dto::llm::CreateLlmProviderRequest {
             base_url: var_baseUrl,
             api_key: var_apiKey,
             currency: var_currency,
+        };
+    }
+}
+
+impl SseDecode for repolupe::dto::mcp::CreateMcpServerRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_url = <String>::sse_decode(deserializer);
+        let mut var_token = <Option<String>>::sse_decode(deserializer);
+        return repolupe::dto::mcp::CreateMcpServerRequest {
+            name: var_name,
+            url: var_url,
+            token: var_token,
         };
     }
 }
@@ -6045,6 +6489,34 @@ impl SseDecode for Vec<repolupe::dto::mcp::McpServerDto> {
     }
 }
 
+impl SseDecode for Vec<repolupe::dto::mcp::McpServerSuggestionDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<repolupe::dto::mcp::McpServerSuggestionDto>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<repolupe::dto::mcp::McpServerUserDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<repolupe::dto::mcp::McpServerUserDto>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<repolupe::dto::mcp::McpToolDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -6402,6 +6874,34 @@ impl SseDecode for repolupe::dto::mcp::McpServerDto {
     }
 }
 
+impl SseDecode for repolupe::dto::mcp::McpServerKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => repolupe::dto::mcp::McpServerKind::Search,
+            1 => repolupe::dto::mcp::McpServerKind::WebScraping,
+            2 => repolupe::dto::mcp::McpServerKind::Documentation,
+            3 => repolupe::dto::mcp::McpServerKind::DevTools,
+            4 => repolupe::dto::mcp::McpServerKind::Cloud,
+            5 => repolupe::dto::mcp::McpServerKind::Database,
+            6 => repolupe::dto::mcp::McpServerKind::Observability,
+            7 => repolupe::dto::mcp::McpServerKind::ProjectManagement,
+            8 => repolupe::dto::mcp::McpServerKind::Productivity,
+            9 => repolupe::dto::mcp::McpServerKind::Crm,
+            10 => repolupe::dto::mcp::McpServerKind::Payments,
+            11 => repolupe::dto::mcp::McpServerKind::Finance,
+            12 => repolupe::dto::mcp::McpServerKind::Design,
+            13 => repolupe::dto::mcp::McpServerKind::Automation,
+            14 => repolupe::dto::mcp::McpServerKind::Knowledge,
+            15 => repolupe::dto::mcp::McpServerKind::Maps,
+            16 => repolupe::dto::mcp::McpServerKind::Travel,
+            17 => repolupe::dto::mcp::McpServerKind::Unknown,
+            _ => unreachable!("Invalid variant for McpServerKind: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for repolupe::dto::mcp::McpServerShareDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -6426,6 +6926,38 @@ impl SseDecode for repolupe::dto::mcp::McpServerStatus {
             2 => repolupe::dto::mcp::McpServerStatus::Failed,
             3 => repolupe::dto::mcp::McpServerStatus::Unknown,
             _ => unreachable!("Invalid variant for McpServerStatus: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for repolupe::dto::mcp::McpServerSuggestionDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_url = <String>::sse_decode(deserializer);
+        let mut var_kind = <repolupe::dto::mcp::McpServerKind>::sse_decode(deserializer);
+        let mut var_countryCode = <String>::sse_decode(deserializer);
+        return repolupe::dto::mcp::McpServerSuggestionDto {
+            name: var_name,
+            url: var_url,
+            kind: var_kind,
+            country_code: var_countryCode,
+        };
+    }
+}
+
+impl SseDecode for repolupe::dto::mcp::McpServerUserDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_userId = <uuid::Uuid>::sse_decode(deserializer);
+        let mut var_userName = <String>::sse_decode(deserializer);
+        let mut var_email = <Option<String>>::sse_decode(deserializer);
+        let mut var_createdAt = <chrono::DateTime<chrono::Utc>>::sse_decode(deserializer);
+        return repolupe::dto::mcp::McpServerUserDto {
+            user_id: var_userId,
+            user_name: var_userName,
+            email: var_email,
+            created_at: var_createdAt,
         };
     }
 }
@@ -7560,265 +8092,304 @@ fn pde_ffi_dispatcher_primary_impl(
 ) {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        4 => wire__crate__api__client__Client_add_repository_user_impl(
+        4 => wire__crate__api__client__Client_add_mcp_server_user_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        5 => {
+        5 => wire__crate__api__client__Client_add_repository_user_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        6 => {
             wire__crate__api__client__Client_cancel_message_impl(port, ptr, rust_vec_len, data_len)
         }
-        6 => {
+        7 => {
             wire__crate__api__client__Client_change_password_impl(port, ptr, rust_vec_len, data_len)
         }
-        7 => wire__crate__api__client__Client_commit_proposed_commit_impl(
+        8 => wire__crate__api__client__Client_commit_proposed_commit_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        8 => wire__crate__api__client__Client_create_chat_impl(port, ptr, rust_vec_len, data_len),
-        9 => wire__crate__api__client__Client_create_llm_model_impl(
+        9 => wire__crate__api__client__Client_create_chat_impl(port, ptr, rust_vec_len, data_len),
+        10 => wire__crate__api__client__Client_create_llm_model_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        10 => wire__crate__api__client__Client_create_llm_provider_impl(
+        11 => wire__crate__api__client__Client_create_llm_provider_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        11 => wire__crate__api__client__Client_create_repository_impl(
+        12 => wire__crate__api__client__Client_create_mcp_server_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        12 => wire__crate__api__client__Client_delete_chat_impl(port, ptr, rust_vec_len, data_len),
-        13 => wire__crate__api__client__Client_delete_llm_model_impl(
+        13 => wire__crate__api__client__Client_create_repository_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        14 => wire__crate__api__client__Client_delete_llm_provider_impl(
+        14 => wire__crate__api__client__Client_delete_chat_impl(port, ptr, rust_vec_len, data_len),
+        15 => wire__crate__api__client__Client_delete_llm_model_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        15 => wire__crate__api__client__Client_delete_repository_impl(
+        16 => wire__crate__api__client__Client_delete_llm_provider_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        16 => wire__crate__api__client__Client_delete_user_impl(port, ptr, rust_vec_len, data_len),
-        17 => wire__crate__api__client__Client_download_attachment_impl(
+        17 => wire__crate__api__client__Client_delete_mcp_server_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        18 => wire__crate__api__client__Client_get_chat_impl(port, ptr, rust_vec_len, data_len),
-        19 => wire__crate__api__client__Client_get_config_impl(port, ptr, rust_vec_len, data_len),
-        20 => wire__crate__api__client__Client_get_extraction_overview_impl(
+        18 => wire__crate__api__client__Client_delete_repository_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        21 => wire__crate__api__client__Client_get_presented_file_impl(
+        19 => wire__crate__api__client__Client_delete_user_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__crate__api__client__Client_download_attachment_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        22 => wire__crate__api__client__Client_get_proposed_commit_impl(
+        21 => wire__crate__api__client__Client_get_chat_impl(port, ptr, rust_vec_len, data_len),
+        22 => wire__crate__api__client__Client_get_config_impl(port, ptr, rust_vec_len, data_len),
+        23 => wire__crate__api__client__Client_get_extraction_overview_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        23 => wire__crate__api__client__Client_get_proposed_commit_diff_impl(
+        24 => wire__crate__api__client__Client_get_presented_file_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        24 => wire__crate__api__client__Client_get_proposed_commit_file_impl(
+        25 => wire__crate__api__client__Client_get_proposed_commit_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        25 => {
+        26 => wire__crate__api__client__Client_get_proposed_commit_diff_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        27 => wire__crate__api__client__Client_get_proposed_commit_file_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        28 => {
             wire__crate__api__client__Client_get_repository_impl(port, ptr, rust_vec_len, data_len)
         }
-        26 => wire__crate__api__client__Client_get_server_impl(port, ptr, rust_vec_len, data_len),
-        27 => {
+        29 => wire__crate__api__client__Client_get_server_impl(port, ptr, rust_vec_len, data_len),
+        30 => {
             wire__crate__api__client__Client_get_tool_call_impl(port, ptr, rust_vec_len, data_len)
         }
-        28 => wire__crate__api__client__Client_instance_impl(port, ptr, rust_vec_len, data_len),
-        29 => wire__crate__api__client__Client_list_chats_impl(port, ptr, rust_vec_len, data_len),
-        30 => wire__crate__api__client__Client_list_extraction_documents_impl(
+        31 => wire__crate__api__client__Client_instance_impl(port, ptr, rust_vec_len, data_len),
+        32 => wire__crate__api__client__Client_list_chats_impl(port, ptr, rust_vec_len, data_len),
+        33 => wire__crate__api__client__Client_list_extraction_documents_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        31 => wire__crate__api__client__Client_list_llm_providers_impl(
+        34 => wire__crate__api__client__Client_list_llm_providers_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        32 => wire__crate__api__client__Client_list_mcp_servers_impl(
+        35 => wire__crate__api__client__Client_list_mcp_server_users_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        33 => wire__crate__api__client__Client_list_models_impl(port, ptr, rust_vec_len, data_len),
-        34 => wire__crate__api__client__Client_list_remote_models_impl(
+        36 => wire__crate__api__client__Client_list_mcp_servers_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        35 => wire__crate__api__client__Client_list_repositories_impl(
+        37 => wire__crate__api__client__Client_list_models_impl(port, ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__client__Client_list_remote_models_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        36 => wire__crate__api__client__Client_list_repository_documents_impl(
+        39 => wire__crate__api__client__Client_list_repositories_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        37 => wire__crate__api__client__Client_list_repository_users_impl(
+        40 => wire__crate__api__client__Client_list_repository_documents_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        38 => wire__crate__api__client__Client_list_users_impl(port, ptr, rust_vec_len, data_len),
-        40 => wire__crate__api__client__Client_login_impl(port, ptr, rust_vec_len, data_len),
-        41 => wire__crate__api__client__Client_logout_impl(port, ptr, rust_vec_len, data_len),
-        42 => wire__crate__api__client__Client_me_impl(port, ptr, rust_vec_len, data_len),
-        43 => {
-            wire__crate__api__client__Client_register_user_impl(port, ptr, rust_vec_len, data_len)
-        }
-        45 => wire__crate__api__client__Client_remove_repository_user_impl(
+        41 => wire__crate__api__client__Client_list_repository_users_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        46 => {
-            wire__crate__api__client__Client_reset_password_impl(port, ptr, rust_vec_len, data_len)
-        }
-        47 => wire__crate__api__client__Client_retry_document_extraction_impl(
+        42 => wire__crate__api__client__Client_list_users_impl(port, ptr, rust_vec_len, data_len),
+        44 => wire__crate__api__client__Client_login_impl(port, ptr, rust_vec_len, data_len),
+        45 => wire__crate__api__client__Client_logout_impl(port, ptr, rust_vec_len, data_len),
+        46 => wire__crate__api__client__Client_me_impl(port, ptr, rust_vec_len, data_len),
+        47 => wire__crate__api__client__Client_refresh_mcp_server_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
         48 => {
+            wire__crate__api__client__Client_register_user_impl(port, ptr, rust_vec_len, data_len)
+        }
+        50 => wire__crate__api__client__Client_remove_mcp_server_user_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        51 => wire__crate__api__client__Client_remove_repository_user_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        52 => {
+            wire__crate__api__client__Client_reset_password_impl(port, ptr, rust_vec_len, data_len)
+        }
+        53 => wire__crate__api__client__Client_retry_document_extraction_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        54 => {
             wire__crate__api__client__Client_retry_message_impl(port, ptr, rust_vec_len, data_len)
         }
-        49 => wire__crate__api__client__Client_search_chats_impl(port, ptr, rust_vec_len, data_len),
-        50 => wire__crate__api__client__Client_send_message_impl(port, ptr, rust_vec_len, data_len),
-        52 => wire__crate__api__client__Client_set_config_impl(port, ptr, rust_vec_len, data_len),
-        53 => wire__crate__api__client__Client_set_default_model_impl(
+        55 => wire__crate__api__client__Client_search_chats_impl(port, ptr, rust_vec_len, data_len),
+        56 => wire__crate__api__client__Client_send_message_impl(port, ptr, rust_vec_len, data_len),
+        58 => wire__crate__api__client__Client_set_config_impl(port, ptr, rust_vec_len, data_len),
+        59 => wire__crate__api__client__Client_set_default_model_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        54 => wire__crate__api__client__Client_set_locale_impl(port, ptr, rust_vec_len, data_len),
-        55 => wire__crate__api__client__Client_set_my_auto_commit_impl(
+        60 => wire__crate__api__client__Client_set_locale_impl(port, ptr, rust_vec_len, data_len),
+        61 => wire__crate__api__client__Client_set_my_auto_commit_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        56 => wire__crate__api__client__Client_set_my_default_model_impl(
+        62 => wire__crate__api__client__Client_set_my_default_model_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        58 => {
+        64 => {
             wire__crate__api__client__Client_stream_message_impl(port, ptr, rust_vec_len, data_len)
         }
-        59 => {
+        65 => {
             wire__crate__api__client__Client_sync_repository_impl(port, ptr, rust_vec_len, data_len)
         }
-        61 => wire__crate__api__client__Client_update_chat_impl(port, ptr, rust_vec_len, data_len),
-        62 => {
+        67 => wire__crate__api__client__Client_update_chat_impl(port, ptr, rust_vec_len, data_len),
+        68 => {
             wire__crate__api__client__Client_update_identity_impl(port, ptr, rust_vec_len, data_len)
         }
-        63 => wire__crate__api__client__Client_update_llm_model_impl(
+        69 => wire__crate__api__client__Client_update_llm_model_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        64 => wire__crate__api__client__Client_update_llm_provider_impl(
+        70 => wire__crate__api__client__Client_update_llm_provider_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        65 => wire__crate__api__client__Client_update_mcp_server_impl(
+        71 => wire__crate__api__client__Client_update_mcp_server_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        66 => wire__crate__api__client__Client_update_mcp_server_user_impl(
+        72 => wire__crate__api__client__Client_update_mcp_server_user_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        67 => {
+        73 => {
             wire__crate__api__client__Client_update_profile_impl(port, ptr, rust_vec_len, data_len)
         }
-        68 => wire__crate__api__client__Client_update_repository_impl(
+        74 => wire__crate__api__client__Client_update_repository_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        69 => wire__crate__api__client__Client_update_repository_user_impl(
+        75 => wire__crate__api__client__Client_update_repository_user_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        70 => wire__crate__api__client__Client_update_user_impl(port, ptr, rust_vec_len, data_len),
-        71 => wire__crate__api__client__Client_upload_attachment_impl(
+        76 => wire__crate__api__client__Client_update_user_impl(port, ptr, rust_vec_len, data_len),
+        77 => wire__crate__api__client__Client_upload_attachment_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        73 => wire__crate__api__local__LocalHandle_shutdown_impl(port, ptr, rust_vec_len, data_len),
-        76 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
-        77 => wire__repolupe__dto__llm__llm_provider_suggestions_impl(
+        79 => wire__crate__api__local__LocalHandle_shutdown_impl(port, ptr, rust_vec_len, data_len),
+        82 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        83 => wire__repolupe__dto__llm__llm_provider_suggestions_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        79 => wire__crate__api__local__start_local_impl(port, ptr, rust_vec_len, data_len),
+        85 => {
+            wire__repolupe__dto__mcp__mcp_server_suggestions_impl(port, ptr, rust_vec_len, data_len)
+        }
+        86 => wire__crate__api__local__start_local_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -7838,17 +8409,17 @@ fn pde_ffi_dispatcher_sync_impl(
             data_len,
         ),
         3 => wire__crate__api__stream__CancellationToken_new_impl(ptr, rust_vec_len, data_len),
-        39 => wire__crate__api__client__Client_local_impl(ptr, rust_vec_len, data_len),
-        44 => wire__crate__api__client__Client_remote_impl(ptr, rust_vec_len, data_len),
-        51 => {
+        43 => wire__crate__api__client__Client_local_impl(ptr, rust_vec_len, data_len),
+        49 => wire__crate__api__client__Client_remote_impl(ptr, rust_vec_len, data_len),
+        57 => {
             wire__crate__api__client__Client_set_accept_language_impl(ptr, rust_vec_len, data_len)
         }
-        57 => wire__crate__api__client__Client_set_token_impl(ptr, rust_vec_len, data_len),
-        60 => wire__crate__api__client__Client_token_impl(ptr, rust_vec_len, data_len),
-        72 => wire__crate__api__local__LocalHandle_is_running_impl(ptr, rust_vec_len, data_len),
-        74 => wire__crate__api__local__generate_secret_impl(ptr, rust_vec_len, data_len),
-        75 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
-        78 => wire__crate__api__local__local_admin_user_name_impl(ptr, rust_vec_len, data_len),
+        63 => wire__crate__api__client__Client_set_token_impl(ptr, rust_vec_len, data_len),
+        66 => wire__crate__api__client__Client_token_impl(ptr, rust_vec_len, data_len),
+        78 => wire__crate__api__local__LocalHandle_is_running_impl(ptr, rust_vec_len, data_len),
+        80 => wire__crate__api__local__generate_secret_impl(ptr, rust_vec_len, data_len),
+        81 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
+        84 => wire__crate__api__local__local_admin_user_name_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -7900,6 +8471,23 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<LocalHandle>> for LocalHandle 
     }
 }
 
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::mcp::AddMcpServerUserRequest> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [self.0.user_name_or_email.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<repolupe::dto::mcp::AddMcpServerUserRequest>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::mcp::AddMcpServerUserRequest>>
+    for repolupe::dto::mcp::AddMcpServerUserRequest
+{
+    fn into_into_dart(self) -> FrbWrapper<repolupe::dto::mcp::AddMcpServerUserRequest> {
+        self.into()
+    }
+}
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart
     for FrbWrapper<repolupe::dto::repository::AddRepositoryUserRequest>
@@ -8258,6 +8846,28 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::llm::CreateLlmP
     for repolupe::dto::llm::CreateLlmProviderRequest
 {
     fn into_into_dart(self) -> FrbWrapper<repolupe::dto::llm::CreateLlmProviderRequest> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::mcp::CreateMcpServerRequest> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.name.into_into_dart().into_dart(),
+            self.0.url.into_into_dart().into_dart(),
+            self.0.token.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<repolupe::dto::mcp::CreateMcpServerRequest>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::mcp::CreateMcpServerRequest>>
+    for repolupe::dto::mcp::CreateMcpServerRequest
+{
+    fn into_into_dart(self) -> FrbWrapper<repolupe::dto::mcp::CreateMcpServerRequest> {
         self.into()
     }
 }
@@ -9103,6 +9713,43 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::mcp::McpServerD
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::mcp::McpServerKind> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            repolupe::dto::mcp::McpServerKind::Search => 0.into_dart(),
+            repolupe::dto::mcp::McpServerKind::WebScraping => 1.into_dart(),
+            repolupe::dto::mcp::McpServerKind::Documentation => 2.into_dart(),
+            repolupe::dto::mcp::McpServerKind::DevTools => 3.into_dart(),
+            repolupe::dto::mcp::McpServerKind::Cloud => 4.into_dart(),
+            repolupe::dto::mcp::McpServerKind::Database => 5.into_dart(),
+            repolupe::dto::mcp::McpServerKind::Observability => 6.into_dart(),
+            repolupe::dto::mcp::McpServerKind::ProjectManagement => 7.into_dart(),
+            repolupe::dto::mcp::McpServerKind::Productivity => 8.into_dart(),
+            repolupe::dto::mcp::McpServerKind::Crm => 9.into_dart(),
+            repolupe::dto::mcp::McpServerKind::Payments => 10.into_dart(),
+            repolupe::dto::mcp::McpServerKind::Finance => 11.into_dart(),
+            repolupe::dto::mcp::McpServerKind::Design => 12.into_dart(),
+            repolupe::dto::mcp::McpServerKind::Automation => 13.into_dart(),
+            repolupe::dto::mcp::McpServerKind::Knowledge => 14.into_dart(),
+            repolupe::dto::mcp::McpServerKind::Maps => 15.into_dart(),
+            repolupe::dto::mcp::McpServerKind::Travel => 16.into_dart(),
+            repolupe::dto::mcp::McpServerKind::Unknown => 17.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<repolupe::dto::mcp::McpServerKind>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::mcp::McpServerKind>>
+    for repolupe::dto::mcp::McpServerKind
+{
+    fn into_into_dart(self) -> FrbWrapper<repolupe::dto::mcp::McpServerKind> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::mcp::McpServerShareDto> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -9144,6 +9791,52 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::mcp::McpServerS
     for repolupe::dto::mcp::McpServerStatus
 {
     fn into_into_dart(self) -> FrbWrapper<repolupe::dto::mcp::McpServerStatus> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::mcp::McpServerSuggestionDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.name.into_into_dart().into_dart(),
+            self.0.url.into_into_dart().into_dart(),
+            self.0.kind.into_into_dart().into_dart(),
+            self.0.country_code.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<repolupe::dto::mcp::McpServerSuggestionDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::mcp::McpServerSuggestionDto>>
+    for repolupe::dto::mcp::McpServerSuggestionDto
+{
+    fn into_into_dart(self) -> FrbWrapper<repolupe::dto::mcp::McpServerSuggestionDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::mcp::McpServerUserDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.user_id.into_into_dart().into_dart(),
+            self.0.user_name.into_into_dart().into_dart(),
+            self.0.email.into_into_dart().into_dart(),
+            self.0.created_at.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<repolupe::dto::mcp::McpServerUserDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::mcp::McpServerUserDto>>
+    for repolupe::dto::mcp::McpServerUserDto
+{
+    fn into_into_dart(self) -> FrbWrapper<repolupe::dto::mcp::McpServerUserDto> {
         self.into()
     }
 }
@@ -10325,6 +11018,13 @@ impl SseEncode for uuid::Uuid {
     }
 }
 
+impl SseEncode for repolupe::dto::mcp::AddMcpServerUserRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.user_name_or_email, serializer);
+    }
+}
+
 impl SseEncode for repolupe::dto::repository::AddRepositoryUserRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -10511,6 +11211,15 @@ impl SseEncode for repolupe::dto::llm::CreateLlmProviderRequest {
         <Option<String>>::sse_encode(self.base_url, serializer);
         <Option<String>>::sse_encode(self.api_key, serializer);
         <Option<String>>::sse_encode(self.currency, serializer);
+    }
+}
+
+impl SseEncode for repolupe::dto::mcp::CreateMcpServerRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.name, serializer);
+        <String>::sse_encode(self.url, serializer);
+        <Option<String>>::sse_encode(self.token, serializer);
     }
 }
 
@@ -10976,6 +11685,26 @@ impl SseEncode for Vec<repolupe::dto::mcp::McpServerDto> {
     }
 }
 
+impl SseEncode for Vec<repolupe::dto::mcp::McpServerSuggestionDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <repolupe::dto::mcp::McpServerSuggestionDto>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<repolupe::dto::mcp::McpServerUserDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <repolupe::dto::mcp::McpServerUserDto>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<repolupe::dto::mcp::McpToolDto> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -11233,6 +11962,38 @@ impl SseEncode for repolupe::dto::mcp::McpServerDto {
     }
 }
 
+impl SseEncode for repolupe::dto::mcp::McpServerKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                repolupe::dto::mcp::McpServerKind::Search => 0,
+                repolupe::dto::mcp::McpServerKind::WebScraping => 1,
+                repolupe::dto::mcp::McpServerKind::Documentation => 2,
+                repolupe::dto::mcp::McpServerKind::DevTools => 3,
+                repolupe::dto::mcp::McpServerKind::Cloud => 4,
+                repolupe::dto::mcp::McpServerKind::Database => 5,
+                repolupe::dto::mcp::McpServerKind::Observability => 6,
+                repolupe::dto::mcp::McpServerKind::ProjectManagement => 7,
+                repolupe::dto::mcp::McpServerKind::Productivity => 8,
+                repolupe::dto::mcp::McpServerKind::Crm => 9,
+                repolupe::dto::mcp::McpServerKind::Payments => 10,
+                repolupe::dto::mcp::McpServerKind::Finance => 11,
+                repolupe::dto::mcp::McpServerKind::Design => 12,
+                repolupe::dto::mcp::McpServerKind::Automation => 13,
+                repolupe::dto::mcp::McpServerKind::Knowledge => 14,
+                repolupe::dto::mcp::McpServerKind::Maps => 15,
+                repolupe::dto::mcp::McpServerKind::Travel => 16,
+                repolupe::dto::mcp::McpServerKind::Unknown => 17,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for repolupe::dto::mcp::McpServerShareDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -11257,6 +12018,26 @@ impl SseEncode for repolupe::dto::mcp::McpServerStatus {
             },
             serializer,
         );
+    }
+}
+
+impl SseEncode for repolupe::dto::mcp::McpServerSuggestionDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.name, serializer);
+        <String>::sse_encode(self.url, serializer);
+        <repolupe::dto::mcp::McpServerKind>::sse_encode(self.kind, serializer);
+        <String>::sse_encode(self.country_code, serializer);
+    }
+}
+
+impl SseEncode for repolupe::dto::mcp::McpServerUserDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <uuid::Uuid>::sse_encode(self.user_id, serializer);
+        <String>::sse_encode(self.user_name, serializer);
+        <Option<String>>::sse_encode(self.email, serializer);
+        <chrono::DateTime<chrono::Utc>>::sse_encode(self.created_at, serializer);
     }
 }
 

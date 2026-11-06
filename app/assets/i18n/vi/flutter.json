@@ -89,8 +89,18 @@
   },
   "mcpServers": {
     "page": {
-      "description": "Máy chủ được thêm, thay đổi và chia sẻ trong giao diện web.",
-      "emptyText": "Thêm máy chủ MCP trong giao diện web để mô hình có thể sử dụng các công cụ của máy chủ trong các đoạn chat của bạn."
+      "signInUnsupported": "Máy chủ yêu cầu bạn đăng nhập trước khi có thể sử dụng các công cụ của nó, nhưng ứng dụng chưa hỗ trợ việc này. Nếu máy chủ không hỗ trợ đăng nhập, hãy xóa và thêm lại bằng token.",
+      "signInUnsupportedWeb": "Máy chủ yêu cầu bạn đăng nhập trước khi có thể sử dụng các công cụ của nó, nhưng ứng dụng chưa hỗ trợ việc này. Hãy đăng nhập trong giao diện web, hoặc nếu máy chủ không hỗ trợ đăng nhập, hãy xóa và thêm lại bằng token.",
+      "createdSignIn": "Đã thêm máy chủ. Máy chủ yêu cầu bạn đăng nhập, nhưng ứng dụng chưa hỗ trợ việc này."
+    },
+    "form": {
+      "showToken": "Hiện token",
+      "hideToken": "Ẩn token"
+    },
+    "namePicker": {
+      "title": "Chọn máy chủ MCP",
+      "searchHint": "Tìm kiếm hoặc nhập tên",
+      "useName": "Dùng “{name}”"
     }
   },
   "documents": {
@@ -166,7 +176,7 @@
       },
       "form": {
         "adminNote": "Quản trị viên có thể được đổi tên, nhưng không bao giờ bị hạn chế quyền.",
-        "canManageMcpServersHint": "Nếu không có quyền này, họ không thể thêm hoặc thay đổi máy chủ MCP. Máy chủ MCP được quản lý trong giao diện web."
+        "canManageMcpServersHint": "Nếu không có quyền này, họ không thể thêm hoặc thay đổi máy chủ MCP."
       },
       "flags": {
         "repositoriesReadOnly": "Kho lưu trữ chỉ đọc",

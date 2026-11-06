@@ -110,10 +110,10 @@ void main() {
     expect(find.byKey(const ValueKey('settings.admin.llm')), findsOneWidget);
   });
 
-  testWidgets('the settings of the local instance offer no MCP servers, they are added in the web app', (tester) async {
+  testWidgets('the settings of the local instance offer its MCP servers, which are added in the app', (tester) async {
     await _pumpPage(tester, local: true);
     await tester.pump();
-    expect(find.byKey(const ValueKey('settings.mcpServers')), findsNothing);
+    expect(_subtitle(tester, 'settings.mcpServers'), '1 server');
   });
 
   testWidgets('the user sections show their state', (tester) async {

@@ -89,8 +89,18 @@
   },
   "mcpServers": {
     "page": {
-      "description": "Servers are added, changed and shared in the web interface.",
-      "emptyText": "Add an MCP server in the web interface, so the model can use its tools in your chats."
+      "signInUnsupported": "The server asks you to sign in before its tools can be used, which the app does not support yet. If it does not support sign-in, delete it and add it again with a token.",
+      "signInUnsupportedWeb": "The server asks you to sign in before its tools can be used, which the app does not support yet. Sign in in the web interface, or, if the server does not support sign-in, delete it and add it again with a token.",
+      "createdSignIn": "Server added. It asks you to sign in, which the app does not support yet."
+    },
+    "form": {
+      "showToken": "Show token",
+      "hideToken": "Hide token"
+    },
+    "namePicker": {
+      "title": "Choose MCP server",
+      "searchHint": "Search or enter a name",
+      "useName": "Use “{name}”"
     }
   },
   "documents": {
@@ -166,7 +176,7 @@
       },
       "form": {
         "adminNote": "Admins can be renamed, but never restricted.",
-        "canManageMcpServersHint": "Without it, they cannot add or change MCP servers. These are managed in the web interface."
+        "canManageMcpServersHint": "Without it, they cannot add or change MCP servers."
       },
       "flags": {
         "repositoriesReadOnly": "Repositories read only",

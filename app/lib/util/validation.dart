@@ -120,6 +120,24 @@ String? repositoryError({required String name, required String? description}) {
   return null;
 }
 
+/// What the API checks of an MCP server's name (`parse_name`).
+const maxMcpServerNameLength = 100;
+
+/// Why the API would reject this MCP server name and URL (both trimmed), `null` if they are valid. The URL is checked
+/// by the server when it connects, here only that there is one.
+String? mcpServerError({required String name, required String url}) {
+  if (name.isEmpty) {
+    return t.base.common.missingName;
+  }
+  if (name.runes.length > maxMcpServerNameLength) {
+    return t.base.common.nameTooLong(max: maxMcpServerNameLength);
+  }
+  if (url.isEmpty) {
+    return t.base.mcpServers.dialog.missingUrl;
+  }
+  return null;
+}
+
 /// `https://host/.../<owner>/<repo>.git` -> `<owner>/<repo>`, or `null` if the URL has no such path.
 String? repositoryNameOf(String url) {
   final uri = Uri.tryParse(url.trim());

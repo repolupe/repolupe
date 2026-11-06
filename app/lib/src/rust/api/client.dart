@@ -28,6 +28,9 @@ import 'package:uuid/uuid.dart';
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Client>>
 abstract class Client implements RustOpaqueInterface {
+  /// `POST /api/v1/mcp-servers/{id}/users`: shares it with a user.
+  Future<void> addMcpServerUser({required UuidValue id, required AddMcpServerUserRequest request});
+
   /// `POST /api/v1/repositories/{id}/users`: shares it with a user.
   Future<void> addRepositoryUser({required UuidValue id, required AddRepositoryUserRequest request});
 
@@ -49,6 +52,9 @@ abstract class Client implements RustOpaqueInterface {
   /// `POST /api/v1/llm-providers`.
   Future<LlmProviderDto> createLlmProvider({required CreateLlmProviderRequest request});
 
+  /// `POST /api/v1/mcp-servers`. Connects to the server and lists its tools before it returns.
+  Future<McpServerDto> createMcpServer({required CreateMcpServerRequest request});
+
   /// `POST /api/v1/repositories`. Checks the remote before it returns.
   Future<RepositoryDto> createRepository({required CreateRepositoryRequest request});
 
@@ -60,6 +66,9 @@ abstract class Client implements RustOpaqueInterface {
 
   /// `POST /api/v1/llm-providers/{id}/delete`, with its models.
   Future<void> deleteLlmProvider({required UuidValue id});
+
+  /// `POST /api/v1/mcp-servers/{id}/delete`.
+  Future<void> deleteMcpServer({required UuidValue id});
 
   /// `POST /api/v1/repositories/{id}/delete`.
   Future<void> deleteRepository({required UuidValue id});
@@ -114,7 +123,10 @@ abstract class Client implements RustOpaqueInterface {
   /// `GET /api/v1/llm-providers`, with their models.
   Future<List<LlmProviderDto>> listLlmProviders();
 
-  /// `GET /api/v1/mcp-servers`: owned and shared ones, managed in the web app.
+  /// `GET /api/v1/mcp-servers/{id}/users`: the users it is shared with.
+  Future<List<McpServerUserDto>> listMcpServerUsers({required UuidValue id});
+
+  /// `GET /api/v1/mcp-servers`: owned and shared ones.
   Future<List<McpServerDto>> listMcpServers();
 
   /// `GET /api/v1/models`: the models users can choose.
@@ -151,12 +163,20 @@ abstract class Client implements RustOpaqueInterface {
   /// `GET /api/v1/me`, also while a password change is required.
   Future<UserDto> me();
 
+  /// `POST /api/v1/mcp-servers/{id}/refresh`: connects again and lists the tools. A failed
+  /// connection is returned in `status` and `last_error`, not as an error.
+  Future<McpServerDto> refreshMcpServer({required UuidValue id});
+
   /// `POST /api/v1/register`: creates a user.
   Future<UserDto> registerUser({required RegisterRequest request});
 
   /// A client for the server at `base_url` (http or https, without `/api/v1`, may have a path
   /// prefix), with the session token of a previous [`Client::login`] or `None`.
   static Client remote({required String baseUrl, String? token}) => RustLib.instance.api.crateApiClientClientRemote(baseUrl: baseUrl, token: token);
+
+  /// `POST /api/v1/mcp-servers/{id}/users/{user_id}/delete`: stops sharing it with the user,
+  /// or leaves it (the user's own id).
+  Future<void> removeMcpServerUser({required UuidValue id, required UuidValue userId});
 
   /// `POST /api/v1/repositories/{id}/users/{user_id}/delete`: stops sharing it with the user,
   /// or leaves it (the user's own id).
@@ -231,7 +251,7 @@ abstract class Client implements RustOpaqueInterface {
   Future<LlmProviderDto> updateLlmProvider({required UuidValue id, required UpdateLlmProviderRequest request});
 
   /// `POST /api/v1/mcp-servers/{id}/update`: replaces the settings of the user's own server
-  /// (whether they use it, which tools are off).
+  /// (its name, whether they use it, which tools are off).
   Future<McpServerDto> updateMcpServer({required UuidValue id, required UpdateMcpServerRequest request});
 
   /// `POST /api/v1/mcp-servers/{id}/users/{user_id}/update`: turns a server shared with the

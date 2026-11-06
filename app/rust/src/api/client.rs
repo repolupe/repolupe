@@ -33,7 +33,10 @@ use repolupe::dto::llm::{
     CreateLlmProviderRequest, LlmModelDto, LlmModelRequest, LlmProviderDto, ModelDto,
     RemoteModelDto, SetDefaultModelRequest, UpdateLlmProviderRequest,
 };
-use repolupe::dto::mcp::{McpServerDto, UpdateMcpServerRequest, UpdateMcpServerUserRequest};
+use repolupe::dto::mcp::{
+    AddMcpServerUserRequest, CreateMcpServerRequest, McpServerDto, McpServerUserDto,
+    UpdateMcpServerRequest, UpdateMcpServerUserRequest,
+};
 use repolupe::dto::repository::{
     AddRepositoryUserRequest, CreateRepositoryRequest, RepositoryDto, RepositoryUserDto,
     UpdateRepositoryRequest, UpdateRepositoryUserRequest,
@@ -517,13 +520,21 @@ impl Client {
 
     // MCP servers
 
-    /// `GET /api/v1/mcp-servers`: owned and shared ones, managed in the web app.
+    /// `GET /api/v1/mcp-servers`: owned and shared ones.
     pub async fn list_mcp_servers(&self) -> Result<Vec<McpServerDto>, ClientError> {
         self.get("/api/v1/mcp-servers".into()).await
     }
 
+    /// `POST /api/v1/mcp-servers`. Connects to the server and lists its tools before it returns.
+    pub async fn create_mcp_server(
+        &self,
+        request: CreateMcpServerRequest,
+    ) -> Result<McpServerDto, ClientError> {
+        self.post("/api/v1/mcp-servers".into(), &request).await
+    }
+
     /// `POST /api/v1/mcp-servers/{id}/update`: replaces the settings of the user's own server
-    /// (whether they use it, which tools are off).
+    /// (its name, whether they use it, which tools are off).
     pub async fn update_mcp_server(
         &self,
         id: Uuid,
@@ -543,6 +554,44 @@ impl Client {
     ) -> Result<(), ClientError> {
         let path = format!("/api/v1/mcp-servers/{id}/users/{user_id}/update");
         self.post_unit(path, &request).await
+    }
+
+    /// `POST /api/v1/mcp-servers/{id}/delete`.
+    pub async fn delete_mcp_server(&self, id: Uuid) -> Result<(), ClientError> {
+        self.post_empty(format!("/api/v1/mcp-servers/{id}/delete"))
+            .await
+    }
+
+    /// `POST /api/v1/mcp-servers/{id}/refresh`: connects again and lists the tools. A failed
+    /// connection is returned in `status` and `last_error`, not as an error.
+    pub async fn refresh_mcp_server(&self, id: Uuid) -> Result<McpServerDto, ClientError> {
+        let path = format!("/api/v1/mcp-servers/{id}/refresh");
+        self.post_json(path, empty_object()).await?.json()
+    }
+
+    /// `GET /api/v1/mcp-servers/{id}/users`: the users it is shared with.
+    pub async fn list_mcp_server_users(
+        &self,
+        id: Uuid,
+    ) -> Result<Vec<McpServerUserDto>, ClientError> {
+        self.get(format!("/api/v1/mcp-servers/{id}/users")).await
+    }
+
+    /// `POST /api/v1/mcp-servers/{id}/users`: shares it with a user.
+    pub async fn add_mcp_server_user(
+        &self,
+        id: Uuid,
+        request: AddMcpServerUserRequest,
+    ) -> Result<(), ClientError> {
+        self.post_unit(format!("/api/v1/mcp-servers/{id}/users"), &request)
+            .await
+    }
+
+    /// `POST /api/v1/mcp-servers/{id}/users/{user_id}/delete`: stops sharing it with the user,
+    /// or leaves it (the user's own id).
+    pub async fn remove_mcp_server_user(&self, id: Uuid, user_id: Uuid) -> Result<(), ClientError> {
+        self.post_empty(format!("/api/v1/mcp-servers/{id}/users/{user_id}/delete"))
+            .await
     }
 
     // Users (admins)

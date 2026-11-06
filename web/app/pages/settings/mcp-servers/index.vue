@@ -6,12 +6,8 @@
 
         <p class="text-medium-emphasis">{{ $t('mcpServers.page.intro') }}</p>
         <p class="mt-2 text-medium-emphasis">{{ $t('mcpServers.page.privacy') }}</p>
-        <template v-if="canManage">
-          <p class="mt-2 text-medium-emphasis">{{ $t('mcpServers.page.authIntro') }}</p>
-
-          <v-btn @click="showCreateDialog" class="mt-6" color="primary" prepend-icon="mdi-plus"
-                 :text="$t('mcpServers.newServer')" block />
-        </template>
+        <v-btn v-if="canManage" @click="showCreateDialog" class="mt-6" color="primary" prepend-icon="mdi-plus"
+               :text="$t('mcpServers.newServer')" block />
       </div>
     </template>
 

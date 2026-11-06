@@ -89,8 +89,18 @@
   },
   "mcpServers": {
     "page": {
-      "description": "Server werden in der Weboberfläche hinzugefügt, geändert und geteilt.",
-      "emptyText": "Füge in der Weboberfläche einen MCP-Server hinzu, damit das Modell seine Tools in deinen Chats verwenden kann."
+      "signInUnsupported": "Der Server verlangt eine Anmeldung, bevor seine Tools verwendet werden können. Das unterstützt die App noch nicht. Unterstützt er keine Anmeldung, lösche ihn und füge ihn mit einem Token neu hinzu.",
+      "signInUnsupportedWeb": "Der Server verlangt eine Anmeldung, bevor seine Tools verwendet werden können. Das unterstützt die App noch nicht: Melde dich in der Weboberfläche an, oder lösche ihn und füge ihn mit einem Token neu hinzu, falls er keine Anmeldung unterstützt.",
+      "createdSignIn": "Server hinzugefügt. Er verlangt eine Anmeldung, die die App noch nicht unterstützt."
+    },
+    "form": {
+      "showToken": "Token anzeigen",
+      "hideToken": "Token ausblenden"
+    },
+    "namePicker": {
+      "title": "MCP-Server wählen",
+      "searchHint": "Suchen oder Namen eingeben",
+      "useName": "„{name}“ verwenden"
     }
   },
   "documents": {
@@ -166,7 +176,7 @@
       },
       "form": {
         "adminNote": "Admins können umbenannt, aber nie eingeschränkt werden.",
-        "canManageMcpServersHint": "Ohne diese Berechtigung kann der Benutzer keine MCP-Server hinzufügen oder ändern. Diese werden in der Weboberfläche verwaltet."
+        "canManageMcpServersHint": "Ohne diese Berechtigung kann der Benutzer keine MCP-Server hinzufügen oder ändern."
       },
       "flags": {
         "repositoriesReadOnly": "Repositories nur lesen",

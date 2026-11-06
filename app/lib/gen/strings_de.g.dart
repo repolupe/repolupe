@@ -711,6 +711,10 @@ class _Translations$flutter$mcpServers$de extends Translations$flutter$mcpServer
   // Translations
   @override
   late final _Translations$flutter$mcpServers$page$de page = _Translations$flutter$mcpServers$page$de._(_root);
+  @override
+  late final _Translations$flutter$mcpServers$form$de form = _Translations$flutter$mcpServers$form$de._(_root);
+  @override
+  late final _Translations$flutter$mcpServers$namePicker$de namePicker = _Translations$flutter$mcpServers$namePicker$de._(_root);
 }
 
 // Path: flutter.documents
@@ -1652,13 +1656,10 @@ class _Translations$base$mcpServers$page$de extends Translations$base$mcpServers
     other: '${count} Server',
   );
   @override
-  String get intro =>
-      'MCP-Server geben dem Modell weitere Tools, z. B. um im Web zu suchen oder mit anderen Diensten zu arbeiten. Die Tools aktivierter Server stehen in deinen Chats zur Verfügung, außer du wählst beim Start eines Chats andere Server aus.';
+  String get intro => 'MCP-Server geben dem Modell weitere Tools, z. B. um im Web zu suchen oder mit anderen Diensten zu arbeiten.';
   @override
   String get privacy =>
       'Das Modell entscheidet selbst, wann es sie verwendet, und kann dabei Inhalte aus deinen Chats und Repositories an die Server senden. Füge nur Server hinzu, denen du vertraust.';
-  @override
-  String get authIntro => 'Unterstützt ein Server es, meldest du dich mit deinem Konto dort an. Bei anderen kannst du einen Token eingeben.';
   @override
   String get emptyTitle => 'Noch keine MCP-Server';
   @override
@@ -1829,7 +1830,7 @@ class _Translations$base$mcpServers$sharing$de extends Translations$base$mcpServ
   String get title => 'Teilen';
   @override
   String get description =>
-      'Benutzer, mit denen du diesen Server teilst, können ihn aktivieren, um seine aktivierten Tools in ihren Chats zu verwenden, mit deinem Token oder deiner Anmeldung. Teile ihn also nur mit Benutzern, die dort in deinem Namen handeln dürfen. Sie können ihn nicht ändern, seine Tools nicht auswählen und sich nicht bei ihm anmelden.';
+      'Benutzer, mit denen du diesen Server teilst, müssen ihn aktivieren, um ihn in ihren Chats zu verwenden. Sie können nicht ändern, welche Tools aktiviert sind.';
   @override
   String get notShared => 'Mit niemandem geteilt';
   @override
@@ -2201,9 +2202,41 @@ class _Translations$flutter$mcpServers$page$de extends Translations$flutter$mcpS
 
   // Translations
   @override
-  String get description => 'Server werden in der Weboberfläche hinzugefügt, geändert und geteilt.';
+  String get signInUnsupported =>
+      'Der Server verlangt eine Anmeldung, bevor seine Tools verwendet werden können. Das unterstützt die App noch nicht. Unterstützt er keine Anmeldung, lösche ihn und füge ihn mit einem Token neu hinzu.';
   @override
-  String get emptyText => 'Füge in der Weboberfläche einen MCP-Server hinzu, damit das Modell seine Tools in deinen Chats verwenden kann.';
+  String get signInUnsupportedWeb =>
+      'Der Server verlangt eine Anmeldung, bevor seine Tools verwendet werden können. Das unterstützt die App noch nicht: Melde dich in der Weboberfläche an, oder lösche ihn und füge ihn mit einem Token neu hinzu, falls er keine Anmeldung unterstützt.';
+  @override
+  String get createdSignIn => 'Server hinzugefügt. Er verlangt eine Anmeldung, die die App noch nicht unterstützt.';
+}
+
+// Path: flutter.mcpServers.form
+class _Translations$flutter$mcpServers$form$de extends Translations$flutter$mcpServers$form$en {
+  _Translations$flutter$mcpServers$form$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get showToken => 'Token anzeigen';
+  @override
+  String get hideToken => 'Token ausblenden';
+}
+
+// Path: flutter.mcpServers.namePicker
+class _Translations$flutter$mcpServers$namePicker$de extends Translations$flutter$mcpServers$namePicker$en {
+  _Translations$flutter$mcpServers$namePicker$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'MCP-Server wählen';
+  @override
+  String get searchHint => 'Suchen oder Namen eingeben';
+  @override
+  String useName({required Object name}) => '„${name}“ verwenden';
 }
 
 // Path: flutter.documents.details
@@ -3134,8 +3167,7 @@ class _Translations$flutter$admin$users$form$de extends Translations$flutter$adm
   @override
   String get adminNote => 'Admins können umbenannt, aber nie eingeschränkt werden.';
   @override
-  String get canManageMcpServersHint =>
-      'Ohne diese Berechtigung kann der Benutzer keine MCP-Server hinzufügen oder ändern. Diese werden in der Weboberfläche verwaltet.';
+  String get canManageMcpServersHint => 'Ohne diese Berechtigung kann der Benutzer keine MCP-Server hinzufügen oder ändern.';
 }
 
 // Path: flutter.admin.users.flags

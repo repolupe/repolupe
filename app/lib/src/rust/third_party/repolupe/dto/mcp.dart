@@ -7,8 +7,58 @@ import 'package:app/src/rust/frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:uuid/uuid.dart';
 
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AddMcpServerUserRequest`, `AuthorizationUrlDto`, `AuthorizeMcpServerRequest`, `CreateMcpServerRequest`, `McpAuthorizationCallbackRequest`, `McpServerKind`, `McpServerSuggestionDto`, `McpServerUserDto`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AuthorizationUrlDto`, `AuthorizeMcpServerRequest`, `McpAuthorizationCallbackRequest`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `compatible`, `decode`, `encode_by_ref`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `size_hint`, `type_info`
+
+/// The common MCP servers, offered when adding one. Served by
+/// `GET /api/v1/mcp-servers/suggestions`, and called directly by clients that embed the crate.
+Future<List<McpServerSuggestionDto>> mcpServerSuggestions() => RustLib.instance.api.repolupeDtoMcpMcpServerSuggestions();
+
+class AddMcpServerUserRequest {
+  final String userNameOrEmail;
+
+  const AddMcpServerUserRequest({
+    required this.userNameOrEmail,
+  });
+
+  @override
+  int get hashCode => userNameOrEmail.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is AddMcpServerUserRequest && runtimeType == other.runtimeType && userNameOrEmail == other.userNameOrEmail;
+}
+
+/// Connects to the server and lists its tools before saving. Fails with `REMOTE_UNREACHABLE` if
+/// it cannot be reached or is no MCP server, `AUTH_FAILED` if it rejects `token`, and
+/// `VALIDATION_ERROR` if the user has 20 servers already (counting the shared ones they turned
+/// on). A server that asks for authentication without a token is saved as
+/// `AUTHORIZATION_REQUIRED`.
+class CreateMcpServerRequest {
+  /// Unique among the user's servers, ignoring case.
+  final String name;
+
+  /// The Streamable HTTP endpoint, e.g. `https://mcp.example.com/mcp`. `https://` and a host
+  /// with public addresses, except for admins.
+  final String url;
+
+  /// Absent, `null` or blank without one.
+  final String? token;
+
+  const CreateMcpServerRequest({
+    required this.name,
+    required this.url,
+    this.token,
+  });
+
+  @override
+  int get hashCode => name.hashCode ^ url.hashCode ^ token.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CreateMcpServerRequest && runtimeType == other.runtimeType && name == other.name && url == other.url && token == other.token;
+}
 
 /// How requests to the server are authenticated.
 enum McpServerAuth {
@@ -124,6 +174,63 @@ class McpServerDto {
           updatedAt == other.updatedAt;
 }
 
+/// What an MCP server is for, shown as the subtitle of its suggestion.
+enum McpServerKind {
+  /// Searches the web.
+  search,
+
+  /// Reads and extracts web pages.
+  webScraping,
+
+  /// Looks up documentation.
+  documentation,
+
+  /// Works with developer platforms.
+  devTools,
+
+  /// Manages hosting and deployments.
+  cloud,
+
+  /// Queries and manages databases.
+  database,
+
+  /// Reads monitoring, profiling or tracing data.
+  observability,
+
+  /// Tracks issues and projects.
+  projectManagement,
+
+  /// Works with notes, documents and tasks.
+  productivity,
+
+  /// Works with customer relationships.
+  crm,
+
+  /// Handles payments.
+  payments,
+
+  /// Provides financial data.
+  finance,
+
+  /// Works with designs.
+  design,
+
+  /// Runs actions in other apps.
+  automation,
+
+  /// Answers factual questions and computes.
+  knowledge,
+
+  /// Looks up places and routes.
+  maps,
+
+  /// Looks up travel connections.
+  travel,
+
+  /// A value this version does not know, from a newer server. Never sent by the server.
+  unknown,
+}
+
 /// How a server is shared with the user, who decides whether to use it.
 class McpServerShareDto {
   /// The user name of the owner, who shared it.
@@ -171,6 +278,67 @@ enum McpServerStatus {
 
   /// A value this version does not know, from a newer server. Never sent by the server.
   unknown,
+}
+
+/// A common MCP server, offered when adding one, see [`mcp_server_suggestions`].
+class McpServerSuggestionDto {
+  final String name;
+
+  /// The Streamable HTTP endpoint.
+  final String url;
+  final McpServerKind kind;
+
+  /// ISO 3166-1 alpha-2 code of the operator's country, shown as its flag.
+  final String countryCode;
+
+  const McpServerSuggestionDto({
+    required this.name,
+    required this.url,
+    required this.kind,
+    required this.countryCode,
+  });
+
+  @override
+  int get hashCode => name.hashCode ^ url.hashCode ^ kind.hashCode ^ countryCode.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is McpServerSuggestionDto &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          url == other.url &&
+          kind == other.kind &&
+          countryCode == other.countryCode;
+}
+
+class McpServerUserDto {
+  final UuidValue userId;
+  final String userName;
+  final String? email;
+
+  /// When the server was shared with the user.
+  final DateTime createdAt;
+
+  const McpServerUserDto({
+    required this.userId,
+    required this.userName,
+    this.email,
+    required this.createdAt,
+  });
+
+  @override
+  int get hashCode => userId.hashCode ^ userName.hashCode ^ email.hashCode ^ createdAt.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is McpServerUserDto &&
+          runtimeType == other.runtimeType &&
+          userId == other.userId &&
+          userName == other.userName &&
+          email == other.email &&
+          createdAt == other.createdAt;
 }
 
 class McpToolDto {

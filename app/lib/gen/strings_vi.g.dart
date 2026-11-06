@@ -710,6 +710,10 @@ class _Translations$flutter$mcpServers$vi extends Translations$flutter$mcpServer
   // Translations
   @override
   late final _Translations$flutter$mcpServers$page$vi page = _Translations$flutter$mcpServers$page$vi._(_root);
+  @override
+  late final _Translations$flutter$mcpServers$form$vi form = _Translations$flutter$mcpServers$form$vi._(_root);
+  @override
+  late final _Translations$flutter$mcpServers$namePicker$vi namePicker = _Translations$flutter$mcpServers$namePicker$vi._(_root);
 }
 
 // Path: flutter.documents
@@ -1650,14 +1654,10 @@ class _Translations$base$mcpServers$page$vi extends Translations$base$mcpServers
     other: '${count} máy chủ',
   );
   @override
-  String get intro =>
-      'Máy chủ MCP cung cấp thêm công cụ cho mô hình, ví dụ để tìm kiếm trên web hoặc làm việc với các dịch vụ khác. Công cụ của các máy chủ đã bật có sẵn trong các đoạn chat của bạn, trừ khi bạn chọn máy chủ khác khi bắt đầu đoạn chat.';
+  String get intro => 'Máy chủ MCP cung cấp thêm công cụ cho mô hình, ví dụ để tìm kiếm trên web hoặc làm việc với các dịch vụ khác.';
   @override
   String get privacy =>
       'Mô hình tự quyết định khi nào sử dụng chúng và có thể gửi nội dung từ các đoạn chat và kho lưu trữ của bạn đến các máy chủ. Chỉ thêm những máy chủ bạn tin tưởng.';
-  @override
-  String get authIntro =>
-      'Nếu máy chủ hỗ trợ, bạn sẽ đăng nhập bằng tài khoản của mình trên máy chủ đó. Với các máy chủ khác, bạn có thể nhập token.';
   @override
   String get emptyTitle => 'Chưa có máy chủ MCP nào';
   @override
@@ -1828,7 +1828,7 @@ class _Translations$base$mcpServers$sharing$vi extends Translations$base$mcpServ
   String get title => 'Chia sẻ';
   @override
   String get description =>
-      'Những người dùng được bạn chia sẻ máy chủ này có thể bật nó để sử dụng các công cụ đã bật trong các đoạn chat của họ, bằng token hoặc thông tin đăng nhập của bạn. Vì vậy, chỉ chia sẻ với những người dùng được phép thay mặt bạn hành động trên máy chủ đó. Họ không thể thay đổi máy chủ, chọn công cụ hay đăng nhập vào máy chủ.';
+      'Người dùng được bạn chia sẻ máy chủ này phải bật nó để sử dụng trong các đoạn chat của họ. Họ không thể thay đổi những công cụ nào được bật.';
   @override
   String get notShared => 'Chưa chia sẻ với ai';
   @override
@@ -2200,9 +2200,41 @@ class _Translations$flutter$mcpServers$page$vi extends Translations$flutter$mcpS
 
   // Translations
   @override
-  String get description => 'Máy chủ được thêm, thay đổi và chia sẻ trong giao diện web.';
+  String get signInUnsupported =>
+      'Máy chủ yêu cầu bạn đăng nhập trước khi có thể sử dụng các công cụ của nó, nhưng ứng dụng chưa hỗ trợ việc này. Nếu máy chủ không hỗ trợ đăng nhập, hãy xóa và thêm lại bằng token.';
   @override
-  String get emptyText => 'Thêm máy chủ MCP trong giao diện web để mô hình có thể sử dụng các công cụ của máy chủ trong các đoạn chat của bạn.';
+  String get signInUnsupportedWeb =>
+      'Máy chủ yêu cầu bạn đăng nhập trước khi có thể sử dụng các công cụ của nó, nhưng ứng dụng chưa hỗ trợ việc này. Hãy đăng nhập trong giao diện web, hoặc nếu máy chủ không hỗ trợ đăng nhập, hãy xóa và thêm lại bằng token.';
+  @override
+  String get createdSignIn => 'Đã thêm máy chủ. Máy chủ yêu cầu bạn đăng nhập, nhưng ứng dụng chưa hỗ trợ việc này.';
+}
+
+// Path: flutter.mcpServers.form
+class _Translations$flutter$mcpServers$form$vi extends Translations$flutter$mcpServers$form$en {
+  _Translations$flutter$mcpServers$form$vi._(TranslationsVi root) : this._root = root, super.internal(root);
+
+  final TranslationsVi _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get showToken => 'Hiện token';
+  @override
+  String get hideToken => 'Ẩn token';
+}
+
+// Path: flutter.mcpServers.namePicker
+class _Translations$flutter$mcpServers$namePicker$vi extends Translations$flutter$mcpServers$namePicker$en {
+  _Translations$flutter$mcpServers$namePicker$vi._(TranslationsVi root) : this._root = root, super.internal(root);
+
+  final TranslationsVi _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'Chọn máy chủ MCP';
+  @override
+  String get searchHint => 'Tìm kiếm hoặc nhập tên';
+  @override
+  String useName({required Object name}) => 'Dùng “${name}”';
 }
 
 // Path: flutter.documents.details
@@ -3127,8 +3159,7 @@ class _Translations$flutter$admin$users$form$vi extends Translations$flutter$adm
   @override
   String get adminNote => 'Quản trị viên có thể được đổi tên, nhưng không bao giờ bị hạn chế quyền.';
   @override
-  String get canManageMcpServersHint =>
-      'Nếu không có quyền này, họ không thể thêm hoặc thay đổi máy chủ MCP. Máy chủ MCP được quản lý trong giao diện web.';
+  String get canManageMcpServersHint => 'Nếu không có quyền này, họ không thể thêm hoặc thay đổi máy chủ MCP.';
 }
 
 // Path: flutter.admin.users.flags

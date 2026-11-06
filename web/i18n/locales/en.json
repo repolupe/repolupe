@@ -543,9 +543,8 @@
     },
     "page": {
       "count": "{count} Servers | {count} Server | {count} Servers",
-      "intro": "MCP servers give the model more tools, e.g. to search the web or to work with other services. The tools of enabled servers are available in your chats, unless you pick other servers when starting a chat.",
+      "intro": "MCP servers give the model more tools, e.g. to search the web or to work with other services.",
       "privacy": "The model decides on its own when to use them, and may send content from your chats and repositories to the servers. Only add servers you trust.",
-      "authIntro": "If a server supports it, you sign in with your account there. For others, you can enter a token.",
       "emptyTitle": "No MCP servers yet",
       "emptyText": "Add an MCP server by its URL, so the model can use its tools in your chats.",
       "emptyTextShared": "No MCP servers have been shared with you. When someone shares one, you can turn it on here to use its tools in your chats.",
@@ -615,7 +614,7 @@
     },
     "sharing": {
       "title": "Sharing",
-      "description": "Users you share this server with can turn it on to use its enabled tools in their chats, with your token or sign-in, so only share it with users who may act on your behalf there. They cannot change it, choose its tools or sign in to it.",
+      "description": "Users you share this server with must turn it on to use it in their chats. They cannot change which tools are enabled.",
       "notShared": "Not shared with anyone",
       "sharedAt": "Shared {relative}",
       "share": "Share",

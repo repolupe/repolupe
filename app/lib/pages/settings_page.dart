@@ -49,12 +49,10 @@ class SettingsSection {
 
 /// The sections every user has, with their state. Repositories only for users who may manage them (the others only
 /// use the ones shared with them in chats). MCP servers also without the permission to manage them, to turn on the ones
-/// shared with the user, but not on the local instance, since they are added in the web app. [repositoryCount],
-/// [mcpServerCount] and [models] are `null` until they are loaded.
+/// shared with the user. [repositoryCount], [mcpServerCount] and [models] are `null` until they are loaded.
 List<SettingsSection> _sections(
   Translations t,
   UserDto? user, {
-  required bool local,
   required int? repositoryCount,
   required int? mcpServerCount,
   required List<ModelDto>? models,
@@ -67,14 +65,13 @@ List<SettingsSection> _sections(
       subtitle: repositoryCount != null ? t.base.settings.page.repositoryCount(count: repositoryCount) : null,
       page: () => const RepositoriesPage(),
     ),
-  if (!local)
-    SettingsSection(
-      key: 'settings.mcpServers',
-      icon: Icons.extension,
-      title: t.base.mcpServers.title,
-      subtitle: mcpServerCount != null ? t.base.settings.page.mcpServerCount(count: mcpServerCount) : null,
-      page: () => const McpServersPage(),
-    ),
+  SettingsSection(
+    key: 'settings.mcpServers',
+    icon: Icons.extension,
+    title: t.base.mcpServers.title,
+    subtitle: mcpServerCount != null ? t.base.settings.page.mcpServerCount(count: mcpServerCount) : null,
+    page: () => const McpServersPage(),
+  ),
   SettingsSection(
     key: 'settings.account',
     icon: Icons.key,
@@ -172,10 +169,9 @@ class _SettingsPageState extends State<SettingsPage> with Refena {
   Future<void> _load() async {
     final api = ref.redux(apiProvider);
     final canManageRepositories = ref.read(meProvider)?.canManageRepositories ?? false;
-    final local = ref.read(accountProvider).active?.isLocal ?? false;
     final (repositories, mcpServers, models) = await (
       canManageRepositories ? _loadOrNull(() => api.dispatchAsyncTakeResult(ApiListRepositoriesAction())) : Future.value(),
-      !local ? _loadOrNull(() => api.dispatchAsyncTakeResult(ApiListMcpServersAction())) : Future.value(),
+      _loadOrNull(() => api.dispatchAsyncTakeResult(ApiListMcpServersAction())),
       _loadOrNull(() => api.dispatchAsyncTakeResult(ApiListModelsAction())),
     ).wait;
     if (mounted) {
@@ -222,7 +218,6 @@ class _SettingsPageState extends State<SettingsPage> with Refena {
           for (final section in _sections(
             t,
             user,
-            local: local,
             repositoryCount: _repositoryCount,
             mcpServerCount: _mcpServerCount,
             models: _models,

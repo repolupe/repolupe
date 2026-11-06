@@ -576,9 +576,8 @@
         "one": "{count} máy chủ",
         "other": "{count} máy chủ"
       },
-      "intro": "Máy chủ MCP cung cấp thêm công cụ cho mô hình, ví dụ để tìm kiếm trên web hoặc làm việc với các dịch vụ khác. Công cụ của các máy chủ đã bật có sẵn trong các đoạn chat của bạn, trừ khi bạn chọn máy chủ khác khi bắt đầu đoạn chat.",
+      "intro": "Máy chủ MCP cung cấp thêm công cụ cho mô hình, ví dụ để tìm kiếm trên web hoặc làm việc với các dịch vụ khác.",
       "privacy": "Mô hình tự quyết định khi nào sử dụng chúng và có thể gửi nội dung từ các đoạn chat và kho lưu trữ của bạn đến các máy chủ. Chỉ thêm những máy chủ bạn tin tưởng.",
-      "authIntro": "Nếu máy chủ hỗ trợ, bạn sẽ đăng nhập bằng tài khoản của mình trên máy chủ đó. Với các máy chủ khác, bạn có thể nhập token.",
       "emptyTitle": "Chưa có máy chủ MCP nào",
       "emptyText": "Thêm máy chủ MCP bằng URL của nó để mô hình có thể sử dụng các công cụ của máy chủ trong các đoạn chat của bạn.",
       "emptyTextShared": "Chưa có máy chủ MCP nào được chia sẻ với bạn. Khi có người chia sẻ, bạn có thể bật máy chủ đó tại đây để sử dụng các công cụ của nó trong các đoạn chat của bạn.",
@@ -659,7 +658,7 @@
     },
     "sharing": {
       "title": "Chia sẻ",
-      "description": "Những người dùng được bạn chia sẻ máy chủ này có thể bật nó để sử dụng các công cụ đã bật trong các đoạn chat của họ, bằng token hoặc thông tin đăng nhập của bạn. Vì vậy, chỉ chia sẻ với những người dùng được phép thay mặt bạn hành động trên máy chủ đó. Họ không thể thay đổi máy chủ, chọn công cụ hay đăng nhập vào máy chủ.",
+      "description": "Người dùng được bạn chia sẻ máy chủ này phải bật nó để sử dụng trong các đoạn chat của họ. Họ không thể thay đổi những công cụ nào được bật.",
       "notShared": "Chưa chia sẻ với ai",
       "sharedAt": "Đã chia sẻ {relative}",
       "share": "Chia sẻ",

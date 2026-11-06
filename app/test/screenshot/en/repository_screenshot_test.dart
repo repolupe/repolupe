@@ -37,6 +37,6 @@ void main() {
     home: const Scaffold(),
     pushed: RepositoryPage(id: UuidValue.fromString(documentsId)),
     ready: find.text(englishTexts.documents),
-    goldenFileName: '5_repository',
+    goldenFileName: '6_repository',
   );
 }

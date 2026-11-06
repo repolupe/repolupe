@@ -92,6 +92,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   UuidValue dco_decode_Uuid(dynamic raw);
 
   @protected
+  AddMcpServerUserRequest dco_decode_add_mcp_server_user_request(dynamic raw);
+
+  @protected
   AddRepositoryUserRequest dco_decode_add_repository_user_request(dynamic raw);
 
   @protected
@@ -108,6 +111,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   DateTime dco_decode_box_autoadd_Chrono_Utc(dynamic raw);
+
+  @protected
+  AddMcpServerUserRequest dco_decode_box_autoadd_add_mcp_server_user_request(dynamic raw);
 
   @protected
   AddRepositoryUserRequest dco_decode_box_autoadd_add_repository_user_request(dynamic raw);
@@ -141,6 +147,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CreateLlmProviderRequest dco_decode_box_autoadd_create_llm_provider_request(dynamic raw);
+
+  @protected
+  CreateMcpServerRequest dco_decode_box_autoadd_create_mcp_server_request(dynamic raw);
 
   @protected
   CreateRepositoryRequest dco_decode_box_autoadd_create_repository_request(dynamic raw);
@@ -299,6 +308,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CreateLlmProviderRequest dco_decode_create_llm_provider_request(dynamic raw);
 
   @protected
+  CreateMcpServerRequest dco_decode_create_mcp_server_request(dynamic raw);
+
+  @protected
   CreateRepositoryRequest dco_decode_create_repository_request(dynamic raw);
 
   @protected
@@ -419,6 +431,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<McpServerDto> dco_decode_list_mcp_server_dto(dynamic raw);
 
   @protected
+  List<McpServerSuggestionDto> dco_decode_list_mcp_server_suggestion_dto(dynamic raw);
+
+  @protected
+  List<McpServerUserDto> dco_decode_list_mcp_server_user_dto(dynamic raw);
+
+  @protected
   List<McpToolDto> dco_decode_list_mcp_tool_dto(dynamic raw);
 
   @protected
@@ -488,10 +506,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   McpServerDto dco_decode_mcp_server_dto(dynamic raw);
 
   @protected
+  McpServerKind dco_decode_mcp_server_kind(dynamic raw);
+
+  @protected
   McpServerShareDto dco_decode_mcp_server_share_dto(dynamic raw);
 
   @protected
   McpServerStatus dco_decode_mcp_server_status(dynamic raw);
+
+  @protected
+  McpServerSuggestionDto dco_decode_mcp_server_suggestion_dto(dynamic raw);
+
+  @protected
+  McpServerUserDto dco_decode_mcp_server_user_dto(dynamic raw);
 
   @protected
   McpToolDto dco_decode_mcp_tool_dto(dynamic raw);
@@ -772,6 +799,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   UuidValue sse_decode_Uuid(SseDeserializer deserializer);
 
   @protected
+  AddMcpServerUserRequest sse_decode_add_mcp_server_user_request(SseDeserializer deserializer);
+
+  @protected
   AddRepositoryUserRequest sse_decode_add_repository_user_request(SseDeserializer deserializer);
 
   @protected
@@ -788,6 +818,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   DateTime sse_decode_box_autoadd_Chrono_Utc(SseDeserializer deserializer);
+
+  @protected
+  AddMcpServerUserRequest sse_decode_box_autoadd_add_mcp_server_user_request(SseDeserializer deserializer);
 
   @protected
   AddRepositoryUserRequest sse_decode_box_autoadd_add_repository_user_request(SseDeserializer deserializer);
@@ -821,6 +854,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CreateLlmProviderRequest sse_decode_box_autoadd_create_llm_provider_request(SseDeserializer deserializer);
+
+  @protected
+  CreateMcpServerRequest sse_decode_box_autoadd_create_mcp_server_request(SseDeserializer deserializer);
 
   @protected
   CreateRepositoryRequest sse_decode_box_autoadd_create_repository_request(SseDeserializer deserializer);
@@ -979,6 +1015,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CreateLlmProviderRequest sse_decode_create_llm_provider_request(SseDeserializer deserializer);
 
   @protected
+  CreateMcpServerRequest sse_decode_create_mcp_server_request(SseDeserializer deserializer);
+
+  @protected
   CreateRepositoryRequest sse_decode_create_repository_request(SseDeserializer deserializer);
 
   @protected
@@ -1099,6 +1138,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<McpServerDto> sse_decode_list_mcp_server_dto(SseDeserializer deserializer);
 
   @protected
+  List<McpServerSuggestionDto> sse_decode_list_mcp_server_suggestion_dto(SseDeserializer deserializer);
+
+  @protected
+  List<McpServerUserDto> sse_decode_list_mcp_server_user_dto(SseDeserializer deserializer);
+
+  @protected
   List<McpToolDto> sse_decode_list_mcp_tool_dto(SseDeserializer deserializer);
 
   @protected
@@ -1168,10 +1213,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   McpServerDto sse_decode_mcp_server_dto(SseDeserializer deserializer);
 
   @protected
+  McpServerKind sse_decode_mcp_server_kind(SseDeserializer deserializer);
+
+  @protected
   McpServerShareDto sse_decode_mcp_server_share_dto(SseDeserializer deserializer);
 
   @protected
   McpServerStatus sse_decode_mcp_server_status(SseDeserializer deserializer);
+
+  @protected
+  McpServerSuggestionDto sse_decode_mcp_server_suggestion_dto(SseDeserializer deserializer);
+
+  @protected
+  McpServerUserDto sse_decode_mcp_server_user_dto(SseDeserializer deserializer);
 
   @protected
   McpToolDto sse_decode_mcp_tool_dto(SseDeserializer deserializer);
@@ -1456,6 +1510,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_Uuid(UuidValue self, SseSerializer serializer);
 
   @protected
+  void sse_encode_add_mcp_server_user_request(AddMcpServerUserRequest self, SseSerializer serializer);
+
+  @protected
   void sse_encode_add_repository_user_request(AddRepositoryUserRequest self, SseSerializer serializer);
 
   @protected
@@ -1472,6 +1529,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_autoadd_Chrono_Utc(DateTime self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_add_mcp_server_user_request(AddMcpServerUserRequest self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_add_repository_user_request(AddRepositoryUserRequest self, SseSerializer serializer);
@@ -1505,6 +1565,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_autoadd_create_llm_provider_request(CreateLlmProviderRequest self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_create_mcp_server_request(CreateMcpServerRequest self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_create_repository_request(CreateRepositoryRequest self, SseSerializer serializer);
@@ -1663,6 +1726,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_create_llm_provider_request(CreateLlmProviderRequest self, SseSerializer serializer);
 
   @protected
+  void sse_encode_create_mcp_server_request(CreateMcpServerRequest self, SseSerializer serializer);
+
+  @protected
   void sse_encode_create_repository_request(CreateRepositoryRequest self, SseSerializer serializer);
 
   @protected
@@ -1783,6 +1849,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_mcp_server_dto(List<McpServerDto> self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_mcp_server_suggestion_dto(List<McpServerSuggestionDto> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_mcp_server_user_dto(List<McpServerUserDto> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_mcp_tool_dto(List<McpToolDto> self, SseSerializer serializer);
 
   @protected
@@ -1852,10 +1924,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_mcp_server_dto(McpServerDto self, SseSerializer serializer);
 
   @protected
+  void sse_encode_mcp_server_kind(McpServerKind self, SseSerializer serializer);
+
+  @protected
   void sse_encode_mcp_server_share_dto(McpServerShareDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_mcp_server_status(McpServerStatus self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_mcp_server_suggestion_dto(McpServerSuggestionDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_mcp_server_user_dto(McpServerUserDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_mcp_tool_dto(McpToolDto self, SseSerializer serializer);

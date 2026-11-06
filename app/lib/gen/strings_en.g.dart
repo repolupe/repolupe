@@ -780,6 +780,8 @@ class Translations$flutter$mcpServers$en {
 
   // Translations
   late final Translations$flutter$mcpServers$page$en page = Translations$flutter$mcpServers$page$en.internal(_root);
+  late final Translations$flutter$mcpServers$form$en form = Translations$flutter$mcpServers$form$en.internal(_root);
+  late final Translations$flutter$mcpServers$namePicker$en namePicker = Translations$flutter$mcpServers$namePicker$en.internal(_root);
 }
 
 // Path: flutter.documents
@@ -1974,16 +1976,12 @@ class Translations$base$mcpServers$page$en {
     other: '${count} Servers',
   );
 
-  /// en: 'MCP servers give the model more tools, e.g. to search the web or to work with other services. The tools of enabled servers are available in your chats, unless you pick other servers when starting a chat.'
-  String get intro =>
-      'MCP servers give the model more tools, e.g. to search the web or to work with other services. The tools of enabled servers are available in your chats, unless you pick other servers when starting a chat.';
+  /// en: 'MCP servers give the model more tools, e.g. to search the web or to work with other services.'
+  String get intro => 'MCP servers give the model more tools, e.g. to search the web or to work with other services.';
 
   /// en: 'The model decides on its own when to use them, and may send content from your chats and repositories to the servers. Only add servers you trust.'
   String get privacy =>
       'The model decides on its own when to use them, and may send content from your chats and repositories to the servers. Only add servers you trust.';
-
-  /// en: 'If a server supports it, you sign in with your account there. For others, you can enter a token.'
-  String get authIntro => 'If a server supports it, you sign in with your account there. For others, you can enter a token.';
 
   /// en: 'No MCP servers yet'
   String get emptyTitle => 'No MCP servers yet';
@@ -2216,9 +2214,8 @@ class Translations$base$mcpServers$sharing$en {
   /// en: 'Sharing'
   String get title => 'Sharing';
 
-  /// en: 'Users you share this server with can turn it on to use its enabled tools in their chats, with your token or sign-in, so only share it with users who may act on your behalf there. They cannot change it, choose its tools or sign in to it.'
-  String get description =>
-      'Users you share this server with can turn it on to use its enabled tools in their chats, with your token or sign-in, so only share it with users who may act on your behalf there. They cannot change it, choose its tools or sign in to it.';
+  /// en: 'Users you share this server with must turn it on to use it in their chats. They cannot change which tools are enabled.'
+  String get description => 'Users you share this server with must turn it on to use it in their chats. They cannot change which tools are enabled.';
 
   /// en: 'Not shared with anyone'
   String get notShared => 'Not shared with anyone';
@@ -2645,11 +2642,49 @@ class Translations$flutter$mcpServers$page$en {
 
   // Translations
 
-  /// en: 'Servers are added, changed and shared in the web interface.'
-  String get description => 'Servers are added, changed and shared in the web interface.';
+  /// en: 'The server asks you to sign in before its tools can be used, which the app does not support yet. If it does not support sign-in, delete it and add it again with a token.'
+  String get signInUnsupported =>
+      'The server asks you to sign in before its tools can be used, which the app does not support yet. If it does not support sign-in, delete it and add it again with a token.';
 
-  /// en: 'Add an MCP server in the web interface, so the model can use its tools in your chats.'
-  String get emptyText => 'Add an MCP server in the web interface, so the model can use its tools in your chats.';
+  /// en: 'The server asks you to sign in before its tools can be used, which the app does not support yet. Sign in in the web interface, or, if the server does not support sign-in, delete it and add it again with a token.'
+  String get signInUnsupportedWeb =>
+      'The server asks you to sign in before its tools can be used, which the app does not support yet. Sign in in the web interface, or, if the server does not support sign-in, delete it and add it again with a token.';
+
+  /// en: 'Server added. It asks you to sign in, which the app does not support yet.'
+  String get createdSignIn => 'Server added. It asks you to sign in, which the app does not support yet.';
+}
+
+// Path: flutter.mcpServers.form
+class Translations$flutter$mcpServers$form$en {
+  Translations$flutter$mcpServers$form$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Show token'
+  String get showToken => 'Show token';
+
+  /// en: 'Hide token'
+  String get hideToken => 'Hide token';
+}
+
+// Path: flutter.mcpServers.namePicker
+class Translations$flutter$mcpServers$namePicker$en {
+  Translations$flutter$mcpServers$namePicker$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Choose MCP server'
+  String get title => 'Choose MCP server';
+
+  /// en: 'Search or enter a name'
+  String get searchHint => 'Search or enter a name';
+
+  /// en: 'Use “{name}”'
+  String useName({required Object name}) => 'Use “${name}”';
 }
 
 // Path: flutter.documents.details
@@ -3821,8 +3856,8 @@ class Translations$flutter$admin$users$form$en {
   /// en: 'Admins can be renamed, but never restricted.'
   String get adminNote => 'Admins can be renamed, but never restricted.';
 
-  /// en: 'Without it, they cannot add or change MCP servers. These are managed in the web interface.'
-  String get canManageMcpServersHint => 'Without it, they cannot add or change MCP servers. These are managed in the web interface.';
+  /// en: 'Without it, they cannot add or change MCP servers.'
+  String get canManageMcpServersHint => 'Without it, they cannot add or change MCP servers.';
 }
 
 // Path: flutter.admin.users.flags

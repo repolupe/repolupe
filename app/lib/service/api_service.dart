@@ -115,6 +115,14 @@ extension ClientErrorMessage on ClientError {
     ClientError_InvalidResponse(:final status) => t.base.errors.invalidResponse(status: status),
     ClientError_Transport() => t.base.errors.unreachable,
   };
+
+  /// Like [userMessage], but the API's own message for every code except `INTERNAL_ERROR` (whose message is generic),
+  /// in the API's language (English), like the web's `errorDetail`. Only for requests whose messages tell the specific
+  /// reason, e.g. why connecting to an MCP server failed, which the text of the code would hide.
+  String get userDetail => switch (this) {
+    ClientError_Api(:final code, :final message) when code != ErrorCode.internalError && message.isNotEmpty => message,
+    _ => userMessage,
+  };
 }
 
 extension on ErrorCode {

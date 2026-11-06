@@ -21,6 +21,10 @@ use repolupe::dto::llm::{
     ApiKeyChange, CreateLlmProviderRequest, LlmApiFormat, LlmModelRequest, SetDefaultModelRequest,
     UpdateLlmProviderRequest,
 };
+use repolupe::dto::mcp::{
+    AddMcpServerUserRequest, CreateMcpServerRequest, UpdateMcpServerRequest,
+    UpdateMcpServerUserRequest,
+};
 use repolupe::dto::repository::{
     AddRepositoryUserRequest, CreateRepositoryRequest, RemoteSettings, RemoteSettingsChange,
     TokenChange, UpdateRepositoryRequest, UpdateRepositoryUserRequest,
@@ -476,6 +480,47 @@ fn every_method_reaches_its_route() {
             "remove_repository_user",
             api_code(block_on(client.remove_repository_user(id(), id()))),
         ),
+        // MCP servers.
+        (
+            "update_mcp_server",
+            api_code(block_on(client.update_mcp_server(
+                id(),
+                UpdateMcpServerRequest {
+                    name: "search".into(),
+                    enabled: true,
+                    disabled_tools: vec!["fetch".into()],
+                },
+            ))),
+        ),
+        (
+            "refresh_mcp_server",
+            api_code(block_on(client.refresh_mcp_server(id()))),
+        ),
+        (
+            "list_mcp_server_users",
+            api_code(block_on(client.list_mcp_server_users(id()))),
+        ),
+        (
+            "add_mcp_server_user",
+            api_code(block_on(client.add_mcp_server_user(
+                id(),
+                AddMcpServerUserRequest {
+                    user_name_or_email: INITIAL_ADMIN_USER_NAME.into(),
+                },
+            ))),
+        ),
+        (
+            "update_mcp_server_user",
+            api_code(block_on(client.update_mcp_server_user(
+                id(),
+                id(),
+                UpdateMcpServerUserRequest { enabled: true },
+            ))),
+        ),
+        (
+            "remove_mcp_server_user",
+            api_code(block_on(client.remove_mcp_server_user(id(), id()))),
+        ),
         // Users.
         (
             "update_user",
@@ -549,6 +594,7 @@ fn every_method_reaches_its_route() {
     block_on(client.delete_repository(id())).unwrap();
     block_on(client.delete_llm_provider(id())).unwrap();
     block_on(client.delete_llm_model(id())).unwrap();
+    block_on(client.delete_mcp_server(id())).unwrap();
 
     // Admins may use http and private hosts, so this fails only when connecting to the remote.
     let code = api_code(block_on(client.create_repository(
@@ -564,6 +610,13 @@ fn every_method_reaches_its_route() {
             allow_commits: false,
         },
     )));
+    assert_eq!(code, ErrorCode::RemoteUnreachable);
+    // Likewise, adding an MCP server connects to it first.
+    let code = api_code(block_on(client.create_mcp_server(CreateMcpServerRequest {
+        name: "search".into(),
+        url: "http://127.0.0.1:1/mcp".into(),
+        token: Some("secret".into()),
+    })));
     assert_eq!(code, ErrorCode::RemoteUnreachable);
 }
 

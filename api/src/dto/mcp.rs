@@ -178,7 +178,7 @@ pub enum McpServerKind {
     Unknown,
 }
 
-/// A common MCP server, offered when adding one, see `GET /api/v1/mcp-servers/suggestions`.
+/// A common MCP server, offered when adding one, see [`mcp_server_suggestions`].
 #[derive(Serialize, Deserialize)]
 pub struct McpServerSuggestionDto {
     pub name: String,
@@ -190,8 +190,8 @@ pub struct McpServerSuggestionDto {
 }
 
 /// The common MCP servers, offered when adding one. Served by
-/// `GET /api/v1/mcp-servers/suggestions`.
-pub(crate) fn mcp_server_suggestions() -> Vec<McpServerSuggestionDto> {
+/// `GET /api/v1/mcp-servers/suggestions`, and called directly by clients that embed the crate.
+pub fn mcp_server_suggestions() -> Vec<McpServerSuggestionDto> {
     crate::data::mcp_servers::SUGGESTIONS
         .iter()
         .map(|s| McpServerSuggestionDto {
