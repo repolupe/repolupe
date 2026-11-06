@@ -5,6 +5,7 @@ import 'package:app/pages/presented_file_page.dart';
 import 'package:app/pages/proposed_commit_page.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/util/format.dart';
+import 'package:app/util/markdown.dart';
 import 'package:app/util/tool_call.dart';
 import 'package:app/widget/animated_number.dart';
 import 'package:app/widget/chat/markdown_content.dart';
@@ -16,7 +17,8 @@ import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-/// An answer, with the tools it used above it, and below it the files the model showed and the changes it proposed
+/// An answer, with the tools it used above it (next to a button that switches how its tables are laid out, once it is
+/// finished), and below it the files the model showed and the changes it proposed
 /// (each opening a page), the model that wrote it, how long it took and what it cost (like the web's).
 class AssistantMessage extends StatefulWidget {
   final UuidValue chatId;
@@ -28,12 +30,17 @@ class AssistantMessage extends StatefulWidget {
   /// The space to the left and right of the content. Wide tables in the answer scroll through it to the edges.
   final double horizontalPadding;
 
+  /// Called right before the answer changes its height on the user's request (when they switch how its tables are laid
+  /// out), so that the list can keep its top in place.
+  final VoidCallback? onResize;
+
   const AssistantMessage({
     super.key,
     required this.chatId,
     required this.message,
     required this.modelName,
     this.horizontalPadding = 0,
+    this.onResize,
   });
 
   @override
@@ -44,12 +51,39 @@ class _AssistantMessageState extends State<AssistantMessage> {
   /// Ticks every second while generating, so the duration counts up.
   Timer? _timer;
 
+  /// Whether wide tables scroll sideways rather than fit the width (the default). Kept in the route's [PageStorage], so
+  /// that it survives the answer being scrolled out of the list and back.
+  bool _scrollTables = false;
+
+  /// The content [_hasTable] was found in, so that it is parsed again only when it changes.
+  String? _parsedContent;
+  bool _parsedHasTable = false;
+
   bool get _generating => widget.message.status == MessageStatus.generating;
+
+  Object get _scrollTablesId => ('scrollTables', widget.message.id);
+
+  /// Whether the answer has a table.
+  bool get _hasTable {
+    final content = widget.message.content;
+    if (content != _parsedContent) {
+      _parsedContent = content;
+      _parsedHasTable = containsTable(content);
+    }
+    return _parsedHasTable;
+  }
 
   @override
   void initState() {
     super.initState();
+    _scrollTables = PageStorage.maybeOf(context)?.readState(context, identifier: _scrollTablesId) as bool? ?? false;
     _updateTimer();
+  }
+
+  void _toggleScrollTables() {
+    widget.onResize?.call();
+    setState(() => _scrollTables = !_scrollTables);
+    PageStorage.maybeOf(context)?.writeState(context, _scrollTables, identifier: _scrollTablesId);
   }
 
   @override
@@ -115,14 +149,26 @@ class _AssistantMessageState extends State<AssistantMessage> {
     final changes = completed ? proposedChanges(message) : const <ToolCallFile>[];
     final status = _statusLabel(context);
     final padding = EdgeInsets.symmetric(horizontal: widget.horizontalPadding);
+    // Offered once the answer is finished, also if it failed or was cancelled.
+    final tableLayout = !_generating && _hasTable;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (message.toolCalls.isNotEmpty) ...[
+        if (message.toolCalls.isNotEmpty || tableLayout) ...[
           Padding(
             padding: padding,
-            child: ToolCallList(chatId: widget.chatId, messageId: message.id, toolCalls: message.toolCalls),
+            child: Row(
+              children: [
+                if (message.toolCalls.isNotEmpty) ToolCallList(chatId: widget.chatId, messageId: message.id, toolCalls: message.toolCalls),
+                if (tableLayout)
+                  _TableLayoutButton(
+                    key: ValueKey('chat.message.${message.id}.tableLayout'),
+                    scroll: _scrollTables,
+                    onPressed: _toggleScrollTables,
+                  ),
+              ],
+            ),
           ),
           const SizedBox(height: 8),
         ],
@@ -136,7 +182,11 @@ class _AssistantMessageState extends State<AssistantMessage> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  MarkdownContent(content: content, horizontalPadding: widget.horizontalPadding),
+                  MarkdownContent(
+                    content: content,
+                    horizontalPadding: widget.horizontalPadding,
+                    scrollTables: _scrollTables,
+                  ),
                   if (_generating || revealing) ...[
                     const SizedBox(height: 12),
                     Padding(
@@ -240,6 +290,31 @@ class _PageButton extends StatelessWidget {
       onPressed: () async {
         await ref.global.dispatchAsync(NavigateAction.push(page));
       },
+    );
+  }
+}
+
+/// Switches the tables of an answer between scrolling sideways when they are wide and fitting the width, highlighted
+/// while they scroll.
+class _TableLayoutButton extends StatelessWidget {
+  final bool scroll;
+  final VoidCallback onPressed;
+
+  const _TableLayoutButton({super.key, required this.scroll, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final texts = context.t.flutter.chat.assistantMessage;
+    return IconButton(
+      tooltip: scroll ? texts.fitTables : texts.scrollTables,
+      isSelected: scroll,
+      icon: const Icon(Icons.table_chart),
+      iconSize: 16,
+      // IconButton's own color for the selected state is lost when it gets a color.
+      color: scroll ? colors.primary : colors.onSurfaceVariant,
+      style: IconButton.styleFrom(minimumSize: const Size(32, 32), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+      onPressed: onPressed,
     );
   }
 }

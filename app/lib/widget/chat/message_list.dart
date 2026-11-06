@@ -5,6 +5,8 @@ import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/widget/chat/assistant_message.dart';
 import 'package:app/widget/chat/user_message.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
@@ -14,7 +16,7 @@ const _minHorizontalPadding = 16.0;
 
 /// The messages of a chat, newest at the bottom. They scroll on behind the message input, whose height is the bottom
 /// padding (the Scaffold's body, which extends behind it), and fade into the background there.
-class MessageList extends StatelessWidget {
+class MessageList extends StatefulWidget {
   final UuidValue chatId;
   final List<MessageDto> messages;
 
@@ -34,7 +36,15 @@ class MessageList extends StatelessWidget {
   });
 
   @override
+  State<MessageList> createState() => _MessageListState();
+}
+
+class _MessageListState extends State<MessageList> {
+  final _resize = _UserResize();
+
+  @override
   Widget build(BuildContext context) {
+    final messages = widget.messages;
     // The message input's height, with the space below it.
     final input = MediaQuery.paddingOf(context).bottom;
     final keyboard = MediaQuery.viewInsetsOf(context).bottom;
@@ -49,11 +59,13 @@ class MessageList extends StatelessWidget {
       ).createShader(Rect.fromLTRB(0, bounds.bottom - input, bounds.right, bounds.bottom - keyboard)),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final horizontalPadding = _minHorizontalPadding + max(0.0, (constraints.maxWidth - maxWidth) / 2);
+          final horizontalPadding = _minHorizontalPadding + max(0.0, (constraints.maxWidth - widget.maxWidth) / 2);
           return ListView.separated(
             key: const ValueKey('chat.messages'),
             // Starts at the bottom and stays there while the answer grows.
             reverse: true,
+            // An answer the user resizes keeps its top in place instead.
+            physics: _KeepTopPhysics(_resize, parent: const AlwaysScrollableScrollPhysics()),
             padding: EdgeInsets.only(top: 16, bottom: 24 + input),
             itemCount: messages.length,
             separatorBuilder: (_, _) => const SizedBox(height: 24),
@@ -71,10 +83,11 @@ class MessageList extends StatelessWidget {
                   ),
                   MessageRole.assistant => _Answer(
                     key: ValueKey(message.id),
-                    chatId: chatId,
+                    chatId: widget.chatId,
                     message: message,
-                    modelName: modelName(message.modelId),
+                    modelName: widget.modelName(message.modelId),
                     horizontalPadding: horizontalPadding,
+                    resize: _resize,
                   ),
                 },
               );
@@ -95,6 +108,7 @@ class _Answer extends StatelessWidget {
   final MessageDto message;
   final String? modelName;
   final double horizontalPadding;
+  final _UserResize resize;
 
   const _Answer({
     super.key,
@@ -102,16 +116,117 @@ class _Answer extends StatelessWidget {
     required this.message,
     required this.modelName,
     required this.horizontalPadding,
+    required this.resize,
   });
 
   @override
   Widget build(BuildContext context) {
     final running = context.watch(messageProvider.select((m) => m != null && m.id == message.id ? m : null));
-    return AssistantMessage(
-      chatId: chatId,
-      message: running != null && message.status == MessageStatus.generating ? running : message,
-      modelName: modelName,
-      horizontalPadding: horizontalPadding,
+    return _HeightObserver(
+      onChanged: (delta) => resize.changed(message.id, delta),
+      child: AssistantMessage(
+        chatId: chatId,
+        message: running != null && message.status == MessageStatus.generating ? running : message,
+        modelName: modelName,
+        horizontalPadding: horizontalPadding,
+        onResize: () => resize.start(message.id),
+      ),
     );
+  }
+}
+
+/// How much the height of an answer changed on the user's request (e.g. fitting its tables to the width), for
+/// [_KeepTopPhysics] to scroll by.
+class _UserResize {
+  /// The answer the user is resizing, until the end of the frame.
+  UuidValue? _messageId;
+  double _delta = 0;
+
+  /// Called right before the answer with [messageId] changes its height on the user's request.
+  void start(UuidValue messageId) {
+    _messageId = messageId;
+    // Dropped if the list could not scroll by it (e.g. it isn't longer than the screen).
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _messageId = null;
+      _delta = 0;
+    });
+  }
+
+  /// Called during layout, when the height of the answer with [messageId] changed by [delta].
+  void changed(UuidValue messageId, double delta) {
+    if (messageId == _messageId) {
+      _delta += delta;
+    }
+  }
+
+  /// The change that the list has not scrolled by yet.
+  double take() {
+    final delta = _delta;
+    _delta = 0;
+    return delta;
+  }
+}
+
+/// Keeps the top of an answer the user resizes in place (with the button they tapped), rather than its bottom, at which
+/// the reversed list is anchored. It scrolls by the change in the same layout, so that the answer doesn't jump for a
+/// frame, as it would with a jump after it.
+class _KeepTopPhysics extends ScrollPhysics {
+  final _UserResize resize;
+
+  const _KeepTopPhysics(this.resize, {super.parent});
+
+  @override
+  _KeepTopPhysics applyTo(ScrollPhysics? ancestor) => _KeepTopPhysics(resize, parent: buildParent(ancestor));
+
+  /// Called during layout when the extent of the list changed, as it does when an answer changes its height.
+  @override
+  double adjustPositionForNewDimensions({
+    required ScrollMetrics oldPosition,
+    required ScrollMetrics newPosition,
+    required bool isScrolling,
+    required double velocity,
+  }) {
+    final delta = resize.take();
+    if (delta == 0) {
+      return super.adjustPositionForNewDimensions(
+        oldPosition: oldPosition,
+        newPosition: newPosition,
+        isScrolling: isScrolling,
+        velocity: velocity,
+      );
+    }
+    // Instead of the parents' adjustment, which would e.g. keep the position at the end of a shrinking list and so move
+    // it by the change twice.
+    return (newPosition.pixels + delta).clamp(newPosition.minScrollExtent, newPosition.maxScrollExtent);
+  }
+}
+
+/// Reports how much the height of its child changed, while it is laid out.
+class _HeightObserver extends SingleChildRenderObjectWidget {
+  final ValueChanged<double> onChanged;
+
+  const _HeightObserver({required this.onChanged, required super.child});
+
+  @override
+  _RenderHeightObserver createRenderObject(BuildContext context) => _RenderHeightObserver(onChanged);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderHeightObserver renderObject) {
+    renderObject.onChanged = onChanged;
+  }
+}
+
+class _RenderHeightObserver extends RenderProxyBox {
+  ValueChanged<double> onChanged;
+
+  _RenderHeightObserver(this.onChanged);
+
+  @override
+  void performLayout() {
+    final oldHeight = hasSize ? size.height : null;
+    super.performLayout();
+    if (oldHeight != null && size.height != oldHeight) {
+      onChanged(size.height - oldHeight);
+    }
   }
 }

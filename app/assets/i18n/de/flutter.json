@@ -30,6 +30,10 @@
       "text": "Temporäre Chats werden nicht in deinen Chats aufgeführt, du kannst also nicht zu diesem zurückkehren. Er wird einen Tag nach seiner letzten Nachricht gelöscht.",
       "leave": "Verlassen"
     },
+    "assistantMessage": {
+      "fitTables": "Tabellen an die Breite anpassen",
+      "scrollTables": "Breite Tabellen scrollen"
+    },
     "markdownContent": {
       "openLinkFailed": "{link} konnte nicht geöffnet werden"
     },

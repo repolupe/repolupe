@@ -30,6 +30,10 @@
       "text": "Temporary chats are not listed in your chats, so you cannot come back to this one. It is deleted a day after its last message.",
       "leave": "Leave"
     },
+    "assistantMessage": {
+      "fitTables": "Fit tables to the width",
+      "scrollTables": "Scroll wide tables"
+    },
     "markdownContent": {
       "openLinkFailed": "Could not open {link}"
     },

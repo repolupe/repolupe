@@ -721,6 +721,7 @@ class Translations$flutter$chat$en {
   late final Translations$flutter$chat$leaveTemporaryDialog$en leaveTemporaryDialog = Translations$flutter$chat$leaveTemporaryDialog$en.internal(
     _root,
   );
+  late final Translations$flutter$chat$assistantMessage$en assistantMessage = Translations$flutter$chat$assistantMessage$en.internal(_root);
   late final Translations$flutter$chat$markdownContent$en markdownContent = Translations$flutter$chat$markdownContent$en.internal(_root);
   late final Translations$flutter$chat$toolCallPage$en toolCallPage = Translations$flutter$chat$toolCallPage$en.internal(_root);
   late final Translations$flutter$chat$fileContent$en fileContent = Translations$flutter$chat$fileContent$en.internal(_root);
@@ -2447,6 +2448,21 @@ class Translations$flutter$chat$leaveTemporaryDialog$en {
 
   /// en: 'Leave'
   String get leave => 'Leave';
+}
+
+// Path: flutter.chat.assistantMessage
+class Translations$flutter$chat$assistantMessage$en {
+  Translations$flutter$chat$assistantMessage$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Fit tables to the width'
+  String get fitTables => 'Fit tables to the width';
+
+  /// en: 'Scroll wide tables'
+  String get scrollTables => 'Scroll wide tables';
 }
 
 // Path: flutter.chat.markdownContent
