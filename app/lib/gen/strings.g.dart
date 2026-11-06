@@ -3,8 +3,8 @@
 /// Source: assets/i18n
 /// To regenerate, run: `dart run slang`
 ///
-/// Locales: 2
-/// Strings: 1716 (858 per locale)
+/// Locales: 3
+/// Strings: 2574 (858 per locale)
 
 // coverage:ignore-file
 // ignore_for_file: type=lint, unused_import
@@ -16,6 +16,7 @@ import 'package:slang_flutter/slang_flutter.dart';
 export 'package:slang_flutter/slang_flutter.dart';
 
 import 'strings_de.g.dart' deferred as l_de;
+import 'strings_vi.g.dart' deferred as l_vi;
 part 'strings_en.g.dart';
 
 /// Supported locales.
@@ -26,7 +27,8 @@ part 'strings_en.g.dart';
 /// - if (LocaleSettings.currentLocale == AppLocale.en) // locale check
 enum AppLocale with BaseAppLocale<AppLocale, Translations> {
   en(languageCode: 'en'),
-  de(languageCode: 'de');
+  de(languageCode: 'de'),
+  vi(languageCode: 'vi');
 
   const AppLocale({
     required this.languageCode,
@@ -61,6 +63,13 @@ enum AppLocale with BaseAppLocale<AppLocale, Translations> {
           cardinalResolver: cardinalResolver,
           ordinalResolver: ordinalResolver,
         );
+      case AppLocale.vi:
+        await l_vi.loadLibrary();
+        return l_vi.TranslationsVi(
+          overrides: overrides,
+          cardinalResolver: cardinalResolver,
+          ordinalResolver: ordinalResolver,
+        );
     }
   }
 
@@ -79,6 +88,12 @@ enum AppLocale with BaseAppLocale<AppLocale, Translations> {
         );
       case AppLocale.de:
         return l_de.TranslationsDe(
+          overrides: overrides,
+          cardinalResolver: cardinalResolver,
+          ordinalResolver: ordinalResolver,
+        );
+      case AppLocale.vi:
+        return l_vi.TranslationsVi(
           overrides: overrides,
           cardinalResolver: cardinalResolver,
           ordinalResolver: ordinalResolver,

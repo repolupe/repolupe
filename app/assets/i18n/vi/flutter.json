@@ -1,0 +1,221 @@
+{
+  "common": {
+    "unsavedChanges": {
+      "title": "Bỏ các thay đổi?",
+      "text": "Các thay đổi của bạn chưa được lưu.",
+      "keepEditing": "Tiếp tục chỉnh sửa",
+      "discard": "Bỏ thay đổi"
+    }
+  },
+  "setup": {
+    "addAccount": "Thêm tài khoản",
+    "intro": "Đăng nhập vào máy chủ Repolupe của bạn, hoặc chạy Repolupe trên thiết bị này.",
+    "introRemote": "Đăng nhập vào máy chủ Repolupe của bạn.",
+    "server": "Máy chủ",
+    "remoteDescription": "Đăng nhập vào một máy chủ Repolupe và dùng các kho lưu trữ và mô hình của máy chủ đó.",
+    "localDescription": "Chạy Repolupe trong ứng dụng. Đoạn chat và kho lưu trữ chỉ được lưu trên thiết bị này."
+  },
+  "account": {
+    "thisDevice": "Thiết bị này",
+    "invalidApiUrl": "Địa chỉ máy chủ không hợp lệ.",
+    "localStartFailed": "Không thể khởi chạy Repolupe trên thiết bị này: {message}",
+    "sessionExpired": "Phiên đăng nhập của bạn trên {server} đã kết thúc. Vui lòng đăng nhập lại."
+  },
+  "chat": {
+    "page": {
+      "temporaryOff": "Tắt đoạn chat tạm thời"
+    },
+    "leaveTemporaryDialog": {
+      "title": "Rời khỏi đoạn chat tạm thời?",
+      "text": "Đoạn chat tạm thời không có trong danh sách đoạn chat của bạn, nên bạn không thể quay lại đoạn chat này. Nó sẽ bị xóa một ngày sau tin nhắn cuối cùng.",
+      "leave": "Rời khỏi"
+    },
+    "assistantMessage": {
+      "fitTables": "Co bảng cho vừa chiều rộng",
+      "scrollTables": "Cuộn ngang các bảng rộng"
+    },
+    "markdownContent": {
+      "openLinkFailed": "Không thể mở {link}"
+    },
+    "toolCallPage": {
+      "commit": "Commit {sha}"
+    },
+    "fileContent": {
+      "cannotShow": "Không thể hiển thị tệp này trong ứng dụng.",
+      "saveFailed": "Không thể lưu tệp."
+    },
+    "proposedCommitPage": {
+      "notApplied": "Chưa được áp dụng."
+    }
+  },
+  "settings": {
+    "page": {
+      "version": "Phiên bản {version}"
+    },
+    "changePasswordPage": {
+      "intro": "Bạn phải đổi mật khẩu trước khi có thể tiếp tục."
+    },
+    "accountSheet": {
+      "accounts": "Tài khoản",
+      "addAccount": "Thêm tài khoản"
+    },
+    "preferences": {
+      "deviceDefault": "Mặc định của thiết bị",
+      "deviceDefaultWithLocale": "Mặc định của thiết bị ({locale})",
+      "modelSheet": {
+        "noneConfigured": "Chưa cấu hình"
+      }
+    }
+  },
+  "validation": {
+    "invalidCurrency": "Tiền tệ không hợp lệ, cần một mã như USD hoặc EUR"
+  },
+  "repositories": {
+    "statusUnknown": "Không xác định",
+    "listPage": {
+      "addedLocal": "Đã thêm kho lưu trữ."
+    },
+    "page": {
+      "tokenSetWithHint": "Đã đặt (•••• {hint})"
+    },
+    "form": {
+      "showToken": "Hiện token",
+      "hideToken": "Ẩn token"
+    },
+    "usersCard": {
+      "sharedRelative": "Đã chia sẻ {relative}",
+      "canCommitOn": "Có thể áp dụng các thay đổi mà mô hình đề xuất cho họ"
+    }
+  },
+  "mcpServers": {
+    "page": {
+      "description": "Máy chủ được thêm, thay đổi và chia sẻ trong giao diện web.",
+      "emptyText": "Thêm máy chủ MCP trong giao diện web để mô hình có thể sử dụng các công cụ của máy chủ trong các đoạn chat của bạn."
+    }
+  },
+  "documents": {
+    "notSynced": "Chưa đồng bộ",
+    "noDocuments": "Không có tài liệu nào",
+    "showMore": "Xem thêm (còn {remaining})",
+    "details": {
+      "path": "Đường dẫn",
+      "started": "Bắt đầu",
+      "reason": "Lý do",
+      "triedAgain": "Lần thử lại",
+      "settingsChanged": "Cài đặt đã thay đổi: tài liệu sẽ được chuyển đổi lại với cài đặt hiện tại.",
+      "newDocument": "Mới: tài liệu chưa được chuyển đổi.",
+      "convertedEarlier": "Đã chuyển đổi (cài đặt trước đây)",
+      "failedRelative": "Thất bại {relative}",
+      "ocrUsed": "Các trang được nhận dạng bằng OCR, nên văn bản có thể có lỗi.",
+      "ocrNotUsed": "Không"
+    }
+  },
+  "format": {
+    "day": {
+      "today": "Hôm nay",
+      "yesterday": "Hôm qua"
+    },
+    "relative": {
+      "justNow": "vừa xong",
+      "minutesAgo": {
+        "one": "1 phút trước",
+        "other": "{count} phút trước"
+      },
+      "inMinutes": {
+        "one": "sau 1 phút",
+        "other": "sau {count} phút"
+      },
+      "hoursAgo": {
+        "one": "1 giờ trước",
+        "other": "{count} giờ trước"
+      },
+      "inHours": {
+        "one": "sau 1 giờ",
+        "other": "sau {count} giờ"
+      },
+      "daysAgo": {
+        "one": "1 ngày trước",
+        "other": "{count} ngày trước"
+      },
+      "inDays": {
+        "one": "sau 1 ngày",
+        "other": "sau {count} ngày"
+      }
+    }
+  },
+  "admin": {
+    "users": {
+      "showPassword": "Hiện mật khẩu",
+      "hidePassword": "Ẩn mật khẩu",
+      "page": {
+        "localOnly": "Repolupe trên thiết bị này chỉ có một người dùng, nên không thể thêm người dùng. Để chia sẻ đoạn chat và kho lưu trữ với người khác, hãy dùng một máy chủ Repolupe.",
+        "noMatch": "Không có người dùng nào khớp với tìm kiếm của bạn."
+      },
+      "userPage": {
+        "login": "Đăng nhập",
+        "loginAllowed": "Được phép",
+        "loginDisabled": "Đã tắt (đã đăng xuất trên mọi thiết bị)",
+        "repositoriesManage": "Có thể quản lý kho lưu trữ của mình và chia sẻ chúng",
+        "repositoriesReadOnly": "Chỉ đọc (chỉ có thể hỏi về các kho lưu trữ được chia sẻ với họ)",
+        "mcpServersManage": "Có thể quản lý máy chủ của mình",
+        "mcpServersUseOnly": "Chỉ sử dụng (không thể thêm hoặc thay đổi máy chủ nào)",
+        "identity": "Tên người dùng và email",
+        "identityEditable": "Người dùng có thể thay đổi chúng",
+        "identityFixed": "Cố định (chỉ quản trị viên mới có thể thay đổi)",
+        "passwordMustChange": "Phải đổi ở lần đăng nhập tiếp theo"
+      },
+      "form": {
+        "adminNote": "Quản trị viên có thể được đổi tên, nhưng không bao giờ bị hạn chế quyền.",
+        "canManageMcpServersHint": "Nếu không có quyền này, họ không thể thêm hoặc thay đổi máy chủ MCP. Máy chủ MCP được quản lý trong giao diện web."
+      },
+      "flags": {
+        "repositoriesReadOnly": "Kho lưu trữ chỉ đọc",
+        "mcpServersUseOnly": "Máy chủ MCP chỉ sử dụng",
+        "identityFixed": "Tên người dùng và email cố định"
+      }
+    },
+    "llm": {
+      "page": {
+        "apiKeyNone": "Không có",
+        "currencyNone": "Không có (các mô hình của nhà cung cấp này không có giá)",
+        "models": "Mô hình"
+      },
+      "namePicker": {
+        "title": "Chọn nhà cung cấp",
+        "searchHint": "Tìm kiếm hoặc nhập tên",
+        "useName": "Dùng “{name}”"
+      },
+      "providerForm": {
+        "clearCurrency": "Xóa tiền tệ",
+        "showKey": "Hiện khóa",
+        "hideKey": "Ẩn khóa"
+      },
+      "modelForm": {
+        "apiNameHint": "ID mô hình được gửi đến API. Tối đa {max} ký tự.",
+        "displayNameOptional": "Tên hiển thị (không bắt buộc)",
+        "displayNameHint": "Hiển thị cho người dùng thay cho tên API. Tối đa {max} ký tự.",
+        "maxOutputTokensOptional": "Số token đầu ra tối đa (không bắt buộc)",
+        "maxOutputTokensHint": "Để trống để dùng giá trị mặc định của định dạng API."
+      }
+    },
+    "config": {
+      "page": {
+        "runtimeOnly": "Chỉ có thể ghi đè các cài đặt áp dụng ngay; các cài đặt khác cần khởi động lại.",
+        "runtime": "Áp dụng ngay",
+        "overrideValue": "Giá trị ghi đè: {value}"
+      },
+      "overrideDialog": {
+        "remove": "Xóa giá trị ghi đè"
+      },
+      "mistralKeySheet": {
+        "intro": "Được dùng khi OCR_ENGINE là mistral.",
+        "remove": "Xóa khóa"
+      }
+    },
+    "extraction": {
+      "page": {
+        "loadMore": "Tải thêm (còn {remaining})"
+      }
+    }
+  }
+}

@@ -18,6 +18,7 @@
 	<array>
 		<string>de</string>
 		<string>en</string>
+		<string>vi</string>
 	</array>
 	<key>CFBundleName</key>
 	<string>Repolupe</string>

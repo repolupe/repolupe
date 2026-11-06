@@ -3,7 +3,7 @@ import '@mdi/font/css/materialdesignicons.css'
 import 'vuetify/styles'
 import {watch} from "vue";
 import {createVuetify} from 'vuetify'
-import {de, en} from 'vuetify/locale'
+import {de, en, vi} from 'vuetify/locale'
 import {defineNuxtPlugin} from "#imports";
 import {readThemeMode} from "~/utils/theme";
 
@@ -41,7 +41,7 @@ export default defineNuxtPlugin({
             },
             // the texts of Vuetify's own components, one per locale in nuxt.config.ts
             locale: {
-                messages: {de, en},
+                messages: {de, en, vi},
             },
         })
         app.vueApp.use(vuetify)
