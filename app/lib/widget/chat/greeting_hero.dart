@@ -6,11 +6,14 @@ import 'package:refena_flutter/refena_flutter.dart';
 
 /// The logo and a greeting, on a new chat: by the time of day with the user's first name, if they gave one, else it asks
 /// what they would like to know. It fades in once the user is loaded, and is replaced by a note while the chat is
-/// [temporary].
+/// [temporary]. The [action] is shown below it.
 class GreetingHero extends StatelessWidget {
   final bool temporary;
 
-  const GreetingHero({super.key, required this.temporary});
+  /// E.g. the button to add an LLM provider while there is no model.
+  final Widget? action;
+
+  const GreetingHero({super.key, required this.temporary, this.action});
 
   @override
   Widget build(BuildContext context) {
@@ -27,6 +30,7 @@ class GreetingHero extends StatelessWidget {
             DayTime.evening => texts.greetingEvening(name: firstName),
           };
     final style = Theme.of(context).textTheme.headlineMedium;
+    final action = this.action;
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -55,6 +59,10 @@ class GreetingHero extends StatelessWidget {
                 ),
               ],
             ),
+            if (action != null) ...[
+              const SizedBox(height: 24),
+              action,
+            ],
           ],
         ),
       ),

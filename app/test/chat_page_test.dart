@@ -1,5 +1,6 @@
 import 'package:app/gen/strings.g.dart';
 import 'package:app/pages/chat_page.dart';
+import 'package:app/pages/settings/admin/llm_page.dart';
 import 'package:app/service/api_service.dart';
 import 'package:app/service/chat_service.dart';
 import 'package:app/service/me_service.dart';
@@ -62,8 +63,14 @@ List<MessageDto> _messages(String question) => [
 
 /// The chat page in a window of [size] on the server `Acme Docs`, with the saved chat listed. A new chat is titled
 /// after its question and listed first from then on. The panel was hidden before unless [panelVisible]. The [user] is
-/// loaded, if given.
-Future<RefenaContainer> _pumpChatPage(WidgetTester tester, Size size, {bool panelVisible = true, UserDto? user}) async {
+/// loaded, if given. The server has the [models], none by default.
+Future<RefenaContainer> _pumpChatPage(
+  WidgetTester tester,
+  Size size, {
+  bool panelVisible = true,
+  UserDto? user,
+  List<ModelDto> models = const [],
+}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -75,7 +82,8 @@ Future<RefenaContainer> _pumpChatPage(WidgetTester tester, Size size, {bool pane
       api: (mock) {
         // Async, since the app bar loads it while building.
         mock.on<ApiGetInstanceAction>((state, action) async => (state, InstanceDto(name: 'Acme Docs')));
-        mock.on<ApiListModelsAction>((state, action) => (state, const <ModelDto>[]));
+        mock.on<ApiListModelsAction>((state, action) => (state, models));
+        mock.on<ApiListLlmProvidersAction>((state, action) => (state, const <LlmProviderDto>[]));
         mock.on<ApiListRepositoriesAction>((state, action) => (state, const <RepositoryDto>[]));
         mock.on<ApiListMcpServersAction>((state, action) => (state, const <McpServerDto>[]));
         mock.on<ApiListChatsAction>((state, action) => (state, ChatPageDto(items: [...listed])));
@@ -235,5 +243,44 @@ void main() {
     await _pumpChatPage(tester, _phone, user: fakeUser(id: _userId));
 
     expect(find.text('What would you like to know?'), findsOneWidget);
+  });
+
+  testWidgets('without a model, an admin can add an LLM provider below the greeting', (tester) async {
+    await _pumpChatPage(
+      tester,
+      _phone,
+      user: fakeUser(id: _userId, role: UserRole.admin),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('chat.addProvider')));
+    await tester.pumpAndSettle();
+    expect(find.byType(LlmPage), findsOneWidget);
+  });
+
+  testWidgets('without a model, a user is not offered to add an LLM provider', (tester) async {
+    await _pumpChatPage(tester, _phone, user: fakeUser(id: _userId));
+
+    expect(find.text('What would you like to know?'), findsOneWidget);
+    expect(find.byKey(const ValueKey('chat.addProvider')), findsNothing);
+  });
+
+  testWidgets('with a model, an admin is not offered to add an LLM provider', (tester) async {
+    await _pumpChatPage(
+      tester,
+      _phone,
+      user: fakeUser(id: _userId, role: UserRole.admin),
+      models: [
+        fakeModel(
+          id: '0199a8d4-6d5e-7c3a-9b1f-000000000005',
+          displayName: 'Claude',
+          providerId: '0199a8d4-6d5e-7c3a-9b1f-000000000006',
+          providerName: 'Anthropic',
+          isDefault: true,
+        ),
+      ],
+    );
+
+    expect(find.text('What would you like to know?'), findsOneWidget);
+    expect(find.byKey(const ValueKey('chat.addProvider')), findsNothing);
   });
 }

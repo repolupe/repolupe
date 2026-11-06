@@ -2,16 +2,20 @@ import 'dart:ui' show lerpDouble;
 
 import 'package:app/config/theme.dart';
 import 'package:app/gen/strings.g.dart';
+import 'package:app/pages/settings/admin/llm_page.dart';
 import 'package:app/service/chat_list_service.dart';
 import 'package:app/service/chat_panel_service.dart';
 import 'package:app/service/chat_service.dart';
 import 'package:app/service/instance_name_provider.dart';
+import 'package:app/service/me_service.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
 import 'package:app/widget/app_drawer.dart';
 import 'package:app/widget/chat/greeting_hero.dart';
 import 'package:app/widget/chat/leave_temporary_dialog.dart';
 import 'package:app/widget/chat/message_input.dart';
 import 'package:app/widget/chat/message_list.dart';
 import 'package:flutter/material.dart';
+import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
@@ -93,6 +97,9 @@ class _Chat extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch(chatProvider);
     final chat = state.chat;
+    // Without a model, questions can't be answered, so admins are offered to add a provider (users only learn it when
+    // they send one).
+    final noModel = state.loaded && state.models.isEmpty && context.watch(meProvider.select((user) => user?.role == UserRole.admin));
     // Fades to the temporary background, the app bar too because it has the page's color.
     return TweenAnimationBuilder<double>(
       tween: Tween(end: state.isTemporary ? 1 : 0),
@@ -164,11 +171,33 @@ class _Chat extends StatelessWidget {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: _maxWidth),
                   child: SafeArea(
-                    child: state.loading ? const Center(child: CircularProgressIndicator()) : GreetingHero(temporary: state.isTemporary),
+                    child: state.loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : GreetingHero(
+                            temporary: state.isTemporary,
+                            action: noModel ? const _AddProviderButton() : null,
+                          ),
                   ),
                 ),
               ),
       ),
+    );
+  }
+}
+
+/// Opens the LLM settings, where the admin adds a provider and its models. The chat loads the models again then.
+class _AddProviderButton extends StatelessWidget {
+  const _AddProviderButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      key: const ValueKey('chat.addProvider'),
+      icon: const Icon(Icons.add),
+      label: Text(context.t.base.chat.startPage.addProviderLink),
+      onPressed: () async {
+        await context.ref.global.dispatchAsync(NavigateAction.push(const LlmPage()));
+      },
     );
   }
 }

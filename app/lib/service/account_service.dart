@@ -4,7 +4,6 @@ import 'package:app/gen/strings.g.dart';
 import 'package:app/model/account.dart';
 import 'package:app/model/local_instance_secrets.dart';
 import 'package:app/pages/home_page.dart';
-import 'package:app/pages/settings/admin/llm_page.dart';
 import 'package:app/pages/setup_page.dart';
 import 'package:app/service/api_service.dart';
 import 'package:app/service/local_instance_service.dart';
@@ -155,26 +154,17 @@ class LoginAction extends AsyncReduxAction<AccountService, AccountState> with Gl
 }
 
 /// Starts the local instance (creating it on the first start), logs in as its admin, adds the account (or replaces
-/// the stored one) and switches to it. After the first start, opens the LLM settings, since the instance has no
-/// model yet. Shows a snack bar if it fails.
+/// the stored one) and switches to it. Shows a snack bar if it fails.
 class CreateLocalAccountAction extends AsyncReduxAction<AccountService, AccountState> with GlobalActions {
   @override
   Future<AccountState> reduce() async {
-    final created = notifier._persistence.getLocalInstanceSecrets() == null;
     try {
       final (account, user) = await dispatchAsyncTakeResult(_LocalLoginAction());
       await dispatchAsync(SwitchAccountAction(account, user: user));
     } on LocalError catch (e) {
       global.dispatch(ShowSnackBarAction(message: t.flutter.account.localStartFailed(message: e.message)));
-      return state;
     } on ClientError catch (e) {
       global.dispatch(ShowSnackBarAction(message: t.base.login.loginFailed(error: e.userMessage)));
-      return state;
-    }
-
-    if (created) {
-      // On top of the home page, which the switch opened.
-      unawaited(global.dispatchAsync(NavigateAction.push(const LlmPage())));
     }
     return state;
   }
