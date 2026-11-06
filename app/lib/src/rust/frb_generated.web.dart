@@ -109,6 +109,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AttachmentDto dco_decode_attachment_dto(dynamic raw);
 
   @protected
+  AuthorizationUrlDto dco_decode_authorization_url_dto(dynamic raw);
+
+  @protected
+  AuthorizeMcpServerRequest dco_decode_authorize_mcp_server_request(dynamic raw);
+
+  @protected
   bool dco_decode_bool(dynamic raw);
 
   @protected
@@ -125,6 +131,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   AttachmentDto dco_decode_box_autoadd_attachment_dto(dynamic raw);
+
+  @protected
+  AuthorizeMcpServerRequest dco_decode_box_autoadd_authorize_mcp_server_request(dynamic raw);
 
   @protected
   bool dco_decode_box_autoadd_bool(dynamic raw);
@@ -188,6 +197,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LoginRequest dco_decode_box_autoadd_login_request(dynamic raw);
+
+  @protected
+  McpAuthorizationCallbackRequest dco_decode_box_autoadd_mcp_authorization_callback_request(dynamic raw);
 
   @protected
   McpServerShareDto dco_decode_box_autoadd_mcp_server_share_dto(dynamic raw);
@@ -500,6 +512,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LoginResponse dco_decode_login_response(dynamic raw);
+
+  @protected
+  McpAuthorizationCallbackRequest dco_decode_mcp_authorization_callback_request(dynamic raw);
 
   @protected
   McpServerAuth dco_decode_mcp_server_auth(dynamic raw);
@@ -816,6 +831,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AttachmentDto sse_decode_attachment_dto(SseDeserializer deserializer);
 
   @protected
+  AuthorizationUrlDto sse_decode_authorization_url_dto(SseDeserializer deserializer);
+
+  @protected
+  AuthorizeMcpServerRequest sse_decode_authorize_mcp_server_request(SseDeserializer deserializer);
+
+  @protected
   bool sse_decode_bool(SseDeserializer deserializer);
 
   @protected
@@ -832,6 +853,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   AttachmentDto sse_decode_box_autoadd_attachment_dto(SseDeserializer deserializer);
+
+  @protected
+  AuthorizeMcpServerRequest sse_decode_box_autoadd_authorize_mcp_server_request(SseDeserializer deserializer);
 
   @protected
   bool sse_decode_box_autoadd_bool(SseDeserializer deserializer);
@@ -895,6 +919,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LoginRequest sse_decode_box_autoadd_login_request(SseDeserializer deserializer);
+
+  @protected
+  McpAuthorizationCallbackRequest sse_decode_box_autoadd_mcp_authorization_callback_request(SseDeserializer deserializer);
 
   @protected
   McpServerShareDto sse_decode_box_autoadd_mcp_server_share_dto(SseDeserializer deserializer);
@@ -1207,6 +1234,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LoginResponse sse_decode_login_response(SseDeserializer deserializer);
+
+  @protected
+  McpAuthorizationCallbackRequest sse_decode_mcp_authorization_callback_request(SseDeserializer deserializer);
 
   @protected
   McpServerAuth sse_decode_mcp_server_auth(SseDeserializer deserializer);
@@ -1527,6 +1557,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_attachment_dto(AttachmentDto self, SseSerializer serializer);
 
   @protected
+  void sse_encode_authorization_url_dto(AuthorizationUrlDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_authorize_mcp_server_request(AuthorizeMcpServerRequest self, SseSerializer serializer);
+
+  @protected
   void sse_encode_bool(bool self, SseSerializer serializer);
 
   @protected
@@ -1543,6 +1579,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_autoadd_attachment_dto(AttachmentDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_authorize_mcp_server_request(AuthorizeMcpServerRequest self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer);
@@ -1606,6 +1645,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_autoadd_login_request(LoginRequest self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_mcp_authorization_callback_request(McpAuthorizationCallbackRequest self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_mcp_server_share_dto(McpServerShareDto self, SseSerializer serializer);
@@ -1918,6 +1960,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_login_response(LoginResponse self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_mcp_authorization_callback_request(McpAuthorizationCallbackRequest self, SseSerializer serializer);
 
   @protected
   void sse_encode_mcp_server_auth(McpServerAuth self, SseSerializer serializer);

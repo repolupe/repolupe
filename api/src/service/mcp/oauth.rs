@@ -28,7 +28,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex, Weak};
 use std::time::{Duration, Instant};
 use tokio::sync::OwnedMutexGuard;
-use url::Url;
+use url::{Host, Url};
 use uuid::Uuid;
 
 /// The client name Repolupe registers with, which authorization servers show when asking the
@@ -323,9 +323,11 @@ pub(super) async fn start_sign_in(
     user_id: Uuid,
     server: &McpServer,
     access: RemoteAccess,
-    redirect_uri: &str,
+    redirect_url: &Url,
 ) -> Result<String, AppError> {
     check_url(&server.url, access).map_err(super::connect_app_error)?;
+    let redirect_uri = redirect_url.as_str();
+    let application_type = application_type(redirect_url);
     // The server's challenge may name its metadata, which spares guessing where it is.
     let target = McpTarget {
         id: server.id,
@@ -366,12 +368,13 @@ pub(super) async fn start_sign_in(
     manager.set_metadata(resolution.metadata);
 
     // Registers the client here rather than in `AuthorizationSession`, which would keep its
-    // secret only in memory (see `StoredOAuth`). As a web application, since the redirect URI
-    // is the frontend's (`native` is the default); `register_client` takes it from the client
-    // configured before, so this one is replaced right away.
+    // secret only in memory (see `StoredOAuth`). `register_client` takes the application type
+    // from the client configured before, so this one is replaced right away.
     let error = |e| sign_in_error(e, server.id);
     manager
-        .configure_client(OAuthClientConfig::new("", redirect_uri).with_application_type("web"))
+        .configure_client(
+            OAuthClientConfig::new("", redirect_uri).with_application_type(application_type),
+        )
         .map_err(error)?;
     // The scopes `AuthorizationSession` would select.
     let scopes = manager.select_scopes(None, &[]);
@@ -389,7 +392,7 @@ pub(super) async fn start_sign_in(
     let mut request = AuthorizationRequest::new(redirect_uri)
         .with_preregistered_client(registered.client_id)
         .with_scopes(scopes)
-        .with_application_type("web");
+        .with_application_type(application_type);
     if let Some(secret) = registered.client_secret {
         request = request.with_client_secret(secret);
     }
@@ -427,6 +430,19 @@ pub(super) async fn start_sign_in(
         },
     );
     Ok(authorization_url)
+}
+
+/// The OIDC `application_type` Repolupe registers as: `native` for a loopback redirect URI (RFC
+/// 8252), which the app receives the code on, as authorization servers may reject a web
+/// application redirecting there. Otherwise `web`, since the redirect URI is the frontend's.
+fn application_type(redirect_url: &Url) -> &'static str {
+    let loopback = match redirect_url.host() {
+        Some(Host::Domain(domain)) => domain.eq_ignore_ascii_case("localhost"),
+        Some(Host::Ipv4(ip)) => ip.is_loopback(),
+        Some(Host::Ipv6(ip)) => ip.is_loopback(),
+        None => false,
+    };
+    if loopback { "native" } else { "web" }
 }
 
 pub(super) async fn complete_sign_in(
@@ -493,6 +509,18 @@ mod tests {
             serde_json::from_str(&serde_json::to_string(&stored).unwrap()).unwrap();
         assert_eq!(read.client_secret.as_deref(), Some("secret"));
         assert!(read.credentials.token_response.is_some());
+    }
+
+    #[test]
+    fn registers_as_native_application_for_loopback_redirects() {
+        let of = |uri: &str| application_type(&Url::parse(uri).unwrap());
+        assert_eq!(of("http://localhost:4242/callback"), "native");
+        assert_eq!(of("http://LOCALHOST:4242/callback"), "native");
+        assert_eq!(of("http://127.0.0.1:4242/callback"), "native");
+        assert_eq!(of("http://[::1]:4242/callback"), "native");
+        assert_eq!(of("https://repolupe.example.com/callback"), "web");
+        assert_eq!(of("http://localhost.example.com/callback"), "web");
+        assert_eq!(of("http://192.168.1.2:3000/callback"), "web");
     }
 
     #[tokio::test]

@@ -170,7 +170,7 @@ pub(crate) async fn authorize_mcp_server(
             auth.user_id,
             &server,
             RemoteAccess::of(auth.role),
-            redirect_uri.as_str(),
+            &redirect_uri,
         )
         .await?;
     Ok(Json(AuthorizationUrlDto { authorization_url }))

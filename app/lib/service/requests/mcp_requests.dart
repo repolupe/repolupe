@@ -1,6 +1,6 @@
 part of '../api_service.dart';
 
-/// Lists the MCP servers the user owns or that are shared with them. The app can't sign in to them (OAuth) yet.
+/// Lists the MCP servers the user owns or that are shared with them.
 class ApiListMcpServersAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, List<McpServerDto>> {
   ApiListMcpServersAction();
 
@@ -125,6 +125,56 @@ class ApiRefreshMcpServerAction extends AsyncReduxActionWithResult<ApiService, A
 
   @override
   String toString() => 'ApiRefreshMcpServerAction(id: $id)';
+}
+
+/// Starts signing in to the user's own MCP server [id] with OAuth, and returns the URL to send the user to. The
+/// authorization server sends them back to [redirectUri] with what [ApiCompleteMcpAuthorizationAction] needs. Fails
+/// with `REMOTE_UNREACHABLE` or `AUTH_FAILED` (see [ClientErrorMessage.userDetail]), e.g. if the server does not support
+/// signing in. Needs the permission to manage MCP servers.
+class ApiAuthorizeMcpServerAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, String> {
+  final UuidValue id;
+  final String redirectUri;
+
+  ApiAuthorizeMcpServerAction({required this.id, required this.redirectUri});
+
+  @override
+  Future<(AccountClient?, String)> reduce() async {
+    final authorization = await dispatchAsyncTakeResult(
+      _ApiCallAction(
+        call: (client) => client.authorizeMcpServer(
+          id: id,
+          request: AuthorizeMcpServerRequest(redirectUri: redirectUri),
+        ),
+      ),
+    );
+    return (state, authorization.authorizationUrl);
+  }
+
+  @override
+  String toString() => 'ApiAuthorizeMcpServerAction(id: $id, redirectUri: $redirectUri)';
+}
+
+/// Completes signing in with what the authorization server sent the user back with, connects to the server again and
+/// returns it (a failed connection in its status). Fails with `NOT_FOUND` if the sign-in has expired (after 10 minutes
+/// or a restart of the server) or was completed already. Needs the permission to manage MCP servers.
+class ApiCompleteMcpAuthorizationAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, McpServerDto> {
+  final McpAuthorizationCallbackRequest request;
+
+  ApiCompleteMcpAuthorizationAction({required this.request});
+
+  @override
+  Future<(AccountClient?, McpServerDto)> reduce() async {
+    final server = await dispatchAsyncTakeResult(
+      _ApiCallAction(
+        call: (client) => client.completeMcpAuthorization(request: request),
+      ),
+    );
+    return (state, server);
+  }
+
+  /// Without the code, which the debug observers would print otherwise.
+  @override
+  String toString() => 'ApiCompleteMcpAuthorizationAction()';
 }
 
 /// Lists the users the user's own MCP server [id] is shared with. Needs the permission to manage MCP servers.

@@ -34,6 +34,10 @@ abstract class Client implements RustOpaqueInterface {
   /// `POST /api/v1/repositories/{id}/users`: shares it with a user.
   Future<void> addRepositoryUser({required UuidValue id, required AddRepositoryUserRequest request});
 
+  /// `POST /api/v1/mcp-servers/{id}/authorize`: starts signing in to the user's own server
+  /// with OAuth. Returns the URL to send the user to, who comes back to `redirect_uri`.
+  Future<AuthorizationUrlDto> authorizeMcpServer({required UuidValue id, required AuthorizeMcpServerRequest request});
+
   /// `POST /api/v1/chats/{id}/messages/{message_id}/cancel`.
   Future<void> cancelMessage({required UuidValue chatId, required UuidValue messageId});
 
@@ -42,6 +46,10 @@ abstract class Client implements RustOpaqueInterface {
 
   /// `POST .../tool-calls/{tool_call_id}/commit`: pushes the proposed change to the branch.
   Future<ProposedCommitDto> commitProposedCommit({required UuidValue chatId, required UuidValue toolCallId});
+
+  /// `POST /api/v1/mcp-servers/authorize/callback`: completes signing in with what the
+  /// authorization server sent the user back with, then connects again.
+  Future<McpServerDto> completeMcpAuthorization({required McpAuthorizationCallbackRequest request});
 
   /// `POST /api/v1/chats`: creates a chat with its first message and starts the answer.
   Future<ChatDetailDto> createChat({required CreateChatRequest request});

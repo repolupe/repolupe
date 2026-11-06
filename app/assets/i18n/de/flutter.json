@@ -89,9 +89,7 @@
   },
   "mcpServers": {
     "page": {
-      "signInUnsupported": "Der Server verlangt eine Anmeldung, bevor seine Tools verwendet werden können. Das unterstützt die App noch nicht. Unterstützt er keine Anmeldung, lösche ihn und füge ihn mit einem Token neu hinzu.",
-      "signInUnsupportedWeb": "Der Server verlangt eine Anmeldung, bevor seine Tools verwendet werden können. Das unterstützt die App noch nicht: Melde dich in der Weboberfläche an, oder lösche ihn und füge ihn mit einem Token neu hinzu, falls er keine Anmeldung unterstützt.",
-      "createdSignIn": "Server hinzugefügt. Er verlangt eine Anmeldung, die die App noch nicht unterstützt."
+      "signInBrowserFailed": "Die Anmeldeseite konnte nicht geöffnet werden."
     },
     "form": {
       "showToken": "Token anzeigen",

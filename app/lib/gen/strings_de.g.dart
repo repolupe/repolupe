@@ -2202,13 +2202,7 @@ class _Translations$flutter$mcpServers$page$de extends Translations$flutter$mcpS
 
   // Translations
   @override
-  String get signInUnsupported =>
-      'Der Server verlangt eine Anmeldung, bevor seine Tools verwendet werden können. Das unterstützt die App noch nicht. Unterstützt er keine Anmeldung, lösche ihn und füge ihn mit einem Token neu hinzu.';
-  @override
-  String get signInUnsupportedWeb =>
-      'Der Server verlangt eine Anmeldung, bevor seine Tools verwendet werden können. Das unterstützt die App noch nicht: Melde dich in der Weboberfläche an, oder lösche ihn und füge ihn mit einem Token neu hinzu, falls er keine Anmeldung unterstützt.';
-  @override
-  String get createdSignIn => 'Server hinzugefügt. Er verlangt eine Anmeldung, die die App noch nicht unterstützt.';
+  String get signInBrowserFailed => 'Die Anmeldeseite konnte nicht geöffnet werden.';
 }
 
 // Path: flutter.mcpServers.form

@@ -1289,6 +1289,49 @@ async fn signs_in_with_oauth(db: SqlitePool) {
     assert_eq!(offered(&llm.requests()[4]), ["run_script"]);
 }
 
+/// The app receives the code on a loopback address (RFC 8252), so it registers as a native
+/// application.
+#[sqlx::test]
+async fn signs_in_with_oauth_from_the_app(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let admin = app.admin();
+    let mcp = MockMcp::start(McpAuth::OAuth).await;
+    let redirect_uri = "http://localhost:4242/callback";
+
+    let server = create(&admin, "OAuth", &mcp.url, None).await;
+    let id = server["id"].as_str().unwrap();
+    let (status, body) = admin
+        .post(
+            &format!("/api/v1/mcp-servers/{id}/authorize"),
+            json!({"redirect_uri": redirect_uri}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let authorization_url = body["authorization_url"].as_str().unwrap();
+    let parsed = Url::parse(authorization_url).unwrap();
+    let param = |name: &str| {
+        parsed
+            .query_pairs()
+            .find(|(key, _)| key == name)
+            .map(|(_, value)| value.into_owned())
+    };
+    assert_eq!(param("redirect_uri").as_deref(), Some(redirect_uri));
+    let registration = &mcp.registrations()[0];
+    assert_eq!(registration["application_type"], "native");
+    assert_eq!(registration["redirect_uris"], json!([redirect_uri]));
+
+    let code = mcp.approve(authorization_url);
+    let (status, server) = admin
+        .post(
+            "/api/v1/mcp-servers/authorize/callback",
+            json!({"state": param("state"), "code": code, "iss": null}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::OK, "{server}");
+    assert_eq!(server["status"], "READY", "{server}");
+    assert_eq!(server["auth"], "OAUTH");
+}
+
 #[sqlx::test]
 async fn keeps_the_server_when_replaced_credentials_are_rejected(db: SqlitePool) {
     let app = TestApp::new(db).await;

@@ -34,7 +34,8 @@ use repolupe::dto::llm::{
     RemoteModelDto, SetDefaultModelRequest, UpdateLlmProviderRequest,
 };
 use repolupe::dto::mcp::{
-    AddMcpServerUserRequest, CreateMcpServerRequest, McpServerDto, McpServerUserDto,
+    AddMcpServerUserRequest, AuthorizationUrlDto, AuthorizeMcpServerRequest,
+    CreateMcpServerRequest, McpAuthorizationCallbackRequest, McpServerDto, McpServerUserDto,
     UpdateMcpServerRequest, UpdateMcpServerUserRequest,
 };
 use repolupe::dto::repository::{
@@ -567,6 +568,27 @@ impl Client {
     pub async fn refresh_mcp_server(&self, id: Uuid) -> Result<McpServerDto, ClientError> {
         let path = format!("/api/v1/mcp-servers/{id}/refresh");
         self.post_json(path, empty_object()).await?.json()
+    }
+
+    /// `POST /api/v1/mcp-servers/{id}/authorize`: starts signing in to the user's own server
+    /// with OAuth. Returns the URL to send the user to, who comes back to `redirect_uri`.
+    pub async fn authorize_mcp_server(
+        &self,
+        id: Uuid,
+        request: AuthorizeMcpServerRequest,
+    ) -> Result<AuthorizationUrlDto, ClientError> {
+        self.post(format!("/api/v1/mcp-servers/{id}/authorize"), &request)
+            .await
+    }
+
+    /// `POST /api/v1/mcp-servers/authorize/callback`: completes signing in with what the
+    /// authorization server sent the user back with, then connects again.
+    pub async fn complete_mcp_authorization(
+        &self,
+        request: McpAuthorizationCallbackRequest,
+    ) -> Result<McpServerDto, ClientError> {
+        self.post("/api/v1/mcp-servers/authorize/callback".into(), &request)
+            .await
     }
 
     /// `GET /api/v1/mcp-servers/{id}/users`: the users it is shared with.

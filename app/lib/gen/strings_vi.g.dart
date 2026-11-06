@@ -2200,13 +2200,7 @@ class _Translations$flutter$mcpServers$page$vi extends Translations$flutter$mcpS
 
   // Translations
   @override
-  String get signInUnsupported =>
-      'Máy chủ yêu cầu bạn đăng nhập trước khi có thể sử dụng các công cụ của nó, nhưng ứng dụng chưa hỗ trợ việc này. Nếu máy chủ không hỗ trợ đăng nhập, hãy xóa và thêm lại bằng token.';
-  @override
-  String get signInUnsupportedWeb =>
-      'Máy chủ yêu cầu bạn đăng nhập trước khi có thể sử dụng các công cụ của nó, nhưng ứng dụng chưa hỗ trợ việc này. Hãy đăng nhập trong giao diện web, hoặc nếu máy chủ không hỗ trợ đăng nhập, hãy xóa và thêm lại bằng token.';
-  @override
-  String get createdSignIn => 'Đã thêm máy chủ. Máy chủ yêu cầu bạn đăng nhập, nhưng ứng dụng chưa hỗ trợ việc này.';
+  String get signInBrowserFailed => 'Không thể mở trang đăng nhập.';
 }
 
 // Path: flutter.mcpServers.form

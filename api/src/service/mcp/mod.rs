@@ -400,7 +400,7 @@ impl McpClient {
         user_id: Uuid,
         server: &McpServer,
         access: RemoteAccess,
-        redirect_uri: &str,
+        redirect_uri: &Url,
     ) -> Result<String, AppError> {
         oauth::start_sign_in(self, user_id, server, access, redirect_uri).await
     }

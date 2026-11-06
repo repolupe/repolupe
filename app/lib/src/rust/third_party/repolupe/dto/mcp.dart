@@ -7,7 +7,6 @@ import 'package:app/src/rust/frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:uuid/uuid.dart';
 
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `AuthorizationUrlDto`, `AuthorizeMcpServerRequest`, `McpAuthorizationCallbackRequest`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `compatible`, `decode`, `encode_by_ref`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `size_hint`, `type_info`
 
 /// The common MCP servers, offered when adding one. Served by
@@ -27,6 +26,41 @@ class AddMcpServerUserRequest {
   @override
   bool operator ==(Object other) =>
       identical(this, other) || other is AddMcpServerUserRequest && runtimeType == other.runtimeType && userNameOrEmail == other.userNameOrEmail;
+}
+
+class AuthorizationUrlDto {
+  /// Where to send the user to sign in. Valid for 10 minutes.
+  final String authorizationUrl;
+
+  const AuthorizationUrlDto({
+    required this.authorizationUrl,
+  });
+
+  @override
+  int get hashCode => authorizationUrl.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is AuthorizationUrlDto && runtimeType == other.runtimeType && authorizationUrl == other.authorizationUrl;
+}
+
+/// Starts signing in to the server with OAuth, see [`AuthorizationUrlDto`].
+class AuthorizeMcpServerRequest {
+  /// Where the authorization server sends the user back to, with `code` and `state` (and
+  /// maybe `iss`) as query parameters, which go to
+  /// `POST /api/v1/mcp-servers/authorize/callback`. An absolute `https://` or `http://` URL.
+  final String redirectUri;
+
+  const AuthorizeMcpServerRequest({
+    required this.redirectUri,
+  });
+
+  @override
+  int get hashCode => redirectUri.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is AuthorizeMcpServerRequest && runtimeType == other.runtimeType && redirectUri == other.redirectUri;
 }
 
 /// Connects to the server and lists its tools before saving. Fails with `REMOTE_UNREACHABLE` if
@@ -58,6 +92,31 @@ class CreateMcpServerRequest {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is CreateMcpServerRequest && runtimeType == other.runtimeType && name == other.name && url == other.url && token == other.token;
+}
+
+/// Completes signing in with the query parameters the authorization server sent the user back
+/// with, then connects again. Fails with `NOT_FOUND` if `state` is unknown or expired (also
+/// after a restart of the server), or belongs to another user.
+class McpAuthorizationCallbackRequest {
+  final String state;
+  final String code;
+
+  /// The `iss` parameter (RFC 9207), if the authorization server sent it.
+  final String? iss;
+
+  const McpAuthorizationCallbackRequest({
+    required this.state,
+    required this.code,
+    this.iss,
+  });
+
+  @override
+  int get hashCode => state.hashCode ^ code.hashCode ^ iss.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is McpAuthorizationCallbackRequest && runtimeType == other.runtimeType && state == other.state && code == other.code && iss == other.iss;
 }
 
 /// How requests to the server are authenticated.

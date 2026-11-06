@@ -29,6 +29,20 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Signing in to MCP servers (flutter_web_auth_2): the page on the loopback address that received the
+             authorization server's redirect sends the browser on to repolupe://, which closes the Custom Tab where
+             the Auth Tab isn't available. -->
+        <activity
+            android:name="com.linusu.flutter_web_auth_2.CallbackActivity"
+            android:exported="true"
+            android:taskAffinity="">
+            <intent-filter android:label="flutter_web_auth_2">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="repolupe"/>
+            </intent-filter>
+        </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

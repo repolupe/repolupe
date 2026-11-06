@@ -1,11 +1,13 @@
 import 'package:app/gen/strings.g.dart';
 import 'package:app/pages/settings/mcp_servers_page.dart';
 import 'package:app/service/api_service.dart';
+import 'package:app/service/mcp_sign_in_service.dart';
 import 'package:app/service/me_service.dart';
 import 'package:app/src/rust/api/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/error.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/mcp.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
@@ -38,6 +40,13 @@ class _FakeApi {
 
   /// What adding a server fails with, if it does.
   ClientError? createError;
+
+  /// What starting or completing a sign-in fails with, if it does.
+  ClientError? authorizeError;
+  ClientError? completeError;
+
+  /// The server being signed in to.
+  UuidValue? _authorizing;
   final actions = <Object>[];
 
   _FakeApi({required this.servers, this.canManage = true, this.failing = false});
@@ -117,6 +126,30 @@ class _FakeApi {
       servers = [for (final s in servers) s.id == action.id ? refreshed : s];
       return (state, refreshed);
     });
+    mock.on<ApiAuthorizeMcpServerAction>((state, action) {
+      actions.add(action);
+      if (authorizeError case final error?) {
+        throw error;
+      }
+      _authorizing = action.id;
+      return (state, _authorizationUrl);
+    });
+    mock.on<ApiCompleteMcpAuthorizationAction>((state, action) {
+      actions.add(action);
+      if (completeError case final error?) {
+        throw error;
+      }
+      final server = servers.firstWhere((s) => s.id == _authorizing);
+      final signedIn = fakeMcpServer(
+        id: server.id.toString(),
+        ownerId: _userId,
+        name: server.name,
+        auth: McpServerAuth.oAuth,
+        tools: ['search', 'fetch'],
+      );
+      servers = [for (final s in servers) s.id == server.id ? signedIn : s];
+      return (state, signedIn);
+    });
     mock.on<ApiListMcpServerUsersAction>((state, action) => (state, users[action.id] ?? const []));
     mock.on<ApiAddMcpServerUserAction>((state, action) {
       actions.add(action);
@@ -143,14 +176,39 @@ class _FakeApi {
   }
 }
 
-/// Pumps the page for the user of [api], on a server or, with [local], on the local instance.
-Future<void> _pumpPage(WidgetTester tester, _FakeApi api, {bool local = false}) async {
+const _authorizationUrl = 'https://auth.example.com/authorize?client_id=client-1&state=state-1';
+
+/// Signs in without a browser: gets the authorization URL, then returns [callback] as what the authorization server
+/// sent the user back with (`null`: the user closed the browser), or throws [error].
+class _FakeSignIn implements McpSignInService {
+  Map<String, String>? callback;
+  Object? error;
+
+  /// The authorization URLs it was asked to open.
+  final opened = <String>[];
+
+  _FakeSignIn({this.callback = const {'state': 'state-1', 'code': 'code-1', 'iss': 'https://auth.example.com'}});
+
+  @override
+  Future<Map<String, String>?> signIn(Future<String> Function(String redirectUri) authorize) async {
+    opened.add(await authorize('http://localhost:4242/callback'));
+    if (error case final error?) {
+      throw error;
+    }
+    return callback;
+  }
+}
+
+/// Pumps the page for the user of [api], on a server or, with [local], on the local instance. Signing in goes through
+/// [signIn].
+Future<void> _pumpPage(WidgetTester tester, _FakeApi api, {bool local = false, _FakeSignIn? signIn}) async {
   final account = fakeAccount(userId: _userId);
   final container = (await tester.runAsync(
     () => mockContainer(
       account: account,
       stored: local ? account.copyWith(apiUrl: null) : account,
       api: api.answer,
+      overrides: [mcpSignInProvider.overrideWithValue(signIn ?? _FakeSignIn())],
     ),
   ))!;
   await container.redux(meProvider).dispatchAsync(RefreshMeAction());
@@ -381,7 +439,7 @@ void main() {
     expect(find.text('The last connection failed. Only the owner sees why.'), findsOneWidget);
   });
 
-  testWidgets('a server that asks to sign in says that the app cannot sign in to it yet', (tester) async {
+  testWidgets('a server that asks to sign in says so, and only its owner signs in', (tester) async {
     final api = _FakeApi(
       servers: [
         fakeMcpServer(id: _searchId, ownerId: _userId, auth: McpServerAuth.none, status: McpServerStatus.authorizationRequired, tools: const []),
@@ -391,22 +449,124 @@ void main() {
     await _pumpPage(tester, api);
 
     expect(find.text('Sign-in required'), findsNWidgets(2));
-    final ownWarning = find.byKey(const ValueKey('mcpServers.$_searchId.signIn'));
-    expect(find.descendant(of: ownWarning, matching: find.textContaining('which the app does not support yet. Sign in in the web')), findsOneWidget);
-    final sharedWarning = find.byKey(const ValueKey('mcpServers.$_issuesId.signIn'));
-    expect(find.descendant(of: sharedWarning, matching: find.textContaining('asks its owner to sign in again')), findsOneWidget);
-    expect(find.text('Sign in'), findsNothing);
+    final ownNotice = find.byKey(const ValueKey('mcpServers.$_searchId.signInRequired'));
+    expect(find.descendant(of: ownNotice, matching: find.textContaining('The server asks you to sign in')), findsOneWidget);
+    expect(find.byKey(const ValueKey('mcpServers.$_searchId.signIn')), findsOneWidget);
+    final sharedNotice = find.byKey(const ValueKey('mcpServers.$_issuesId.signInRequired'));
+    expect(find.descendant(of: sharedNotice, matching: find.textContaining('asks its owner to sign in again')), findsOneWidget);
+    expect(find.byKey(const ValueKey('mcpServers.$_issuesId.signIn')), findsNothing);
   });
 
-  testWidgets('the local instance shares no servers and has no web interface to sign in', (tester) async {
+  testWidgets('the owner signs in to a server, which then offers its tools', (tester) async {
+    final api = _FakeApi(
+      servers: [fakeMcpServer(id: _searchId, ownerId: _userId, status: McpServerStatus.authorizationRequired, tools: const [])],
+    );
+    final signIn = _FakeSignIn();
+    await _pumpPage(tester, api, signIn: signIn);
+
+    await tester.tap(find.byKey(const ValueKey('mcpServers.$_searchId.signIn')));
+    await tester.pumpAndSettle();
+
+    final authorize = api.last<ApiAuthorizeMcpServerAction>();
+    expect(authorize.id, UuidValue.fromString(_searchId));
+    expect(authorize.redirectUri, 'http://localhost:4242/callback');
+    expect(signIn.opened, [_authorizationUrl]);
+    final request = api.last<ApiCompleteMcpAuthorizationAction>().request;
+    expect((request.state, request.code, request.iss), ('state-1', 'code-1', 'https://auth.example.com'));
+    await _expectSnackBar(tester, 'Signed in to search.');
+    expect(find.byKey(const ValueKey('mcpServers.$_searchId.signInRequired')), findsNothing);
+    expect(find.textContaining('Signed in with OAuth'), findsOneWidget);
+    expect(find.text('2 tools'), findsOneWidget);
+  });
+
+  testWidgets('the owner signs in again from the menu', (tester) async {
+    final api = _FakeApi(
+      servers: [fakeMcpServer(id: _searchId, ownerId: _userId, auth: McpServerAuth.oAuth)],
+    );
+    await _pumpPage(tester, api);
+
+    await _choose(tester, _searchId, 'signInAgain');
+
+    expect(api.last<ApiAuthorizeMcpServerAction>().id, UuidValue.fromString(_searchId));
+    await _expectSnackBar(tester, 'Signed in to search.');
+  });
+
+  testWidgets('only servers signed in to with OAuth offer to sign in again', (tester) async {
+    final api = _FakeApi(
+      servers: [fakeMcpServer(id: _searchId, ownerId: _userId, auth: McpServerAuth.token, tokenHint: '1234')],
+    );
+    await _pumpPage(tester, api);
+
+    await tester.tap(find.byKey(const ValueKey('mcpServers.$_searchId.menu')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('mcpServers.$_searchId.refresh')), findsOneWidget);
+    expect(find.byKey(const ValueKey('mcpServers.$_searchId.signInAgain')), findsNothing);
+  });
+
+  testWidgets('closing the browser cancels signing in without a message', (tester) async {
+    final api = _FakeApi(
+      servers: [fakeMcpServer(id: _searchId, ownerId: _userId, status: McpServerStatus.authorizationRequired, tools: const [])],
+    );
+    await _pumpPage(tester, api, signIn: _FakeSignIn(callback: null));
+
+    await tester.tap(find.byKey(const ValueKey('mcpServers.$_searchId.signIn')));
+    await tester.pumpAndSettle();
+
+    expect(api.actions.whereType<ApiCompleteMcpAuthorizationAction>(), isEmpty);
+    expect(find.byType(SnackBar), findsNothing);
+    final button = tester.widget<FilledButton>(find.byKey(const ValueKey('mcpServers.$_searchId.signIn')));
+    expect(button.onPressed, isNotNull);
+  });
+
+  testWidgets('a sign-in that fails or is denied says why', (tester) async {
+    final api = _FakeApi(
+      servers: [fakeMcpServer(id: _searchId, ownerId: _userId, status: McpServerStatus.authorizationRequired, tools: const [])],
+    );
+    final signIn = _FakeSignIn();
+    await _pumpPage(tester, api, signIn: signIn);
+    final button = find.byKey(const ValueKey('mcpServers.$_searchId.signIn'));
+
+    Future<void> expectSignIn(String message) async {
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      await _expectSnackBar(tester, message);
+    }
+
+    // Starting it: the API's own message, which tells e.g. that the server does not support signing in.
+    api.authorizeError = apiError(ErrorCode.authFailed, status: 422, message: 'The server does not support signing in with OAuth');
+    await expectSignIn('Could not start the sign-in: The server does not support signing in with OAuth');
+    api.authorizeError = null;
+
+    signIn.error = PlatformException(code: 'FAILED');
+    await expectSignIn('Could not open the sign-in page.');
+    signIn.error = null;
+
+    // What the authorization server sent back.
+    signIn.callback = {'error': 'access_denied', 'state': 'state-1'};
+    await expectSignIn('The sign-in was cancelled or denied.');
+    signIn.callback = {'error': 'invalid_scope', 'error_description': 'Unknown scope'};
+    await expectSignIn('The server reported an error: Unknown scope');
+    signIn.callback = {'state': 'state-1', 'code': ''};
+    await expectSignIn('The response to the sign-in is incomplete. Please sign in again.');
+    expect(api.actions.whereType<ApiCompleteMcpAuthorizationAction>(), isEmpty);
+
+    // Completing it.
+    signIn.callback = {'state': 'state-1', 'code': 'code-1'};
+    api.completeError = apiError(ErrorCode.notFound, status: 404);
+    await expectSignIn('The sign-in has expired or was already completed. Please sign in again.');
+    expect(api.last<ApiCompleteMcpAuthorizationAction>().request.iss, isNull);
+    api.completeError = apiError(ErrorCode.authFailed, status: 422, message: 'Signing in failed: invalid_grant');
+    await expectSignIn('Could not complete the sign-in: Signing in failed: invalid_grant');
+    expect(find.byKey(const ValueKey('mcpServers.$_searchId.signInRequired')), findsOneWidget);
+  });
+
+  testWidgets('the local instance shares no servers', (tester) async {
     final api = _FakeApi(
       servers: [fakeMcpServer(id: _searchId, ownerId: _userId, status: McpServerStatus.authorizationRequired, tools: const [])],
     );
     await _pumpPage(tester, api, local: true);
 
-    final warning = find.byKey(const ValueKey('mcpServers.$_searchId.signIn'));
-    expect(find.descendant(of: warning, matching: find.textContaining('which the app does not support yet.')), findsOneWidget);
-    expect(find.descendant(of: warning, matching: find.textContaining('web interface')), findsNothing);
+    expect(find.byKey(const ValueKey('mcpServers.$_searchId.signIn')), findsOneWidget);
     expect(find.byKey(const ValueKey('mcpServers.$_searchId.sharing')), findsNothing);
     expect(find.byKey(const ValueKey('mcpServers.$_searchId.menu')), findsOneWidget);
   });
@@ -444,7 +604,7 @@ void main() {
     expect(find.textContaining('Token •••• 1234'), findsOneWidget);
   });
 
-  testWidgets('a server of the user\'s own name is added by its URL, and one that asks to sign in says so', (tester) async {
+  testWidgets('a server of the user\'s own name is added by its URL, and one that asks to sign in offers it', (tester) async {
     final api = _FakeApi(servers: const [])..createdStatus = McpServerStatus.authorizationRequired;
     await _pumpPage(tester, api);
 
@@ -470,8 +630,15 @@ void main() {
     final request = (api.actions.single as ApiCreateMcpServerAction).request;
     expect(request.name, 'Notes');
     expect(request.token, isNull);
-    expect(find.text('Server added. It asks you to sign in, which the app does not support yet.'), findsOneWidget);
-    expect(find.byKey(const ValueKey('mcpServers.$_newId.signIn')), findsOneWidget);
+    expect(find.text('Server added.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('mcpServers.$_newId.signInRequired')), findsOneWidget);
+    expect(find.text('Sign in to Notes?'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('mcpServers.signIn.confirm')));
+    await tester.pumpAndSettle();
+
+    expect(api.last<ApiAuthorizeMcpServerAction>().id, UuidValue.fromString(_newId));
+    expect(find.text('Signed in to Notes.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('mcpServers.$_newId.signInRequired')), findsNothing);
   });
 
   testWidgets('a server that cannot be reached is not added, and the form tells why', (tester) async {

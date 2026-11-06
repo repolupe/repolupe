@@ -2642,16 +2642,8 @@ class Translations$flutter$mcpServers$page$en {
 
   // Translations
 
-  /// en: 'The server asks you to sign in before its tools can be used, which the app does not support yet. If it does not support sign-in, delete it and add it again with a token.'
-  String get signInUnsupported =>
-      'The server asks you to sign in before its tools can be used, which the app does not support yet. If it does not support sign-in, delete it and add it again with a token.';
-
-  /// en: 'The server asks you to sign in before its tools can be used, which the app does not support yet. Sign in in the web interface, or, if the server does not support sign-in, delete it and add it again with a token.'
-  String get signInUnsupportedWeb =>
-      'The server asks you to sign in before its tools can be used, which the app does not support yet. Sign in in the web interface, or, if the server does not support sign-in, delete it and add it again with a token.';
-
-  /// en: 'Server added. It asks you to sign in, which the app does not support yet.'
-  String get createdSignIn => 'Server added. It asks you to sign in, which the app does not support yet.';
+  /// en: 'Could not open the sign-in page.'
+  String get signInBrowserFailed => 'Could not open the sign-in page.';
 }
 
 // Path: flutter.mcpServers.form

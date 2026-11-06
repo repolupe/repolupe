@@ -22,8 +22,8 @@ use repolupe::dto::llm::{
     UpdateLlmProviderRequest,
 };
 use repolupe::dto::mcp::{
-    AddMcpServerUserRequest, CreateMcpServerRequest, UpdateMcpServerRequest,
-    UpdateMcpServerUserRequest,
+    AddMcpServerUserRequest, AuthorizeMcpServerRequest, CreateMcpServerRequest,
+    McpAuthorizationCallbackRequest, UpdateMcpServerRequest, UpdateMcpServerUserRequest,
 };
 use repolupe::dto::repository::{
     AddRepositoryUserRequest, CreateRepositoryRequest, RemoteSettings, RemoteSettingsChange,
@@ -495,6 +495,25 @@ fn every_method_reaches_its_route() {
         (
             "refresh_mcp_server",
             api_code(block_on(client.refresh_mcp_server(id()))),
+        ),
+        (
+            "authorize_mcp_server",
+            api_code(block_on(client.authorize_mcp_server(
+                id(),
+                AuthorizeMcpServerRequest {
+                    redirect_uri: "http://localhost:4242/callback".into(),
+                },
+            ))),
+        ),
+        (
+            "complete_mcp_authorization",
+            api_code(block_on(client.complete_mcp_authorization(
+                McpAuthorizationCallbackRequest {
+                    state: "state".into(),
+                    code: "code".into(),
+                    iss: None,
+                },
+            ))),
         ),
         (
             "list_mcp_server_users",
