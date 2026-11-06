@@ -470,9 +470,16 @@ export function totalTokens(usage: UsageDto): number {
     return usage.input_tokens + usage.cache_read_tokens + usage.cache_write_tokens + usage.output_tokens;
 }
 
-/** E.g. "12K" or "1.2M" in the UI's locale. */
+/** E.g. "850 T.", "3.6k T." or "1.2M T.", the same in every language except for the decimal separator. */
 export function formatTokens(tokens: number): string {
-    return new Intl.NumberFormat(formatLocale(), {notation: 'compact', maximumFractionDigits: 1}).format(tokens);
+    const units = ['', 'k', 'M', 'B'];
+    let exponent = 0;
+    // the next unit as soon as the value would round to 1000, e.g. "1M" rather than "1000k"
+    while (exponent < units.length - 1 && Math.abs(tokens) / 1000 ** exponent >= 999.95) {
+        exponent++;
+    }
+    const value = new Intl.NumberFormat(formatLocale(), {maximumFractionDigits: 1}).format(tokens / 1000 ** exponent);
+    return `${value}${units[exponent]} T.`;
 }
 
 /** A price per million tokens with all its decimals, e.g. "$0.075". */

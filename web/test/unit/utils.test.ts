@@ -1,5 +1,6 @@
-import {describe, expect, it} from 'vitest';
-import {dayTime, parseMcpToolName, parseSavedScope} from '~/utils/utils';
+import {afterEach, describe, expect, it} from 'vitest';
+import {dayTime, formatTokens, parseMcpToolName, parseSavedScope} from '~/utils/utils';
+import {setFormatLocale} from '~/utils/i18n';
 
 describe('parseMcpToolName', () => {
     it('splits the server slug and the tool name', () => {
@@ -63,5 +64,27 @@ describe('dayTime', () => {
         expect(dayTime(at(21, 59))).toBe('evening');
         expect(dayTime(at(22))).toBe('night');
         expect(dayTime(at(0))).toBe('night');
+    });
+});
+
+describe('formatTokens', () => {
+    const tokens = [0, 850, 999, 1000, 3600, 12345, 123456, 999949, 999950, 1234567, 2500000000];
+
+    afterEach(() => setFormatLocale('en'));
+
+    it('abbreviates the same in every language', () => {
+        setFormatLocale('en');
+        expect(tokens.map(formatTokens)).toEqual([
+            '0 T.', '850 T.', '999 T.', '1k T.', '3.6k T.', '12.3k T.', '123.5k T.', '999.9k T.', '1M T.', '1.2M T.',
+            '2.5B T.',
+        ]);
+    });
+
+    it('localizes only the decimal separator', () => {
+        setFormatLocale('de');
+        expect(tokens.map(formatTokens)).toEqual([
+            '0 T.', '850 T.', '999 T.', '1k T.', '3,6k T.', '12,3k T.', '123,5k T.', '999,9k T.', '1M T.', '1,2M T.',
+            '2,5B T.',
+        ]);
     });
 });

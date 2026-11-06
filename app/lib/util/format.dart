@@ -44,11 +44,16 @@ String formatDuration(Duration duration) {
 /// E.g. `12,345`.
 String formatCount(int count) => NumberFormat.decimalPattern().format(count);
 
-/// E.g. `12.3K` or `1.2M`, or `12.345` in German, which abbreviates only millions (like the web's).
+/// E.g. `850 T.`, `3.6k T.` or `1.2M T.`, the same in every language except for the decimal separator (like the web's).
 String formatTokens(int tokens) {
-  final compact = (NumberFormat.compact()..maximumFractionDigits = 1).format(tokens);
-  // intl doesn't group the digits of a number it doesn't abbreviate
-  return compact == tokens.toString() ? formatCount(tokens) : compact;
+  const units = ['', 'k', 'M', 'B'];
+  var exponent = 0;
+  // the next unit as soon as the value would round to 1000, e.g. `1M` rather than `1000k`
+  while (exponent < units.length - 1 && tokens.abs() / pow(1000, exponent) >= 999.95) {
+    exponent++;
+  }
+  final value = NumberFormat('#,##0.#').format(tokens / pow(1000, exponent));
+  return '$value${units[exponent]} T.';
 }
 
 /// E.g. `Oct 21, 2026 2:05 PM`, in the device's time zone.
