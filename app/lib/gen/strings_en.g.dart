@@ -909,6 +909,21 @@ class Translations$base$chat$startPage$en {
 
   // Translations
 
+  /// en: 'What would you like to know?'
+  String get greeting => 'What would you like to know?';
+
+  /// en: 'Hello {name}'
+  String greetingNight({required Object name}) => 'Hello ${name}';
+
+  /// en: 'Good morning {name}'
+  String greetingMorning({required Object name}) => 'Good morning ${name}';
+
+  /// en: 'Good afternoon {name}'
+  String greetingDay({required Object name}) => 'Good afternoon ${name}';
+
+  /// en: 'Good evening {name}'
+  String greetingEvening({required Object name}) => 'Good evening ${name}';
+
   /// en: 'The repositories could not be loaded.'
   String get loadFailed => 'The repositories could not be loaded.';
 

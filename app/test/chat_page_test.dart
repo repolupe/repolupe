@@ -2,12 +2,16 @@ import 'package:app/gen/strings.g.dart';
 import 'package:app/pages/chat_page.dart';
 import 'package:app/service/api_service.dart';
 import 'package:app/service/chat_service.dart';
+import 'package:app/service/me_service.dart';
 import 'package:app/service/persistence_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/error.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/instance.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/mcp.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
+import 'package:app/widget/chat/greeting_hero.dart';
 import 'package:app/widget/chat/message_input.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +20,7 @@ import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import 'support/api.dart';
+import 'support/fake_user.dart';
 import 'support/rust.dart';
 
 const _userId = '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12';
@@ -55,9 +60,10 @@ List<MessageDto> _messages(String question) => [
   ),
 ];
 
-/// The chat page in a window of [size], with the saved chat listed. A new chat is titled after its question and
-/// listed first from then on. The panel was hidden before unless [panelVisible].
-Future<RefenaContainer> _pumpChatPage(WidgetTester tester, Size size, {bool panelVisible = true}) async {
+/// The chat page in a window of [size] on the server `Acme Docs`, with the saved chat listed. A new chat is titled
+/// after its question and listed first from then on. The panel was hidden before unless [panelVisible]. The [user] is
+/// loaded, if given.
+Future<RefenaContainer> _pumpChatPage(WidgetTester tester, Size size, {bool panelVisible = true, UserDto? user}) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -67,6 +73,8 @@ Future<RefenaContainer> _pumpChatPage(WidgetTester tester, Size size, {bool pane
     final container = await mockContainer(
       account: fakeAccount(userId: _userId),
       api: (mock) {
+        // Async, since the app bar loads it while building.
+        mock.on<ApiGetInstanceAction>((state, action) async => (state, InstanceDto(name: 'Acme Docs')));
         mock.on<ApiListModelsAction>((state, action) => (state, const <ModelDto>[]));
         mock.on<ApiListRepositoriesAction>((state, action) => (state, const <RepositoryDto>[]));
         mock.on<ApiListMcpServersAction>((state, action) => (state, const <McpServerDto>[]));
@@ -85,6 +93,9 @@ Future<RefenaContainer> _pumpChatPage(WidgetTester tester, Size size, {bool pane
       },
     );
     await container.read(persistenceProvider).setChatPanelVisible(panelVisible);
+    if (user != null) {
+      container.redux(meProvider).dispatch(SetMeAction(user));
+    }
     return container;
   }))!;
 
@@ -106,6 +117,12 @@ Future<RefenaContainer> _pumpChatPage(WidgetTester tester, Size size, {bool pane
 
 /// The chat titled [title] in the list of chats.
 Finder _listed(String title) => find.descendant(of: find.byKey(const ValueKey('chat.drawer.chats')), matching: find.text(title));
+
+/// [title] in the chat's app bar.
+Finder _appBarTitle(String title) => find.descendant(of: find.byType(AppBar), matching: find.text(title));
+
+/// An iPhone in portrait.
+const _phone = Size(402, 874);
 
 void main() {
   setUpAll(() async {
@@ -187,5 +204,36 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('chat.drawer')));
     await tester.pumpAndSettle();
     expect(_listed('Saved chat'), findsOneWidget);
+  });
+
+  testWidgets('a new chat greets the user by the time of day and their first name, with the server name as its title', (tester) async {
+    await _pumpChatPage(
+      tester,
+      _phone,
+      user: fakeUser(id: _userId, firstName: 'Alice'),
+    );
+
+    expect(_appBarTitle('Acme Docs'), findsOneWidget);
+    final greeting = switch (DayTime.of(DateTime.now())) {
+      DayTime.night => 'Hello Alice',
+      DayTime.morning => 'Good morning Alice',
+      DayTime.day => 'Good afternoon Alice',
+      DayTime.evening => 'Good evening Alice',
+    };
+    expect(find.text(greeting), findsOneWidget);
+
+    // Once created, the chat has its own title.
+    await tester.enterText(find.byKey(const ValueKey('chat.input')), 'A question');
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('chat.send')));
+    await tester.pumpAndSettle();
+    expect(_appBarTitle('A question'), findsOneWidget);
+    expect(_appBarTitle('Acme Docs'), findsNothing);
+  });
+
+  testWidgets('a new chat asks a user without a first name what they would like to know', (tester) async {
+    await _pumpChatPage(tester, _phone, user: fakeUser(id: _userId));
+
+    expect(find.text('What would you like to know?'), findsOneWidget);
   });
 }

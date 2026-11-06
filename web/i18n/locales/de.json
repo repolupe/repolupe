@@ -138,6 +138,11 @@
     "moveCount": "1 Verschiebung | {count} Verschiebungen",
     "temporary": "Temporärer Chat",
     "startPage": {
+      "greeting": "Was möchtest du wissen?",
+      "greetingNight": "Hallo {name}",
+      "greetingMorning": "Guten Morgen {name}",
+      "greetingDay": "Guten Tag {name}",
+      "greetingEvening": "Guten Abend {name}",
       "loadFailed": "Die Repositories konnten nicht geladen werden.",
       "noModel": "Es ist noch kein Sprachmodell eingerichtet, daher können keine Fragen beantwortet werden.",
       "addProvider": "{link}, um loszulegen.",

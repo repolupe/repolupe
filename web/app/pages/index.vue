@@ -4,7 +4,7 @@
            :icon="temporary ? 'mdi-close' : 'mdi-progress-clock'" :disabled="loading"
            v-tooltip="$t('chat.temporary')" @click="temporary = !temporary"/>
     <div class="new-column">
-      <InstanceHero class="mb-6" :temporary="temporary"/>
+      <GreetingHero class="mb-6" :temporary="temporary"/>
 
       <v-alert v-if="loadFailed" type="error" variant="tonal" class="mb-6">
         {{ $t('chat.startPage.loadFailed') }}
@@ -81,7 +81,7 @@ import MessageInput from "~/components/chat/MessageInput.vue";
 import McpServerScopeSelect from "~/components/chat/McpServerScopeSelect.vue";
 import RepositoryScopeSelect from "~/components/chat/RepositoryScopeSelect.vue";
 import ChatModelSelect from "~/components/chat/ChatModelSelect.vue";
-import InstanceHero from "~/components/chat/InstanceHero.vue";
+import GreetingHero from "~/components/chat/GreetingHero.vue";
 
 const {t} = useI18n();
 const route = useRoute();

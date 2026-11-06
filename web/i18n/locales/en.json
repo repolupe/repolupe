@@ -138,6 +138,11 @@
     "moveCount": "1 move | {count} moves",
     "temporary": "Temporary Chat",
     "startPage": {
+      "greeting": "What would you like to know?",
+      "greetingNight": "Hello {name}",
+      "greetingMorning": "Good morning {name}",
+      "greetingDay": "Good afternoon {name}",
+      "greetingEvening": "Good evening {name}",
       "loadFailed": "The repositories could not be loaded.",
       "noModel": "No language model is configured yet, so questions cannot be answered.",
       "addProvider": "{link} to get started.",

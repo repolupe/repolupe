@@ -830,6 +830,16 @@ class _Translations$base$chat$startPage$de extends Translations$base$chat$startP
 
   // Translations
   @override
+  String get greeting => 'Was möchtest du wissen?';
+  @override
+  String greetingNight({required Object name}) => 'Hallo ${name}';
+  @override
+  String greetingMorning({required Object name}) => 'Guten Morgen ${name}';
+  @override
+  String greetingDay({required Object name}) => 'Guten Tag ${name}';
+  @override
+  String greetingEvening({required Object name}) => 'Guten Abend ${name}';
+  @override
   String get loadFailed => 'Die Repositories konnten nicht geladen werden.';
   @override
   String get noModel => 'Es ist noch kein Sprachmodell eingerichtet, daher können keine Fragen beantwortet werden.';

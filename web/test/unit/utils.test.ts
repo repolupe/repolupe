@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {parseMcpToolName, parseSavedScope} from '~/utils/utils';
+import {dayTime, parseMcpToolName, parseSavedScope} from '~/utils/utils';
 
 describe('parseMcpToolName', () => {
     it('splits the server slug and the tool name', () => {
@@ -47,5 +47,21 @@ describe('parseSavedScope', () => {
         expect(parseSavedScope('{"all":"yes","ids":[]}', ['a'])).toBeNull();
         expect(parseSavedScope('{"all":false,"ids":[1]}', ['a'])).toBeNull();
         expect(parseSavedScope('{"all":false}', ['a'])).toBeNull();
+    });
+});
+
+describe('dayTime', () => {
+    const at = (hour: number, minute = 0) => new Date(2026, 10, 6, hour, minute);
+
+    it('starts each part of the day on the hour, in local time', () => {
+        expect(dayTime(at(4, 59))).toBe('night');
+        expect(dayTime(at(5))).toBe('morning');
+        expect(dayTime(at(11, 59))).toBe('morning');
+        expect(dayTime(at(12))).toBe('day');
+        expect(dayTime(at(17, 59))).toBe('day');
+        expect(dayTime(at(18))).toBe('evening');
+        expect(dayTime(at(21, 59))).toBe('evening');
+        expect(dayTime(at(22))).toBe('night');
+        expect(dayTime(at(0))).toBe('night');
     });
 });

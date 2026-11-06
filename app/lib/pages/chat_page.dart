@@ -5,8 +5,9 @@ import 'package:app/gen/strings.g.dart';
 import 'package:app/service/chat_list_service.dart';
 import 'package:app/service/chat_panel_service.dart';
 import 'package:app/service/chat_service.dart';
+import 'package:app/service/instance_name_provider.dart';
 import 'package:app/widget/app_drawer.dart';
-import 'package:app/widget/chat/instance_hero.dart';
+import 'package:app/widget/chat/greeting_hero.dart';
 import 'package:app/widget/chat/leave_temporary_dialog.dart';
 import 'package:app/widget/chat/message_input.dart';
 import 'package:app/widget/chat/message_list.dart';
@@ -122,8 +123,8 @@ class _Chat extends StatelessWidget {
                       onPressed: () => Scaffold.of(context).openDrawer(),
                     ),
                   ),
-            // A new chat chooses its repositories in the message input.
-            title: chat == null ? null : Text(chat.title, overflow: TextOverflow.ellipsis),
+            // A new chat, which chooses its repositories in the message input, shows the server's name instead.
+            title: chat == null ? const _InstanceName() : Text(chat.title, overflow: TextOverflow.ellipsis),
             actions: [
               if (chat == null)
                 IconButton(
@@ -163,11 +164,26 @@ class _Chat extends StatelessWidget {
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: _maxWidth),
                   child: SafeArea(
-                    child: state.loading ? const Center(child: CircularProgressIndicator()) : InstanceHero(temporary: state.isTemporary),
+                    child: state.loading ? const Center(child: CircularProgressIndicator()) : GreetingHero(temporary: state.isTemporary),
                   ),
                 ),
               ),
       ),
+    );
+  }
+}
+
+/// The server's name (`INSTANCE_NAME`) as the title of a new chat, fading in once loaded.
+class _InstanceName extends StatelessWidget {
+  const _InstanceName();
+
+  @override
+  Widget build(BuildContext context) {
+    final instanceName = context.watch(instanceNameProvider).data;
+    return AnimatedOpacity(
+      opacity: instanceName == null ? 0 : 1,
+      duration: const Duration(milliseconds: 250),
+      child: Text(instanceName ?? productName, overflow: TextOverflow.ellipsis),
     );
   }
 }
