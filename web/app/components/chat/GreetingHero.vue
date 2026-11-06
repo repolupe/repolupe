@@ -13,7 +13,6 @@
 import {computed, onBeforeUnmount, onMounted, ref} from "vue";
 import {useI18n} from "#i18n";
 import {useUser} from "~/composables/states";
-import {dayTime, type DayTime} from "~/utils/utils";
 
 defineProps<{
   /** Shows that the chat will be temporary instead of the greeting. */
@@ -23,17 +22,10 @@ defineProps<{
 const {t} = useI18n();
 const user = useUser();
 
-const DAY_TIME_GREETINGS: Record<DayTime, string> = {
-  night: 'chat.startPage.greetingNight',
-  morning: 'chat.startPage.greetingMorning',
-  day: 'chat.startPage.greetingDay',
-  evening: 'chat.startPage.greetingEvening',
-};
-
-/** By the time of day with the user's first name, if they gave one, else asks what they would like to know. */
+/** Hello with the user's first name, if they gave one, else asks what they would like to know. */
 const greeting = computed(() => {
   const name = user.value?.first_name;
-  return name ? t(DAY_TIME_GREETINGS[dayTime(new Date())], {name}) : t('chat.startPage.greeting');
+  return name ? t('chat.startPage.greetingName', {name}) : t('chat.startPage.greeting');
 });
 
 /** The logo and greeting fade in shortly after the page appears. */

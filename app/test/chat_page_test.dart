@@ -12,7 +12,6 @@ import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/mcp.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/user.dart';
-import 'package:app/widget/chat/greeting_hero.dart';
 import 'package:app/widget/chat/message_input.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -317,7 +316,7 @@ void main() {
     expect(find.byKey(const ValueKey('chat.menu')), findsNothing);
   });
 
-  testWidgets('a new chat greets the user by the time of day and their first name, with the server name as its title', (tester) async {
+  testWidgets('a new chat greets the user by their first name, with the server name as its title', (tester) async {
     await _pumpChatPage(
       tester,
       _phone,
@@ -325,13 +324,7 @@ void main() {
     );
 
     expect(_appBarTitle('Acme Docs'), findsOneWidget);
-    final greeting = switch (DayTime.of(DateTime.now())) {
-      DayTime.night => 'Hello Alice',
-      DayTime.morning => 'Good morning Alice',
-      DayTime.day => 'Good afternoon Alice',
-      DayTime.evening => 'Good evening Alice',
-    };
-    expect(find.text(greeting), findsOneWidget);
+    expect(find.text('Hello Alice!'), findsOneWidget);
 
     // Once created, the chat has its own title.
     await tester.enterText(find.byKey(const ValueKey('chat.input')), 'A question');

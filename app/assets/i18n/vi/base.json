@@ -150,10 +150,7 @@
     "temporary": "Đoạn chat tạm thời",
     "startPage": {
       "greeting": "Bạn muốn biết điều gì?",
-      "greetingNight": "Xin chào {name}",
-      "greetingMorning": "Chào buổi sáng {name}",
-      "greetingDay": "Chào buổi chiều {name}",
-      "greetingEvening": "Chào buổi tối {name}",
+      "greetingName": "Xin chào {name}!",
       "loadFailed": "Không thể tải danh sách kho lưu trữ.",
       "noModel": "Chưa có mô hình ngôn ngữ nào được cấu hình nên chưa thể trả lời câu hỏi.",
       "addProvider": "{link} để bắt đầu.",

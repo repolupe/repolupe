@@ -188,21 +188,6 @@ export function charCount(text: string): number {
     return Array.from(text).length;
 }
 
-/** The part of the day a greeting depends on. */
-export type DayTime = 'night' | 'morning' | 'day' | 'evening';
-
-/** In local time: the morning from 5:00, the day from 12:00, the evening from 18:00, the night from 22:00. */
-export function dayTime(date: Date): DayTime {
-    const hour = date.getHours();
-    if (hour < 5 || hour >= 22) {
-        return 'night';
-    }
-    if (hour < 12) {
-        return 'morning';
-    }
-    return hour < 18 ? 'day' : 'evening';
-}
-
 /** E.g. "12 Oct 2026, 14:03" in the UI's locale. */
 export function formatDateTime(iso: string | null): string {
     if (!iso) {

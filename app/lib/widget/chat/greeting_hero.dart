@@ -4,8 +4,8 @@ import 'package:app/widget/app_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
-/// The logo and a greeting, on a new chat: by the time of day with the user's first name, if they gave one, else it asks
-/// what they would like to know. It fades in once the user is loaded, and is replaced by a note while the chat is
+/// The logo and a greeting, on a new chat: hello with the user's first name, if they gave one, else it asks what they
+/// would like to know. It fades in once the user is loaded, and is replaced by a note while the chat is
 /// [temporary]. The [action] is shown below it.
 class GreetingHero extends StatelessWidget {
   final bool temporary;
@@ -21,14 +21,7 @@ class GreetingHero extends StatelessWidget {
     final texts = t.base.chat.startPage;
     final user = context.watch(meProvider);
     final firstName = user?.firstName;
-    final greeting = firstName == null
-        ? texts.greeting
-        : switch (DayTime.of(DateTime.now())) {
-            DayTime.night => texts.greetingNight(name: firstName),
-            DayTime.morning => texts.greetingMorning(name: firstName),
-            DayTime.day => texts.greetingDay(name: firstName),
-            DayTime.evening => texts.greetingEvening(name: firstName),
-          };
+    final greeting = firstName == null ? texts.greeting : texts.greetingName(name: firstName);
     final style = Theme.of(context).textTheme.headlineMedium;
     final action = this.action;
     return Center(
@@ -68,22 +61,6 @@ class GreetingHero extends StatelessWidget {
       ),
     );
   }
-}
-
-/// The part of the day the greeting depends on.
-enum DayTime {
-  night,
-  morning,
-  day,
-  evening;
-
-  /// In [time]'s time zone: the morning from 5:00, the day from 12:00, the evening from 18:00, the night from 22:00.
-  static DayTime of(DateTime time) => switch (time.hour) {
-    < 5 || >= 22 => night,
-    < 12 => morning,
-    < 18 => day,
-    _ => evening,
-  };
 }
 
 const _loadFadeDuration = Duration(milliseconds: 250);

@@ -831,13 +831,7 @@ class _Translations$base$chat$startPage$vi extends Translations$base$chat$startP
   @override
   String get greeting => 'Bạn muốn biết điều gì?';
   @override
-  String greetingNight({required Object name}) => 'Xin chào ${name}';
-  @override
-  String greetingMorning({required Object name}) => 'Chào buổi sáng ${name}';
-  @override
-  String greetingDay({required Object name}) => 'Chào buổi chiều ${name}';
-  @override
-  String greetingEvening({required Object name}) => 'Chào buổi tối ${name}';
+  String greetingName({required Object name}) => 'Xin chào ${name}!';
   @override
   String get loadFailed => 'Không thể tải danh sách kho lưu trữ.';
   @override
