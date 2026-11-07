@@ -1,3 +1,10 @@
+## 1.1.2 (2026-11-07)
+
+- feat: search older chats
+- feat(app): MCP servers can be added, changed, shared and signed in to in the app
+- feat(app): rename and delete chats from the chat page menu
+- feat(app): "This Device" opens the chat after the first start, with a button to add an LLM provider instead of the LLM settings
+
 ## 1.1.1 (2026-11-06)
 
 - feat: the model can search all repositories of a chat at once
