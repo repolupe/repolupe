@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:app/gen/strings.g.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:logging/logging.dart';
@@ -15,7 +16,7 @@ final _logger = Logger('MarkdownContent');
 const _linkSchemes = {'http', 'https', 'mailto', 'tel'};
 
 /// Links open outside the app. A table's columns are as wide as their content, and a wide table scrolls sideways,
-/// unless [scrollTables] is off.
+/// unless [scrollTables] is off and it fits once its columns are narrowed down.
 class MarkdownContent extends StatelessWidget {
   final String content;
 
@@ -24,7 +25,8 @@ class MarkdownContent extends StatelessWidget {
   final double horizontalPadding;
 
   /// Whether a wide table scrolls sideways. Otherwise every table fills the width, each column as wide as its content
-  /// plus an equal share of the rest, or, if the table is too wide, narrowed down to its longest word.
+  /// plus an equal share of the rest, or, if the table is too wide, narrowed down to its longest word. A table that is
+  /// too wide even then still scrolls.
   final bool scrollTables;
 
   const MarkdownContent({super.key, required this.content, this.horizontalPadding = 0, this.scrollTables = true});
@@ -70,7 +72,7 @@ class MarkdownContent extends StatelessWidget {
 }
 
 /// A [MarkdownBody] with [horizontalPadding] at the sides of its blocks, which its tables scroll through if
-/// [scrollTables] is on, and otherwise fill.
+/// [scrollTables] is on, and otherwise fill if they fit.
 class _MarkdownBody extends MarkdownBody {
   final double horizontalPadding;
   final bool scrollTables;
@@ -95,8 +97,7 @@ class _MarkdownBody extends MarkdownBody {
         else if (scrollTables)
           _ScrollingTable(padding: padding, child: block)
         else
-          // Since no column flexes, Table gives each an equal share of the width it must fill beyond its content.
-          padded(SizedBox(width: double.infinity, child: block)),
+          _FillingTable(padding: padding, child: block),
     ]);
   }
 }
@@ -159,6 +160,81 @@ class _ScrollingTableState extends State<_ScrollingTable> {
         child: widget.child,
       ),
     );
+  }
+}
+
+/// A table that fills the width between the padding, its columns narrowed down to their longest word if needed. If it
+/// is too wide even then, it scrolls sideways like a [_ScrollingTable], rather than being cut off.
+class _FillingTable extends StatelessWidget {
+  final EdgeInsets padding;
+  final Widget child;
+
+  const _FillingTable({required this.padding, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => _ScrollingTable(
+        padding: padding,
+        // Since no column flexes, Table gives each an equal share of the width it must fill beyond its content.
+        child: _AtLeastMinWidth(width: constraints.maxWidth - padding.horizontal, child: child),
+      ),
+    );
+  }
+}
+
+/// Lays its child out [width] wide, or at its minimum intrinsic width if that is wider. A table laid out narrower than
+/// that keeps its columns at their minimum, and so is cut off.
+class _AtLeastMinWidth extends SingleChildRenderObjectWidget {
+  final double width;
+
+  const _AtLeastMinWidth({required this.width, super.child});
+
+  @override
+  _RenderAtLeastMinWidth createRenderObject(BuildContext context) => _RenderAtLeastMinWidth(width);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderAtLeastMinWidth renderObject) {
+    renderObject.width = width;
+  }
+}
+
+class _RenderAtLeastMinWidth extends RenderProxyBox {
+  double _width;
+
+  _RenderAtLeastMinWidth(this._width);
+
+  set width(double value) {
+    if (value != _width) {
+      _width = value;
+      markNeedsLayout();
+    }
+  }
+
+  BoxConstraints _childConstraints(RenderBox child, BoxConstraints constraints) =>
+      constraints.tighten(width: max(_width, child.getMinIntrinsicWidth(double.infinity)));
+
+  @override
+  double computeMinIntrinsicWidth(double height) => child == null ? 0 : max(_width, child!.getMinIntrinsicWidth(height));
+
+  @override
+  double computeMaxIntrinsicWidth(double height) => computeMinIntrinsicWidth(height);
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) {
+    final child = this.child;
+    return child == null ? constraints.smallest : child.getDryLayout(_childConstraints(child, constraints));
+  }
+
+  @override
+  void performLayout() {
+    final child = this.child;
+    if (child == null) {
+      size = constraints.smallest;
+      return;
+    }
+    child.layout(_childConstraints(child, constraints), parentUsesSize: true);
+    size = child.size;
   }
 }
 
