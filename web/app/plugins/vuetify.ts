@@ -13,7 +13,8 @@ export default defineNuxtPlugin({
     setup(app) {
         const vuetify = createVuetify({
             // secondary is the page background, navigation the drawer and app bar (with the white logo),
-            // temporary the page background of a new temporary chat
+            // temporary the page background of a new temporary chat, user-message the user's messages (light in the
+            // light theme and dark in the dark one, so their text keeps the theme's text color)
             theme: {
                 defaultTheme: readThemeMode(),
                 themes: {
@@ -24,6 +25,7 @@ export default defineNuxtPlugin({
                             secondary: '#f0f2f5',
                             navigation: '#00002b',
                             temporary: '#e4e3f7',
+                            'user-message': '#d5d8ff',
                         },
                     },
                     dark: {
@@ -35,6 +37,7 @@ export default defineNuxtPlugin({
                             surface: '#1f1f25',
                             navigation: '#0c0c26',
                             temporary: '#211a33',
+                            'user-message': '#3d4279',
                         },
                     },
                 },

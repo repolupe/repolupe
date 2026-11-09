@@ -6,7 +6,7 @@
       <span class="text-truncate">{{ props.message.attachment.file_name }}</span>
       <span class="text-medium-emphasis ml-2 text-no-wrap">{{ formatBytes(props.message.attachment.size) }}</span>
     </v-chip>
-    <div v-if="props.message.content.trim()" class="user-message bg-primary"
+    <div v-if="props.message.content.trim()" class="user-message bg-user-message"
          :title="formatDateTime(props.message.created_at)">{{ props.message.content }}</div>
   </div>
 </template>
