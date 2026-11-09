@@ -577,7 +577,7 @@ async function route(method: 'GET' | 'POST', route: string, body: Record<string,
 
     if (method === 'GET') {
         if (route === 'instance') return {name: 'Repolupe'};
-        // always logged in: the logout is in the settings, which the demo doesn't have
+        // always logged in: the demo's settings have no logout
         if (route === 'me') return USER;
         if (route === 'models') return MODELS;
         if (route === 'repositories') return REPOSITORIES;

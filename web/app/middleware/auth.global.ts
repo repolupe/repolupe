@@ -9,7 +9,7 @@ import {DEMO} from "~/utils/demo";
  * users to `/login`, logged-in users away from it, users who must change their password to `/change-password` (and
  * the others away from it), non-admins away from `/settings/admin`, and users who cannot manage repositories away
  * from `/settings/repositories`. Users who cannot manage MCP servers still see theirs and the ones shared with them,
- * since they decide whether to use the shared ones. The demo has no settings.
+ * since they decide whether to use the shared ones. The demo has only the settings page itself, for the theme mode.
  */
 export default defineNuxtRouteMiddleware(async (to) => {
     const user = useUser();
@@ -36,8 +36,8 @@ export default defineNuxtRouteMiddleware(async (to) => {
         return navigateTo(user.value.must_change_password ? '/change-password' : '/');
     }
 
-    if (DEMO && to.path.startsWith('/settings')) {
-        return navigateTo('/');
+    if (DEMO && to.path.startsWith('/settings/')) {
+        return navigateTo('/settings');
     }
 
     if (to.path.startsWith('/settings/admin') && user.value.role !== UserRole.ADMIN) {

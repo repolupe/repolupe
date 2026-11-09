@@ -53,8 +53,7 @@
         </v-list-item>
       </v-list>
 
-      <!-- the demo has no settings -->
-      <template v-if="!DEMO" v-slot:append>
+      <template v-slot:append>
         <v-list density="compact" nav>
           <!-- also highlighted on the subpages, which are not nested routes of the page -->
           <v-list-item to="/settings" :title="$t('settings.title')" prepend-icon="mdi-cog"
@@ -73,7 +72,6 @@ import {useDisplay} from "vuetify";
 import {useRoute} from "#app";
 import {useChats, useFilePresented, useOlderChatsCursor, useUser} from "~/composables/states";
 import InstanceTitle from "~/components/InstanceTitle.vue";
-import {DEMO} from "~/utils/demo";
 
 const user = useUser();
 const chats = useChats();

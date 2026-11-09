@@ -17,25 +17,28 @@
       </v-list>
     </v-card>
 
-    <div class="mt-12 mb-4 ml-4 ml-sm-0">{{ $t('settings.page.user') }}</div>
-    <v-card>
-      <v-list lines="two">
-        <v-list-item v-for="p in pagesVisible" :key="p.route" :to="p.route" :title="p.label" :subtitle="p.state"
-                     :prepend-icon="p.icon" append-icon="mdi-chevron-right"/>
-      </v-list>
-    </v-card>
-
-    <template v-if="user?.role === UserRole.ADMIN">
-      <div class="mt-12 mb-4 ml-4 ml-sm-0">{{ $t('settings.page.admin') }}</div>
+    <!-- the demo has only the theme mode, the rest needs the API -->
+    <template v-if="!DEMO">
+      <div class="mt-12 mb-4 ml-4 ml-sm-0">{{ $t('settings.page.user') }}</div>
       <v-card>
-        <v-list>
-          <v-list-item v-for="p in adminPages" :key="p.route" :to="p.route" :title="p.label"
+        <v-list lines="two">
+          <v-list-item v-for="p in pagesVisible" :key="p.route" :to="p.route" :title="p.label" :subtitle="p.state"
                        :prepend-icon="p.icon" append-icon="mdi-chevron-right"/>
         </v-list>
       </v-card>
-    </template>
 
-    <v-btn @click="doLogout" class="mt-12" color="primary" prepend-icon="mdi-logout" :text="$t('settings.page.logout')"/>
+      <template v-if="user?.role === UserRole.ADMIN">
+        <div class="mt-12 mb-4 ml-4 ml-sm-0">{{ $t('settings.page.admin') }}</div>
+        <v-card>
+          <v-list>
+            <v-list-item v-for="p in adminPages" :key="p.route" :to="p.route" :title="p.label"
+                         :prepend-icon="p.icon" append-icon="mdi-chevron-right"/>
+          </v-list>
+        </v-card>
+      </template>
+
+      <v-btn @click="doLogout" class="mt-12" color="primary" prepend-icon="mdi-logout" :text="$t('settings.page.logout')"/>
+    </template>
   </MainContainer>
 </template>
 
@@ -47,6 +50,7 @@ import {useUser} from "~/composables/states";
 import {getMcpServers, getModels, getRepositories, logout} from "~/utils/api";
 import {type ModelDto, UserRole} from "~/utils/model";
 import {THEME_MODE_ICONS, ThemeMode, writeThemeMode} from "~/utils/theme";
+import {DEMO} from "~/utils/demo";
 import MainContainer from "~/components/MainContainer.vue";
 
 const {t} = useI18n();
@@ -148,6 +152,9 @@ const adminPages = computed(() => [
 
 // The states are only a summary, a failed request leaves them out instead of showing an error.
 onMounted(() => {
+  if (DEMO) {
+    return;
+  }
   if (user.value?.can_manage_repositories) {
     getRepositories().then(r => repositoryCount.value = r.length).catch(() => {});
   }
