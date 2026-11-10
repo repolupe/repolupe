@@ -155,11 +155,16 @@ mod tests {
                 format!("started {} {}", tool_call.name, name(&tool_call.status))
             }
             MessageEvent::ToolCallFinished { tool_call } => {
-                format!("finished {}", name(&tool_call.status))
+                format!(
+                    "finished {} {:?}",
+                    name(&tool_call.status),
+                    tool_call.duration_ms
+                )
             }
             MessageEvent::Usage { update } => format!(
-                "usage {} {:?}",
+                "usage {} {:?} {:?}",
                 update.usage.output_tokens,
+                update.response_ms,
                 update.cost.as_ref().map(|cost| &cost.amount)
             ),
             MessageEvent::Done { message } => {
@@ -190,6 +195,7 @@ mod tests {
             "created_at": "2026-10-20T10:00:00Z",
             "finished_at": null,
             "usage": null,
+            "response_ms": null,
             "cost": null,
             "attachment": null,
         })
@@ -208,9 +214,10 @@ mod tests {
             "status": "RUNNING",
             "created_at": "2026-10-20T10:00:01Z",
         });
-        let finished = json!({"id": id, "status": "COMPLETED"});
+        let finished = json!({"id": id, "status": "COMPLETED", "duration_ms": 120});
         let usage = json!({
             "usage": {"input_tokens": 10, "output_tokens": 2, "cache_read_tokens": 0, "cache_write_tokens": 0},
+            "response_ms": 1500,
             "cost": {"amount": "0.00006", "currency": "USD"},
         });
         let snapshot = message("GENERATING", "");
@@ -235,9 +242,9 @@ mod tests {
 
     const ANSWER: [&str; 7] = [
         r#"snapshot GENERATING """#,
-        r#"usage 2 Some("0.00006")"#,
+        r#"usage 2 Some(1500) Some("0.00006")"#,
         "started read_attachment RUNNING",
-        "finished COMPLETED",
+        "finished COMPLETED Some(120)",
         r#"delta "Hällo""#,
         r#"delta " 😀""#,
         r#"done COMPLETED "Hällo 😀""#,
@@ -256,6 +263,17 @@ mod tests {
                 .collect();
             assert_eq!(events(chunks), ANSWER, "chunks of {size}");
         }
+    }
+
+    #[test]
+    fn decodes_usage_of_older_servers() {
+        // From before the time of the responses was measured.
+        let usage = json!({
+            "usage": {"input_tokens": 10, "output_tokens": 2, "cache_read_tokens": 0, "cache_write_tokens": 0},
+            "cost": null,
+        });
+        let chunks = vec![Ok(Bytes::from(format!("event: usage\ndata: {usage}\n\n")))];
+        assert_eq!(events(chunks), ["usage 2 None None"]);
     }
 
     #[test]

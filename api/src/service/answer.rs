@@ -25,6 +25,7 @@ use chrono::{DateTime, FixedOffset, Offset, Utc};
 use futures_util::StreamExt;
 use futures_util::future::join_all;
 use std::fmt::Write;
+use std::time::Instant;
 use uuid::Uuid;
 
 /// Model responses with tool calls per answer. The last one gets errors instead of results,
@@ -125,8 +126,9 @@ async fn run(
             messages: &messages,
             tools: &definitions,
         };
+        let started = Instant::now();
         let response = stream_response(state, generation, llm, &request, new_paragraph).await?;
-        generation.add_usage(&response.usage)?;
+        generation.add_usage(&response.usage, started.elapsed())?;
 
         let tool_uses: Vec<ToolUse> = response.tool_uses().cloned().collect();
         match response.stop_reason {
@@ -331,22 +333,26 @@ async fn run_tools(
         calls.push((id, tool_use, repository_id, invocation));
     }
 
+    // Each call is timed on its own, since they all finish when the slowest one does.
     let outputs = join_all(calls.iter().map(|(_, _, _, invocation)| async move {
-        match invocation {
+        let started = Instant::now();
+        let output = match invocation {
             Ok(invocation) => invocation.run().await,
             Err(message) => ToolOutput::error(message.clone()),
-        }
+        };
+        (output, started.elapsed())
     }))
     .await;
 
     let mut results = Vec::with_capacity(calls.len());
-    for ((id, tool_use, repository_id, _), output) in calls.iter().zip(outputs) {
+    for ((id, tool_use, repository_id, _), (output, duration)) in calls.iter().zip(outputs) {
         generation
             .finish_tool_call(
                 &state.db,
                 *id,
                 &output.content,
                 output.is_error,
+                duration,
                 output.change.as_ref(),
             )
             .await?;
@@ -680,6 +686,7 @@ mod tests {
             output_tokens: None,
             cache_read_tokens: None,
             cache_write_tokens: None,
+            response_ms: None,
             cost: None,
             cost_currency: None,
         }

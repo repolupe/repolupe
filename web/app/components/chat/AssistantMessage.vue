@@ -46,7 +46,10 @@
           {{ $t('chat.assistantMessage.toolCount', toolCount) }}
         </button>
         <span v-if="toolCount && (duration || props.message.usage)" class="mx-2">•</span>
-        <span v-if="duration" class="tabular">{{ duration }}</span>
+        <button v-if="duration" type="button" class="footer-link tabular"
+                :title="$t('chat.assistantMessage.showDuration')" @click="emit('open-duration')">
+          {{ duration }}
+        </button>
         <span v-if="duration && props.message.usage" class="mx-2">•</span>
         <!-- The cost, or the total tokens if the model has no prices. Opens the usage, so only shown with one. -->
         <button v-if="props.message.usage" type="button" class="footer-link tabular"
@@ -98,6 +101,7 @@ const emit = defineEmits<{
   (e: 'retry'): void,
   (e: 'open-tool-calls'): void,
   (e: 'open-usage'): void,
+  (e: 'open-duration'): void,
   /** A `present_file_to_user`, `change_file`, `move_files` or `save_attachment` call. */
   (e: 'open-file', toolCall: ToolCallSummaryDto): void,
 }>();

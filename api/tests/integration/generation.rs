@@ -58,6 +58,7 @@ async fn answers_with_tool_call_on_seeded_repository(db: SqlitePool) {
     assert_eq!(tool_calls[0]["status"], "COMPLETED");
     assert_eq!(tool_calls[0]["repository_id"], json!(repo.id));
     assert_eq!(tool_calls[0]["commit_sha"], repo.commit_sha);
+    assert!(tool_calls[0]["duration_ms"].is_u64(), "{answer}");
 
     // The second request carries the file, read from the seeded commit, after the preamble
     // that was dropped from the answer
@@ -324,6 +325,7 @@ async fn records_usage_and_cost_of_all_rounds(db: SqlitePool) {
         answer["usage"],
         json!({"input_tokens": 2, "output_tokens": 2, "cache_read_tokens": 0, "cache_write_tokens": 0})
     );
+    assert!(answer["response_ms"].is_u64(), "{answer}");
     // (2 * 3 + 2 * 15.50) / 1M
     assert_eq!(
         answer["cost"],
@@ -347,6 +349,7 @@ async fn records_usage_and_cost_of_all_rounds(db: SqlitePool) {
         .await;
     assert_eq!(status, StatusCode::CREATED, "{body}");
     assert_eq!(body[1]["usage"], json!(null));
+    assert_eq!(body[1]["response_ms"], json!(null));
     let answer = alice.wait_for_answer(id).await;
     assert_eq!(answer["usage"]["input_tokens"], 1, "{answer}");
     assert_eq!(answer["cost"], json!(null));
@@ -386,20 +389,30 @@ async fn streams_the_usage_after_each_round(db: SqlitePool) {
     assert_eq!(name, "snapshot");
     assert_eq!(snapshot["usage"], json!(null), "{snapshot}");
     assert_eq!(snapshot["cost"], json!(null), "{snapshot}");
+    assert_eq!(snapshot["response_ms"], json!(null), "{snapshot}");
     // Each response uses 1 input and 1 output token, the totals so far are sent after each
-    let updates: Vec<&Value> = events
+    let mut updates: Vec<Value> = events
         .iter()
         .filter(|(name, _)| name == "usage")
-        .map(|(_, data)| data)
+        .map(|(_, data)| data.clone())
         .collect();
+    // The time of the responses so far, which only grows
+    let response_ms: Vec<u64> = updates
+        .iter_mut()
+        .map(|update| {
+            let ms = update.as_object_mut().unwrap().remove("response_ms");
+            ms.and_then(|ms| ms.as_u64()).expect("response_ms")
+        })
+        .collect();
+    assert!(response_ms[0] <= response_ms[1], "{response_ms:?}");
     assert_eq!(
         updates,
         [
-            &json!({
+            json!({
                 "usage": {"input_tokens": 1, "output_tokens": 1, "cache_read_tokens": 0, "cache_write_tokens": 0},
                 "cost": {"amount": "0.0000185", "currency": "EUR"},
             }),
-            &json!({
+            json!({
                 "usage": {"input_tokens": 2, "output_tokens": 2, "cache_read_tokens": 0, "cache_write_tokens": 0},
                 "cost": {"amount": "0.000037", "currency": "EUR"},
             }),
@@ -412,6 +425,7 @@ async fn streams_the_usage_after_each_round(db: SqlitePool) {
     assert_eq!(done["status"], "COMPLETED", "{done}");
     assert_eq!(done["usage"], updates[1]["usage"]);
     assert_eq!(done["cost"], updates[1]["cost"]);
+    assert_eq!(done["response_ms"], response_ms[1]);
 }
 
 #[sqlx::test]
@@ -452,11 +466,14 @@ async fn snapshot_has_the_usage_so_far(db: SqlitePool) {
     let (snapshot, done) = (&events[0].1, &events[1].1);
     assert_eq!(snapshot["status"], "GENERATING", "{snapshot}");
     assert_eq!(snapshot["usage"], usage, "{snapshot}");
+    assert!(snapshot["response_ms"].is_u64(), "{snapshot}");
     // No prices, so no cost
     assert_eq!(snapshot["cost"], json!(null), "{snapshot}");
     // The response that was cut off reports no tokens
     assert_eq!(done["status"], "CANCELLED", "{done}");
     assert_eq!(done["usage"], usage, "{done}");
+    // Nor its time
+    assert_eq!(done["response_ms"], snapshot["response_ms"], "{done}");
 }
 
 #[sqlx::test]

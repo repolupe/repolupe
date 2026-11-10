@@ -25,6 +25,10 @@ pub struct Message {
     pub output_tokens: Option<i64>,
     pub cache_read_tokens: Option<i64>,
     pub cache_write_tokens: Option<i64>,
+    /// How long the responses of the language model took in milliseconds, from sending each
+    /// request to its last token, summed over the tool loop. Known when the tokens are, except
+    /// for answers from before it was measured.
+    pub response_ms: Option<i64>,
     /// In `cost_currency`, at the prices when the answer finished. `None` if the model had no
     /// prices or the tokens are unknown.
     pub cost: Option<Text<Decimal>>,

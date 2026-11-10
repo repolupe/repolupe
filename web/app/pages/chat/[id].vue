@@ -48,7 +48,8 @@
                               :retrying="retryingId === message.id" @retry="doRetry(message)"
                               @open-tool-calls="showToolCallListDialog(message)"
                               @open-file="(t) => presentedFile = t"
-                              @open-usage="showUsageDialog(message)"/>
+                              @open-usage="showUsageDialog(message)"
+                              @open-duration="showDurationDialog(message)"/>
           </template>
         </div>
       </div>
@@ -82,6 +83,9 @@
                       :chat-id="chat.id" :repositories="repositories"/>
 
       <UsageDialog ref="usage-dialog" v-model="dialogUsage"/>
+
+      <DurationDialog v-model="dialogDuration" :message="durationMessage"
+                      :model-name="modelNames.get(durationMessage?.model_id ?? '') ?? null"/>
     </div>
 
     <Transition name="file-panel">
@@ -149,6 +153,7 @@ import ToolCallListDialog from "~/components/chat/ToolCallListDialog.vue";
 import PresentedFilePanel from "~/components/chat/panel/PresentedFilePanel.vue";
 import ProposedCommitPanel from "~/components/chat/panel/ProposedCommitPanel.vue";
 import UsageDialog from "~/components/chat/UsageDialog.vue";
+import DurationDialog from "~/components/chat/DurationDialog.vue";
 import RenameChatDialog from "~/components/chat/RenameChatDialog.vue";
 import MessageInput from "~/components/chat/MessageInput.vue";
 import ChatModelSelect from "~/components/chat/ChatModelSelect.vue";
@@ -193,6 +198,10 @@ const toolCallListId = ref<string | null>(null);
 const toolCallListMessage = computed(() => chat.value?.messages.find(m => m.id === toolCallListId.value) ?? null);
 const dialogToolCall = ref(false);
 const dialogUsage = ref(false);
+const dialogDuration = ref(false);
+/** The answer whose duration is shown, by id, like `toolCallListId`. */
+const durationMessageId = ref<string | null>(null);
+const durationMessage = computed(() => chat.value?.messages.find(m => m.id === durationMessageId.value) ?? null);
 
 /** The `present_file_to_user` call whose file, or the `change_file` or `save_attachment` call whose change, is shown next to the chat. */
 const presentedFile = ref<ToolCallSummaryDto | null>(null);
@@ -308,11 +317,13 @@ const applyStreamEvent = (messageId: string, event: MessageStreamEvent) => {
       const toolCall = message.tool_calls.find(t => t.id === event.data.id);
       if (toolCall) {
         toolCall.status = event.data.status;
+        toolCall.duration_ms = event.data.duration_ms;
       }
       break;
     }
     case 'usage':
       message.usage = event.data.usage;
+      message.response_ms = event.data.response_ms;
       message.cost = event.data.cost;
       break;
     case 'done': {
@@ -438,6 +449,7 @@ watch(() => route.params.id, async (id) => {
   dialogToolCall.value = false;
   presentedFile.value = null;
   dialogUsage.value = false;
+  dialogDuration.value = false;
   // `autofocus` covers the first chat; the page is reused for the next ones
   nextTick(() => messageInput.value?.focus());
   await fetchChat(id, true);
@@ -580,6 +592,13 @@ const showToolCallDialog = (toolCall: ToolCallSummaryDto) => {
 const showUsageDialog = (message: MessageDto) => {
   usageDialog.value!.load(message, modelNames.value.get(message.model_id ?? '') ?? null);
   dialogUsage.value = true;
+};
+
+// --- duration ---
+
+const showDurationDialog = (message: MessageDto) => {
+  durationMessageId.value = message.id;
+  dialogDuration.value = true;
 };
 
 // --- rename, model & delete ---

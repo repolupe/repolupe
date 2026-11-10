@@ -4048,7 +4048,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   MessageDto dco_decode_message_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 12) throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    if (arr.length != 13) throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
     return MessageDto(
       id: dco_decode_Uuid(arr[0]),
       role: dco_decode_message_role(arr[1]),
@@ -4060,8 +4060,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       createdAt: dco_decode_Chrono_Utc(arr[7]),
       finishedAt: dco_decode_opt_box_autoadd_Chrono_Utc(arr[8]),
       usage: dco_decode_opt_box_autoadd_usage_dto(arr[9]),
-      cost: dco_decode_opt_box_autoadd_cost_dto(arr[10]),
-      attachment: dco_decode_opt_box_autoadd_attachment_dto(arr[11]),
+      responseMs: dco_decode_opt_box_autoadd_i_64(arr[10]),
+      cost: dco_decode_opt_box_autoadd_cost_dto(arr[11]),
+      attachment: dco_decode_opt_box_autoadd_attachment_dto(arr[12]),
     );
   }
 
@@ -4595,10 +4596,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ToolCallFinishedDto dco_decode_tool_call_finished_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return ToolCallFinishedDto(
       id: dco_decode_Uuid(arr[0]),
       status: dco_decode_tool_call_status(arr[1]),
+      durationMs: dco_decode_opt_box_autoadd_i_64(arr[2]),
     );
   }
 
@@ -4612,7 +4614,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ToolCallSummaryDto dco_decode_tool_call_summary_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7) throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 8) throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return ToolCallSummaryDto(
       id: dco_decode_Uuid(arr[0]),
       name: dco_decode_String(arr[1]),
@@ -4620,7 +4622,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       repositoryId: dco_decode_opt_Uuid(arr[3]),
       commitSha: dco_decode_opt_String(arr[4]),
       status: dco_decode_tool_call_status(arr[5]),
-      createdAt: dco_decode_Chrono_Utc(arr[6]),
+      durationMs: dco_decode_opt_box_autoadd_i_64(arr[6]),
+      createdAt: dco_decode_Chrono_Utc(arr[7]),
     );
   }
 
@@ -4768,10 +4771,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   UsageUpdateDto dco_decode_usage_update_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return UsageUpdateDto(
       usage: dco_decode_usage_dto(arr[0]),
-      cost: dco_decode_opt_box_autoadd_cost_dto(arr[1]),
+      responseMs: dco_decode_opt_box_autoadd_i_64(arr[1]),
+      cost: dco_decode_opt_box_autoadd_cost_dto(arr[2]),
     );
   }
 
@@ -6284,6 +6288,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_createdAt = sse_decode_Chrono_Utc(deserializer);
     var var_finishedAt = sse_decode_opt_box_autoadd_Chrono_Utc(deserializer);
     var var_usage = sse_decode_opt_box_autoadd_usage_dto(deserializer);
+    var var_responseMs = sse_decode_opt_box_autoadd_i_64(deserializer);
     var var_cost = sse_decode_opt_box_autoadd_cost_dto(deserializer);
     var var_attachment = sse_decode_opt_box_autoadd_attachment_dto(deserializer);
     return MessageDto(
@@ -6297,6 +6302,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       createdAt: var_createdAt,
       finishedAt: var_finishedAt,
       usage: var_usage,
+      responseMs: var_responseMs,
       cost: var_cost,
       attachment: var_attachment,
     );
@@ -6912,7 +6918,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_id = sse_decode_Uuid(deserializer);
     var var_status = sse_decode_tool_call_status(deserializer);
-    return ToolCallFinishedDto(id: var_id, status: var_status);
+    var var_durationMs = sse_decode_opt_box_autoadd_i_64(deserializer);
+    return ToolCallFinishedDto(id: var_id, status: var_status, durationMs: var_durationMs);
   }
 
   @protected
@@ -6931,6 +6938,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_repositoryId = sse_decode_opt_Uuid(deserializer);
     var var_commitSha = sse_decode_opt_String(deserializer);
     var var_status = sse_decode_tool_call_status(deserializer);
+    var var_durationMs = sse_decode_opt_box_autoadd_i_64(deserializer);
     var var_createdAt = sse_decode_Chrono_Utc(deserializer);
     return ToolCallSummaryDto(
       id: var_id,
@@ -6939,6 +6947,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       repositoryId: var_repositoryId,
       commitSha: var_commitSha,
       status: var_status,
+      durationMs: var_durationMs,
       createdAt: var_createdAt,
     );
   }
@@ -7069,8 +7078,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   UsageUpdateDto sse_decode_usage_update_dto(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_usage = sse_decode_usage_dto(deserializer);
+    var var_responseMs = sse_decode_opt_box_autoadd_i_64(deserializer);
     var var_cost = sse_decode_opt_box_autoadd_cost_dto(deserializer);
-    return UsageUpdateDto(usage: var_usage, cost: var_cost);
+    return UsageUpdateDto(usage: var_usage, responseMs: var_responseMs, cost: var_cost);
   }
 
   @protected
@@ -8368,6 +8378,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_Chrono_Utc(self.createdAt, serializer);
     sse_encode_opt_box_autoadd_Chrono_Utc(self.finishedAt, serializer);
     sse_encode_opt_box_autoadd_usage_dto(self.usage, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.responseMs, serializer);
     sse_encode_opt_box_autoadd_cost_dto(self.cost, serializer);
     sse_encode_opt_box_autoadd_attachment_dto(self.attachment, serializer);
   }
@@ -8893,6 +8904,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_Uuid(self.id, serializer);
     sse_encode_tool_call_status(self.status, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.durationMs, serializer);
   }
 
   @protected
@@ -8910,6 +8922,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_Uuid(self.repositoryId, serializer);
     sse_encode_opt_String(self.commitSha, serializer);
     sse_encode_tool_call_status(self.status, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.durationMs, serializer);
     sse_encode_Chrono_Utc(self.createdAt, serializer);
   }
 
@@ -9016,6 +9029,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_usage_update_dto(UsageUpdateDto self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usage_dto(self.usage, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.responseMs, serializer);
     sse_encode_opt_box_autoadd_cost_dto(self.cost, serializer);
   }
 

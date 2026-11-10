@@ -391,6 +391,12 @@ class MessageDto {
   /// the language model.
   final UsageDto? usage;
 
+  /// How long the responses of the language model took in milliseconds, from sending each
+  /// request to its last token, summed over the tool loop. Unlike `finished_at`, without the
+  /// time tools ran. Like `usage`, of the responses so far while `GENERATING`; `null` if the
+  /// usage is unknown, or for answers from before it was measured.
+  final PlatformInt64? responseMs;
+
   /// At the prices when the answer finished, `null` if the model had no prices or the usage
   /// is unknown.
   final CostDto? cost;
@@ -409,6 +415,7 @@ class MessageDto {
     required this.createdAt,
     this.finishedAt,
     this.usage,
+    this.responseMs,
     this.cost,
     this.attachment,
   });
@@ -425,6 +432,7 @@ class MessageDto {
       createdAt.hashCode ^
       finishedAt.hashCode ^
       usage.hashCode ^
+      responseMs.hashCode ^
       cost.hashCode ^
       attachment.hashCode;
 
@@ -443,6 +451,7 @@ class MessageDto {
           createdAt == other.createdAt &&
           finishedAt == other.finishedAt &&
           usage == other.usage &&
+          responseMs == other.responseMs &&
           cost == other.cost &&
           attachment == other.attachment;
 }
@@ -617,17 +626,23 @@ class ToolCallFinishedDto {
   final UuidValue id;
   final ToolCallStatus status;
 
+  /// See [`ToolCallSummaryDto::duration_ms`]. Always sent, `None` only from servers from before
+  /// it was measured.
+  final PlatformInt64? durationMs;
+
   const ToolCallFinishedDto({
     required this.id,
     required this.status,
+    this.durationMs,
   });
 
   @override
-  int get hashCode => id.hashCode ^ status.hashCode;
+  int get hashCode => id.hashCode ^ status.hashCode ^ durationMs.hashCode;
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) || other is ToolCallFinishedDto && runtimeType == other.runtimeType && id == other.id && status == other.status;
+      identical(this, other) ||
+      other is ToolCallFinishedDto && runtimeType == other.runtimeType && id == other.id && status == other.status && durationMs == other.durationMs;
 }
 
 enum ToolCallStatus {
@@ -652,6 +667,10 @@ class ToolCallSummaryDto {
   final UuidValue? repositoryId;
   final String? commitSha;
   final ToolCallStatus status;
+
+  /// How long the tool ran in milliseconds, `null` while `RUNNING`, if it was interrupted, or
+  /// for calls from before it was measured.
+  final PlatformInt64? durationMs;
   final DateTime createdAt;
 
   const ToolCallSummaryDto({
@@ -661,12 +680,20 @@ class ToolCallSummaryDto {
     this.repositoryId,
     this.commitSha,
     required this.status,
+    this.durationMs,
     required this.createdAt,
   });
 
   @override
   int get hashCode =>
-      id.hashCode ^ name.hashCode ^ input.hashCode ^ repositoryId.hashCode ^ commitSha.hashCode ^ status.hashCode ^ createdAt.hashCode;
+      id.hashCode ^
+      name.hashCode ^
+      input.hashCode ^
+      repositoryId.hashCode ^
+      commitSha.hashCode ^
+      status.hashCode ^
+      durationMs.hashCode ^
+      createdAt.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -679,6 +706,7 @@ class ToolCallSummaryDto {
           repositoryId == other.repositoryId &&
           commitSha == other.commitSha &&
           status == other.status &&
+          durationMs == other.durationMs &&
           createdAt == other.createdAt;
 }
 
@@ -733,18 +761,24 @@ class UsageDto {
 class UsageUpdateDto {
   final UsageDto usage;
 
+  /// How long the responses so far took in milliseconds, see [`MessageDto::response_ms`].
+  /// Always sent, `None` only from servers from before it was measured.
+  final PlatformInt64? responseMs;
+
   /// `null` if the model has no prices.
   final CostDto? cost;
 
   const UsageUpdateDto({
     required this.usage,
+    this.responseMs,
     this.cost,
   });
 
   @override
-  int get hashCode => usage.hashCode ^ cost.hashCode;
+  int get hashCode => usage.hashCode ^ responseMs.hashCode ^ cost.hashCode;
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) || other is UsageUpdateDto && runtimeType == other.runtimeType && usage == other.usage && cost == other.cost;
+      identical(this, other) ||
+      other is UsageUpdateDto && runtimeType == other.runtimeType && usage == other.usage && responseMs == other.responseMs && cost == other.cost;
 }

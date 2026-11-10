@@ -97,6 +97,11 @@ pub struct MessageDto {
     /// only the message stream has them: the tokens so far, `null` before the first response of
     /// the language model.
     pub usage: Option<UsageDto>,
+    /// How long the responses of the language model took in milliseconds, from sending each
+    /// request to its last token, summed over the tool loop. Unlike `finished_at`, without the
+    /// time tools ran. Like `usage`, of the responses so far while `GENERATING`; `null` if the
+    /// usage is unknown, or for answers from before it was measured.
+    pub response_ms: Option<i64>,
     /// At the prices when the answer finished, `null` if the model had no prices or the usage
     /// is unknown.
     pub cost: Option<CostDto>,
@@ -145,6 +150,9 @@ pub struct ToolCallSummaryDto {
     pub repository_id: Option<Uuid>,
     pub commit_sha: Option<String>,
     pub status: ToolCallStatus,
+    /// How long the tool ran in milliseconds, `null` while `RUNNING`, if it was interrupted, or
+    /// for calls from before it was measured.
+    pub duration_ms: Option<i64>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -345,6 +353,9 @@ pub struct ContentDeltaDto {
 #[derive(Serialize, Deserialize)]
 pub struct UsageUpdateDto {
     pub usage: UsageDto,
+    /// How long the responses so far took in milliseconds, see [`MessageDto::response_ms`].
+    /// Always sent, `None` only from servers from before it was measured.
+    pub response_ms: Option<i64>,
     /// `null` if the model has no prices.
     pub cost: Option<CostDto>,
 }
@@ -354,6 +365,9 @@ pub struct UsageUpdateDto {
 pub struct ToolCallFinishedDto {
     pub id: Uuid,
     pub status: ToolCallStatus,
+    /// See [`ToolCallSummaryDto::duration_ms`]. Always sent, `None` only from servers from before
+    /// it was measured.
+    pub duration_ms: Option<i64>,
 }
 
 /// Serializes a JSON text as the value it holds, and a value as its text.
@@ -387,6 +401,7 @@ mod tests {
             repository_id: None,
             commit_sha: None,
             status: ToolCallStatus::Completed,
+            duration_ms: Some(100),
             created_at: DateTime::UNIX_EPOCH,
         };
         let value = serde_json::to_value(&tool_call).unwrap();

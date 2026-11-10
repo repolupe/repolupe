@@ -413,6 +413,7 @@ impl MessageDto {
             created_at: message.created_at,
             finished_at: message.finished_at,
             usage,
+            response_ms: message.response_ms,
             cost,
             attachment: None,
         }
@@ -457,6 +458,7 @@ impl From<ToolCallSummary> for ToolCallSummaryDto {
             repository_id: tool_call.repository_id,
             commit_sha: tool_call.commit_sha,
             status: ToolCallStatus::new(tool_call.finished, tool_call.is_error),
+            duration_ms: tool_call.duration_ms,
             created_at: tool_call.created_at,
         }
     }
@@ -503,6 +505,7 @@ impl From<model::tool_call::ToolCall> for ToolCallDto {
                 repository_id: tool_call.repository_id,
                 commit_sha: tool_call.commit_sha,
                 status: ToolCallStatus::new(tool_call.output.is_some(), tool_call.is_error),
+                duration_ms: tool_call.duration_ms,
                 created_at: tool_call.created_at,
             },
             output: tool_call.output,

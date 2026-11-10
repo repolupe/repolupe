@@ -85,6 +85,7 @@ Map<String, dynamic> _message({
   'created_at': '2026-10-21T12:00:00+00:00',
   'finished_at': finished ? '2026-10-21T12:01:05+00:00' : null,
   'usage': finished ? {'input_tokens': 10, 'output_tokens': 5, 'cache_read_tokens': 0, 'cache_write_tokens': 0} : null,
+  'response_ms': finished ? 2500 : null,
   'cost': finished ? {'amount': '0.0042', 'currency': 'USD'} : null,
   'attachment': null,
 };
@@ -537,6 +538,7 @@ void main() {
       response.write('event: tool_call_finished\ndata: ${jsonEncode({'id': _toolCallId, 'status': 'COMPLETED'})}\n\n');
       final usage = {
         'usage': {'input_tokens': 4, 'output_tokens': 2, 'cache_read_tokens': 0, 'cache_write_tokens': 0},
+        'response_ms': 1500,
         'cost': {'amount': '0.0012', 'currency': 'USD'},
       };
       response.write('event: usage\ndata: ${jsonEncode(usage)}\n\n');
@@ -585,6 +587,7 @@ void main() {
     expect(running.toolCalls.single.path, 'README.md');
     expect(running.status, MessageStatus.generating);
     expect((running.usage?.inputTokens.toInt(), running.usage?.outputTokens.toInt()), (4, 2));
+    expect(running.responseMs, 1500);
     expect((running.cost?.amount, running.cost?.currency), ('0.0012', 'USD'));
 
     finish.complete();

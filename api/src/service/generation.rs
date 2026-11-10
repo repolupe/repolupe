@@ -16,6 +16,7 @@ use sqlx::types::Text;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 use tokio::sync::broadcast;
 use tokio_util::sync::{CancellationToken, WaitForCancellationFuture};
 use uuid::Uuid;
@@ -141,6 +142,8 @@ struct GenerationState {
     /// Of the LLM responses so far, `None` before the first. A response that was cut off (e.g.
     /// cancelled) reports none.
     usage: Option<Usage>,
+    /// How long the LLM responses in `usage` took.
+    response_time: Duration,
     /// Set by the first [`finish`], after which nothing is appended anymore.
     finished: bool,
     /// The final message, once [`GenerationEvent::Done`] was sent.
@@ -162,10 +165,13 @@ pub(crate) enum GenerationEvent {
     ToolCallFinished {
         id: Uuid,
         is_error: bool,
+        duration_ms: i64,
     },
     /// The tokens used so far, sent after each LLM response.
     Usage {
         usage: TokenUsage,
+        /// How long the responses so far took in milliseconds.
+        response_ms: i64,
         /// The amount and its currency, `None` if the model has no prices.
         cost: Option<(Decimal, String)>,
     },
@@ -229,6 +235,7 @@ impl Generation {
                 output_tokens: usage.map(|usage| usage.output),
                 cache_read_tokens: usage.map(|usage| usage.cache_read),
                 cache_write_tokens: usage.map(|usage| usage.cache_write),
+                response_ms: usage.map(|_| millis(state.response_time)),
                 cost: cost.map(|(amount, _)| Text(amount)),
                 cost_currency: cost.map(|(_, currency)| currency.to_string()),
             },
@@ -242,16 +249,24 @@ impl Generation {
         self.cancel.cancelled()
     }
 
-    /// Adds the usage of one LLM response and sends the total so far.
-    pub(crate) fn add_usage(&self, usage: &Usage) -> Result<(), GenerationError> {
+    /// Adds the usage of one LLM response, which took `response_time` from sending the request
+    /// to its last token, and sends the total so far.
+    pub(crate) fn add_usage(
+        &self,
+        usage: &Usage,
+        response_time: Duration,
+    ) -> Result<(), GenerationError> {
         let mut state = self.state.lock().unwrap();
         if state.finished {
             return Err(GenerationError::Stopped);
         }
+        state.response_time += response_time;
+        let response_ms = millis(state.response_time);
         let total = state.usage.get_or_insert_default();
         *total += usage;
         let _ = self.events.send(GenerationEvent::Usage {
             usage: token_usage(total),
+            response_ms,
             cost: self
                 .cost(total)
                 .map(|(amount, currency)| (amount, currency.to_string())),
@@ -334,6 +349,7 @@ impl Generation {
             commit_sha: commit_sha.map(str::to_string),
             finished: false,
             is_error: false,
+            duration_ms: None,
             created_at,
         };
         state.tool_calls.push(tool_call.clone());
@@ -343,15 +359,20 @@ impl Generation {
         Ok(id)
     }
 
+    /// Stores the result of a tool call that ran for `duration`.
     pub(crate) async fn finish_tool_call(
         &self,
         db: &DatabasePool,
         id: Uuid,
         output: &str,
         is_error: bool,
+        duration: Duration,
         change: Option<&ProposedChange>,
     ) -> Result<(), GenerationError> {
-        if !repository::message::finish_tool_call(db, id, output, is_error, change).await? {
+        let duration_ms = millis(duration);
+        if !repository::message::finish_tool_call(db, id, output, is_error, duration_ms, change)
+            .await?
+        {
             return Err(GenerationError::Stopped);
         }
 
@@ -362,10 +383,13 @@ impl Generation {
         if let Some(tool_call) = state.tool_calls.iter_mut().find(|t| t.id == id) {
             tool_call.finished = true;
             tool_call.is_error = is_error;
+            tool_call.duration_ms = Some(duration_ms);
         }
-        let _ = self
-            .events
-            .send(GenerationEvent::ToolCallFinished { id, is_error });
+        let _ = self.events.send(GenerationEvent::ToolCallFinished {
+            id,
+            is_error,
+            duration_ms,
+        });
         Ok(())
     }
 }
@@ -405,7 +429,7 @@ pub(crate) async fn finish(
     status: MessageStatus,
     error: Option<&str>,
 ) -> Result<(), AppError> {
-    let (content, usage) = {
+    let (content, usage, response_time) = {
         let mut generation_state = generation.state.lock().unwrap();
         if generation_state.finished {
             return Ok(());
@@ -414,6 +438,7 @@ pub(crate) async fn finish(
         (
             generation_state.answer().to_string(),
             generation_state.usage.clone().unwrap_or_default(),
+            generation_state.response_time,
         )
     };
     generation.cancel.cancel();
@@ -424,6 +449,7 @@ pub(crate) async fn finish(
         content: Some(&content),
         error,
         usage: Some(token_usage(&usage)),
+        response_ms: Some(millis(response_time)),
         cost,
         finished_at: Utc::now(),
     };
@@ -452,6 +478,7 @@ pub(crate) async fn cancel(state: &AppState, message_id: Uuid) -> Result<(), App
                 content: None,
                 error: None,
                 usage: None,
+                response_ms: None,
                 cost: None,
                 finished_at: Utc::now(),
             };
@@ -510,6 +537,11 @@ fn token_usage(usage: &Usage) -> TokenUsage {
         cache_read: tokens(usage.cache_read_input_tokens),
         cache_write: tokens(usage.cache_creation_input_tokens),
     }
+}
+
+/// Saturates like [`token_usage`].
+fn millis(duration: Duration) -> i64 {
+    i64::try_from(duration.as_millis()).unwrap_or(i64::MAX)
 }
 
 /// Fails the answers that were being generated when the server stopped.

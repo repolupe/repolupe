@@ -5393,6 +5393,7 @@ const _: fn() = || {
         let _: chrono::DateTime<chrono::Utc> = MessageDto.created_at;
         let _: Option<chrono::DateTime<chrono::Utc>> = MessageDto.finished_at;
         let _: Option<repolupe::dto::chat::UsageDto> = MessageDto.usage;
+        let _: Option<i64> = MessageDto.response_ms;
         let _: Option<repolupe::dto::chat::CostDto> = MessageDto.cost;
         let _: Option<repolupe::dto::attachment::AttachmentDto> = MessageDto.attachment;
     }
@@ -5560,6 +5561,7 @@ const _: fn() = || {
         let ToolCallFinishedDto = None::<repolupe::dto::chat::ToolCallFinishedDto>.unwrap();
         let _: uuid::Uuid = ToolCallFinishedDto.id;
         let _: repolupe::dto::chat::ToolCallStatus = ToolCallFinishedDto.status;
+        let _: Option<i64> = ToolCallFinishedDto.duration_ms;
     }
     {
         let ToolCallSummaryDto = None::<repolupe::dto::chat::ToolCallSummaryDto>.unwrap();
@@ -5569,6 +5571,7 @@ const _: fn() = || {
         let _: Option<uuid::Uuid> = ToolCallSummaryDto.repository_id;
         let _: Option<String> = ToolCallSummaryDto.commit_sha;
         let _: repolupe::dto::chat::ToolCallStatus = ToolCallSummaryDto.status;
+        let _: Option<i64> = ToolCallSummaryDto.duration_ms;
         let _: chrono::DateTime<chrono::Utc> = ToolCallSummaryDto.created_at;
     }
     {
@@ -5641,6 +5644,7 @@ const _: fn() = || {
     {
         let UsageUpdateDto = None::<repolupe::dto::chat::UsageUpdateDto>.unwrap();
         let _: repolupe::dto::chat::UsageDto = UsageUpdateDto.usage;
+        let _: Option<i64> = UsageUpdateDto.response_ms;
         let _: Option<repolupe::dto::chat::CostDto> = UsageUpdateDto.cost;
     }
     {
@@ -7165,6 +7169,7 @@ impl SseDecode for repolupe::dto::chat::MessageDto {
         let mut var_createdAt = <chrono::DateTime<chrono::Utc>>::sse_decode(deserializer);
         let mut var_finishedAt = <Option<chrono::DateTime<chrono::Utc>>>::sse_decode(deserializer);
         let mut var_usage = <Option<repolupe::dto::chat::UsageDto>>::sse_decode(deserializer);
+        let mut var_responseMs = <Option<i64>>::sse_decode(deserializer);
         let mut var_cost = <Option<repolupe::dto::chat::CostDto>>::sse_decode(deserializer);
         let mut var_attachment =
             <Option<repolupe::dto::attachment::AttachmentDto>>::sse_decode(deserializer);
@@ -7179,6 +7184,7 @@ impl SseDecode for repolupe::dto::chat::MessageDto {
             created_at: var_createdAt,
             finished_at: var_finishedAt,
             usage: var_usage,
+            response_ms: var_responseMs,
             cost: var_cost,
             attachment: var_attachment,
         };
@@ -7980,9 +7986,11 @@ impl SseDecode for repolupe::dto::chat::ToolCallFinishedDto {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_id = <uuid::Uuid>::sse_decode(deserializer);
         let mut var_status = <repolupe::dto::chat::ToolCallStatus>::sse_decode(deserializer);
+        let mut var_durationMs = <Option<i64>>::sse_decode(deserializer);
         return repolupe::dto::chat::ToolCallFinishedDto {
             id: var_id,
             status: var_status,
+            duration_ms: var_durationMs,
         };
     }
 }
@@ -8010,6 +8018,7 @@ impl SseDecode for repolupe::dto::chat::ToolCallSummaryDto {
         let mut var_repositoryId = <Option<uuid::Uuid>>::sse_decode(deserializer);
         let mut var_commitSha = <Option<String>>::sse_decode(deserializer);
         let mut var_status = <repolupe::dto::chat::ToolCallStatus>::sse_decode(deserializer);
+        let mut var_durationMs = <Option<i64>>::sse_decode(deserializer);
         let mut var_createdAt = <chrono::DateTime<chrono::Utc>>::sse_decode(deserializer);
         return repolupe::dto::chat::ToolCallSummaryDto {
             id: var_id,
@@ -8018,6 +8027,7 @@ impl SseDecode for repolupe::dto::chat::ToolCallSummaryDto {
             repository_id: var_repositoryId,
             commit_sha: var_commitSha,
             status: var_status,
+            duration_ms: var_durationMs,
             created_at: var_createdAt,
         };
     }
@@ -8191,9 +8201,11 @@ impl SseDecode for repolupe::dto::chat::UsageUpdateDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_usage = <repolupe::dto::chat::UsageDto>::sse_decode(deserializer);
+        let mut var_responseMs = <Option<i64>>::sse_decode(deserializer);
         let mut var_cost = <Option<repolupe::dto::chat::CostDto>>::sse_decode(deserializer);
         return repolupe::dto::chat::UsageUpdateDto {
             usage: var_usage,
+            response_ms: var_responseMs,
             cost: var_cost,
         };
     }
@@ -10123,6 +10135,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::MessageDt
             self.0.created_at.into_into_dart().into_dart(),
             self.0.finished_at.into_into_dart().into_dart(),
             self.0.usage.into_into_dart().into_dart(),
+            self.0.response_ms.into_into_dart().into_dart(),
             self.0.cost.into_into_dart().into_dart(),
             self.0.attachment.into_into_dart().into_dart(),
         ]
@@ -10803,6 +10816,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::ToolCallF
         [
             self.0.id.into_into_dart().into_dart(),
             self.0.status.into_into_dart().into_dart(),
+            self.0.duration_ms.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -10851,6 +10865,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::ToolCallS
             self.0.repository_id.into_into_dart().into_dart(),
             self.0.commit_sha.into_into_dart().into_dart(),
             self.0.status.into_into_dart().into_dart(),
+            self.0.duration_ms.into_into_dart().into_dart(),
             self.0.created_at.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -11096,6 +11111,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::UsageUpda
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.0.usage.into_into_dart().into_dart(),
+            self.0.response_ms.into_into_dart().into_dart(),
             self.0.cost.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -12333,6 +12349,7 @@ impl SseEncode for repolupe::dto::chat::MessageDto {
         <chrono::DateTime<chrono::Utc>>::sse_encode(self.created_at, serializer);
         <Option<chrono::DateTime<chrono::Utc>>>::sse_encode(self.finished_at, serializer);
         <Option<repolupe::dto::chat::UsageDto>>::sse_encode(self.usage, serializer);
+        <Option<i64>>::sse_encode(self.response_ms, serializer);
         <Option<repolupe::dto::chat::CostDto>>::sse_encode(self.cost, serializer);
         <Option<repolupe::dto::attachment::AttachmentDto>>::sse_encode(self.attachment, serializer);
     }
@@ -12959,6 +12976,7 @@ impl SseEncode for repolupe::dto::chat::ToolCallFinishedDto {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <uuid::Uuid>::sse_encode(self.id, serializer);
         <repolupe::dto::chat::ToolCallStatus>::sse_encode(self.status, serializer);
+        <Option<i64>>::sse_encode(self.duration_ms, serializer);
     }
 }
 
@@ -12989,6 +13007,7 @@ impl SseEncode for repolupe::dto::chat::ToolCallSummaryDto {
         <Option<uuid::Uuid>>::sse_encode(self.repository_id, serializer);
         <Option<String>>::sse_encode(self.commit_sha, serializer);
         <repolupe::dto::chat::ToolCallStatus>::sse_encode(self.status, serializer);
+        <Option<i64>>::sse_encode(self.duration_ms, serializer);
         <chrono::DateTime<chrono::Utc>>::sse_encode(self.created_at, serializer);
     }
 }
@@ -13111,6 +13130,7 @@ impl SseEncode for repolupe::dto::chat::UsageUpdateDto {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <repolupe::dto::chat::UsageDto>::sse_encode(self.usage, serializer);
+        <Option<i64>>::sse_encode(self.response_ms, serializer);
         <Option<repolupe::dto::chat::CostDto>>::sse_encode(self.cost, serializer);
     }
 }

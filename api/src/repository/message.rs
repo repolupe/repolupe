@@ -36,6 +36,8 @@ pub(crate) struct FinishedMessage<'a> {
     pub error: Option<&'a str>,
     /// `None` if unknown.
     pub usage: Option<TokenUsage>,
+    /// How long the responses of the language model took in milliseconds, `None` if unknown.
+    pub response_ms: Option<i64>,
     /// The amount and its currency, `None` if unknown.
     pub cost: Option<(Decimal, &'a str)>,
     pub finished_at: DateTime<Utc>,
@@ -76,7 +78,7 @@ pub(crate) async fn insert_message(
            RETURNING id AS "id: Uuid", role AS "role: MessageRole", content,
                      status AS "status: MessageStatus", error, model_id AS "model_id: Uuid",
                      created_at AS "created_at: DateTime<Utc>", finished_at AS "finished_at: DateTime<Utc>",
-                     input_tokens, output_tokens, cache_read_tokens, cache_write_tokens,
+                     input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, response_ms,
                      cost AS "cost: Text<Decimal>", cost_currency"#,
         new.id,
         new.chat_id,
@@ -112,7 +114,7 @@ pub(crate) async fn list_messages(
         r#"SELECT id AS "id: Uuid", role AS "role: MessageRole", content,
                   status AS "status: MessageStatus", error, model_id AS "model_id: Uuid",
                   created_at AS "created_at: DateTime<Utc>", finished_at AS "finished_at: DateTime<Utc>",
-                  input_tokens, output_tokens, cache_read_tokens, cache_write_tokens,
+                  input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, response_ms,
                   cost AS "cost: Text<Decimal>", cost_currency
            FROM messages
            WHERE chat_id = $1
@@ -135,7 +137,7 @@ pub(crate) async fn get_message(
         r#"SELECT m.id AS "id: Uuid", m.role AS "role: MessageRole", m.content,
                   m.status AS "status: MessageStatus", m.error, m.model_id AS "model_id: Uuid",
                   m.created_at AS "created_at: DateTime<Utc>", m.finished_at AS "finished_at: DateTime<Utc>",
-                  m.input_tokens, m.output_tokens, m.cache_read_tokens, m.cache_write_tokens,
+                  m.input_tokens, m.output_tokens, m.cache_read_tokens, m.cache_write_tokens, m.response_ms,
                   m.cost AS "cost: Text<Decimal>", m.cost_currency
            FROM messages m
            JOIN chats c ON c.id = m.chat_id
@@ -158,7 +160,7 @@ pub(crate) async fn list_tool_call_summaries(
         ToolCallSummary,
         r#"SELECT t.id AS "id: Uuid", t.message_id AS "message_id: Uuid", t.name,
                   t.input AS "input: serde_json::Value", t.repository_id AS "repository_id: Uuid",
-                  t.commit_sha, t.output IS NOT NULL AS "finished!: bool", t.is_error,
+                  t.commit_sha, t.output IS NOT NULL AS "finished!: bool", t.is_error, t.duration_ms,
                   t.created_at AS "created_at: DateTime<Utc>"
            FROM tool_calls t
            JOIN messages m ON m.id = t.message_id
@@ -179,7 +181,7 @@ pub(crate) async fn list_tool_call_summaries_of_message(
         ToolCallSummary,
         r#"SELECT id AS "id: Uuid", message_id AS "message_id: Uuid", name,
                   input AS "input: serde_json::Value", repository_id AS "repository_id: Uuid",
-                  commit_sha, output IS NOT NULL AS "finished!: bool", is_error,
+                  commit_sha, output IS NOT NULL AS "finished!: bool", is_error, duration_ms,
                   created_at AS "created_at: DateTime<Utc>"
            FROM tool_calls
            WHERE message_id = $1
@@ -200,7 +202,7 @@ pub(crate) async fn get_tool_call(
     let tool_call = sqlx::query_as!(
         ToolCall,
         r#"SELECT t.id AS "id: Uuid", t.name, t.input AS "input: serde_json::Value", t.output,
-                  t.repository_id AS "repository_id: Uuid", t.commit_sha, t.is_error,
+                  t.repository_id AS "repository_id: Uuid", t.commit_sha, t.is_error, t.duration_ms,
                   t.created_at AS "created_at: DateTime<Utc>"
            FROM tool_calls t
            JOIN messages m ON m.id = t.message_id
@@ -243,13 +245,14 @@ pub(crate) async fn finish_message(
                output_tokens      = $7,
                cache_read_tokens  = $8,
                cache_write_tokens = $9,
-               cost               = $10,
-               cost_currency      = $11
+               response_ms        = $10,
+               cost               = $11,
+               cost_currency      = $12
            WHERE id = $1 AND status = 'GENERATING'
            RETURNING id AS "id: Uuid", role AS "role: MessageRole", content,
                      status AS "status: MessageStatus", error, model_id AS "model_id: Uuid",
                      created_at AS "created_at: DateTime<Utc>", finished_at AS "finished_at: DateTime<Utc>",
-                     input_tokens, output_tokens, cache_read_tokens, cache_write_tokens,
+                     input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, response_ms,
                      cost AS "cost: Text<Decimal>", cost_currency"#,
         id,
         finished.status,
@@ -260,6 +263,7 @@ pub(crate) async fn finish_message(
         output_tokens,
         cache_read_tokens,
         cache_write_tokens,
+        finished.response_ms,
         cost,
         cost_currency,
     )
@@ -326,21 +330,23 @@ pub(crate) async fn insert_tool_call(
     Ok(result.rows_affected() > 0)
 }
 
-/// Stores the output, and the commit a call like `change_file` proposed. Returns `false` if the
-/// tool call is gone or already finished (e.g. interrupted).
+/// Stores the output, how long the tool ran, and the commit a call like `change_file` proposed.
+/// Returns `false` if the tool call is gone or already finished (e.g. interrupted).
 pub(crate) async fn finish_tool_call(
     db: &DatabasePool,
     id: Uuid,
     output: &str,
     is_error: bool,
+    duration_ms: i64,
     change: Option<&ProposedChange>,
 ) -> Result<bool, AppError> {
     let mut tx = begin_write(db).await?;
     let result = sqlx::query!(
-        "UPDATE tool_calls SET output = $2, is_error = $3 WHERE id = $1 AND output IS NULL",
+        "UPDATE tool_calls SET output = $2, is_error = $3, duration_ms = $4 WHERE id = $1 AND output IS NULL",
         id,
         output,
         is_error,
+        duration_ms,
     )
     .execute(&mut *tx)
     .await?;

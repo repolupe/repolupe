@@ -532,6 +532,12 @@ export interface MessageDto {
      * has them: the tokens so far, `null` before the first response of the language model.
      */
     usage: UsageDto | null;
+    /**
+     * How long the responses of the language model took in milliseconds, from sending each request to its last token,
+     * summed over the tool loop. Unlike `finished_at`, without the time tools ran. Like `usage`, of the responses so far
+     * while `GENERATING`; `null` if the usage is unknown, or for answers from before it was measured.
+     */
+    response_ms: number | null;
     /** At the prices when the answer finished, `null` if the model had no prices or the usage is unknown. */
     cost: CostDto | null;
     /** The file sent with a user message, `null` if none. */
@@ -583,6 +589,8 @@ export interface ToolCallSummaryDto {
     repository_id: string | null;
     commit_sha: string | null;
     status: ToolCallStatus;
+    /** How long the tool ran in milliseconds, `null` while running, if it was interrupted, or from before it was measured. */
+    duration_ms: number | null;
     created_at: string;
 }
 
@@ -697,13 +705,15 @@ export type MessageStreamEvent =
     | { type: 'snapshot', data: MessageDto }
     | { type: 'content_delta', data: { text: string } }
     | { type: 'tool_call_started', data: ToolCallSummaryDto }
-    | { type: 'tool_call_finished', data: { id: string, status: ToolCallStatus } }
+    | { type: 'tool_call_finished', data: { id: string, status: ToolCallStatus, duration_ms: number | null } }
     | { type: 'usage', data: UsageUpdateDto }
     | { type: 'done', data: MessageDto };
 
 /** The `usage` event of the message stream: the tokens used so far, not only by the last response. */
 export interface UsageUpdateDto {
     usage: UsageDto;
+    /** How long the responses so far took in milliseconds, see `MessageDto.response_ms`. */
+    response_ms: number;
     /** `null` if the model has no prices. */
     cost: CostDto | null;
 }

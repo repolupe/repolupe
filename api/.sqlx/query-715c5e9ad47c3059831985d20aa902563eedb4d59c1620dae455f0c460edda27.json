@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id: Uuid\", message_id AS \"message_id: Uuid\", name,\n                  input AS \"input: serde_json::Value\", repository_id AS \"repository_id: Uuid\",\n                  commit_sha, output IS NOT NULL AS \"finished!: bool\", is_error, duration_ms,\n                  created_at AS \"created_at: DateTime<Utc>\"\n           FROM tool_calls\n           WHERE message_id = $1\n           ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "message_id: Uuid",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "input: serde_json::Value",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "repository_id: Uuid",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "commit_sha",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "finished!: bool",
+        "ordinal": 6,
+        "type_info": "Null"
+      },
+      {
+        "name": "is_error",
+        "ordinal": 7,
+        "type_info": "Bool"
+      },
+      {
+        "name": "duration_ms",
+        "ordinal": 8,
+        "type_info": "Integer"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 9,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      null,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "715c5e9ad47c3059831985d20aa902563eedb4d59c1620dae455f0c460edda27"
+}

@@ -123,6 +123,8 @@ const REPOSITORIES: RepositoryDto[] = [{
 interface Generation {
     cancelled: boolean;
     listeners: Set<(event: MessageStreamEvent) => void>;
+    /** When the response in progress was requested, for `response_ms`. */
+    responseStartedAt: number;
 }
 
 /** What the API would store, kept in memory until a reload. */
@@ -210,6 +212,7 @@ function newMessage(role: MessageRole, content: string, attachment: AttachmentDt
         created_at: new Date().toISOString(),
         finished_at: null,
         usage: null,
+        response_ms: null,
         cost: null,
         attachment,
     };
@@ -237,7 +240,7 @@ function startAnswer(chat: ChatDetailDto): MessageDto {
     const message = newMessage(MessageRole.ASSISTANT, '', null, modelId);
     chat.messages.push(message);
     chat.updated_at = message.created_at;
-    const generation: Generation = {cancelled: false, listeners: new Set()};
+    const generation: Generation = {cancelled: false, listeners: new Set(), responseStartedAt: Date.now()};
     state.generations.set(message.id, generation);
     const emit = (event: MessageStreamEvent) => generation.listeners.forEach(l => l(copy(event)));
     const hasRepositories = chat.all_repositories || chat.repository_ids.length > 0;
@@ -270,7 +273,7 @@ function startAnswer(chat: ChatDetailDto): MessageDto {
             message.content += word;
             emit({type: 'content_delta', data: {text: word}});
         }
-        addUsage(message, emit, text.length / 4 | 0);
+        addUsage(message, generation, emit, text.length / 4 | 0);
         finishAnswer(message, MessageStatus.COMPLETED);
     })();
 
@@ -328,10 +331,11 @@ async function callTool(message: MessageDto, generation: Generation, emit: (even
         repository_id: REPOSITORIES[0]!.id,
         commit_sha: HEAD_SHA,
         status: ToolCallStatus.RUNNING,
+        duration_ms: null,
         created_at: new Date().toISOString(),
     };
     // of the response that called the tool
-    addUsage(message, emit, 40);
+    addUsage(message, generation, emit, 40);
     message.tool_calls.push(toolCall);
     emit({type: 'tool_call_started', data: toolCall});
 
@@ -340,8 +344,11 @@ async function callTool(message: MessageDto, generation: Generation, emit: (even
         return null;
     }
     toolCall.status = ToolCallStatus.COMPLETED;
+    toolCall.duration_ms = Date.now() - Date.parse(toolCall.created_at);
     state.toolCallOutputs.set(toolCall.id, output);
-    emit({type: 'tool_call_finished', data: {id: toolCall.id, status: toolCall.status}});
+    emit({type: 'tool_call_finished', data: {id: toolCall.id, status: toolCall.status, duration_ms: toolCall.duration_ms}});
+    // the next response is requested with the result
+    generation.responseStartedAt = Date.now();
     return toolCall;
 }
 
@@ -363,20 +370,23 @@ function finishAnswer(message: MessageDto, status: MessageStatus) {
     // like the API, an answer cancelled before its first response used no tokens
     if (!message.usage) {
         message.usage = {input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, cache_write_tokens: 0};
+        message.response_ms = 0;
         message.cost = cost(message);
     }
     generation.listeners.forEach(l => l({type: 'done', data: copy(message)}));
 }
 
-/** Like `Generation::add_usage`: adds the tokens of one response and sends the total so far. */
-function addUsage(message: MessageDto, emit: (event: MessageStreamEvent) => void, outputTokens: number) {
+/** Like `Generation::add_usage`: adds the tokens and time of one response and sends the totals so far. */
+function addUsage(message: MessageDto, generation: Generation, emit: (event: MessageStreamEvent) => void,
+                  outputTokens: number) {
     const usage = message.usage ?? {input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, cache_write_tokens: 0};
     usage.input_tokens += 1_200;
     usage.output_tokens += outputTokens;
     usage.cache_read_tokens += 3_400;
     message.usage = usage;
+    message.response_ms = (message.response_ms ?? 0) + Date.now() - generation.responseStartedAt;
     message.cost = cost(message);
-    emit({type: 'usage', data: {usage, cost: message.cost}});
+    emit({type: 'usage', data: {usage, response_ms: message.response_ms, cost: message.cost}});
 }
 
 /** Of the message's usage, `null` unless written by the hosted model, which is the only one with prices. */

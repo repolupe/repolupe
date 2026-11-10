@@ -143,9 +143,14 @@ class _ApplyEventAction extends ReduxAction<MessageService, MessageDto?> {
       MessageEvent_ToolCallStarted(:final toolCall) => _copyMessage(current, toolCalls: [...current.toolCalls, toolCall]),
       MessageEvent_ToolCallFinished(:final toolCall) => _copyMessage(
         current,
-        toolCalls: [for (final t in current.toolCalls) t.id == toolCall.id ? _copyToolCall(t, status: toolCall.status) : t],
+        toolCalls: [for (final t in current.toolCalls) t.id == toolCall.id ? _copyToolCall(t, status: toolCall.status, durationMs: toolCall.durationMs) : t],
       ),
-      MessageEvent_Usage(:final update) => _copyMessage(current, usage: update.usage, cost: update.cost),
+      MessageEvent_Usage(:final update) => _copyMessage(
+        current,
+        usage: update.usage,
+        responseMs: update.responseMs,
+        cost: update.cost,
+      ),
       MessageEvent_Error() => current,
     };
   }
@@ -179,6 +184,7 @@ MessageDto _copyMessage(
   String? error,
   List<ToolCallSummaryDto>? toolCalls,
   UsageDto? usage,
+  int? responseMs,
   CostDto? cost,
 }) {
   return MessageDto(
@@ -192,12 +198,13 @@ MessageDto _copyMessage(
     createdAt: m.createdAt,
     finishedAt: m.finishedAt,
     usage: usage ?? m.usage,
+    responseMs: responseMs ?? m.responseMs,
     cost: cost ?? m.cost,
     attachment: m.attachment,
   );
 }
 
-ToolCallSummaryDto _copyToolCall(ToolCallSummaryDto t, {required ToolCallStatus status}) {
+ToolCallSummaryDto _copyToolCall(ToolCallSummaryDto t, {required ToolCallStatus status, required int? durationMs}) {
   return ToolCallSummaryDto(
     id: t.id,
     name: t.name,
@@ -205,6 +212,7 @@ ToolCallSummaryDto _copyToolCall(ToolCallSummaryDto t, {required ToolCallStatus 
     repositoryId: t.repositoryId,
     commitSha: t.commitSha,
     status: status,
+    durationMs: durationMs,
     createdAt: t.createdAt,
   );
 }

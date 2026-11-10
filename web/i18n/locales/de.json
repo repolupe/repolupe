@@ -186,6 +186,7 @@
       "failed": "Die Antwort konnte nicht erstellt werden.",
       "cancelled": "Abgebrochen",
       "showUsage": "Token-Verbrauch anzeigen",
+      "showDuration": "Dauer anzeigen",
       "showToolCalls": "Tool-Aufrufe anzeigen",
       "toolCount": "{count} Tool | {count} Tools",
       "durationSeconds": "{seconds} s",
@@ -252,6 +253,20 @@
       "outputHint": "Einschließlich Denkschritten",
       "total": "Gesamt",
       "cost": "Kosten"
+    },
+    "durationDialog": {
+      "title": "Dauer",
+      "model": "Sprachmodell",
+      "speed": "Ausgabegeschwindigkeit",
+      "tokensPerSecond": "{speed} Tokens/s",
+      "tools": "Tool-Aufrufe",
+      "callCount": "{count}×",
+      "lessThan": "<{duration}",
+      "toolsSum": "Tools, summiert",
+      "toolsReal": "Tools, Echtzeit",
+      "toolsRealHint": "Tools laufen parallel, daher ist das die Zeit, die du tatsächlich auf sie gewartet hast",
+      "total": "Gesamt",
+      "notMeasured": "Wie lange das Sprachmodell brauchte, wurde für diese Antwort nicht gemessen."
     },
     "olderPage": {
       "title": "Ältere Chats",

@@ -723,21 +723,29 @@ fn generation_event(event: GenerationEvent) -> Result<Event, axum::Error> {
         GenerationEvent::ToolCallStarted(tool_call) => Event::default()
             .event("tool_call_started")
             .json_data(ToolCallSummaryDto::from(tool_call)),
-        GenerationEvent::ToolCallFinished { id, is_error } => Event::default()
+        GenerationEvent::ToolCallFinished {
+            id,
+            is_error,
+            duration_ms,
+        } => Event::default()
             .event("tool_call_finished")
             .json_data(ToolCallFinishedDto {
                 id,
                 status: ToolCallStatus::new(true, is_error),
+                duration_ms: Some(duration_ms),
             }),
-        GenerationEvent::Usage { usage, cost } => {
-            Event::default().event("usage").json_data(UsageUpdateDto {
-                usage: usage.into(),
-                cost: cost.map(|(amount, currency)| CostDto {
-                    amount: amount.to_string(),
-                    currency,
-                }),
-            })
-        }
+        GenerationEvent::Usage {
+            usage,
+            response_ms,
+            cost,
+        } => Event::default().event("usage").json_data(UsageUpdateDto {
+            usage: usage.into(),
+            response_ms: Some(response_ms),
+            cost: cost.map(|(amount, currency)| CostDto {
+                amount: amount.to_string(),
+                currency,
+            }),
+        }),
         GenerationEvent::Done {
             message,
             tool_calls,

@@ -102,6 +102,7 @@ describe('demo API', () => {
             name: 'present_file_to_user',
             input: {path: 'scans/sample_scan.pdf'},
             status: ToolCallStatus.COMPLETED,
+            duration_ms: expect.any(Number),
         }]);
         expect(message.usage).not.toBeNull();
         expect(message.cost).toBeNull();
@@ -110,7 +111,11 @@ describe('demo API', () => {
             .toEqual(['snapshot', 'usage', 'tool_call_started', 'tool_call_finished', 'usage', 'done']);
         const usages = events.flatMap(e => e.type === 'usage' ? [e.data] : []);
         expect(usages[0]!.usage.output_tokens).toBeLessThan(usages[1]!.usage.output_tokens);
-        expect(usages[1]).toEqual({usage: message.usage, cost: null});
+        expect(usages[0]!.response_ms).toBeLessThan(usages[1]!.response_ms);
+        expect(usages[1]).toEqual({usage: message.usage, response_ms: message.response_ms, cost: null});
+        // without the time the tool ran
+        const duration = Date.parse(message.finished_at!) - Date.parse(message.created_at);
+        expect(duration - message.response_ms!).toBeGreaterThanOrEqual(800);
     });
 
     it('serves the presented file', async () => {

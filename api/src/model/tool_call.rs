@@ -12,6 +12,7 @@ pub struct ToolCall {
     pub repository_id: Option<Uuid>,
     pub commit_sha: Option<String>,
     pub is_error: bool,
+    pub duration_ms: Option<i64>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -80,5 +81,8 @@ pub struct ToolCallSummary {
     /// `false` while the tool is running.
     pub finished: bool,
     pub is_error: bool,
+    /// How long the tool ran, `None` while running, if interrupted, or from before it was
+    /// measured.
+    pub duration_ms: Option<i64>,
     pub created_at: DateTime<Utc>,
 }

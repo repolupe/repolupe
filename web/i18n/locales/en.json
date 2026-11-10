@@ -186,6 +186,7 @@
       "failed": "The answer could not be generated.",
       "cancelled": "Cancelled",
       "showUsage": "Show token usage",
+      "showDuration": "Show duration",
       "showToolCalls": "Show tool calls",
       "toolCount": "{count} Tool | {count} Tools",
       "durationSeconds": "{seconds}s",
@@ -252,6 +253,20 @@
       "outputHint": "Including reasoning",
       "total": "Total",
       "cost": "Cost"
+    },
+    "durationDialog": {
+      "title": "Duration",
+      "model": "Language model",
+      "speed": "Output speed",
+      "tokensPerSecond": "{speed} tok/s",
+      "tools": "Tool calls",
+      "callCount": "{count}×",
+      "lessThan": "<{duration}",
+      "toolsSum": "Tools, summed",
+      "toolsReal": "Tools, real time",
+      "toolsRealHint": "Tools run in parallel, so this is the time you actually waited for them",
+      "total": "Total",
+      "notMeasured": "How long the language model took was not measured for this answer."
     },
     "olderPage": {
       "title": "Older Chats",

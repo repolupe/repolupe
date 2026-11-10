@@ -186,6 +186,7 @@
       "failed": "Không thể tạo câu trả lời.",
       "cancelled": "Đã hủy",
       "showUsage": "Xem lượng token sử dụng",
+      "showDuration": "Xem thời gian",
       "showToolCalls": "Xem các lệnh gọi công cụ",
       "toolCount": "{count} công cụ | {count} công cụ",
       "durationSeconds": "{seconds} giây",
@@ -252,6 +253,20 @@
       "outputHint": "Bao gồm cả phần suy luận",
       "total": "Tổng",
       "cost": "Chi phí"
+    },
+    "durationDialog": {
+      "title": "Thời gian",
+      "model": "Mô hình ngôn ngữ",
+      "speed": "Tốc độ đầu ra",
+      "tokensPerSecond": "{speed} token/giây",
+      "tools": "Lệnh gọi công cụ",
+      "callCount": "{count}×",
+      "lessThan": "<{duration}",
+      "toolsSum": "Công cụ, cộng dồn",
+      "toolsReal": "Công cụ, thời gian thực",
+      "toolsRealHint": "Các công cụ chạy song song, nên đây là thời gian bạn thực sự phải chờ chúng",
+      "total": "Tổng",
+      "notMeasured": "Thời gian của mô hình ngôn ngữ không được đo cho câu trả lời này."
     },
     "olderPage": {
       "title": "Đoạn chat cũ hơn",
