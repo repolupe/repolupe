@@ -58,6 +58,17 @@
                           :format="formatCostValue"/>
           <AnimatedNumber v-else :value="totalTokens(props.message.usage)" :format="formatTokenValue"/>
         </button>
+        <!-- The raw answer is stored once the answer is finished -->
+        <v-menu v-if="!generating" location="bottom end">
+          <template v-slot:activator="{ props: menuProps }">
+            <v-btn v-bind="menuProps" icon="mdi-dots-vertical" variant="text" size="x-small" density="comfortable"
+                   class="ml-1" :aria-label="$t('common.actions')"/>
+          </template>
+          <v-list density="compact">
+            <v-list-item prepend-icon="mdi-code-json" :title="$t('chat.rawAnswerDialog.title')"
+                         @click="emit('open-raw')"/>
+          </v-list>
+        </v-menu>
       </span>
     </div>
 
@@ -100,6 +111,7 @@ const emit = defineEmits<{
   (e: 'open-tool-calls'): void,
   (e: 'open-usage'): void,
   (e: 'open-duration'): void,
+  (e: 'open-raw'): void,
   /** A `present_file_to_user`, `change_file`, `move_files` or `save_attachment` call. */
   (e: 'open-file', toolCall: ToolCallSummaryDto): void,
 }>();

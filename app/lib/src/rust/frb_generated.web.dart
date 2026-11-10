@@ -469,6 +469,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List dco_decode_list_prim_u_8_strict(dynamic raw);
 
   @protected
+  List<RawBlockDto> dco_decode_list_raw_block_dto(dynamic raw);
+
+  @protected
+  List<RawMessageDto> dco_decode_list_raw_message_dto(dynamic raw);
+
+  @protected
+  List<RawToolDto> dco_decode_list_raw_tool_dto(dynamic raw);
+
+  @protected
   List<(String, String)> dco_decode_list_record_string_string(dynamic raw);
 
   @protected
@@ -641,6 +650,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ProposedCommitStatus dco_decode_proposed_commit_status(dynamic raw);
+
+  @protected
+  RawAnswerDto dco_decode_raw_answer_dto(dynamic raw);
+
+  @protected
+  RawBlockDto dco_decode_raw_block_dto(dynamic raw);
+
+  @protected
+  RawMessageDto dco_decode_raw_message_dto(dynamic raw);
+
+  @protected
+  RawToolDto dco_decode_raw_tool_dto(dynamic raw);
 
   @protected
   (String, String) dco_decode_record_string_string(dynamic raw);
@@ -1200,6 +1221,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   Uint8List sse_decode_list_prim_u_8_strict(SseDeserializer deserializer);
 
   @protected
+  List<RawBlockDto> sse_decode_list_raw_block_dto(SseDeserializer deserializer);
+
+  @protected
+  List<RawMessageDto> sse_decode_list_raw_message_dto(SseDeserializer deserializer);
+
+  @protected
+  List<RawToolDto> sse_decode_list_raw_tool_dto(SseDeserializer deserializer);
+
+  @protected
   List<(String, String)> sse_decode_list_record_string_string(SseDeserializer deserializer);
 
   @protected
@@ -1372,6 +1402,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ProposedCommitStatus sse_decode_proposed_commit_status(SseDeserializer deserializer);
+
+  @protected
+  RawAnswerDto sse_decode_raw_answer_dto(SseDeserializer deserializer);
+
+  @protected
+  RawBlockDto sse_decode_raw_block_dto(SseDeserializer deserializer);
+
+  @protected
+  RawMessageDto sse_decode_raw_message_dto(SseDeserializer deserializer);
+
+  @protected
+  RawToolDto sse_decode_raw_tool_dto(SseDeserializer deserializer);
 
   @protected
   (String, String) sse_decode_record_string_string(SseDeserializer deserializer);
@@ -1935,6 +1977,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_list_prim_u_8_strict(Uint8List self, SseSerializer serializer);
 
   @protected
+  void sse_encode_list_raw_block_dto(List<RawBlockDto> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_raw_message_dto(List<RawMessageDto> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_raw_tool_dto(List<RawToolDto> self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_record_string_string(List<(String, String)> self, SseSerializer serializer);
 
   @protected
@@ -2107,6 +2158,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_proposed_commit_status(ProposedCommitStatus self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_raw_answer_dto(RawAnswerDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_raw_block_dto(RawBlockDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_raw_message_dto(RawMessageDto self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_raw_tool_dto(RawToolDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_record_string_string((String, String) self, SseSerializer serializer);

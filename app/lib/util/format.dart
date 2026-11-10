@@ -53,6 +53,22 @@ String formatDuration(Duration duration) {
   return t.base.chat.assistantMessage.durationMinutes(minutes: seconds ~/ 60, seconds: (seconds % 60).toString().padLeft(2, '0'));
 }
 
+/// With tenths of a second below a minute, e.g. `12.3s` or `<0.1s`, and else whole seconds, e.g. `2m 05s`. Rounded down
+/// like [formatDuration], so that a total matches the duration below the answer (like the web's).
+String formatExactDuration(int milliseconds) {
+  String seconds(double value) => t.base.chat.assistantMessage.durationSeconds(seconds: NumberFormat('0.0').format(value));
+  if (milliseconds < 100) {
+    return t.base.chat.durationDialog.lessThan(duration: seconds(0.1));
+  }
+  if (milliseconds < 60000) {
+    return seconds((milliseconds ~/ 100) / 10);
+  }
+  return formatDuration(Duration(milliseconds: milliseconds));
+}
+
+/// Output tokens per second, e.g. `1,234.5`.
+String formatSpeed(double tokensPerSecond) => NumberFormat('#,##0.#').format(tokensPerSecond);
+
 /// E.g. `12,345`.
 String formatCount(int count) => NumberFormat.decimalPattern().format(count);
 

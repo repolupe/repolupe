@@ -1330,32 +1330,20 @@ class Translations$base$chat$usageDialog$en {
   /// en: 'Token usage'
   String get title => 'Token usage';
 
-  /// en: 'Show what the language model got and returned'
-  String get showRaw => 'Show what the language model got and returned';
-
-  /// en: 'Raw'
-  String get raw => 'Raw';
-
   /// en: 'Type'
   String get type => 'Type';
 
   /// en: 'Tokens'
   String get tokens => 'Tokens';
 
-  /// en: 'Not read from or written to the cache'
-  String get inputHint => 'Not read from or written to the cache';
+  /// en: 'Without cache'
+  String get inputHint => 'Without cache';
 
   /// en: 'Cache read'
   String get cacheRead => 'Cache read';
 
-  /// en: 'Input read from the cache'
-  String get cacheReadHint => 'Input read from the cache';
-
   /// en: 'Cache write'
   String get cacheWrite => 'Cache write';
-
-  /// en: 'Input written to the cache'
-  String get cacheWriteHint => 'Input written to the cache';
 
   /// en: 'Including reasoning'
   String get outputHint => 'Including reasoning';
@@ -1365,9 +1353,6 @@ class Translations$base$chat$usageDialog$en {
 
   /// en: 'Cost'
   String get cost => 'Cost';
-
-  /// en: '{price} per 1M tokens'
-  String pricePerMillion({required Object price}) => '${price} per 1M tokens';
 }
 
 // Path: base.chat.durationDialog

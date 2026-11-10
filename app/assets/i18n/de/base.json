@@ -225,7 +225,7 @@
       "loadFailed": "Der Tool-Aufruf konnte nicht geladen werden: {error}"
     },
     "rawAnswerDialog": {
-      "title": "Rohe Antwort",
+      "title": "Rohantwort",
       "systemPrompt": "System-Prompt",
       "show": "Anzeigen",
       "hide": "Ausblenden",
@@ -242,7 +242,7 @@
       "copy": "Als JSON kopieren",
       "copied": "In die Zwischenablage kopiert.",
       "copyFailed": "Konnte nicht in die Zwischenablage kopiert werden.",
-      "loadFailed": "Die rohe Antwort konnte nicht geladen werden: {error}"
+      "loadFailed": "Die Rohantwort konnte nicht geladen werden: {error}"
     },
     "proposedCommitPanel": {
       "applied": "Übernommen",
@@ -280,19 +280,14 @@
     },
     "usageDialog": {
       "title": "Token-Verbrauch",
-      "showRaw": "Anzeigen, was das Sprachmodell erhalten und zurückgegeben hat",
-      "raw": "Roh",
       "type": "Art",
       "tokens": "Tokens",
-      "inputHint": "Weder aus dem Cache gelesen noch in den Cache geschrieben",
+      "inputHint": "Ohne Cache",
       "cacheRead": "Cache gelesen",
-      "cacheReadHint": "Aus dem Cache gelesene Eingabe",
       "cacheWrite": "Cache geschrieben",
-      "cacheWriteHint": "In den Cache geschriebene Eingabe",
       "outputHint": "Einschließlich Denkschritten",
       "total": "Gesamt",
-      "cost": "Kosten",
-      "pricePerMillion": "{price} pro 1 Mio. Tokens"
+      "cost": "Kosten"
     },
     "durationDialog": {
       "title": "Dauer",

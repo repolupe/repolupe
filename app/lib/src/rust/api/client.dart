@@ -110,6 +110,10 @@ abstract class Client implements RustOpaqueInterface {
   /// `GET .../tool-calls/{tool_call_id}/proposed-commit/file`: the file as the change proposes it.
   Future<FileDownload> getProposedCommitFile({required UuidValue chatId, required UuidValue toolCallId});
 
+  /// `GET /api/v1/chats/{id}/messages/{message_id}/raw`: what the language model got and returned
+  /// for an answer. `NOT_FOUND` while it is generating, or if it was interrupted by a restart.
+  Future<RawAnswerDto> getRawAnswer({required UuidValue chatId, required UuidValue messageId});
+
   /// `GET /api/v1/repositories/{id}`.
   Future<RepositoryDto> getRepository({required UuidValue id});
 

@@ -1151,31 +1151,21 @@ class _Translations$base$chat$usageDialog$vi extends Translations$base$chat$usag
   @override
   String get title => 'Lượng token sử dụng';
   @override
-  String get showRaw => 'Xem những gì mô hình ngôn ngữ đã nhận và trả về';
-  @override
-  String get raw => 'Thô';
-  @override
   String get type => 'Loại';
   @override
   String get tokens => 'Token';
   @override
-  String get inputHint => 'Không đọc từ hoặc ghi vào bộ nhớ đệm';
+  String get inputHint => 'Không dùng bộ nhớ đệm';
   @override
   String get cacheRead => 'Đọc bộ nhớ đệm';
   @override
-  String get cacheReadHint => 'Đầu vào được đọc từ bộ nhớ đệm';
-  @override
   String get cacheWrite => 'Ghi bộ nhớ đệm';
-  @override
-  String get cacheWriteHint => 'Đầu vào được ghi vào bộ nhớ đệm';
   @override
   String get outputHint => 'Bao gồm cả phần suy luận';
   @override
   String get total => 'Tổng';
   @override
   String get cost => 'Chi phí';
-  @override
-  String pricePerMillion({required Object price}) => '${price} cho 1 triệu token';
 }
 
 // Path: base.chat.durationDialog

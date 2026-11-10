@@ -20,6 +20,30 @@ sealed class ApiKeyChange with _$ApiKeyChange {
 }
 
 @freezed
+sealed class RawBlockDto with _$RawBlockDto {
+  const RawBlockDto._();
+
+  const factory RawBlockDto.text({
+    required String text,
+  }) = RawBlockDto_Text;
+  const factory RawBlockDto.reasoning({
+    required String text,
+    required bool redacted,
+  }) = RawBlockDto_Reasoning;
+  const factory RawBlockDto.toolUse({
+    required String id,
+    required String name,
+    required String input,
+  }) = RawBlockDto_ToolUse;
+  const factory RawBlockDto.toolResult({
+    required String toolUseId,
+    required String content,
+    required bool isError,
+  }) = RawBlockDto_ToolResult;
+  const factory RawBlockDto.unknown() = RawBlockDto_Unknown;
+}
+
+@freezed
 sealed class TokenChange with _$TokenChange {
   const TokenChange._();
 

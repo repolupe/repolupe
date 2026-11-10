@@ -3,11 +3,13 @@ import 'dart:async';
 import 'package:app/gen/strings.g.dart';
 import 'package:app/pages/presented_file_page.dart';
 import 'package:app/pages/proposed_commit_page.dart';
+import 'package:app/pages/raw_answer_page.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/util/format.dart';
 import 'package:app/util/markdown.dart';
 import 'package:app/util/tool_call.dart';
 import 'package:app/widget/animated_number.dart';
+import 'package:app/widget/chat/duration_sheet.dart';
 import 'package:app/widget/chat/markdown_content.dart';
 import 'package:app/widget/chat/smooth_text.dart';
 import 'package:app/widget/chat/tool_call_list.dart';
@@ -17,9 +19,9 @@ import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-/// An answer, with the tools it used above it (next to a button that switches how its tables are laid out, once it is
-/// finished), and below it the files the model showed and the changes it proposed
-/// (each opening a page), the model that wrote it, how long it took and what it cost (like the web's).
+/// An answer, with the tools it used above it (and right after them its menu, once it is finished), and below it the
+/// files the model showed and the changes it proposed (each opening a page), the model that wrote it, how long it took
+/// and what it cost (like the web's).
 class AssistantMessage extends StatefulWidget {
   final UuidValue chatId;
   final MessageDto message;
@@ -146,22 +148,24 @@ class _AssistantMessageState extends State<AssistantMessage> {
     final status = _statusLabel(context);
     final padding = EdgeInsets.symmetric(horizontal: widget.horizontalPadding);
     // Offered once the answer is finished, also if it failed or was cancelled.
-    final tableLayout = !_generating && _hasTable;
+    final menu = !_generating;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (message.toolCalls.isNotEmpty || tableLayout) ...[
+        if (message.toolCalls.isNotEmpty || menu) ...[
           Padding(
             padding: padding,
             child: Row(
               children: [
                 if (message.toolCalls.isNotEmpty) ToolCallList(chatId: widget.chatId, messageId: message.id, toolCalls: message.toolCalls),
-                if (tableLayout)
-                  _TableLayoutButton(
-                    key: ValueKey('chat.message.${message.id}.tableLayout'),
-                    scroll: _scrollTables,
-                    onPressed: _toggleScrollTables,
+                if (menu)
+                  _AnswerMenu(
+                    chatId: widget.chatId,
+                    messageId: message.id,
+                    hasTable: _hasTable,
+                    scrollTables: _scrollTables,
+                    onToggleScrollTables: _toggleScrollTables,
                   ),
               ],
             ),
@@ -290,33 +294,74 @@ class _PageButton extends StatelessWidget {
   }
 }
 
-/// Switches the tables of an answer between scrolling sideways when they are wide and fitting the width, highlighted
-/// while they scroll.
-class _TableLayoutButton extends StatelessWidget {
-  final bool scroll;
-  final VoidCallback onPressed;
+enum _AnswerMenuAction { tableLayout, raw }
 
-  const _TableLayoutButton({super.key, required this.scroll, required this.onPressed});
+/// The actions of a finished answer behind three dots: switching its tables, if it has any, between scrolling sideways
+/// when they are wide and fitting the width, and opening what the model got and returned for it (like the web's menu).
+class _AnswerMenu extends StatelessWidget {
+  final UuidValue chatId;
+  final UuidValue messageId;
+  final bool hasTable;
+  final bool scrollTables;
+  final VoidCallback onToggleScrollTables;
+
+  const _AnswerMenu({
+    required this.chatId,
+    required this.messageId,
+    required this.hasTable,
+    required this.scrollTables,
+    required this.onToggleScrollTables,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final texts = context.t.flutter.chat.assistantMessage;
-    return IconButton(
-      tooltip: scroll ? texts.fitTables : texts.scrollTables,
-      isSelected: scroll,
-      icon: const Icon(Icons.table_chart),
-      iconSize: 16,
-      // IconButton's own color for the selected state is lost when it gets a color.
-      color: scroll ? colors.primary : colors.onSurfaceVariant,
+    final t = context.t;
+    final ref = context.ref;
+    final texts = t.flutter.chat.assistantMessage;
+    return PopupMenuButton<_AnswerMenuAction>(
+      key: ValueKey('chat.message.$messageId.menu'),
+      tooltip: t.base.common.actions,
+      icon: const Icon(Icons.more_horiz),
+      iconSize: 20,
+      iconColor: Theme.of(context).colorScheme.onSurfaceVariant,
+      padding: EdgeInsets.zero,
       style: IconButton.styleFrom(minimumSize: const Size(32, 32), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-      onPressed: onPressed,
+      onSelected: (action) async {
+        switch (action) {
+          case _AnswerMenuAction.tableLayout:
+            onToggleScrollTables();
+          case _AnswerMenuAction.raw:
+            await ref.global.dispatchAsync(NavigateAction.push(RawAnswerPage(chatId: chatId, messageId: messageId)));
+        }
+      },
+      itemBuilder: (_) => [
+        if (hasTable)
+          PopupMenuItem(
+            key: ValueKey('chat.message.$messageId.tableLayout'),
+            value: _AnswerMenuAction.tableLayout,
+            child: ListTile(
+              leading: const Icon(Icons.table_chart_outlined),
+              title: Text(scrollTables ? texts.fitTables : texts.scrollTables),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+        PopupMenuItem(
+          key: ValueKey('chat.message.$messageId.raw'),
+          value: _AnswerMenuAction.raw,
+          child: ListTile(
+            leading: const Icon(Icons.data_object),
+            title: Text(t.base.chat.rawAnswerDialog.title),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+      ],
     );
   }
 }
 
 /// One line on the left: the model (cut off when too long, in full on long press), the duration and the cost (or the
-/// total tokens if the model has no prices). Tapping the cost shows the token usage.
+/// total tokens if the model has no prices). Tapping the duration shows what took how long, tapping the cost the token
+/// usage.
 class _Footer extends StatelessWidget {
   final MessageDto message;
   final String? duration;
@@ -338,7 +383,13 @@ class _Footer extends StatelessWidget {
             child: _IconText(icon: Icons.smart_toy_outlined, text: modelName, style: style),
           ),
         ),
-      if (duration != null) Text(duration, style: tabular),
+      if (duration != null)
+        GestureDetector(
+          key: ValueKey('chat.message.${message.id}.duration'),
+          behavior: HitTestBehavior.opaque,
+          onTap: () => DurationSheet.show(context, message: message),
+          child: Text(duration, style: tabular),
+        ),
       if (message.usage case final usage?)
         GestureDetector(
           key: ValueKey('chat.message.${message.id}.usage'),

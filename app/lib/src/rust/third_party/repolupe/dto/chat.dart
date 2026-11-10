@@ -3,12 +3,13 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import 'package:app/src/rust/api/mirror.dart';
 import 'package:app/src/rust/frb_generated.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/attachment.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:uuid/uuid.dart';
 
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ListChatsQuery`, `RawAnswerDto`, `RawBlockDto`, `RawMessageDto`, `RawToolDto`, `SearchChatsQuery`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ListChatsQuery`, `SearchChatsQuery`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `compatible`, `compatible`, `compatible`, `decode`, `decode`, `decode`, `encode_by_ref`, `encode_by_ref`, `encode_by_ref`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `hash`, `hash`, `size_hint`, `size_hint`, `size_hint`, `type_info`, `type_info`, `type_info`
 
 class ChatDetailDto {
@@ -565,6 +566,78 @@ enum ProposedCommitStatus {
 
   /// A value this version does not know, from a newer server. Never sent by the server.
   unknown,
+}
+
+/// What the language model got and returned for an answer.
+class RawAnswerDto {
+  /// The system prompt, the same for every request of the answer.
+  final String system;
+
+  /// The tools the model could call, the same for every request of the answer.
+  final List<RawToolDto> tools;
+
+  /// The chat before the answer as the model saw it (the earlier answers without their tool
+  /// calls), then the responses of the answer and the results of their tool calls. Ends with
+  /// the partial response of an answer that failed or was cancelled while the text was
+  /// streamed.
+  final List<RawMessageDto> messages;
+
+  const RawAnswerDto({
+    required this.system,
+    required this.tools,
+    required this.messages,
+  });
+
+  @override
+  int get hashCode => system.hashCode ^ tools.hashCode ^ messages.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RawAnswerDto && runtimeType == other.runtimeType && system == other.system && tools == other.tools && messages == other.messages;
+}
+
+class RawMessageDto {
+  final MessageRole role;
+  final List<RawBlockDto> content;
+
+  const RawMessageDto({
+    required this.role,
+    required this.content,
+  });
+
+  @override
+  int get hashCode => role.hashCode ^ content.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is RawMessageDto && runtimeType == other.runtimeType && role == other.role && content == other.content;
+}
+
+class RawToolDto {
+  final String name;
+  final String description;
+
+  /// The JSON schema of the arguments, as its text. In the API it is the object itself.
+  final String inputSchema;
+
+  const RawToolDto({
+    required this.name,
+    required this.description,
+    required this.inputSchema,
+  });
+
+  @override
+  int get hashCode => name.hashCode ^ description.hashCode ^ inputSchema.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RawToolDto &&
+          runtimeType == other.runtimeType &&
+          name == other.name &&
+          description == other.description &&
+          inputSchema == other.inputSchema;
 }
 
 class RetryMessageRequest {

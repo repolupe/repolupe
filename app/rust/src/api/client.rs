@@ -20,8 +20,8 @@ use repolupe::dto::attachment::{AttachmentDto, UploadAttachmentQuery};
 use repolupe::dto::auth::{LoginRequest, LoginResponse};
 use repolupe::dto::chat::{
     ChatDetailDto, ChatDto, ChatPageDto, CreateChatRequest, FileDiffDto, ListChatsQuery,
-    MessageDto, ProposedCommitDto, RetryMessageRequest, SearchChatsQuery, SendMessageRequest,
-    ToolCallDto, UpdateChatRequest,
+    MessageDto, ProposedCommitDto, RawAnswerDto, RetryMessageRequest, SearchChatsQuery,
+    SendMessageRequest, ToolCallDto, UpdateChatRequest,
 };
 use repolupe::dto::config::ConfigEntryDto;
 use repolupe::dto::extraction::{
@@ -342,6 +342,17 @@ impl Client {
             &request,
         )
         .await
+    }
+
+    /// `GET /api/v1/chats/{id}/messages/{message_id}/raw`: what the language model got and returned
+    /// for an answer. `NOT_FOUND` while it is generating, or if it was interrupted by a restart.
+    pub async fn get_raw_answer(
+        &self,
+        chat_id: Uuid,
+        message_id: Uuid,
+    ) -> Result<RawAnswerDto, ClientError> {
+        self.get(format!("/api/v1/chats/{chat_id}/messages/{message_id}/raw"))
+            .await
     }
 
     /// `GET /api/v1/chats/{id}/tool-calls/{tool_call_id}`, with its output.

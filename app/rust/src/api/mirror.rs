@@ -3,6 +3,7 @@
 //! it their shape. They must match the originals, which the generated code converts from and to.
 
 use flutter_rust_bridge::frb;
+pub use repolupe::dto::chat::RawBlockDto;
 pub use repolupe::dto::llm::ApiKeyChange;
 pub use repolupe::dto::repository::TokenChange;
 
@@ -18,4 +19,26 @@ pub enum _ApiKeyChange {
     Keep,
     Remove,
     Set { value: String },
+}
+
+#[frb(mirror(RawBlockDto))]
+pub enum _RawBlockDto {
+    Text {
+        text: String,
+    },
+    Reasoning {
+        text: String,
+        redacted: bool,
+    },
+    ToolUse {
+        id: String,
+        name: String,
+        input: String,
+    },
+    ToolResult {
+        tool_use_id: String,
+        content: String,
+        is_error: bool,
+    },
+    Unknown,
 }

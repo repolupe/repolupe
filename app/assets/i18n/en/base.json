@@ -280,19 +280,14 @@
     },
     "usageDialog": {
       "title": "Token usage",
-      "showRaw": "Show what the language model got and returned",
-      "raw": "Raw",
       "type": "Type",
       "tokens": "Tokens",
-      "inputHint": "Not read from or written to the cache",
+      "inputHint": "Without cache",
       "cacheRead": "Cache read",
-      "cacheReadHint": "Input read from the cache",
       "cacheWrite": "Cache write",
-      "cacheWriteHint": "Input written to the cache",
       "outputHint": "Including reasoning",
       "total": "Total",
-      "cost": "Cost",
-      "pricePerMillion": "{price} per 1M tokens"
+      "cost": "Cost"
     },
     "durationDialog": {
       "title": "Duration",

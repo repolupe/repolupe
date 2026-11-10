@@ -12,8 +12,8 @@ use futures_executor::block_on;
 use futures_util::StreamExt;
 use repolupe::dto::auth::LoginRequest;
 use repolupe::dto::chat::{
-    CreateChatRequest, MessageDto, MessageStatus, RetryMessageRequest, SendMessageRequest,
-    ToolCallStatus, UpdateChatRequest,
+    CreateChatRequest, MessageDto, MessageStatus, RawBlockDto, RetryMessageRequest,
+    SendMessageRequest, ToolCallStatus, UpdateChatRequest,
 };
 use repolupe::dto::error::ErrorCode;
 use repolupe::dto::extraction::{DocumentFilter, RetryDocumentRequest};
@@ -415,6 +415,10 @@ fn every_method_reaches_its_route() {
             api_code(block_on(client.message_events(id(), id()))),
         ),
         (
+            "get_raw_answer",
+            api_code(block_on(client.get_raw_answer(id(), id()))),
+        ),
+        (
             "get_tool_call",
             api_code(block_on(client.get_tool_call(id(), id()))),
         ),
@@ -797,6 +801,18 @@ fn local_instance() {
     ));
     assert_eq!(tool_call.summary.input, r#"{"attachment":1}"#);
     assert!(tool_call.output.unwrap().contains("hello"));
+    // The question, the tool call with its result, and the answer.
+    let raw = block_on(client.get_raw_answer(chat_id, answer.id)).unwrap();
+    assert!(!raw.system.is_empty());
+    let read_attachment = raw.tools.iter().find(|t| t.name == "read_attachment");
+    assert!(read_attachment.unwrap().input_schema.starts_with('{'));
+    let blocks: Vec<_> = raw.messages.iter().flat_map(|m| &m.content).collect();
+    assert!(blocks.iter().any(|b| matches!(b,
+        RawBlockDto::ToolUse { name, input, .. } if name == "read_attachment" && input == r#"{"attachment":1}"#)));
+    assert!(blocks.iter().any(
+        |b| matches!(b, RawBlockDto::ToolResult { content, is_error: false, .. } if content.contains("hello"))
+    ));
+    assert!(matches!(blocks.last(), Some(RawBlockDto::Text { text }) if text == "It says hello."));
 
     let messages = block_on(client.send_message(
         chat_id,

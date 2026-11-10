@@ -290,6 +290,28 @@ class ApiStreamMessageAction extends AsyncReduxActionWithResult<ApiService, Acco
   String toString() => 'ApiStreamMessageAction(messageId: $messageId)';
 }
 
+/// Loads what the language model got and returned for the answer [messageId] of the chat [chatId]. Not found while it
+/// is generating, or if it was interrupted by a restart.
+class ApiGetRawAnswerAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, RawAnswerDto> {
+  final UuidValue chatId;
+  final UuidValue messageId;
+
+  ApiGetRawAnswerAction({required this.chatId, required this.messageId});
+
+  @override
+  Future<(AccountClient?, RawAnswerDto)> reduce() async {
+    final raw = await dispatchAsyncTakeResult(
+      _ApiCallAction(
+        call: (client) => client.getRawAnswer(chatId: chatId, messageId: messageId),
+      ),
+    );
+    return (state, raw);
+  }
+
+  @override
+  String toString() => 'ApiGetRawAnswerAction(messageId: $messageId)';
+}
+
 /// Loads the tool call [toolCallId] of the chat [chatId] with its output.
 class ApiGetToolCallAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, ToolCallDto> {
   final UuidValue chatId;

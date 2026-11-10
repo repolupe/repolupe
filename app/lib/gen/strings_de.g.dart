@@ -1028,7 +1028,7 @@ class _Translations$base$chat$rawAnswerDialog$de extends Translations$base$chat$
 
   // Translations
   @override
-  String get title => 'Rohe Antwort';
+  String get title => 'Rohantwort';
   @override
   String get systemPrompt => 'System-Prompt';
   @override
@@ -1062,7 +1062,7 @@ class _Translations$base$chat$rawAnswerDialog$de extends Translations$base$chat$
   @override
   String get copyFailed => 'Konnte nicht in die Zwischenablage kopiert werden.';
   @override
-  String loadFailed({required Object error}) => 'Die rohe Antwort konnte nicht geladen werden: ${error}';
+  String loadFailed({required Object error}) => 'Die Rohantwort konnte nicht geladen werden: ${error}';
 }
 
 // Path: base.chat.proposedCommitPanel
@@ -1152,31 +1152,21 @@ class _Translations$base$chat$usageDialog$de extends Translations$base$chat$usag
   @override
   String get title => 'Token-Verbrauch';
   @override
-  String get showRaw => 'Anzeigen, was das Sprachmodell erhalten und zurückgegeben hat';
-  @override
-  String get raw => 'Roh';
-  @override
   String get type => 'Art';
   @override
   String get tokens => 'Tokens';
   @override
-  String get inputHint => 'Weder aus dem Cache gelesen noch in den Cache geschrieben';
+  String get inputHint => 'Ohne Cache';
   @override
   String get cacheRead => 'Cache gelesen';
   @override
-  String get cacheReadHint => 'Aus dem Cache gelesene Eingabe';
-  @override
   String get cacheWrite => 'Cache geschrieben';
-  @override
-  String get cacheWriteHint => 'In den Cache geschriebene Eingabe';
   @override
   String get outputHint => 'Einschließlich Denkschritten';
   @override
   String get total => 'Gesamt';
   @override
   String get cost => 'Kosten';
-  @override
-  String pricePerMillion({required Object price}) => '${price} pro 1 Mio. Tokens';
 }
 
 // Path: base.chat.durationDialog

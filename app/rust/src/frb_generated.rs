@@ -42,7 +42,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1512421296;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -412189488;
 
 // Section: executor
 
@@ -1735,6 +1735,68 @@ fn wire__crate__api__client__Client_get_proposed_commit_file_impl(
                             &*api_that_guard,
                             api_chat_id,
                             api_tool_call_id,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__client__Client_get_raw_answer_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Client_get_raw_answer",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Client>,
+            >>::sse_decode(&mut deserializer);
+            let api_chat_id = <uuid::Uuid>::sse_decode(&mut deserializer);
+            let api_message_id = <uuid::Uuid>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::error::ClientError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::Client::get_raw_answer(
+                            &*api_that_guard,
+                            api_chat_id,
+                            api_message_id,
                         )
                         .await?;
                         std::result::Result::Ok(output_ok)
@@ -5420,6 +5482,47 @@ const _: fn() = || {
         let _: bool = ProposedCommitDto.can_commit;
     }
     {
+        let RawAnswerDto = None::<repolupe::dto::chat::RawAnswerDto>.unwrap();
+        let _: String = RawAnswerDto.system;
+        let _: Vec<repolupe::dto::chat::RawToolDto> = RawAnswerDto.tools;
+        let _: Vec<repolupe::dto::chat::RawMessageDto> = RawAnswerDto.messages;
+    }
+    match None::<crate::api::mirror::RawBlockDto>.unwrap() {
+        crate::api::mirror::RawBlockDto::Text { text } => {
+            let _: String = text;
+        }
+        crate::api::mirror::RawBlockDto::Reasoning { text, redacted } => {
+            let _: String = text;
+            let _: bool = redacted;
+        }
+        crate::api::mirror::RawBlockDto::ToolUse { id, name, input } => {
+            let _: String = id;
+            let _: String = name;
+            let _: String = input;
+        }
+        crate::api::mirror::RawBlockDto::ToolResult {
+            tool_use_id,
+            content,
+            is_error,
+        } => {
+            let _: String = tool_use_id;
+            let _: String = content;
+            let _: bool = is_error;
+        }
+        crate::api::mirror::RawBlockDto::Unknown => {}
+    }
+    {
+        let RawMessageDto = None::<repolupe::dto::chat::RawMessageDto>.unwrap();
+        let _: repolupe::dto::chat::MessageRole = RawMessageDto.role;
+        let _: Vec<crate::api::mirror::RawBlockDto> = RawMessageDto.content;
+    }
+    {
+        let RawToolDto = None::<repolupe::dto::chat::RawToolDto>.unwrap();
+        let _: String = RawToolDto.name;
+        let _: String = RawToolDto.description;
+        let _: String = RawToolDto.input_schema;
+    }
+    {
         let RegisterRequest = None::<repolupe::dto::user::RegisterRequest>.unwrap();
         let _: String = RegisterRequest.user_name;
         let _: Option<String> = RegisterRequest.email;
@@ -6742,6 +6845,44 @@ impl SseDecode for Vec<u8> {
     }
 }
 
+impl SseDecode for Vec<crate::api::mirror::RawBlockDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::mirror::RawBlockDto>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<repolupe::dto::chat::RawMessageDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<repolupe::dto::chat::RawMessageDto>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<repolupe::dto::chat::RawToolDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<repolupe::dto::chat::RawToolDto>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<(String, String)> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -7662,6 +7803,93 @@ impl SseDecode for repolupe::dto::chat::ProposedCommitStatus {
     }
 }
 
+impl SseDecode for repolupe::dto::chat::RawAnswerDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_system = <String>::sse_decode(deserializer);
+        let mut var_tools = <Vec<repolupe::dto::chat::RawToolDto>>::sse_decode(deserializer);
+        let mut var_messages = <Vec<repolupe::dto::chat::RawMessageDto>>::sse_decode(deserializer);
+        return repolupe::dto::chat::RawAnswerDto {
+            system: var_system,
+            tools: var_tools,
+            messages: var_messages,
+        };
+    }
+}
+
+impl SseDecode for crate::api::mirror::RawBlockDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                let mut var_text = <String>::sse_decode(deserializer);
+                return crate::api::mirror::RawBlockDto::Text { text: var_text };
+            }
+            1 => {
+                let mut var_text = <String>::sse_decode(deserializer);
+                let mut var_redacted = <bool>::sse_decode(deserializer);
+                return crate::api::mirror::RawBlockDto::Reasoning {
+                    text: var_text,
+                    redacted: var_redacted,
+                };
+            }
+            2 => {
+                let mut var_id = <String>::sse_decode(deserializer);
+                let mut var_name = <String>::sse_decode(deserializer);
+                let mut var_input = <String>::sse_decode(deserializer);
+                return crate::api::mirror::RawBlockDto::ToolUse {
+                    id: var_id,
+                    name: var_name,
+                    input: var_input,
+                };
+            }
+            3 => {
+                let mut var_toolUseId = <String>::sse_decode(deserializer);
+                let mut var_content = <String>::sse_decode(deserializer);
+                let mut var_isError = <bool>::sse_decode(deserializer);
+                return crate::api::mirror::RawBlockDto::ToolResult {
+                    tool_use_id: var_toolUseId,
+                    content: var_content,
+                    is_error: var_isError,
+                };
+            }
+            4 => {
+                return crate::api::mirror::RawBlockDto::Unknown;
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseDecode for repolupe::dto::chat::RawMessageDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_role = <repolupe::dto::chat::MessageRole>::sse_decode(deserializer);
+        let mut var_content = <Vec<crate::api::mirror::RawBlockDto>>::sse_decode(deserializer);
+        return repolupe::dto::chat::RawMessageDto {
+            role: var_role,
+            content: var_content,
+        };
+    }
+}
+
+impl SseDecode for repolupe::dto::chat::RawToolDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_description = <String>::sse_decode(deserializer);
+        let mut var_inputSchema = <String>::sse_decode(deserializer);
+        return repolupe::dto::chat::RawToolDto {
+            name: var_name,
+            description: var_description,
+            input_schema: var_inputSchema,
+        };
+    }
+}
+
 impl SseDecode for (String, String) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -8448,190 +8676,193 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         30 => {
+            wire__crate__api__client__Client_get_raw_answer_impl(port, ptr, rust_vec_len, data_len)
+        }
+        31 => {
             wire__crate__api__client__Client_get_repository_impl(port, ptr, rust_vec_len, data_len)
         }
-        31 => wire__crate__api__client__Client_get_server_impl(port, ptr, rust_vec_len, data_len),
-        32 => {
+        32 => wire__crate__api__client__Client_get_server_impl(port, ptr, rust_vec_len, data_len),
+        33 => {
             wire__crate__api__client__Client_get_tool_call_impl(port, ptr, rust_vec_len, data_len)
         }
-        33 => wire__crate__api__client__Client_instance_impl(port, ptr, rust_vec_len, data_len),
-        34 => wire__crate__api__client__Client_list_chats_impl(port, ptr, rust_vec_len, data_len),
-        35 => wire__crate__api__client__Client_list_extraction_documents_impl(
+        34 => wire__crate__api__client__Client_instance_impl(port, ptr, rust_vec_len, data_len),
+        35 => wire__crate__api__client__Client_list_chats_impl(port, ptr, rust_vec_len, data_len),
+        36 => wire__crate__api__client__Client_list_extraction_documents_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        36 => wire__crate__api__client__Client_list_llm_providers_impl(
+        37 => wire__crate__api__client__Client_list_llm_providers_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        37 => wire__crate__api__client__Client_list_mcp_server_users_impl(
+        38 => wire__crate__api__client__Client_list_mcp_server_users_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        38 => wire__crate__api__client__Client_list_mcp_servers_impl(
+        39 => wire__crate__api__client__Client_list_mcp_servers_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        39 => wire__crate__api__client__Client_list_models_impl(port, ptr, rust_vec_len, data_len),
-        40 => wire__crate__api__client__Client_list_remote_models_impl(
+        40 => wire__crate__api__client__Client_list_models_impl(port, ptr, rust_vec_len, data_len),
+        41 => wire__crate__api__client__Client_list_remote_models_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        41 => wire__crate__api__client__Client_list_repositories_impl(
+        42 => wire__crate__api__client__Client_list_repositories_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        42 => wire__crate__api__client__Client_list_repository_documents_impl(
+        43 => wire__crate__api__client__Client_list_repository_documents_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        43 => wire__crate__api__client__Client_list_repository_users_impl(
+        44 => wire__crate__api__client__Client_list_repository_users_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        44 => wire__crate__api__client__Client_list_users_impl(port, ptr, rust_vec_len, data_len),
-        46 => wire__crate__api__client__Client_login_impl(port, ptr, rust_vec_len, data_len),
-        47 => wire__crate__api__client__Client_logout_impl(port, ptr, rust_vec_len, data_len),
-        48 => wire__crate__api__client__Client_me_impl(port, ptr, rust_vec_len, data_len),
-        49 => wire__crate__api__client__Client_refresh_mcp_server_impl(
+        45 => wire__crate__api__client__Client_list_users_impl(port, ptr, rust_vec_len, data_len),
+        47 => wire__crate__api__client__Client_login_impl(port, ptr, rust_vec_len, data_len),
+        48 => wire__crate__api__client__Client_logout_impl(port, ptr, rust_vec_len, data_len),
+        49 => wire__crate__api__client__Client_me_impl(port, ptr, rust_vec_len, data_len),
+        50 => wire__crate__api__client__Client_refresh_mcp_server_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        50 => {
+        51 => {
             wire__crate__api__client__Client_register_user_impl(port, ptr, rust_vec_len, data_len)
         }
-        52 => wire__crate__api__client__Client_remove_mcp_server_user_impl(
+        53 => wire__crate__api__client__Client_remove_mcp_server_user_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        53 => wire__crate__api__client__Client_remove_repository_user_impl(
+        54 => wire__crate__api__client__Client_remove_repository_user_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        54 => {
+        55 => {
             wire__crate__api__client__Client_reset_password_impl(port, ptr, rust_vec_len, data_len)
         }
-        55 => wire__crate__api__client__Client_retry_document_extraction_impl(
+        56 => wire__crate__api__client__Client_retry_document_extraction_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        56 => {
+        57 => {
             wire__crate__api__client__Client_retry_message_impl(port, ptr, rust_vec_len, data_len)
         }
-        57 => wire__crate__api__client__Client_search_chats_impl(port, ptr, rust_vec_len, data_len),
-        58 => wire__crate__api__client__Client_send_message_impl(port, ptr, rust_vec_len, data_len),
-        60 => wire__crate__api__client__Client_set_config_impl(port, ptr, rust_vec_len, data_len),
-        61 => wire__crate__api__client__Client_set_default_model_impl(
+        58 => wire__crate__api__client__Client_search_chats_impl(port, ptr, rust_vec_len, data_len),
+        59 => wire__crate__api__client__Client_send_message_impl(port, ptr, rust_vec_len, data_len),
+        61 => wire__crate__api__client__Client_set_config_impl(port, ptr, rust_vec_len, data_len),
+        62 => wire__crate__api__client__Client_set_default_model_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        62 => wire__crate__api__client__Client_set_locale_impl(port, ptr, rust_vec_len, data_len),
-        63 => wire__crate__api__client__Client_set_my_auto_commit_impl(
+        63 => wire__crate__api__client__Client_set_locale_impl(port, ptr, rust_vec_len, data_len),
+        64 => wire__crate__api__client__Client_set_my_auto_commit_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        64 => wire__crate__api__client__Client_set_my_default_model_impl(
+        65 => wire__crate__api__client__Client_set_my_default_model_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        66 => {
+        67 => {
             wire__crate__api__client__Client_stream_message_impl(port, ptr, rust_vec_len, data_len)
         }
-        67 => {
+        68 => {
             wire__crate__api__client__Client_sync_repository_impl(port, ptr, rust_vec_len, data_len)
         }
-        69 => wire__crate__api__client__Client_update_chat_impl(port, ptr, rust_vec_len, data_len),
-        70 => {
+        70 => wire__crate__api__client__Client_update_chat_impl(port, ptr, rust_vec_len, data_len),
+        71 => {
             wire__crate__api__client__Client_update_identity_impl(port, ptr, rust_vec_len, data_len)
         }
-        71 => wire__crate__api__client__Client_update_llm_model_impl(
+        72 => wire__crate__api__client__Client_update_llm_model_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        72 => wire__crate__api__client__Client_update_llm_provider_impl(
+        73 => wire__crate__api__client__Client_update_llm_provider_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        73 => wire__crate__api__client__Client_update_mcp_server_impl(
+        74 => wire__crate__api__client__Client_update_mcp_server_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        74 => wire__crate__api__client__Client_update_mcp_server_user_impl(
+        75 => wire__crate__api__client__Client_update_mcp_server_user_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        75 => {
+        76 => {
             wire__crate__api__client__Client_update_profile_impl(port, ptr, rust_vec_len, data_len)
         }
-        76 => wire__crate__api__client__Client_update_repository_impl(
+        77 => wire__crate__api__client__Client_update_repository_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        77 => wire__crate__api__client__Client_update_repository_user_impl(
+        78 => wire__crate__api__client__Client_update_repository_user_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        78 => wire__crate__api__client__Client_update_user_impl(port, ptr, rust_vec_len, data_len),
-        79 => wire__crate__api__client__Client_upload_attachment_impl(
+        79 => wire__crate__api__client__Client_update_user_impl(port, ptr, rust_vec_len, data_len),
+        80 => wire__crate__api__client__Client_upload_attachment_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        81 => wire__crate__api__local__LocalHandle_shutdown_impl(port, ptr, rust_vec_len, data_len),
-        84 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
-        85 => wire__repolupe__dto__llm__llm_provider_suggestions_impl(
+        82 => wire__crate__api__local__LocalHandle_shutdown_impl(port, ptr, rust_vec_len, data_len),
+        85 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        86 => wire__repolupe__dto__llm__llm_provider_suggestions_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        87 => {
+        88 => {
             wire__repolupe__dto__mcp__mcp_server_suggestions_impl(port, ptr, rust_vec_len, data_len)
         }
-        88 => wire__crate__api__local__start_local_impl(port, ptr, rust_vec_len, data_len),
+        89 => wire__crate__api__local__start_local_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -8651,17 +8882,17 @@ fn pde_ffi_dispatcher_sync_impl(
             data_len,
         ),
         3 => wire__crate__api__stream__CancellationToken_new_impl(ptr, rust_vec_len, data_len),
-        45 => wire__crate__api__client__Client_local_impl(ptr, rust_vec_len, data_len),
-        51 => wire__crate__api__client__Client_remote_impl(ptr, rust_vec_len, data_len),
-        59 => {
+        46 => wire__crate__api__client__Client_local_impl(ptr, rust_vec_len, data_len),
+        52 => wire__crate__api__client__Client_remote_impl(ptr, rust_vec_len, data_len),
+        60 => {
             wire__crate__api__client__Client_set_accept_language_impl(ptr, rust_vec_len, data_len)
         }
-        65 => wire__crate__api__client__Client_set_token_impl(ptr, rust_vec_len, data_len),
-        68 => wire__crate__api__client__Client_token_impl(ptr, rust_vec_len, data_len),
-        80 => wire__crate__api__local__LocalHandle_is_running_impl(ptr, rust_vec_len, data_len),
-        82 => wire__crate__api__local__generate_secret_impl(ptr, rust_vec_len, data_len),
-        83 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
-        86 => wire__crate__api__local__local_admin_user_name_impl(ptr, rust_vec_len, data_len),
+        66 => wire__crate__api__client__Client_set_token_impl(ptr, rust_vec_len, data_len),
+        69 => wire__crate__api__client__Client_token_impl(ptr, rust_vec_len, data_len),
+        81 => wire__crate__api__local__LocalHandle_is_running_impl(ptr, rust_vec_len, data_len),
+        83 => wire__crate__api__local__generate_secret_impl(ptr, rust_vec_len, data_len),
+        84 => wire__crate__api__simple__greet_impl(ptr, rust_vec_len, data_len),
+        87 => wire__crate__api__local__local_admin_user_name_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -10358,6 +10589,120 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::chat::ProposedC
     for repolupe::dto::chat::ProposedCommitStatus
 {
     fn into_into_dart(self) -> FrbWrapper<repolupe::dto::chat::ProposedCommitStatus> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::RawAnswerDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.system.into_into_dart().into_dart(),
+            self.0.tools.into_into_dart().into_dart(),
+            self.0.messages.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<repolupe::dto::chat::RawAnswerDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::chat::RawAnswerDto>>
+    for repolupe::dto::chat::RawAnswerDto
+{
+    fn into_into_dart(self) -> FrbWrapper<repolupe::dto::chat::RawAnswerDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<crate::api::mirror::RawBlockDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self.0 {
+            crate::api::mirror::RawBlockDto::Text { text } => {
+                [0.into_dart(), text.into_into_dart().into_dart()].into_dart()
+            }
+            crate::api::mirror::RawBlockDto::Reasoning { text, redacted } => [
+                1.into_dart(),
+                text.into_into_dart().into_dart(),
+                redacted.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
+            crate::api::mirror::RawBlockDto::ToolUse { id, name, input } => [
+                2.into_dart(),
+                id.into_into_dart().into_dart(),
+                name.into_into_dart().into_dart(),
+                input.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
+            crate::api::mirror::RawBlockDto::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+            } => [
+                3.into_dart(),
+                tool_use_id.into_into_dart().into_dart(),
+                content.into_into_dart().into_dart(),
+                is_error.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
+            crate::api::mirror::RawBlockDto::Unknown => [4.into_dart()].into_dart(),
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<crate::api::mirror::RawBlockDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<crate::api::mirror::RawBlockDto>>
+    for crate::api::mirror::RawBlockDto
+{
+    fn into_into_dart(self) -> FrbWrapper<crate::api::mirror::RawBlockDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::RawMessageDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.role.into_into_dart().into_dart(),
+            self.0.content.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<repolupe::dto::chat::RawMessageDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::chat::RawMessageDto>>
+    for repolupe::dto::chat::RawMessageDto
+{
+    fn into_into_dart(self) -> FrbWrapper<repolupe::dto::chat::RawMessageDto> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::RawToolDto> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.name.into_into_dart().into_dart(),
+            self.0.description.into_into_dart().into_dart(),
+            self.0.input_schema.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<repolupe::dto::chat::RawToolDto>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::chat::RawToolDto>>
+    for repolupe::dto::chat::RawToolDto
+{
+    fn into_into_dart(self) -> FrbWrapper<repolupe::dto::chat::RawToolDto> {
         self.into()
     }
 }
@@ -12091,6 +12436,36 @@ impl SseEncode for Vec<u8> {
     }
 }
 
+impl SseEncode for Vec<crate::api::mirror::RawBlockDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::mirror::RawBlockDto>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<repolupe::dto::chat::RawMessageDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <repolupe::dto::chat::RawMessageDto>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<repolupe::dto::chat::RawToolDto> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <repolupe::dto::chat::RawToolDto>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<(String, String)> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -12801,6 +13176,71 @@ impl SseEncode for repolupe::dto::chat::ProposedCommitStatus {
             },
             serializer,
         );
+    }
+}
+
+impl SseEncode for repolupe::dto::chat::RawAnswerDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.system, serializer);
+        <Vec<repolupe::dto::chat::RawToolDto>>::sse_encode(self.tools, serializer);
+        <Vec<repolupe::dto::chat::RawMessageDto>>::sse_encode(self.messages, serializer);
+    }
+}
+
+impl SseEncode for crate::api::mirror::RawBlockDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::api::mirror::RawBlockDto::Text { text } => {
+                <i32>::sse_encode(0, serializer);
+                <String>::sse_encode(text, serializer);
+            }
+            crate::api::mirror::RawBlockDto::Reasoning { text, redacted } => {
+                <i32>::sse_encode(1, serializer);
+                <String>::sse_encode(text, serializer);
+                <bool>::sse_encode(redacted, serializer);
+            }
+            crate::api::mirror::RawBlockDto::ToolUse { id, name, input } => {
+                <i32>::sse_encode(2, serializer);
+                <String>::sse_encode(id, serializer);
+                <String>::sse_encode(name, serializer);
+                <String>::sse_encode(input, serializer);
+            }
+            crate::api::mirror::RawBlockDto::ToolResult {
+                tool_use_id,
+                content,
+                is_error,
+            } => {
+                <i32>::sse_encode(3, serializer);
+                <String>::sse_encode(tool_use_id, serializer);
+                <String>::sse_encode(content, serializer);
+                <bool>::sse_encode(is_error, serializer);
+            }
+            crate::api::mirror::RawBlockDto::Unknown => {
+                <i32>::sse_encode(4, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseEncode for repolupe::dto::chat::RawMessageDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <repolupe::dto::chat::MessageRole>::sse_encode(self.role, serializer);
+        <Vec<crate::api::mirror::RawBlockDto>>::sse_encode(self.content, serializer);
+    }
+}
+
+impl SseEncode for repolupe::dto::chat::RawToolDto {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.name, serializer);
+        <String>::sse_encode(self.description, serializer);
+        <String>::sse_encode(self.input_schema, serializer);
     }
 }
 

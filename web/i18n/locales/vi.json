@@ -263,19 +263,14 @@
     },
     "usageDialog": {
       "title": "Lượng token sử dụng",
-      "showRaw": "Xem những gì mô hình ngôn ngữ đã nhận và trả về",
-      "raw": "Thô",
       "type": "Loại",
       "tokens": "Token",
-      "inputHint": "Không đọc từ hoặc ghi vào bộ nhớ đệm",
+      "inputHint": "Không dùng bộ nhớ đệm",
       "cacheRead": "Đọc bộ nhớ đệm",
-      "cacheReadHint": "Đầu vào được đọc từ bộ nhớ đệm",
       "cacheWrite": "Ghi bộ nhớ đệm",
-      "cacheWriteHint": "Đầu vào được ghi vào bộ nhớ đệm",
       "outputHint": "Bao gồm cả phần suy luận",
       "total": "Tổng",
-      "cost": "Chi phí",
-      "pricePerMillion": "{price} cho 1 triệu token"
+      "cost": "Chi phí"
     },
     "durationDialog": {
       "title": "Thời gian",

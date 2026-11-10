@@ -49,7 +49,8 @@
                               @open-tool-calls="showToolCallListDialog(message)"
                               @open-file="(t) => presentedFile = t"
                               @open-usage="showUsageDialog(message)"
-                              @open-duration="showDurationDialog(message)"/>
+                              @open-duration="showDurationDialog(message)"
+                              @open-raw="showRawAnswerDialog(message)"/>
           </template>
         </div>
       </div>
@@ -82,7 +83,7 @@
       <ToolCallDialog v-if="chat" ref="tool-call-dialog" v-model="dialogToolCall"
                       :chat-id="chat.id" :repositories="repositories"/>
 
-      <UsageDialog ref="usage-dialog" v-model="dialogUsage" @open-raw="showRawAnswerDialog"/>
+      <UsageDialog ref="usage-dialog" v-model="dialogUsage"/>
 
       <DurationDialog v-model="dialogDuration" :message="durationMessage"/>
 

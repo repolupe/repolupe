@@ -1,6 +1,7 @@
 import 'package:app/gen/strings.g.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/util/format.dart';
+import 'package:app/widget/chat/answer_sheet.dart';
 import 'package:flutter/material.dart';
 
 extension UsageTotal on UsageDto {
@@ -20,10 +21,8 @@ class UsageSheet extends StatelessWidget {
   const UsageSheet({super.key, required this.usage, required this.cost, required this.modelName});
 
   static Future<void> show(BuildContext context, {required UsageDto usage, required CostDto? cost, required String? modelName}) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
+    await AnswerSheet.show(
+      context,
       builder: (_) => UsageSheet(usage: usage, cost: cost, modelName: modelName),
     );
   }
@@ -36,8 +35,8 @@ class UsageSheet extends StatelessWidget {
     final prices = cost?.prices;
     final rows = [
       (context.t.base.common.input, labels.inputHint, usage.inputTokens.toInt(), prices?.input),
-      (labels.cacheRead, labels.cacheReadHint, usage.cacheReadTokens.toInt(), prices?.cacheRead),
-      (labels.cacheWrite, labels.cacheWriteHint, usage.cacheWriteTokens.toInt(), prices?.cacheWrite),
+      (labels.cacheRead, null, usage.cacheReadTokens.toInt(), prices?.cacheRead),
+      (labels.cacheWrite, null, usage.cacheWriteTokens.toInt(), prices?.cacheWrite),
       (context.t.base.common.output, labels.outputHint, usage.outputTokens.toInt(), prices?.output),
     ];
     final total = usage.totalTokens;
@@ -45,67 +44,35 @@ class UsageSheet extends StatelessWidget {
     final strong = theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500);
     final strongTabular = tabular?.copyWith(fontWeight: FontWeight.w500);
     final hintStyle = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
-    final modelName = this.modelName;
-    return SafeArea(
-      child: SingleChildScrollView(
-        key: const ValueKey('chat.usage'),
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(labels.title, style: theme.textTheme.titleMedium),
-            if (modelName != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Row(
-                  children: [
-                    Icon(Icons.smart_toy_outlined, size: 16, color: theme.colorScheme.onSurfaceVariant),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(modelName, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 12),
-            _Row(
-              label: Text(labels.type, style: theme.textTheme.labelMedium),
-              value: Text(labels.tokens, style: theme.textTheme.labelMedium),
-              cost: prices != null ? Text(labels.cost, style: theme.textTheme.labelMedium) : null,
-            ),
-            for (final (label, hint, tokens, price) in rows)
-              _Row(
-                label: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label),
-                    Text(hint, style: hintStyle),
-                  ],
-                ),
-                value: Text(formatCount(tokens), style: tabular),
-                cost: cost != null && price != null
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(formatExactCost(tokenCost(tokens, price), cost.currency), style: tabular),
-                          Text(
-                            labels.pricePerMillion(price: formatPrice(price, cost.currency)),
-                            style: hintStyle,
-                            textAlign: TextAlign.end,
-                          ),
-                        ],
-                      )
-                    : null,
-              ),
-            _Row(
-              label: Text(labels.total, style: strong),
-              value: Text(formatCount(total), style: strongTabular),
-              cost: cost != null && prices != null ? Text(formatExactCost(cost.amount, cost.currency), style: strongTabular) : null,
-              divider: prices == null,
-            ),
-          ],
+    return AnswerSheet(
+      key: const ValueKey('chat.usage'),
+      title: labels.title,
+      modelName: modelName,
+      children: [
+        _Row(
+          label: Text(labels.type, style: theme.textTheme.labelMedium),
+          value: Text(labels.tokens, style: theme.textTheme.labelMedium),
+          cost: prices != null ? Text(labels.cost, style: theme.textTheme.labelMedium) : null,
         ),
-      ),
+        for (final (label, hint, tokens, price) in rows)
+          _Row(
+            label: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label),
+                if (hint != null) Text(hint, style: hintStyle),
+              ],
+            ),
+            value: Text(formatCount(tokens), style: tabular),
+            cost: cost != null && price != null ? Text(formatExactCost(tokenCost(tokens, price), cost.currency), style: tabular) : null,
+          ),
+        _Row(
+          label: Text(labels.total, style: strong),
+          value: Text(formatCount(total), style: strongTabular),
+          cost: cost != null && prices != null ? Text(formatExactCost(cost.amount, cost.currency), style: strongTabular) : null,
+          divider: prices == null,
+        ),
+      ],
     );
   }
 }
@@ -139,19 +106,17 @@ class _Row extends StatelessWidget {
                 ],
               )
             : Row(
-                // the cost has the price below it, like the label its hint
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(flex: 4, child: label),
                   const SizedBox(width: 16),
                   Expanded(
                     flex: 3,
-                    child: Align(alignment: Alignment.topRight, child: value),
+                    child: Align(alignment: Alignment.centerRight, child: value),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     flex: 4,
-                    child: Align(alignment: Alignment.topRight, child: cost),
+                    child: Align(alignment: Alignment.centerRight, child: cost),
                   ),
                 ],
               ),

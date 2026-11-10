@@ -2,13 +2,7 @@
   <v-dialog v-model="dialog" max-width="480">
     <!-- keyed, so the numbers jump rather than count when another message's usage is shown -->
     <v-card v-if="message?.usage" :key="message.id">
-      <v-card-title class="d-flex align-center pt-4">
-        <span class="flex-grow-1">{{ $t('chat.usageDialog.title') }}</span>
-        <!-- stored once the answer is finished -->
-        <v-btn v-if="message.status !== MessageStatus.GENERATING" variant="text" size="small" class="ml-2"
-               prepend-icon="mdi-code-json" :text="$t('chat.usageDialog.raw')" :title="$t('chat.usageDialog.showRaw')"
-               @click="emit('open-raw', message)"/>
-      </v-card-title>
+      <v-card-title class="pt-4">{{ $t('chat.usageDialog.title') }}</v-card-title>
       <v-card-subtitle v-if="message.model_name" class="pb-2">
         <IconText icon="mdi-robot-outline">{{ message.model_name }}</IconText>
       </v-card-subtitle>
@@ -26,14 +20,11 @@
           <tr v-for="row in rows" :key="row.label">
             <td>
               {{ row.label }}
-              <div class="text-caption text-medium-emphasis">{{ row.hint }}</div>
+              <div v-if="row.hint" class="text-caption text-medium-emphasis">{{ row.hint }}</div>
             </td>
             <td class="text-right tabular"><AnimatedNumber :value="row.tokens" :format="formatCount"/></td>
             <td v-if="row.cost" class="text-right tabular">
               <AnimatedNumber :value="Number(row.cost.amount)" :format="row.cost.format"/>
-              <div class="text-caption text-medium-emphasis">
-                {{ $t('chat.usageDialog.pricePerMillion', {price: row.cost.price}) }}
-              </div>
             </td>
           </tr>
           </tbody>
@@ -60,8 +51,8 @@
 <script setup lang="ts">
 import {computed, ref} from "vue";
 import {useI18n} from "#i18n";
-import {MessageStatus, type MessageDto} from "~/utils/model";
-import {formatExactCost, formatPrice, tokenCost, totalTokens} from "~/utils/utils";
+import type {MessageDto} from "~/utils/model";
+import {formatExactCost, tokenCost, totalTokens} from "~/utils/utils";
 import {formatLocale} from "~/utils/i18n";
 import IconText from "~/components/IconText.vue";
 import AnimatedNumber from "~/components/AnimatedNumber.vue";
@@ -74,7 +65,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void,
-  (e: 'open-raw', message: MessageDto): void,
 }>();
 
 const dialog = computed({
@@ -92,22 +82,21 @@ const rows = computed(() => {
   if (!usage) {
     return [];
   }
-  const currency = message.value?.cost?.currency ?? '';
   /** Of `tokens` at `price`, `null` without prices. */
   const cost = (tokens: number, price: string | undefined) => {
     if (price === undefined) {
       return null;
     }
     const amount = tokenCost(tokens, price);
-    return {amount, format: formatCostAt(amount), price: formatPrice(price, currency)};
+    return {amount, format: formatCostAt(amount)};
   };
   return [
     {label: t('common.input'), hint: t('chat.usageDialog.inputHint'), tokens: usage.input_tokens,
       cost: cost(usage.input_tokens, prices.value?.input)},
-    {label: t('chat.usageDialog.cacheRead'), hint: t('chat.usageDialog.cacheReadHint'), tokens: usage.cache_read_tokens,
+    {label: t('chat.usageDialog.cacheRead'), hint: null, tokens: usage.cache_read_tokens,
       cost: cost(usage.cache_read_tokens, prices.value?.cache_read)},
-    {label: t('chat.usageDialog.cacheWrite'), hint: t('chat.usageDialog.cacheWriteHint'),
-      tokens: usage.cache_write_tokens, cost: cost(usage.cache_write_tokens, prices.value?.cache_write)},
+    {label: t('chat.usageDialog.cacheWrite'), hint: null, tokens: usage.cache_write_tokens,
+      cost: cost(usage.cache_write_tokens, prices.value?.cache_write)},
     {label: t('common.output'), hint: t('chat.usageDialog.outputHint'), tokens: usage.output_tokens,
       cost: cost(usage.output_tokens, prices.value?.output)},
   ];

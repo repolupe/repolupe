@@ -12,6 +12,17 @@ void main() {
     expect(tokenCost(1000, '0'), '0');
   });
 
+  test('formatExactDuration has tenths of a second below a minute, rounded down', () {
+    addTearDown(() => Intl.defaultLocale = null);
+    const durations = [0, 99, 100, 1250, 12399, 59999, 60000, 125990];
+
+    Intl.defaultLocale = 'en';
+    expect(durations.map(formatExactDuration), ['<0.1s', '<0.1s', '0.1s', '1.2s', '12.3s', '59.9s', '1m 00s', '2m 05s']);
+
+    Intl.defaultLocale = 'de';
+    expect(formatExactDuration(12399), '12,3s');
+  });
+
   test('formatTokens abbreviates the same in every language, localizing only the decimal separator', () {
     addTearDown(() => Intl.defaultLocale = null);
     const tokens = [0, 850, 999, 1000, 3600, 12345, 123456, 999949, 999950, 1234567, 2500000000];

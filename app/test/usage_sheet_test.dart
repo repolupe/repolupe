@@ -50,13 +50,9 @@ void main() {
 
     // 1,200 input, 10,000 read from the cache, none written to it and 345 output tokens
     expect(find.text(r'$0.00012'), findsOneWidget);
-    expect(find.text(r'$0.10 per 1M tokens'), findsOneWidget);
     expect(find.text(r'$0.0001'), findsOneWidget);
-    expect(find.text(r'$0.01 per 1M tokens'), findsOneWidget);
     expect(find.text(r'$0.00'), findsOneWidget);
-    expect(find.text(r'$0.125 per 1M tokens'), findsOneWidget);
     expect(find.text(r'$0.0001725'), findsOneWidget);
-    expect(find.text(r'$0.50 per 1M tokens'), findsOneWidget);
     expect(find.text(r'$0.0003925'), findsOneWidget);
     // Only as the column header, the total cost is in the row of the total tokens
     expect(find.text('Cost'), findsOneWidget);
