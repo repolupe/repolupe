@@ -210,6 +210,26 @@
       "noOutput": "Keine Ausgabe.",
       "loadFailed": "Der Tool-Aufruf konnte nicht geladen werden: {error}"
     },
+    "rawAnswerDialog": {
+      "title": "Rohe Antwort",
+      "systemPrompt": "System-Prompt",
+      "show": "Anzeigen",
+      "hide": "Ausblenden",
+      "tools": "Tools",
+      "messages": "Nachrichten",
+      "user": "Benutzer",
+      "assistant": "Assistent",
+      "reasoning": "Überlegungen",
+      "reasoningWithheld": "Der Anbieter hat die Überlegungen zurückgehalten.",
+      "toolUse": "Tool-Aufruf",
+      "toolResult": "Tool-Ergebnis",
+      "error": "Fehler",
+      "notAvailable": "Für diese Antwort ist nichts gespeichert. Antworten von vor der Aufzeichnung und durch einen Neustart unterbrochene Antworten haben keine.",
+      "copy": "Als JSON kopieren",
+      "copied": "In die Zwischenablage kopiert.",
+      "copyFailed": "Konnte nicht in die Zwischenablage kopiert werden.",
+      "loadFailed": "Die rohe Antwort konnte nicht geladen werden: {error}"
+    },
     "proposedCommitPanel": {
       "applied": "Übernommen",
       "appliedAt": "Übernommen {relative} ({dateTime})",
@@ -243,6 +263,8 @@
     },
     "usageDialog": {
       "title": "Token-Verbrauch",
+      "showRaw": "Anzeigen, was das Sprachmodell erhalten und zurückgegeben hat",
+      "raw": "Roh",
       "type": "Art",
       "tokens": "Tokens",
       "inputHint": "Weder aus dem Cache gelesen noch in den Cache geschrieben",

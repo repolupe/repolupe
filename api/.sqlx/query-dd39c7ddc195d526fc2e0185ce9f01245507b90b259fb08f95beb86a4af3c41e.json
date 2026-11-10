@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT r.raw\n           FROM raw_answers r\n           JOIN messages m ON m.id = r.message_id\n           JOIN chats c ON c.id = m.chat_id\n           WHERE r.message_id = $1 AND m.chat_id = $2 AND c.user_id = $3",
+  "describe": {
+    "columns": [
+      {
+        "name": "raw",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "dd39c7ddc195d526fc2e0185ce9f01245507b90b259fb08f95beb86a4af3c41e"
+}

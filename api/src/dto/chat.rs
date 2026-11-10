@@ -100,7 +100,7 @@ pub struct MessageDto {
     /// How long the responses of the language model took in milliseconds, from sending each
     /// request to its last token, summed over the tool loop. Unlike `finished_at`, without the
     /// time tools ran. Like `usage`, of the responses so far while `GENERATING`; `null` if the
-    /// usage is unknown, or for answers from before it was measured.
+    /// usage is unknown. 0 despite output tokens for answers from before it was measured.
     pub response_ms: Option<i64>,
     /// At the prices when the answer finished, `null` if the model had no prices or the usage
     /// is unknown.
@@ -162,6 +162,66 @@ pub struct ToolCallDto {
     pub summary: ToolCallSummaryDto,
     /// `null` while running.
     pub output: Option<String>,
+}
+
+/// What the language model got and returned for an answer.
+#[derive(Serialize, Deserialize)]
+pub struct RawAnswerDto {
+    /// The system prompt, the same for every request of the answer.
+    pub system: String,
+    /// The tools the model could call, the same for every request of the answer.
+    pub tools: Vec<RawToolDto>,
+    /// The chat before the answer as the model saw it (the earlier answers without their tool
+    /// calls), then the responses of the answer and the results of their tool calls. Ends with
+    /// the partial response of an answer that failed or was cancelled while the text was
+    /// streamed.
+    pub messages: Vec<RawMessageDto>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct RawToolDto {
+    pub name: String,
+    pub description: String,
+    /// The JSON schema of the arguments, as its text. In the API it is the object itself.
+    #[serde(with = "json_text")]
+    pub input_schema: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct RawMessageDto {
+    pub role: MessageRole,
+    pub content: Vec<RawBlockDto>,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum RawBlockDto {
+    Text {
+        text: String,
+    },
+    /// Reasoning the model showed. Empty if the provider withheld it, then `redacted`.
+    Reasoning {
+        text: String,
+        redacted: bool,
+    },
+    ToolUse {
+        /// The id the language model gave the call, not a tool call id of the API.
+        id: String,
+        name: String,
+        /// The arguments, usually an object, as their text. In the API they are the value
+        /// itself; a string holds arguments that were not a JSON object.
+        #[serde(with = "json_text")]
+        input: String,
+    },
+    /// Answers the `TOOL_USE` with the same id.
+    ToolResult {
+        tool_use_id: String,
+        content: String,
+        is_error: bool,
+    },
+    /// A value this version does not know, from a newer server. Never sent by the server.
+    #[serde(other)]
+    Unknown,
 }
 
 /// The change a successful `change_file`, `save_attachment` or `move_files` call proposed, and

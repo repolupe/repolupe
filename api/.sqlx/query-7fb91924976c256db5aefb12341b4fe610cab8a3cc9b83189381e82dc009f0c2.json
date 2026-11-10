@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO raw_answers (message_id, raw) VALUES ($1, $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "7fb91924976c256db5aefb12341b4fe610cab8a3cc9b83189381e82dc009f0c2"
+}

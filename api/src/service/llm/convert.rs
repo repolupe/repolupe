@@ -30,6 +30,17 @@ pub(crate) struct ProviderBlock {
     origin: Origin,
 }
 
+impl ProviderBlock {
+    /// The text of a reasoning block and whether the provider withheld it, `None` for other
+    /// items.
+    pub(crate) fn reasoning(&self) -> Option<(&str, bool)> {
+        match &self.content {
+            AssistantContent::Reasoning(reasoning) => Some((&reasoning.text, reasoning.redacted)),
+            _ => None,
+        }
+    }
+}
+
 pub(super) fn request(
     config: &LlmConfig,
     request: &LlmRequest<'_>,

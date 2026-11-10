@@ -8,7 +8,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/attachment.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:uuid/uuid.dart';
 
-// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ListChatsQuery`, `SearchChatsQuery`
+// These types are ignored because they are neither used by any `pub` functions nor (for structs and enums) marked `#[frb(unignore)]`: `ListChatsQuery`, `RawAnswerDto`, `RawBlockDto`, `RawMessageDto`, `RawToolDto`, `SearchChatsQuery`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `compatible`, `compatible`, `compatible`, `decode`, `decode`, `decode`, `encode_by_ref`, `encode_by_ref`, `encode_by_ref`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `hash`, `hash`, `size_hint`, `size_hint`, `size_hint`, `type_info`, `type_info`, `type_info`
 
 class ChatDetailDto {
@@ -394,7 +394,7 @@ class MessageDto {
   /// How long the responses of the language model took in milliseconds, from sending each
   /// request to its last token, summed over the tool loop. Unlike `finished_at`, without the
   /// time tools ran. Like `usage`, of the responses so far while `GENERATING`; `null` if the
-  /// usage is unknown, or for answers from before it was measured.
+  /// usage is unknown. 0 despite output tokens for answers from before it was measured.
   final PlatformInt64? responseMs;
 
   /// At the prices when the answer finished, `null` if the model had no prices or the usage

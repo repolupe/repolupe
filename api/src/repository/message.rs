@@ -4,7 +4,7 @@ use crate::dto::chat::MessageRole;
 use crate::dto::chat::MessageStatus;
 use crate::dto::chat::ProposedCommitStatus;
 use crate::dto::error::ErrorCode;
-use crate::model::message::Message;
+use crate::model::message::{Message, RawAnswer};
 use crate::model::tool_call::{
     ChangedPaths, FileMove, ProposedChange, ProposedCommit, ToolCall, ToolCallSummary,
 };
@@ -40,6 +40,8 @@ pub(crate) struct FinishedMessage<'a> {
     pub response_ms: Option<i64>,
     /// The amount and its currency, `None` if unknown.
     pub cost: Option<(Decimal, &'a str)>,
+    /// `None` if the answer failed before its first request.
+    pub raw: Option<&'a RawAnswer>,
     pub finished_at: DateTime<Utc>,
 }
 
@@ -151,6 +153,31 @@ pub(crate) async fn get_message(
     Ok(message)
 }
 
+/// `None` if the message doesn't exist, isn't the user's, or has no raw answer (user messages,
+/// answers that are generating, were interrupted by a restart, or are from before it was stored).
+pub(crate) async fn get_raw_answer(
+    db: &DatabasePool,
+    user_id: Uuid,
+    chat_id: Uuid,
+    id: Uuid,
+) -> Result<Option<RawAnswer>, AppError> {
+    let raw = sqlx::query_scalar!(
+        r#"SELECT r.raw
+           FROM raw_answers r
+           JOIN messages m ON m.id = r.message_id
+           JOIN chats c ON c.id = m.chat_id
+           WHERE r.message_id = $1 AND m.chat_id = $2 AND c.user_id = $3"#,
+        id,
+        chat_id,
+        user_id,
+    )
+    .fetch_optional(db)
+    .await?;
+    raw.map(|raw| RawAnswer::from_gzip(&raw))
+        .transpose()
+        .map_err(|e| AppError::InternalServerError(format!("Failed to read a raw answer: {e}")))
+}
+
 /// The caller must have checked that the chat belongs to the user.
 pub(crate) async fn list_tool_call_summaries(
     db: &DatabasePool,
@@ -227,6 +254,12 @@ pub(crate) async fn finish_message(
     let usage = finished.usage;
     let (cost, cost_currency) = finished.cost.unzip();
     let cost = cost.map(Text);
+    // Before the transaction, so the write lock isn't held while compressing
+    let raw = finished
+        .raw
+        .map(RawAnswer::to_gzip)
+        .transpose()
+        .map_err(|e| AppError::InternalServerError(format!("Failed to store a raw answer: {e}")))?;
     let (input_tokens, output_tokens, cache_read_tokens, cache_write_tokens) = (
         usage.map(|u| u.input),
         usage.map(|u| u.output),
@@ -270,6 +303,15 @@ pub(crate) async fn finish_message(
     .fetch_optional(&mut *tx)
     .await?;
     if message.is_some() {
+        if let Some(raw) = raw {
+            sqlx::query!(
+                "INSERT INTO raw_answers (message_id, raw) VALUES ($1, $2)",
+                id,
+                raw,
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
         sqlx::query!(
             "UPDATE tool_calls SET output = $2, is_error = true WHERE message_id = $1 AND output IS NULL",
             id,

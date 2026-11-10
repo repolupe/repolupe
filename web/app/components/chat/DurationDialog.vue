@@ -135,7 +135,14 @@ const totalMs = computed(() => {
   return end === null ? null : Math.max(0, end - Date.parse(message.created_at));
 });
 
-const responseMs = computed(() => props.message?.response_ms ?? null);
+/** `null` if unknown: without usage, or 0 despite output tokens for answers from before it was measured. */
+const responseMs = computed(() => {
+  const message = props.message;
+  if (!message || message.response_ms === null) {
+    return null;
+  }
+  return message.response_ms === 0 && (message.usage?.output_tokens ?? 0) > 0 ? null : message.response_ms;
+});
 
 /** Output tokens per second of the responses so far, `null` before the first. */
 const speed = computed(() => {

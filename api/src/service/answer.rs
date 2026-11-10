@@ -116,6 +116,7 @@ async fn run(
     .with_mcp_servers(state.mcp.clone(), mcp_servers);
     let system = system_prompt(&profile, generation.client.utc_offset, &scoped, &tools);
     let definitions = tools.definitions();
+    generation.start_raw(&system, &definitions, &messages)?;
 
     // Whether the text of the next response starts a new paragraph.
     let mut new_paragraph = false;
@@ -129,6 +130,7 @@ async fn run(
         let started = Instant::now();
         let response = stream_response(state, generation, llm, &request, new_paragraph).await?;
         generation.add_usage(&response.usage, started.elapsed())?;
+        generation.append_raw(Role::Assistant, &response.content)?;
 
         let tool_uses: Vec<ToolUse> = response.tool_uses().cloned().collect();
         match response.stop_reason {
@@ -188,6 +190,7 @@ async fn run(
         } else {
             run_tools(state, generation, &tools, &tool_uses, &mut proposals).await?
         };
+        generation.append_raw(Role::User, &results)?;
         messages.push(ChatMessage {
             role: Role::Assistant,
             content: response.content,

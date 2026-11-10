@@ -4662,6 +4662,7 @@ dependencies = [
  "bytes",
  "chrono",
  "fancy-regex",
+ "flate2",
  "futures-util",
  "gix",
  "gix-pack",

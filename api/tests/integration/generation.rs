@@ -994,3 +994,175 @@ async fn runs_scripts_with_and_without_repositories(db: SqlitePool) {
     assert_eq!(result["is_error"], false, "{result}");
     assert_eq!(result["content"], "Result: 2.05");
 }
+
+#[sqlx::test]
+async fn stores_what_the_model_got_and_returned(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let alice = app.user("alice@example.com").await;
+    let bob = app.user("bob@example.com").await;
+    let input = json!({"repository": "demo", "path": "src/main.rs"});
+    let llm = MockLlm::start(vec![
+        text_and_tool_use_response(
+            "Let me look at main.",
+            "toolu_1",
+            "read_file",
+            input.clone(),
+        ),
+        text_response("It prints hello."),
+        text_response("Nothing else."),
+    ])
+    .await;
+    app.configure_llm(&llm).await;
+    let repo = app
+        .seed_repository(
+            alice.user_id,
+            "demo",
+            &[("src/main.rs", "fn main() {\n    println!(\"hello\");\n}\n")],
+        )
+        .await;
+
+    let (status, chat) = alice
+        .post(
+            "/api/v1/chats",
+            json!({
+                "content": "What does main print?",
+                "all_repositories": false,
+                "repository_ids": [repo.id],
+            }),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{chat}");
+    let id = chat["id"].as_str().unwrap();
+    let question_id = chat["messages"][0]["id"].as_str().unwrap();
+    let answer = alice.wait_for_answer(id).await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+    let raw_path = |message_id: &str| format!("/api/v1/chats/{id}/messages/{message_id}/raw");
+    let (status, raw) = alice.get(&raw_path(answer["id"].as_str().unwrap())).await;
+    assert_eq!(status, StatusCode::OK, "{raw}");
+
+    assert!(
+        raw["system"].as_str().unwrap().contains("- `demo` (branch"),
+        "{raw}"
+    );
+    let names = |tools: &Value| -> Vec<String> {
+        let tools = tools.as_array().unwrap();
+        tools.iter().map(|t| t["name"].to_string()).collect()
+    };
+    assert_eq!(names(&raw["tools"]), names(&llm.requests()[0]["tools"]));
+    assert!(raw["tools"][0]["input_schema"].is_object(), "{raw}");
+
+    // The preamble dropped from the answer, the call and its result, then the answer
+    let messages = raw["messages"].as_array().unwrap();
+    let roles: Vec<&str> = messages
+        .iter()
+        .map(|m| m["role"].as_str().unwrap())
+        .collect();
+    assert_eq!(roles, ["USER", "ASSISTANT", "USER", "ASSISTANT"], "{raw}");
+    let question = messages[0]["content"][0]["text"].as_str().unwrap();
+    assert!(question.ends_with("]\nWhat does main print?"), "{question}");
+    assert_eq!(
+        messages[1]["content"],
+        json!([
+            {"type": "TEXT", "text": "Let me look at main."},
+            {"type": "TOOL_USE", "id": "toolu_1", "name": "read_file", "input": input},
+        ])
+    );
+    let result = &messages[2]["content"][0];
+    assert_eq!(result["type"], "TOOL_RESULT", "{result}");
+    assert_eq!(result["tool_use_id"], "toolu_1");
+    assert_eq!(result["is_error"], false);
+    assert!(
+        result["content"]
+            .as_str()
+            .unwrap()
+            .contains(r#"println!("hello");"#),
+        "{result}"
+    );
+    assert_eq!(
+        messages[3]["content"],
+        json!([{"type": "TEXT", "text": "It prints hello."}])
+    );
+
+    // The next answer gets the earlier one without its tool calls
+    let (status, body) = alice
+        .post(
+            &format!("/api/v1/chats/{id}/messages"),
+            json!({"content": "Anything else?"}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    let answer = alice.wait_for_answer(id).await;
+    let (status, raw) = alice.get(&raw_path(answer["id"].as_str().unwrap())).await;
+    assert_eq!(status, StatusCode::OK, "{raw}");
+    let messages = raw["messages"].as_array().unwrap();
+    let texts: Vec<&str> = messages
+        .iter()
+        .map(|m| m["content"][0]["text"].as_str().unwrap())
+        .collect();
+    assert_eq!(texts.len(), 4, "{raw}");
+    assert!(texts[0].ends_with("\nWhat does main print?"), "{raw}");
+    assert_eq!(texts[1], "It prints hello.");
+    assert!(texts[2].ends_with("\nAnything else?"), "{raw}");
+    assert_eq!(texts[3], "Nothing else.");
+
+    // Not for questions, nor for other users
+    let (status, body) = alice.get(&raw_path(question_id)).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "{body}");
+    let (status, body) = bob.get(&raw_path(answer["id"].as_str().unwrap())).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "{body}");
+}
+
+#[sqlx::test]
+async fn raw_answer_ends_with_the_response_that_was_cut_off(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let alice = app.user("alice@example.com").await;
+    let (failing, gate) = gated(error_response("overloaded_error", "It is"));
+    let llm = MockLlm::start(vec![
+        tool_use_response("toolu_1", "unknown_tool", json!({})),
+        failing,
+    ])
+    .await;
+    app.configure_llm(&llm).await;
+
+    let (status, chat) = alice
+        .post(
+            "/api/v1/chats",
+            json!({"content": "Hello?", "all_repositories": true}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{chat}");
+    let id = chat["id"].as_str().unwrap();
+    let raw_path = format!(
+        "/api/v1/chats/{id}/messages/{}/raw",
+        chat["messages"][1]["id"].as_str().unwrap()
+    );
+    // Stored once the answer is finished
+    let (status, body) = alice.get(&raw_path).await;
+    assert_eq!(status, StatusCode::NOT_FOUND, "{body}");
+    gate.notify_one();
+    let answer = alice.wait_for_answer(id).await;
+    assert_eq!(answer["status"], "FAILED", "{answer}");
+
+    let (status, raw) = alice.get(&raw_path).await;
+    assert_eq!(status, StatusCode::OK, "{raw}");
+    let messages = raw["messages"].as_array().unwrap();
+    let blocks: Vec<(&str, &str)> = messages
+        .iter()
+        .map(|m| {
+            let role = m["role"].as_str().unwrap();
+            (role, m["content"][0]["type"].as_str().unwrap())
+        })
+        .collect();
+    assert_eq!(
+        blocks,
+        [
+            ("USER", "TEXT"),
+            ("ASSISTANT", "TOOL_USE"),
+            ("USER", "TOOL_RESULT"),
+            ("ASSISTANT", "TEXT"),
+        ],
+        "{raw}"
+    );
+    assert_eq!(messages[2]["content"][0]["is_error"], true, "{raw}");
+    assert_eq!(messages[3]["content"][0]["text"], "It is", "{raw}");
+}

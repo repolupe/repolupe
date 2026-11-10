@@ -268,8 +268,17 @@ async fn sends_anthropic_thinking_back_in_the_tool_loop() {
             cache_creation_input_tokens: 100,
         }
     );
-    assert!(matches!(response.content[0], ContentBlock::Provider(_)));
-    assert!(matches!(response.content[1], ContentBlock::Provider(_)));
+    let reasoning = |block: &ContentBlock| match block {
+        ContentBlock::Provider(block) => block
+            .reasoning()
+            .map(|(text, redacted)| (text.to_string(), redacted)),
+        _ => panic!("provider block expected"),
+    };
+    assert_eq!(
+        reasoning(&response.content[0]),
+        Some(("Search for main.".to_string(), false))
+    );
+    assert_eq!(reasoning(&response.content[1]), Some((String::new(), true)));
     assert_eq!(
         response.content[2],
         ContentBlock::Text("Let me look.".to_string())

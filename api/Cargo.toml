@@ -10,6 +10,7 @@ axum = { version = "0.8", features = ["macros"] }
 axum-extra = { version = "0.12", features = ["cookie", "typed-header"] }
 base64 = "0.23"
 chrono = { version = "0.4", features = ["serde"] }
+flate2 = "1"
 futures-util = "0.3"
 hex = "0.4"
 rand = "0.10"

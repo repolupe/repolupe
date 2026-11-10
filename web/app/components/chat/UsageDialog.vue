@@ -2,7 +2,13 @@
   <v-dialog v-model="dialog" max-width="480">
     <!-- keyed, so the numbers jump rather than count when another message's usage is shown -->
     <v-card v-if="message?.usage" :key="message.id">
-      <v-card-title class="pt-4">{{ $t('chat.usageDialog.title') }}</v-card-title>
+      <v-card-title class="d-flex align-center pt-4">
+        <span class="flex-grow-1">{{ $t('chat.usageDialog.title') }}</span>
+        <!-- stored once the answer is finished -->
+        <v-btn v-if="message.status !== MessageStatus.GENERATING" variant="text" size="small" class="ml-2"
+               prepend-icon="mdi-code-json" :text="$t('chat.usageDialog.raw')" :title="$t('chat.usageDialog.showRaw')"
+               @click="emit('open-raw', message)"/>
+      </v-card-title>
       <v-card-subtitle v-if="modelName" class="pb-2">
         <IconText icon="mdi-robot-outline">{{ modelName }}</IconText>
       </v-card-subtitle>
@@ -48,7 +54,7 @@
 <script setup lang="ts">
 import {computed, ref} from "vue";
 import {useI18n} from "#i18n";
-import type {MessageDto} from "~/utils/model";
+import {MessageStatus, type MessageDto} from "~/utils/model";
 import {formatExactCost, totalTokens} from "~/utils/utils";
 import {formatLocale} from "~/utils/i18n";
 import IconText from "~/components/IconText.vue";
@@ -62,6 +68,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void,
+  (e: 'open-raw', message: MessageDto): void,
 }>();
 
 const dialog = computed({

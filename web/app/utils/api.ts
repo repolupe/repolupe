@@ -27,6 +27,7 @@ import {
     type RepositoryDocumentsDto,
     type RepositoryDto,
     type RepositoryUserDto,
+    type RawAnswerDto,
     type ToolCallDto,
     type UserDto,
 } from "~/utils/model";
@@ -527,6 +528,14 @@ export async function retryMessage(chatId: string, messageId: string): Promise<M
         method: 'POST',
         body: {utc_offset_minutes: utcOffsetMinutes()},
     });
+}
+
+/**
+ * What the language model got and returned for an answer. `NOT_FOUND` for user messages, and for answers that are
+ * generating, were interrupted by a restart, or are from before it was stored.
+ */
+export async function getRawAnswer(chatId: string, messageId: string): Promise<RawAnswerDto> {
+    return await makeRequest({route: `chats/${chatId}/messages/${messageId}/raw`, method: 'GET'});
 }
 
 /** A tool call with its output. */

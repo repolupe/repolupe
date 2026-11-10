@@ -82,10 +82,12 @@
       <ToolCallDialog v-if="chat" ref="tool-call-dialog" v-model="dialogToolCall"
                       :chat-id="chat.id" :repositories="repositories"/>
 
-      <UsageDialog ref="usage-dialog" v-model="dialogUsage"/>
+      <UsageDialog ref="usage-dialog" v-model="dialogUsage" @open-raw="showRawAnswerDialog"/>
 
       <DurationDialog v-model="dialogDuration" :message="durationMessage"
                       :model-name="modelNames.get(durationMessage?.model_id ?? '') ?? null"/>
+
+      <RawAnswerDialog v-if="chat" ref="raw-answer-dialog" v-model="dialogRawAnswer" :chat-id="chat.id"/>
     </div>
 
     <Transition name="file-panel">
@@ -154,6 +156,7 @@ import PresentedFilePanel from "~/components/chat/panel/PresentedFilePanel.vue";
 import ProposedCommitPanel from "~/components/chat/panel/ProposedCommitPanel.vue";
 import UsageDialog from "~/components/chat/UsageDialog.vue";
 import DurationDialog from "~/components/chat/DurationDialog.vue";
+import RawAnswerDialog from "~/components/chat/RawAnswerDialog.vue";
 import RenameChatDialog from "~/components/chat/RenameChatDialog.vue";
 import MessageInput from "~/components/chat/MessageInput.vue";
 import ChatModelSelect from "~/components/chat/ChatModelSelect.vue";
@@ -172,6 +175,7 @@ const user = useUser();
 const renameDialog = useTemplateRef<InstanceType<typeof RenameChatDialog>>('rename-dialog');
 const toolCallDialog = useTemplateRef<InstanceType<typeof ToolCallDialog>>('tool-call-dialog');
 const usageDialog = useTemplateRef<InstanceType<typeof UsageDialog>>('usage-dialog');
+const rawAnswerDialog = useTemplateRef<InstanceType<typeof RawAnswerDialog>>('raw-answer-dialog');
 const messageInput = useTemplateRef<InstanceType<typeof MessageInput>>('message-input');
 const chatBody = useTemplateRef<HTMLElement>('chat-body');
 
@@ -198,6 +202,7 @@ const toolCallListId = ref<string | null>(null);
 const toolCallListMessage = computed(() => chat.value?.messages.find(m => m.id === toolCallListId.value) ?? null);
 const dialogToolCall = ref(false);
 const dialogUsage = ref(false);
+const dialogRawAnswer = ref(false);
 const dialogDuration = ref(false);
 /** The answer whose duration is shown, by id, like `toolCallListId`. */
 const durationMessageId = ref<string | null>(null);
@@ -450,6 +455,7 @@ watch(() => route.params.id, async (id) => {
   presentedFile.value = null;
   dialogUsage.value = false;
   dialogDuration.value = false;
+  dialogRawAnswer.value = false;
   // `autofocus` covers the first chat; the page is reused for the next ones
   nextTick(() => messageInput.value?.focus());
   await fetchChat(id, true);
@@ -599,6 +605,13 @@ const showUsageDialog = (message: MessageDto) => {
 const showDurationDialog = (message: MessageDto) => {
   durationMessageId.value = message.id;
   dialogDuration.value = true;
+};
+
+// --- raw answer ---
+
+const showRawAnswerDialog = (message: MessageDto) => {
+  rawAnswerDialog.value!.load(message);
+  dialogRawAnswer.value = true;
 };
 
 // --- rename, model & delete ---

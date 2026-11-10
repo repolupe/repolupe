@@ -18,8 +18,8 @@ use crate::config::error::AppError;
 use crate::config::state::AppState;
 use crate::dto::attachment::AttachmentDto;
 use crate::dto::chat::{
-    ChatDto, CostDto, FileMoveDto, MessageDto, ProposedCommitDto, ToolCallDto, ToolCallStatus,
-    ToolCallSummaryDto, UsageDto,
+    ChatDto, CostDto, FileMoveDto, MessageDto, ProposedCommitDto, RawAnswerDto, RawBlockDto,
+    RawMessageDto, RawToolDto, ToolCallDto, ToolCallStatus, ToolCallSummaryDto, UsageDto,
 };
 use crate::dto::extraction::{
     DocumentConversionDto, DocumentConversionStatus, DocumentExtractionDto, ExtractionTotalsDto,
@@ -491,6 +491,55 @@ impl ProposedCommitDto {
             error: change.error,
             committed_at: change.committed_at,
             can_commit,
+        }
+    }
+}
+
+impl From<model::message::RawAnswer> for RawAnswerDto {
+    fn from(raw: model::message::RawAnswer) -> Self {
+        use model::message::RawBlock;
+        RawAnswerDto {
+            system: raw.system,
+            tools: raw
+                .tools
+                .into_iter()
+                .map(|tool| RawToolDto {
+                    name: tool.name,
+                    description: tool.description,
+                    input_schema: tool.input_schema.to_string(),
+                })
+                .collect(),
+            messages: raw
+                .messages
+                .into_iter()
+                .map(|message| RawMessageDto {
+                    role: message.role,
+                    content: message
+                        .content
+                        .into_iter()
+                        .map(|block| match block {
+                            RawBlock::Text { text } => RawBlockDto::Text { text },
+                            RawBlock::Reasoning { text, redacted } => {
+                                RawBlockDto::Reasoning { text, redacted }
+                            }
+                            RawBlock::ToolUse { id, name, input } => RawBlockDto::ToolUse {
+                                id,
+                                name,
+                                input: input.to_string(),
+                            },
+                            RawBlock::ToolResult {
+                                tool_use_id,
+                                content,
+                                is_error,
+                            } => RawBlockDto::ToolResult {
+                                tool_use_id,
+                                content,
+                                is_error,
+                            },
+                        })
+                        .collect(),
+                })
+                .collect(),
         }
     }
 }

@@ -3,9 +3,9 @@ use crate::config::state::AppState;
 use crate::dto::chat::MessageStatus;
 use crate::dto::chat::{
     ChatDetailDto, ChatDto, ChatPageDto, ContentDeltaDto, CostDto, CreateChatRequest, FileDiffDto,
-    ListChatsQuery, MessageDto, ProposedCommitDto, RetryMessageRequest, SearchChatsQuery,
-    SendMessageRequest, ToolCallDto, ToolCallFinishedDto, ToolCallStatus, ToolCallSummaryDto,
-    UpdateChatRequest, UsageUpdateDto,
+    ListChatsQuery, MessageDto, ProposedCommitDto, RawAnswerDto, RetryMessageRequest,
+    SearchChatsQuery, SendMessageRequest, ToolCallDto, ToolCallFinishedDto, ToolCallStatus,
+    ToolCallSummaryDto, UpdateChatRequest, UsageUpdateDto,
 };
 use crate::dto::error::ErrorCode;
 use crate::middleware::auth::AuthenticatedUser;
@@ -440,6 +440,19 @@ pub(crate) async fn retry_message(
     service::generation::spawn(state.clone(), generation, model.config);
 
     Ok((StatusCode::CREATED, Json(MessageDto::new(message, vec![]))))
+}
+
+/// What the language model got and returned for an answer. Not found for user messages, and for
+/// answers that are generating, were interrupted by a restart, or are from before it was stored.
+pub(crate) async fn get_raw_answer(
+    State(state): State<AppState>,
+    Extension(auth): Extension<AuthenticatedUser>,
+    PathParam((chat_id, message_id)): PathParam<(Uuid, Uuid)>,
+) -> Result<Json<RawAnswerDto>, AppError> {
+    let raw = repository::message::get_raw_answer(&state.db, auth.user_id, chat_id, message_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    Ok(Json(raw.into()))
 }
 
 fn client_context(

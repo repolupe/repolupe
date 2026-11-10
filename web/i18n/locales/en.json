@@ -210,6 +210,26 @@
       "noOutput": "No output.",
       "loadFailed": "Could not load the tool call: {error}"
     },
+    "rawAnswerDialog": {
+      "title": "Raw Answer",
+      "systemPrompt": "System prompt",
+      "show": "Show",
+      "hide": "Hide",
+      "tools": "Tools",
+      "messages": "Messages",
+      "user": "User",
+      "assistant": "Assistant",
+      "reasoning": "Reasoning",
+      "reasoningWithheld": "The provider withheld the reasoning.",
+      "toolUse": "Tool call",
+      "toolResult": "Tool result",
+      "error": "Error",
+      "notAvailable": "Nothing is stored for this answer. Answers from before this was recorded and answers interrupted by a restart have none.",
+      "copy": "Copy as JSON",
+      "copied": "Copied to the clipboard.",
+      "copyFailed": "Could not copy to the clipboard.",
+      "loadFailed": "Could not load the raw answer: {error}"
+    },
     "proposedCommitPanel": {
       "applied": "Applied",
       "appliedAt": "Applied {relative} ({dateTime})",
@@ -243,6 +263,8 @@
     },
     "usageDialog": {
       "title": "Token usage",
+      "showRaw": "Show what the language model got and returned",
+      "raw": "Raw",
       "type": "Type",
       "tokens": "Tokens",
       "inputHint": "Not read from or written to the cache",

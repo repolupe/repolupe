@@ -204,6 +204,7 @@ fn configure_routes(state: config::state::AppState) -> Router<config::state::App
         .route("/api/v1/chats/{id}/messages/{message_id}/stream", get(controller::chat::stream_message))
         .route("/api/v1/chats/{id}/messages/{message_id}/cancel", post(controller::chat::cancel_message))
         .route("/api/v1/chats/{id}/messages/{message_id}/retry", post(controller::chat::retry_message))
+        .route("/api/v1/chats/{id}/messages/{message_id}/raw", get(controller::chat::get_raw_answer))
         .route("/api/v1/chats/{id}/tool-calls/{tool_call_id}", get(controller::chat::get_tool_call))
         .route("/api/v1/chats/{id}/tool-calls/{tool_call_id}/file", get(controller::chat::get_presented_file))
         .route("/api/v1/chats/{id}/tool-calls/{tool_call_id}/patch", get(controller::chat::get_proposed_commit_patch))

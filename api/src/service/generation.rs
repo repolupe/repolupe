@@ -2,12 +2,12 @@ use crate::config::error::AppError;
 use crate::config::state::{AppState, DatabasePool};
 use crate::dto::chat::MessageRole;
 use crate::dto::chat::MessageStatus;
-use crate::model::message::Message;
+use crate::model::message::{Message, RawAnswer, RawBlock, RawMessage, RawTool};
 use crate::model::tool_call::{ProposedChange, ToolCallSummary};
 use crate::repository;
 use crate::repository::message::{FinishedMessage, NewToolCall, TokenUsage};
 use crate::service::answer;
-use crate::service::llm::{LlmConfig, Usage};
+use crate::service::llm::{ChatMessage, ContentBlock, LlmConfig, Role, ToolDefinition, Usage};
 use crate::service::llm_config::AnsweringModel;
 use crate::service::pricing::Pricing;
 use chrono::{DateTime, FixedOffset, Utc};
@@ -144,6 +144,11 @@ struct GenerationState {
     usage: Option<Usage>,
     /// How long the LLM responses in `usage` took.
     response_time: Duration,
+    /// What the language model got and returned so far, `None` before the first request.
+    raw: Option<RawAnswer>,
+    /// The length of `content` when the last response was added to `raw`. The text after it
+    /// is of a response that is still streamed.
+    raw_content_end: usize,
     /// Set by the first [`finish`], after which nothing is appended anymore.
     finished: bool,
     /// The final message, once [`GenerationEvent::Done`] was sent.
@@ -155,6 +160,23 @@ impl GenerationState {
     fn answer(&self) -> &str {
         let answer = &self.content[self.answer_start..];
         answer.strip_prefix(PARAGRAPH_BREAK).unwrap_or(answer)
+    }
+
+    /// `raw` with the text of a response that was cut off while it was streamed, e.g. by a
+    /// cancel or an error of the language model.
+    fn final_raw(&mut self) -> Option<RawAnswer> {
+        let mut raw = self.raw.take()?;
+        let partial = &self.content[self.raw_content_end..];
+        let partial = partial.strip_prefix(PARAGRAPH_BREAK).unwrap_or(partial);
+        if !partial.is_empty() {
+            raw.messages.push(RawMessage {
+                role: MessageRole::Assistant,
+                content: vec![RawBlock::Text {
+                    text: partial.to_string(),
+                }],
+            });
+        }
+        Some(raw)
     }
 }
 
@@ -308,6 +330,49 @@ impl Generation {
         Ok(())
     }
 
+    /// Starts recording what the language model gets and returns with the first request, see
+    /// [`RawAnswer`].
+    pub(crate) fn start_raw(
+        &self,
+        system: &str,
+        tools: &[ToolDefinition],
+        messages: &[ChatMessage],
+    ) -> Result<(), GenerationError> {
+        let raw = RawAnswer {
+            system: system.to_string(),
+            tools: tools.iter().map(raw_tool).collect(),
+            messages: messages
+                .iter()
+                .map(|message| raw_message(message.role, &message.content))
+                .collect(),
+        };
+        let mut state = self.state.lock().unwrap();
+        if state.finished {
+            return Err(GenerationError::Stopped);
+        }
+        state.raw = Some(raw);
+        state.raw_content_end = state.content.len();
+        Ok(())
+    }
+
+    /// Records a complete response, or the results of its tool calls, after [`Self::start_raw`].
+    pub(crate) fn append_raw(
+        &self,
+        role: Role,
+        content: &[ContentBlock],
+    ) -> Result<(), GenerationError> {
+        let message = raw_message(role, content);
+        let mut state = self.state.lock().unwrap();
+        if state.finished {
+            return Err(GenerationError::Stopped);
+        }
+        state.raw_content_end = state.content.len();
+        if let Some(raw) = &mut state.raw {
+            raw.messages.push(message);
+        }
+        Ok(())
+    }
+
     /// Stores a running tool call and returns its id.
     pub(crate) async fn start_tool_call(
         &self,
@@ -429,7 +494,7 @@ pub(crate) async fn finish(
     status: MessageStatus,
     error: Option<&str>,
 ) -> Result<(), AppError> {
-    let (content, usage, response_time) = {
+    let (content, usage, response_time, raw) = {
         let mut generation_state = generation.state.lock().unwrap();
         if generation_state.finished {
             return Ok(());
@@ -439,6 +504,7 @@ pub(crate) async fn finish(
             generation_state.answer().to_string(),
             generation_state.usage.clone().unwrap_or_default(),
             generation_state.response_time,
+            generation_state.final_raw(),
         )
     };
     generation.cancel.cancel();
@@ -451,6 +517,7 @@ pub(crate) async fn finish(
         usage: Some(token_usage(&usage)),
         response_ms: Some(millis(response_time)),
         cost,
+        raw: raw.as_ref(),
         finished_at: Utc::now(),
     };
     let result = store_final_message(state, generation.message_id, finished).await;
@@ -480,6 +547,7 @@ pub(crate) async fn cancel(state: &AppState, message_id: Uuid) -> Result<(), App
                 usage: None,
                 response_ms: None,
                 cost: None,
+                raw: None,
                 finished_at: Utc::now(),
             };
             repository::message::finish_message(&state.db, message_id, finished).await?;
@@ -526,6 +594,54 @@ async fn store_final_message(
     let tool_calls =
         repository::message::list_tool_call_summaries_of_message(&state.db, message_id).await?;
     Ok(Some((message, tool_calls)))
+}
+
+fn raw_tool(tool: &ToolDefinition) -> RawTool {
+    RawTool {
+        name: tool.name.clone(),
+        description: tool.description.clone(),
+        input_schema: tool.input_schema.clone(),
+    }
+}
+
+/// Leaves out what is not sent to the model, like empty texts, and provider items other than
+/// reasoning, which have no text to show.
+fn raw_message(role: Role, content: &[ContentBlock]) -> RawMessage {
+    RawMessage {
+        role: match role {
+            Role::User => MessageRole::User,
+            Role::Assistant => MessageRole::Assistant,
+        },
+        content: content
+            .iter()
+            .filter_map(|block| match block {
+                ContentBlock::Text(text) if text.is_empty() => None,
+                ContentBlock::Text(text) => Some(RawBlock::Text { text: text.clone() }),
+                ContentBlock::ToolUse(tool_use) => Some(RawBlock::ToolUse {
+                    id: tool_use.id.clone(),
+                    name: tool_use.name.clone(),
+                    input: tool_use.input.clone(),
+                }),
+                ContentBlock::ToolResult {
+                    tool_use_id,
+                    content,
+                    is_error,
+                } => Some(RawBlock::ToolResult {
+                    tool_use_id: tool_use_id.clone(),
+                    content: content.clone(),
+                    is_error: *is_error,
+                }),
+                ContentBlock::Provider(block) => {
+                    block
+                        .reasoning()
+                        .map(|(text, redacted)| RawBlock::Reasoning {
+                            text: text.to_string(),
+                            redacted,
+                        })
+                }
+            })
+            .collect(),
+    }
 }
 
 fn token_usage(usage: &Usage) -> TokenUsage {

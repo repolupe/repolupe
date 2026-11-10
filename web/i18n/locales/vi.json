@@ -210,6 +210,26 @@
       "noOutput": "Không có đầu ra.",
       "loadFailed": "Không thể tải lệnh gọi công cụ: {error}"
     },
+    "rawAnswerDialog": {
+      "title": "Câu trả lời thô",
+      "systemPrompt": "Lời nhắc hệ thống",
+      "show": "Xem",
+      "hide": "Ẩn",
+      "tools": "Công cụ",
+      "messages": "Tin nhắn",
+      "user": "Người dùng",
+      "assistant": "Trợ lý",
+      "reasoning": "Suy luận",
+      "reasoningWithheld": "Nhà cung cấp đã giữ lại phần suy luận.",
+      "toolUse": "Lệnh gọi công cụ",
+      "toolResult": "Kết quả công cụ",
+      "error": "Lỗi",
+      "notAvailable": "Không có dữ liệu nào được lưu cho câu trả lời này. Các câu trả lời từ trước khi tính năng này được ghi lại và các câu trả lời bị gián đoạn do khởi động lại không có dữ liệu.",
+      "copy": "Sao chép dưới dạng JSON",
+      "copied": "Đã sao chép vào bộ nhớ tạm.",
+      "copyFailed": "Không thể sao chép vào bộ nhớ tạm.",
+      "loadFailed": "Không thể tải câu trả lời thô: {error}"
+    },
     "proposedCommitPanel": {
       "applied": "Đã áp dụng",
       "appliedAt": "Đã áp dụng {relative} ({dateTime})",
@@ -243,6 +263,8 @@
     },
     "usageDialog": {
       "title": "Lượng token sử dụng",
+      "showRaw": "Xem những gì mô hình ngôn ngữ đã nhận và trả về",
+      "raw": "Thô",
       "type": "Loại",
       "tokens": "Token",
       "inputHint": "Không đọc từ hoặc ghi vào bộ nhớ đệm",

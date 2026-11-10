@@ -535,7 +535,8 @@ export interface MessageDto {
     /**
      * How long the responses of the language model took in milliseconds, from sending each request to its last token,
      * summed over the tool loop. Unlike `finished_at`, without the time tools ran. Like `usage`, of the responses so far
-     * while `GENERATING`; `null` if the usage is unknown, or for answers from before it was measured.
+     * while `GENERATING`; `null` if the usage is unknown. 0 despite output tokens for answers from before it was
+     * measured.
      */
     response_ms: number | null;
     /** At the prices when the answer finished, `null` if the model had no prices or the usage is unknown. */
@@ -598,6 +599,41 @@ export interface ToolCallDto extends ToolCallSummaryDto {
     /** `null` while running. */
     output: string | null;
 }
+
+/** What the language model got and returned for an answer. */
+export interface RawAnswerDto {
+    /** The system prompt, the same for every request of the answer. */
+    system: string;
+    /** The tools the model could call, the same for every request of the answer. */
+    tools: RawToolDto[];
+    /**
+     * The chat before the answer as the model saw it (the earlier answers without their tool calls), then the responses of
+     * the answer and the results of their tool calls. Ends with the partial response of an answer that failed or was
+     * cancelled while the text was streamed.
+     */
+    messages: RawMessageDto[];
+}
+
+export interface RawToolDto {
+    name: string;
+    description: string;
+    /** JSON schema of the arguments. */
+    input_schema: Record<string, unknown>;
+}
+
+export interface RawMessageDto {
+    role: MessageRole;
+    content: RawBlockDto[];
+}
+
+export type RawBlockDto =
+    | { type: 'TEXT', text: string }
+    /** Empty if the provider withheld it, then `redacted`. */
+    | { type: 'REASONING', text: string, redacted: boolean }
+    /** `id` is the one the language model gave the call. `input` is a string if it was not a JSON object. */
+    | { type: 'TOOL_USE', id: string, name: string, input: unknown }
+    /** Answers the `TOOL_USE` with the same id. */
+    | { type: 'TOOL_RESULT', tool_use_id: string, content: string, is_error: boolean };
 
 /** How far a change proposed with `change_file`, `move_files` or `save_attachment` got. */
 export enum ProposedCommitStatus {
