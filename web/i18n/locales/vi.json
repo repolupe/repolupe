@@ -224,7 +224,7 @@
       "toolUse": "Lệnh gọi công cụ",
       "toolResult": "Kết quả công cụ",
       "error": "Lỗi",
-      "notAvailable": "Không có dữ liệu nào được lưu cho câu trả lời này. Các câu trả lời từ trước khi tính năng này được ghi lại và các câu trả lời bị gián đoạn do khởi động lại không có dữ liệu.",
+      "notAvailable": "Không có dữ liệu nào được lưu cho câu trả lời này. Các câu trả lời bị gián đoạn do khởi động lại không có dữ liệu.",
       "copy": "Sao chép dưới dạng JSON",
       "copied": "Đã sao chép vào bộ nhớ tạm.",
       "copyFailed": "Không thể sao chép vào bộ nhớ tạm.",
@@ -274,7 +274,8 @@
       "cacheWriteHint": "Đầu vào được ghi vào bộ nhớ đệm",
       "outputHint": "Bao gồm cả phần suy luận",
       "total": "Tổng",
-      "cost": "Chi phí"
+      "cost": "Chi phí",
+      "pricePerMillion": "{price} cho 1 triệu token"
     },
     "durationDialog": {
       "title": "Thời gian",

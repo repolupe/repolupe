@@ -19,7 +19,8 @@ use crate::config::state::AppState;
 use crate::dto::attachment::AttachmentDto;
 use crate::dto::chat::{
     ChatDto, CostDto, FileMoveDto, MessageDto, ProposedCommitDto, RawAnswerDto, RawBlockDto,
-    RawMessageDto, RawToolDto, ToolCallDto, ToolCallStatus, ToolCallSummaryDto, UsageDto,
+    RawMessageDto, RawToolDto, TokenPricesDto, ToolCallDto, ToolCallStatus, ToolCallSummaryDto,
+    UsageDto,
 };
 use crate::dto::extraction::{
     DocumentConversionDto, DocumentConversionStatus, DocumentExtractionDto, ExtractionTotalsDto,
@@ -36,7 +37,7 @@ use crate::dto::user::UserDto;
 use crate::middleware::auth::AuthenticatedUser;
 use crate::model;
 use crate::model::tool_call::ToolCallSummary;
-use crate::repository::message::TokenUsage;
+use crate::repository::message::{Cost, TokenPrices, TokenUsage};
 use crate::repository::repository::StoredToken;
 use crate::service;
 use crate::service::extraction::{Conversion, ExtractionStatus};
@@ -395,12 +396,27 @@ impl MessageDto {
             }),
             _ => None,
         };
+        let prices = match (
+            message.input_price,
+            message.output_price,
+            message.cache_read_price,
+            message.cache_write_price,
+        ) {
+            (Some(input), Some(output), Some(cache_read), Some(cache_write)) => Some(TokenPrices {
+                input: input.0,
+                output: output.0,
+                cache_read: cache_read.0,
+                cache_write: cache_write.0,
+            }),
+            _ => None,
+        };
         let cost = message
             .cost
             .zip(message.cost_currency)
             .map(|(amount, currency)| CostDto {
                 amount: amount.0.to_string(),
                 currency,
+                prices: prices.map(Into::into),
             });
         MessageDto {
             id: message.id,
@@ -409,6 +425,7 @@ impl MessageDto {
             status: message.status,
             error: message.error,
             model_id: message.model_id,
+            model_name: message.model_name,
             tool_calls: tool_calls.into_iter().map(Into::into).collect(),
             created_at: message.created_at,
             finished_at: message.finished_at,
@@ -425,6 +442,27 @@ impl MessageDto {
     ) -> Self {
         self.attachment = attachment.map(Into::into);
         self
+    }
+}
+
+impl From<Cost> for CostDto {
+    fn from(cost: Cost) -> Self {
+        CostDto {
+            amount: cost.amount.to_string(),
+            currency: cost.currency,
+            prices: Some(cost.prices.into()),
+        }
+    }
+}
+
+impl From<TokenPrices> for TokenPricesDto {
+    fn from(prices: TokenPrices) -> Self {
+        TokenPricesDto {
+            input: prices.input.to_string(),
+            output: prices.output.to_string(),
+            cache_read: prices.cache_read.to_string(),
+            cache_write: prices.cache_write.to_string(),
+        }
     }
 }
 

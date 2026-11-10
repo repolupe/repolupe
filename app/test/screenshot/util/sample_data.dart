@@ -16,6 +16,7 @@ const sampleUserName = 'alex';
 
 const sampleProviderId = '0199a8d4-6d5e-7c3a-9b1f-100000000001';
 const sampleModelId = '0199a8d4-6d5e-7c3a-9b1f-100000000002';
+const sampleModelName = ' Mistral 4 119B';
 
 const documentsId = '0199a8d4-6d5e-7c3a-9b1f-200000000001';
 const notesId = '0199a8d4-6d5e-7c3a-9b1f-200000000002';
@@ -115,7 +116,7 @@ SampleApi sampleApi(
   me: sampleUser,
   instance: const InstanceDto(name: 'Acme'),
   models: [
-    fakeModel(id: sampleModelId, displayName: ' Mistral 4 119B', providerId: sampleProviderId, providerName: 'OpenRouter', isDefault: true),
+    fakeModel(id: sampleModelId, displayName: sampleModelName, providerId: sampleProviderId, providerName: 'OpenRouter', isDefault: true),
   ],
   repositories: [documents(texts), notes(texts)],
   chats: [chat(passportChatId, texts.passportChat, notesId), chat(taxChatId, texts.taxChat, documentsId)],
@@ -192,6 +193,7 @@ MessageDto _message({
     content: content,
     status: MessageStatus.completed,
     modelId: answer ? UuidValue.fromString(sampleModelId) : null,
+    modelName: answer ? sampleModelName : null,
     toolCalls: toolCalls,
     createdAt: DateTime.utc(2026, 10, 21, 9, 12),
     finishedAt: answer ? DateTime.utc(2026, 10, 21, 9, 12, 42) : null,

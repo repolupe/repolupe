@@ -156,13 +156,13 @@ mod tests {
             }
             MessageEvent::ToolCallFinished { tool_call } => {
                 format!(
-                    "finished {} {:?}",
+                    "finished {} {}",
                     name(&tool_call.status),
                     tool_call.duration_ms
                 )
             }
             MessageEvent::Usage { update } => format!(
-                "usage {} {:?} {:?}",
+                "usage {} {} {:?}",
                 update.usage.output_tokens,
                 update.response_ms,
                 update.cost.as_ref().map(|cost| &cost.amount)
@@ -242,9 +242,9 @@ mod tests {
 
     const ANSWER: [&str; 7] = [
         r#"snapshot GENERATING """#,
-        r#"usage 2 Some(1500) Some("0.00006")"#,
+        r#"usage 2 1500 Some("0.00006")"#,
         "started read_attachment RUNNING",
-        "finished COMPLETED Some(120)",
+        "finished COMPLETED 120",
         r#"delta "Hällo""#,
         r#"delta " 😀""#,
         r#"done COMPLETED "Hällo 😀""#,
@@ -263,17 +263,6 @@ mod tests {
                 .collect();
             assert_eq!(events(chunks), ANSWER, "chunks of {size}");
         }
-    }
-
-    #[test]
-    fn decodes_usage_of_older_servers() {
-        // From before the time of the responses was measured.
-        let usage = json!({
-            "usage": {"input_tokens": 10, "output_tokens": 2, "cache_read_tokens": 0, "cache_write_tokens": 0},
-            "cost": null,
-        });
-        let chunks = vec![Ok(Bytes::from(format!("event: usage\ndata: {usage}\n\n")))];
-        assert_eq!(events(chunks), ["usage 2 None None"]);
     }
 
     #[test]

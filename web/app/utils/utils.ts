@@ -450,6 +450,18 @@ export function formatExactCost(amount: string, currency: string): string {
     }
 }
 
+/**
+ * What `tokens` cost at `price` per million tokens, both as given by the API, as an exact decimal string without
+ * trailing zeros, e.g. "0.0045" for 1,500 tokens at "3".
+ */
+export function tokenCost(tokens: number, price: string): string {
+    const [whole = '0', fraction = ''] = price.split('.');
+    // a million is 6 more decimals
+    const scale = fraction.length + 6;
+    const digits = (BigInt(tokens) * BigInt(whole + fraction)).toString().padStart(scale + 1, '0');
+    return `${digits.slice(0, -scale)}.${digits.slice(-scale)}`.replace(/\.?0+$/, '');
+}
+
 /** Input (including the cache) and output. */
 export function totalTokens(usage: UsageDto): number {
     return usage.input_tokens + usage.cache_read_tokens + usage.cache_write_tokens + usage.output_tokens;

@@ -20,9 +20,6 @@ class MessageList extends StatefulWidget {
   final UuidValue chatId;
   final List<MessageDto> messages;
 
-  /// The name of the model with the id, if it is still offered.
-  final String? Function(UuidValue? modelId) modelName;
-
   /// The width of the messages, with their padding. The list itself spans the whole width and centers them, so that the
   /// wide tables of answers scroll through the space beside them to the screen's edges.
   final double maxWidth;
@@ -31,7 +28,6 @@ class MessageList extends StatefulWidget {
     super.key,
     required this.chatId,
     required this.messages,
-    required this.modelName,
     this.maxWidth = double.infinity,
   });
 
@@ -85,7 +81,6 @@ class _MessageListState extends State<MessageList> {
                     key: ValueKey(message.id),
                     chatId: widget.chatId,
                     message: message,
-                    modelName: widget.modelName(message.modelId),
                     horizontalPadding: horizontalPadding,
                     resize: _resize,
                   ),
@@ -106,7 +101,6 @@ class _Answer extends StatelessWidget {
 
   /// The answer as the chat has it, shown until the [MessageService] follows it, and once it is finished.
   final MessageDto message;
-  final String? modelName;
   final double horizontalPadding;
   final _UserResize resize;
 
@@ -114,7 +108,6 @@ class _Answer extends StatelessWidget {
     super.key,
     required this.chatId,
     required this.message,
-    required this.modelName,
     required this.horizontalPadding,
     required this.resize,
   });
@@ -127,7 +120,6 @@ class _Answer extends StatelessWidget {
       child: AssistantMessage(
         chatId: chatId,
         message: running != null && message.status == MessageStatus.generating ? running : message,
-        modelName: modelName,
         horizontalPadding: horizontalPadding,
         onResize: () => resize.start(message.id),
       ),

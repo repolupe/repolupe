@@ -2,17 +2,30 @@ use crate::config::error::AppError;
 use crate::config::state::AppState;
 use crate::dto::error::ErrorCode;
 use crate::repository;
+use crate::repository::message::MessageModel;
 use crate::service::llm::LlmConfig;
 use crate::service::pricing::Pricing;
 use uuid::Uuid;
 
 /// The model that writes an answer.
 pub(crate) struct AnsweringModel {
-    /// Recorded on the answer.
+    /// Recorded on the answer, with `name`.
     pub id: Uuid,
+    /// The display name, else the API name.
+    pub name: String,
     pub config: LlmConfig,
     /// `None` if the model has no prices, then the answer has no cost.
     pub pricing: Option<Pricing>,
+}
+
+impl AnsweringModel {
+    /// As recorded on the answer.
+    pub(crate) fn message_model(&self) -> MessageModel<'_> {
+        MessageModel {
+            id: self.id,
+            name: &self.name,
+        }
+    }
 }
 
 /// The model that answers in a chat: `model_id` (chosen for the chat), else
@@ -38,6 +51,7 @@ pub(crate) async fn resolve(
     )?;
     Ok(AnsweringModel {
         id: connection.model_id,
+        name: connection.name,
         pricing: Pricing::new(
             connection.currency,
             connection.input_price.map(|price| price.0),

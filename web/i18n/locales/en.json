@@ -224,7 +224,7 @@
       "toolUse": "Tool call",
       "toolResult": "Tool result",
       "error": "Error",
-      "notAvailable": "Nothing is stored for this answer. Answers from before this was recorded and answers interrupted by a restart have none.",
+      "notAvailable": "Nothing is stored for this answer. Answers interrupted by a restart have none.",
       "copy": "Copy as JSON",
       "copied": "Copied to the clipboard.",
       "copyFailed": "Could not copy to the clipboard.",
@@ -274,7 +274,8 @@
       "cacheWriteHint": "Input written to the cache",
       "outputHint": "Including reasoning",
       "total": "Total",
-      "cost": "Cost"
+      "cost": "Cost",
+      "pricePerMillion": "{price} per 1M tokens"
     },
     "durationDialog": {
       "title": "Duration",

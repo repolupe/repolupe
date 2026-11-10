@@ -32,6 +32,18 @@ String formatExactCost(String amount, String currency) {
   return NumberFormat.simpleCurrency(name: currency, decimalDigits: max(decimals, minimum)).format(value);
 }
 
+/// What [tokens] cost at [price] per million tokens, both as the API gives them, as an exact decimal string without
+/// trailing zeros, e.g. `0.0045` for 1,500 tokens at `3` (like the web's).
+String tokenCost(int tokens, String price) {
+  final [whole, ...rest] = price.split('.');
+  final fraction = rest.firstOrNull ?? '';
+  // a million is 6 more decimals
+  final scale = fraction.length + 6;
+  final digits = (BigInt.from(tokens) * BigInt.parse('$whole$fraction')).toString().padLeft(scale + 1, '0');
+  final exact = '${digits.substring(0, digits.length - scale)}.${digits.substring(digits.length - scale)}';
+  return exact.replaceFirst(RegExp(r'\.?0+$'), '');
+}
+
 /// E.g. `42s` or `3m 05s`.
 String formatDuration(Duration duration) {
   final seconds = duration.inSeconds;

@@ -88,6 +88,9 @@ pub struct MessageDto {
     pub error: Option<String>,
     /// The model that wrote the answer, `null` for user messages or if the model was deleted.
     pub model_id: Option<Uuid>,
+    /// The display name of the model when the answer started, kept when the model is renamed or
+    /// deleted. `null` for user messages.
+    pub model_name: Option<String>,
     pub tool_calls: Vec<ToolCallSummaryDto>,
     pub created_at: DateTime<Utc>,
     /// When the answer reached its final status, `null` for user messages, while `GENERATING`,
@@ -100,7 +103,7 @@ pub struct MessageDto {
     /// How long the responses of the language model took in milliseconds, from sending each
     /// request to its last token, summed over the tool loop. Unlike `finished_at`, without the
     /// time tools ran. Like `usage`, of the responses so far while `GENERATING`; `null` if the
-    /// usage is unknown. 0 despite output tokens for answers from before it was measured.
+    /// usage is unknown.
     pub response_ms: Option<i64>,
     /// At the prices when the answer finished, `null` if the model had no prices or the usage
     /// is unknown.
@@ -124,6 +127,20 @@ pub struct CostDto {
     pub amount: String,
     /// ISO 4217 code, e.g. `USD`.
     pub currency: String,
+    /// What the tokens were charged at, `null` if unknown.
+    pub prices: Option<TokenPricesDto>,
+}
+
+/// Per million tokens in the currency of the cost, as decimal strings. Each kind of token in
+/// [`UsageDto`] costs its amount times its price.
+#[derive(Serialize, Deserialize)]
+pub struct TokenPricesDto {
+    pub input: String,
+    pub output: String,
+    /// The input price if the model has no price for it.
+    pub cache_read: String,
+    /// The input price if the model has no price for it.
+    pub cache_write: String,
 }
 
 #[derive(Clone, Copy, Serialize, Deserialize)]
@@ -150,8 +167,7 @@ pub struct ToolCallSummaryDto {
     pub repository_id: Option<Uuid>,
     pub commit_sha: Option<String>,
     pub status: ToolCallStatus,
-    /// How long the tool ran in milliseconds, `null` while `RUNNING`, if it was interrupted, or
-    /// for calls from before it was measured.
+    /// How long the tool ran in milliseconds, `null` while `RUNNING` or if it was interrupted.
     pub duration_ms: Option<i64>,
     pub created_at: DateTime<Utc>,
 }
@@ -414,8 +430,7 @@ pub struct ContentDeltaDto {
 pub struct UsageUpdateDto {
     pub usage: UsageDto,
     /// How long the responses so far took in milliseconds, see [`MessageDto::response_ms`].
-    /// Always sent, `None` only from servers from before it was measured.
-    pub response_ms: Option<i64>,
+    pub response_ms: i64,
     /// `null` if the model has no prices.
     pub cost: Option<CostDto>,
 }
@@ -425,9 +440,8 @@ pub struct UsageUpdateDto {
 pub struct ToolCallFinishedDto {
     pub id: Uuid,
     pub status: ToolCallStatus,
-    /// See [`ToolCallSummaryDto::duration_ms`]. Always sent, `None` only from servers from before
-    /// it was measured.
-    pub duration_ms: Option<i64>,
+    /// See [`ToolCallSummaryDto::duration_ms`].
+    pub duration_ms: i64,
 }
 
 /// Serializes a JSON text as the value it holds, and a value as its text.

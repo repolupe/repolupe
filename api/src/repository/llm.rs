@@ -324,7 +324,8 @@ pub(crate) async fn get_model_connection(
     let connection = sqlx::query_as!(
         ModelConnection,
         r#"SELECT m.id AS "model_id: Uuid", p.id AS "provider_id: Uuid", p.api_format AS "api_format: LlmApiFormat",
-                  p.base_url, p.api_key_encrypted, m.api_name AS model, m.max_output_tokens, p.currency,
+                  p.base_url, p.api_key_encrypted, m.api_name AS model,
+                  COALESCE(m.display_name, m.api_name) AS "name!: String", m.max_output_tokens, p.currency,
                   m.input_price AS "input_price: Text<Decimal>", m.output_price AS "output_price: Text<Decimal>",
                   m.cache_read_price AS "cache_read_price: Text<Decimal>",
                   m.cache_write_price AS "cache_write_price: Text<Decimal>"

@@ -419,11 +419,15 @@ class _Translations$base$chat$vi extends Translations$base$chat$en {
   @override
   late final _Translations$base$chat$toolCallDialog$vi toolCallDialog = _Translations$base$chat$toolCallDialog$vi._(_root);
   @override
+  late final _Translations$base$chat$rawAnswerDialog$vi rawAnswerDialog = _Translations$base$chat$rawAnswerDialog$vi._(_root);
+  @override
   late final _Translations$base$chat$proposedCommitPanel$vi proposedCommitPanel = _Translations$base$chat$proposedCommitPanel$vi._(_root);
   @override
   late final _Translations$base$chat$renameDialog$vi renameDialog = _Translations$base$chat$renameDialog$vi._(_root);
   @override
   late final _Translations$base$chat$usageDialog$vi usageDialog = _Translations$base$chat$usageDialog$vi._(_root);
+  @override
+  late final _Translations$base$chat$durationDialog$vi durationDialog = _Translations$base$chat$durationDialog$vi._(_root);
   @override
   late final _Translations$base$chat$olderPage$vi olderPage = _Translations$base$chat$olderPage$vi._(_root);
   @override
@@ -944,6 +948,8 @@ class _Translations$base$chat$assistantMessage$vi extends Translations$base$chat
   @override
   String get showUsage => 'Xem lượng token sử dụng';
   @override
+  String get showDuration => 'Xem thời gian';
+  @override
   String get showToolCalls => 'Xem các lệnh gọi công cụ';
   @override
   String toolCount({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('vi'))(
@@ -1011,6 +1017,51 @@ class _Translations$base$chat$toolCallDialog$vi extends Translations$base$chat$t
   String get noOutput => 'Không có đầu ra.';
   @override
   String loadFailed({required Object error}) => 'Không thể tải lệnh gọi công cụ: ${error}';
+}
+
+// Path: base.chat.rawAnswerDialog
+class _Translations$base$chat$rawAnswerDialog$vi extends Translations$base$chat$rawAnswerDialog$en {
+  _Translations$base$chat$rawAnswerDialog$vi._(TranslationsVi root) : this._root = root, super.internal(root);
+
+  final TranslationsVi _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'Câu trả lời thô';
+  @override
+  String get systemPrompt => 'Lời nhắc hệ thống';
+  @override
+  String get show => 'Xem';
+  @override
+  String get hide => 'Ẩn';
+  @override
+  String get tools => 'Công cụ';
+  @override
+  String get messages => 'Tin nhắn';
+  @override
+  String get user => 'Người dùng';
+  @override
+  String get assistant => 'Trợ lý';
+  @override
+  String get reasoning => 'Suy luận';
+  @override
+  String get reasoningWithheld => 'Nhà cung cấp đã giữ lại phần suy luận.';
+  @override
+  String get toolUse => 'Lệnh gọi công cụ';
+  @override
+  String get toolResult => 'Kết quả công cụ';
+  @override
+  String get error => 'Lỗi';
+  @override
+  String get notAvailable => 'Không có dữ liệu nào được lưu cho câu trả lời này. Các câu trả lời bị gián đoạn do khởi động lại không có dữ liệu.';
+  @override
+  String get copy => 'Sao chép dưới dạng JSON';
+  @override
+  String get copied => 'Đã sao chép vào bộ nhớ tạm.';
+  @override
+  String get copyFailed => 'Không thể sao chép vào bộ nhớ tạm.';
+  @override
+  String loadFailed({required Object error}) => 'Không thể tải câu trả lời thô: ${error}';
 }
 
 // Path: base.chat.proposedCommitPanel
@@ -1100,6 +1151,10 @@ class _Translations$base$chat$usageDialog$vi extends Translations$base$chat$usag
   @override
   String get title => 'Lượng token sử dụng';
   @override
+  String get showRaw => 'Xem những gì mô hình ngôn ngữ đã nhận và trả về';
+  @override
+  String get raw => 'Thô';
+  @override
   String get type => 'Loại';
   @override
   String get tokens => 'Token';
@@ -1119,6 +1174,41 @@ class _Translations$base$chat$usageDialog$vi extends Translations$base$chat$usag
   String get total => 'Tổng';
   @override
   String get cost => 'Chi phí';
+  @override
+  String pricePerMillion({required Object price}) => '${price} cho 1 triệu token';
+}
+
+// Path: base.chat.durationDialog
+class _Translations$base$chat$durationDialog$vi extends Translations$base$chat$durationDialog$en {
+  _Translations$base$chat$durationDialog$vi._(TranslationsVi root) : this._root = root, super.internal(root);
+
+  final TranslationsVi _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'Thời gian';
+  @override
+  String get model => 'Mô hình ngôn ngữ';
+  @override
+  String get speed => 'Tốc độ đầu ra';
+  @override
+  String tokensPerSecond({required Object speed}) => '${speed} token/giây';
+  @override
+  String get tools => 'Lệnh gọi công cụ';
+  @override
+  String callCount({required Object count}) => '${count}×';
+  @override
+  String lessThan({required Object duration}) => '<${duration}';
+  @override
+  String get toolsSum => 'Công cụ, cộng dồn';
+  @override
+  String get toolsReal => 'Công cụ, thời gian thực';
+  @override
+  String get toolsRealHint => 'Các công cụ chạy song song, nên đây là thời gian bạn thực sự phải chờ chúng';
+  @override
+  String get total => 'Tổng';
+  @override
+  String get notMeasured => 'Thời gian của mô hình ngôn ngữ không được đo cho câu trả lời này.';
 }
 
 // Path: base.chat.olderPage

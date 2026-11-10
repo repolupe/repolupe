@@ -2,8 +2,8 @@
   <v-dialog v-model="dialog" max-width="480">
     <v-card v-if="props.message && totalMs !== null">
       <v-card-title class="pt-4">{{ $t('chat.durationDialog.title') }}</v-card-title>
-      <v-card-subtitle v-if="props.modelName" class="pb-2">
-        <IconText icon="mdi-robot-outline">{{ props.modelName }}</IconText>
+      <v-card-subtitle v-if="props.message.model_name" class="pb-2">
+        <IconText icon="mdi-robot-outline">{{ props.message.model_name }}</IconText>
       </v-card-subtitle>
 
       <v-card-text>
@@ -89,7 +89,6 @@ const props = defineProps<{
   modelValue: boolean,
   /** Passed in rather than loaded, so the times keep up while the answer is generating. */
   message: MessageDto | null,
-  modelName: string | null,
 }>();
 
 const emit = defineEmits<{
@@ -135,14 +134,8 @@ const totalMs = computed(() => {
   return end === null ? null : Math.max(0, end - Date.parse(message.created_at));
 });
 
-/** `null` if unknown: without usage, or 0 despite output tokens for answers from before it was measured. */
-const responseMs = computed(() => {
-  const message = props.message;
-  if (!message || message.response_ms === null) {
-    return null;
-  }
-  return message.response_ms === 0 && (message.usage?.output_tokens ?? 0) > 0 ? null : message.response_ms;
-});
+/** `null` if unknown. */
+const responseMs = computed(() => props.message?.response_ms ?? null);
 
 /** Output tokens per second of the responses so far, `null` before the first. */
 const speed = computed(() => {

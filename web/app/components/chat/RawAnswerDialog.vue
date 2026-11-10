@@ -109,7 +109,7 @@ const dialog = computed({
 
 const messageId = ref<string | null>(null);
 const raw = ref<RawAnswerDto | null>(null);
-/** Answers from before it was stored, or interrupted by a restart, have none. */
+/** Answers interrupted by a restart have none. */
 const notAvailable = ref(false);
 const fetching = ref(false);
 const showSystem = ref(false);

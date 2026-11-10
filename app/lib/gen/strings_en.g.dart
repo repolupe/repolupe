@@ -490,9 +490,11 @@ class Translations$base$chat$en {
   late final Translations$base$chat$toolCallList$en toolCallList = Translations$base$chat$toolCallList$en.internal(_root);
   late final Translations$base$chat$toolCallLabel$en toolCallLabel = Translations$base$chat$toolCallLabel$en.internal(_root);
   late final Translations$base$chat$toolCallDialog$en toolCallDialog = Translations$base$chat$toolCallDialog$en.internal(_root);
+  late final Translations$base$chat$rawAnswerDialog$en rawAnswerDialog = Translations$base$chat$rawAnswerDialog$en.internal(_root);
   late final Translations$base$chat$proposedCommitPanel$en proposedCommitPanel = Translations$base$chat$proposedCommitPanel$en.internal(_root);
   late final Translations$base$chat$renameDialog$en renameDialog = Translations$base$chat$renameDialog$en.internal(_root);
   late final Translations$base$chat$usageDialog$en usageDialog = Translations$base$chat$usageDialog$en.internal(_root);
+  late final Translations$base$chat$durationDialog$en durationDialog = Translations$base$chat$durationDialog$en.internal(_root);
   late final Translations$base$chat$olderPage$en olderPage = Translations$base$chat$olderPage$en.internal(_root);
 
   /// en: 'Could not load the chats: {error}'
@@ -1064,6 +1066,9 @@ class Translations$base$chat$assistantMessage$en {
   /// en: 'Show token usage'
   String get showUsage => 'Show token usage';
 
+  /// en: 'Show duration'
+  String get showDuration => 'Show duration';
+
   /// en: 'Show tool calls'
   String get showToolCalls => 'Show tool calls';
 
@@ -1145,6 +1150,69 @@ class Translations$base$chat$toolCallDialog$en {
 
   /// en: 'Could not load the tool call: {error}'
   String loadFailed({required Object error}) => 'Could not load the tool call: ${error}';
+}
+
+// Path: base.chat.rawAnswerDialog
+class Translations$base$chat$rawAnswerDialog$en {
+  Translations$base$chat$rawAnswerDialog$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Raw Answer'
+  String get title => 'Raw Answer';
+
+  /// en: 'System prompt'
+  String get systemPrompt => 'System prompt';
+
+  /// en: 'Show'
+  String get show => 'Show';
+
+  /// en: 'Hide'
+  String get hide => 'Hide';
+
+  /// en: 'Tools'
+  String get tools => 'Tools';
+
+  /// en: 'Messages'
+  String get messages => 'Messages';
+
+  /// en: 'User'
+  String get user => 'User';
+
+  /// en: 'Assistant'
+  String get assistant => 'Assistant';
+
+  /// en: 'Reasoning'
+  String get reasoning => 'Reasoning';
+
+  /// en: 'The provider withheld the reasoning.'
+  String get reasoningWithheld => 'The provider withheld the reasoning.';
+
+  /// en: 'Tool call'
+  String get toolUse => 'Tool call';
+
+  /// en: 'Tool result'
+  String get toolResult => 'Tool result';
+
+  /// en: 'Error'
+  String get error => 'Error';
+
+  /// en: 'Nothing is stored for this answer. Answers interrupted by a restart have none.'
+  String get notAvailable => 'Nothing is stored for this answer. Answers interrupted by a restart have none.';
+
+  /// en: 'Copy as JSON'
+  String get copy => 'Copy as JSON';
+
+  /// en: 'Copied to the clipboard.'
+  String get copied => 'Copied to the clipboard.';
+
+  /// en: 'Could not copy to the clipboard.'
+  String get copyFailed => 'Could not copy to the clipboard.';
+
+  /// en: 'Could not load the raw answer: {error}'
+  String loadFailed({required Object error}) => 'Could not load the raw answer: ${error}';
 }
 
 // Path: base.chat.proposedCommitPanel
@@ -1262,6 +1330,12 @@ class Translations$base$chat$usageDialog$en {
   /// en: 'Token usage'
   String get title => 'Token usage';
 
+  /// en: 'Show what the language model got and returned'
+  String get showRaw => 'Show what the language model got and returned';
+
+  /// en: 'Raw'
+  String get raw => 'Raw';
+
   /// en: 'Type'
   String get type => 'Type';
 
@@ -1291,6 +1365,54 @@ class Translations$base$chat$usageDialog$en {
 
   /// en: 'Cost'
   String get cost => 'Cost';
+
+  /// en: '{price} per 1M tokens'
+  String pricePerMillion({required Object price}) => '${price} per 1M tokens';
+}
+
+// Path: base.chat.durationDialog
+class Translations$base$chat$durationDialog$en {
+  Translations$base$chat$durationDialog$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Duration'
+  String get title => 'Duration';
+
+  /// en: 'Language model'
+  String get model => 'Language model';
+
+  /// en: 'Output speed'
+  String get speed => 'Output speed';
+
+  /// en: '{speed} tok/s'
+  String tokensPerSecond({required Object speed}) => '${speed} tok/s';
+
+  /// en: 'Tool calls'
+  String get tools => 'Tool calls';
+
+  /// en: '{count}×'
+  String callCount({required Object count}) => '${count}×';
+
+  /// en: '<{duration}'
+  String lessThan({required Object duration}) => '<${duration}';
+
+  /// en: 'Tools, summed'
+  String get toolsSum => 'Tools, summed';
+
+  /// en: 'Tools, real time'
+  String get toolsReal => 'Tools, real time';
+
+  /// en: 'Tools run in parallel, so this is the time you actually waited for them'
+  String get toolsRealHint => 'Tools run in parallel, so this is the time you actually waited for them';
+
+  /// en: 'Total'
+  String get total => 'Total';
+
+  /// en: 'How long the language model took was not measured for this answer.'
+  String get notMeasured => 'How long the language model took was not measured for this answer.';
 }
 
 // Path: base.chat.olderPage

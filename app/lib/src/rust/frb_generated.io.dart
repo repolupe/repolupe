@@ -248,6 +248,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   SetMyDefaultModelRequest dco_decode_box_autoadd_set_my_default_model_request(dynamic raw);
 
   @protected
+  TokenPricesDto dco_decode_box_autoadd_token_prices_dto(dynamic raw);
+
+  @protected
   ToolCallFinishedDto dco_decode_box_autoadd_tool_call_finished_dto(dynamic raw);
 
   @protected
@@ -617,6 +620,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RepositoryTokenDto? dco_decode_opt_box_autoadd_repository_token_dto(dynamic raw);
 
   @protected
+  TokenPricesDto? dco_decode_opt_box_autoadd_token_prices_dto(dynamic raw);
+
+  @protected
   UsageDto? dco_decode_opt_box_autoadd_usage_dto(dynamic raw);
 
   @protected
@@ -702,6 +708,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   TokenChange dco_decode_token_change(dynamic raw);
+
+  @protected
+  TokenPricesDto dco_decode_token_prices_dto(dynamic raw);
 
   @protected
   ToolCallDto dco_decode_tool_call_dto(dynamic raw);
@@ -968,6 +977,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   SetMyDefaultModelRequest sse_decode_box_autoadd_set_my_default_model_request(SseDeserializer deserializer);
+
+  @protected
+  TokenPricesDto sse_decode_box_autoadd_token_prices_dto(SseDeserializer deserializer);
 
   @protected
   ToolCallFinishedDto sse_decode_box_autoadd_tool_call_finished_dto(SseDeserializer deserializer);
@@ -1339,6 +1351,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   RepositoryTokenDto? sse_decode_opt_box_autoadd_repository_token_dto(SseDeserializer deserializer);
 
   @protected
+  TokenPricesDto? sse_decode_opt_box_autoadd_token_prices_dto(SseDeserializer deserializer);
+
+  @protected
   UsageDto? sse_decode_opt_box_autoadd_usage_dto(SseDeserializer deserializer);
 
   @protected
@@ -1424,6 +1439,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   TokenChange sse_decode_token_change(SseDeserializer deserializer);
+
+  @protected
+  TokenPricesDto sse_decode_token_prices_dto(SseDeserializer deserializer);
 
   @protected
   ToolCallDto sse_decode_tool_call_dto(SseDeserializer deserializer);
@@ -1694,6 +1712,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_autoadd_set_my_default_model_request(SetMyDefaultModelRequest self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_token_prices_dto(TokenPricesDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_box_autoadd_tool_call_finished_dto(ToolCallFinishedDto self, SseSerializer serializer);
@@ -2065,6 +2086,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_box_autoadd_repository_token_dto(RepositoryTokenDto? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_token_prices_dto(TokenPricesDto? self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_box_autoadd_usage_dto(UsageDto? self, SseSerializer serializer);
 
   @protected
@@ -2150,6 +2174,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_token_change(TokenChange self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_token_prices_dto(TokenPricesDto self, SseSerializer serializer);
 
   @protected
   void sse_encode_tool_call_dto(ToolCallDto self, SseSerializer serializer);

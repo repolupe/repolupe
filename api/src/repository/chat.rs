@@ -8,7 +8,7 @@ use crate::model::chat::Chat;
 use crate::model::message::Message;
 use crate::repository::attachment::send_attachment;
 use crate::repository::begin_write;
-use crate::repository::message::{NewMessage, insert_message};
+use crate::repository::message::{MessageModel, NewMessage, insert_message};
 use chrono::{DateTime, Utc};
 use sqlx::types::Json;
 use sqlx::{SqliteConnection, SqliteExecutor};
@@ -43,7 +43,7 @@ pub(crate) struct NewChat<'a> {
     pub user_message_id: Uuid,
     pub assistant_message_id: Uuid,
     /// The model that writes the first answer.
-    pub answer_model_id: Uuid,
+    pub answer_model: MessageModel<'a>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -61,7 +61,7 @@ pub(crate) struct NewExchange<'a> {
     pub user_message_id: Uuid,
     pub assistant_message_id: Uuid,
     /// The model that writes the answer.
-    pub model_id: Uuid,
+    pub model: MessageModel<'a>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -230,7 +230,7 @@ pub(crate) async fn create_chat(
             attachment_id: new.attachment_id,
             user_message_id: new.user_message_id,
             assistant_message_id: new.assistant_message_id,
-            model_id: new.answer_model_id,
+            model: new.answer_model,
             created_at: new.created_at,
         },
     )
@@ -319,14 +319,14 @@ pub(crate) async fn add_exchange(
 }
 
 /// Replaces the failed or cancelled last answer with a new `GENERATING` one written by
-/// `model_id`, and bumps `updated_at`.
+/// `model`, and bumps `updated_at`.
 pub(crate) async fn retry_message(
     db: &DatabasePool,
     user_id: Uuid,
     chat_id: Uuid,
     message_id: Uuid,
     new_message_id: Uuid,
-    model_id: Uuid,
+    model: MessageModel<'_>,
     created_at: DateTime<Utc>,
 ) -> Result<RetryOutcome, AppError> {
     let mut tx = begin_write(db).await?;
@@ -372,7 +372,7 @@ pub(crate) async fn retry_message(
             chat_id,
             role: MessageRole::Assistant,
             content: "",
-            model_id: Some(model_id),
+            model: Some(model),
             created_at,
         },
     )
@@ -499,7 +499,7 @@ async fn insert_exchange(
             chat_id,
             role: MessageRole::User,
             content: exchange.content,
-            model_id: None,
+            model: None,
             created_at: exchange.created_at,
         },
     )
@@ -511,7 +511,7 @@ async fn insert_exchange(
             chat_id,
             role: MessageRole::Assistant,
             content: "",
-            model_id: Some(exchange.model_id),
+            model: Some(exchange.model),
             created_at: exchange.created_at,
         },
     )

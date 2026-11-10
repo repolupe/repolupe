@@ -523,6 +523,11 @@ export interface MessageDto {
     error: string | null;
     /** The model that wrote the answer, `null` for user messages or if the model was deleted. */
     model_id: string | null;
+    /**
+     * The display name of the model when the answer started, kept when the model is renamed or deleted. `null` for
+     * user messages.
+     */
+    model_name: string | null;
     tool_calls: ToolCallSummaryDto[];
     created_at: string;
     /** When the answer reached its final status, `null` for user messages, while `GENERATING`, or if it was interrupted by a restart. */
@@ -535,8 +540,7 @@ export interface MessageDto {
     /**
      * How long the responses of the language model took in milliseconds, from sending each request to its last token,
      * summed over the tool loop. Unlike `finished_at`, without the time tools ran. Like `usage`, of the responses so far
-     * while `GENERATING`; `null` if the usage is unknown. 0 despite output tokens for answers from before it was
-     * measured.
+     * while `GENERATING`; `null` if the usage is unknown.
      */
     response_ms: number | null;
     /** At the prices when the answer finished, `null` if the model had no prices or the usage is unknown. */
@@ -569,6 +573,21 @@ export interface CostDto {
     amount: string;
     /** ISO 4217 code, e.g. `USD`. */
     currency: string;
+    /** What the tokens were charged at, `null` if unknown. */
+    prices: TokenPricesDto | null;
+}
+
+/**
+ * Per million tokens in the currency of the cost, as decimal strings. Each kind of token in {@link UsageDto} costs its
+ * amount times its price.
+ */
+export interface TokenPricesDto {
+    input: string;
+    output: string;
+    /** The input price if the model has no price for it. */
+    cache_read: string;
+    /** The input price if the model has no price for it. */
+    cache_write: string;
 }
 
 export enum ToolCallStatus {
@@ -590,7 +609,7 @@ export interface ToolCallSummaryDto {
     repository_id: string | null;
     commit_sha: string | null;
     status: ToolCallStatus;
-    /** How long the tool ran in milliseconds, `null` while running, if it was interrupted, or from before it was measured. */
+    /** How long the tool ran in milliseconds, `null` while running or if it was interrupted. */
     duration_ms: number | null;
     created_at: string;
 }
@@ -741,7 +760,7 @@ export type MessageStreamEvent =
     | { type: 'snapshot', data: MessageDto }
     | { type: 'content_delta', data: { text: string } }
     | { type: 'tool_call_started', data: ToolCallSummaryDto }
-    | { type: 'tool_call_finished', data: { id: string, status: ToolCallStatus, duration_ms: number | null } }
+    | { type: 'tool_call_finished', data: { id: string, status: ToolCallStatus, duration_ms: number } }
     | { type: 'usage', data: UsageUpdateDto }
     | { type: 'done', data: MessageDto };
 

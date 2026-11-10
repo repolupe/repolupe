@@ -420,11 +420,15 @@ class _Translations$base$chat$de extends Translations$base$chat$en {
   @override
   late final _Translations$base$chat$toolCallDialog$de toolCallDialog = _Translations$base$chat$toolCallDialog$de._(_root);
   @override
+  late final _Translations$base$chat$rawAnswerDialog$de rawAnswerDialog = _Translations$base$chat$rawAnswerDialog$de._(_root);
+  @override
   late final _Translations$base$chat$proposedCommitPanel$de proposedCommitPanel = _Translations$base$chat$proposedCommitPanel$de._(_root);
   @override
   late final _Translations$base$chat$renameDialog$de renameDialog = _Translations$base$chat$renameDialog$de._(_root);
   @override
   late final _Translations$base$chat$usageDialog$de usageDialog = _Translations$base$chat$usageDialog$de._(_root);
+  @override
+  late final _Translations$base$chat$durationDialog$de durationDialog = _Translations$base$chat$durationDialog$de._(_root);
   @override
   late final _Translations$base$chat$olderPage$de olderPage = _Translations$base$chat$olderPage$de._(_root);
   @override
@@ -945,6 +949,8 @@ class _Translations$base$chat$assistantMessage$de extends Translations$base$chat
   @override
   String get showUsage => 'Token-Verbrauch anzeigen';
   @override
+  String get showDuration => 'Dauer anzeigen';
+  @override
   String get showToolCalls => 'Tool-Aufrufe anzeigen';
   @override
   String toolCount({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
@@ -1012,6 +1018,51 @@ class _Translations$base$chat$toolCallDialog$de extends Translations$base$chat$t
   String get noOutput => 'Keine Ausgabe.';
   @override
   String loadFailed({required Object error}) => 'Der Tool-Aufruf konnte nicht geladen werden: ${error}';
+}
+
+// Path: base.chat.rawAnswerDialog
+class _Translations$base$chat$rawAnswerDialog$de extends Translations$base$chat$rawAnswerDialog$en {
+  _Translations$base$chat$rawAnswerDialog$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'Rohe Antwort';
+  @override
+  String get systemPrompt => 'System-Prompt';
+  @override
+  String get show => 'Anzeigen';
+  @override
+  String get hide => 'Ausblenden';
+  @override
+  String get tools => 'Tools';
+  @override
+  String get messages => 'Nachrichten';
+  @override
+  String get user => 'Benutzer';
+  @override
+  String get assistant => 'Assistent';
+  @override
+  String get reasoning => 'Überlegungen';
+  @override
+  String get reasoningWithheld => 'Der Anbieter hat die Überlegungen zurückgehalten.';
+  @override
+  String get toolUse => 'Tool-Aufruf';
+  @override
+  String get toolResult => 'Tool-Ergebnis';
+  @override
+  String get error => 'Fehler';
+  @override
+  String get notAvailable => 'Für diese Antwort ist nichts gespeichert. Durch einen Neustart unterbrochene Antworten haben keine.';
+  @override
+  String get copy => 'Als JSON kopieren';
+  @override
+  String get copied => 'In die Zwischenablage kopiert.';
+  @override
+  String get copyFailed => 'Konnte nicht in die Zwischenablage kopiert werden.';
+  @override
+  String loadFailed({required Object error}) => 'Die rohe Antwort konnte nicht geladen werden: ${error}';
 }
 
 // Path: base.chat.proposedCommitPanel
@@ -1101,6 +1152,10 @@ class _Translations$base$chat$usageDialog$de extends Translations$base$chat$usag
   @override
   String get title => 'Token-Verbrauch';
   @override
+  String get showRaw => 'Anzeigen, was das Sprachmodell erhalten und zurückgegeben hat';
+  @override
+  String get raw => 'Roh';
+  @override
   String get type => 'Art';
   @override
   String get tokens => 'Tokens';
@@ -1120,6 +1175,41 @@ class _Translations$base$chat$usageDialog$de extends Translations$base$chat$usag
   String get total => 'Gesamt';
   @override
   String get cost => 'Kosten';
+  @override
+  String pricePerMillion({required Object price}) => '${price} pro 1 Mio. Tokens';
+}
+
+// Path: base.chat.durationDialog
+class _Translations$base$chat$durationDialog$de extends Translations$base$chat$durationDialog$en {
+  _Translations$base$chat$durationDialog$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'Dauer';
+  @override
+  String get model => 'Sprachmodell';
+  @override
+  String get speed => 'Ausgabegeschwindigkeit';
+  @override
+  String tokensPerSecond({required Object speed}) => '${speed} Tokens/s';
+  @override
+  String get tools => 'Tool-Aufrufe';
+  @override
+  String callCount({required Object count}) => '${count}×';
+  @override
+  String lessThan({required Object duration}) => '<${duration}';
+  @override
+  String get toolsSum => 'Tools, summiert';
+  @override
+  String get toolsReal => 'Tools, Echtzeit';
+  @override
+  String get toolsRealHint => 'Tools laufen parallel, daher ist das die Zeit, die du tatsächlich auf sie gewartet hast';
+  @override
+  String get total => 'Gesamt';
+  @override
+  String get notMeasured => 'Wie lange das Sprachmodell brauchte, wurde für diese Antwort nicht gemessen.';
 }
 
 // Path: base.chat.olderPage

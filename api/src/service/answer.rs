@@ -683,6 +683,7 @@ mod tests {
             status,
             error: None,
             model_id: None,
+            model_name: None,
             created_at: Utc::now(),
             finished_at: None,
             input_tokens: None,
@@ -692,6 +693,10 @@ mod tests {
             response_ms: None,
             cost: None,
             cost_currency: None,
+            input_price: None,
+            output_price: None,
+            cache_read_price: None,
+            cache_write_price: None,
         }
     }
 

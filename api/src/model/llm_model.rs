@@ -52,6 +52,8 @@ pub struct ModelConnection {
     pub base_url: String,
     pub api_key_encrypted: Option<Vec<u8>>,
     pub model: String,
+    /// The display name, else `model`.
+    pub name: String,
     pub max_output_tokens: Option<i32>,
     pub currency: Option<String>,
     pub input_price: Option<Text<Decimal>>,

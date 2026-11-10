@@ -24,9 +24,6 @@ class AssistantMessage extends StatefulWidget {
   final UuidValue chatId;
   final MessageDto message;
 
-  /// The model that wrote the answer, if it still exists.
-  final String? modelName;
-
   /// The space to the left and right of the content. Wide tables in the answer scroll through it to the edges.
   final double horizontalPadding;
 
@@ -38,7 +35,6 @@ class AssistantMessage extends StatefulWidget {
     super.key,
     required this.chatId,
     required this.message,
-    required this.modelName,
     this.horizontalPadding = 0,
     this.onResize,
   });
@@ -264,7 +260,7 @@ class _AssistantMessageState extends State<AssistantMessage> {
                 _IconText(icon: Icons.cancel_outlined, text: context.t.base.chat.assistantMessage.cancelled, style: caption),
               ],
 
-              _Footer(message: message, modelName: widget.modelName, duration: _duration, style: caption),
+              _Footer(message: message, duration: _duration, style: caption),
             ],
           ),
         ),
@@ -323,15 +319,14 @@ class _TableLayoutButton extends StatelessWidget {
 /// total tokens if the model has no prices). Tapping the cost shows the token usage.
 class _Footer extends StatelessWidget {
   final MessageDto message;
-  final String? modelName;
   final String? duration;
   final TextStyle? style;
 
-  const _Footer({required this.message, required this.modelName, required this.duration, required this.style});
+  const _Footer({required this.message, required this.duration, required this.style});
 
   @override
   Widget build(BuildContext context) {
-    final modelName = this.modelName;
+    final modelName = message.modelName;
     final duration = this.duration;
     final style = this.style?.copyWith(letterSpacing: 0.2);
     final tabular = style?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]);

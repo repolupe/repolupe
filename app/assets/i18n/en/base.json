@@ -197,6 +197,7 @@
       "failed": "The answer could not be generated.",
       "cancelled": "Cancelled",
       "showUsage": "Show token usage",
+      "showDuration": "Show duration",
       "showToolCalls": "Show tool calls",
       "toolCount": {
         "one": "{count} Tool",
@@ -222,6 +223,26 @@
       "stillRunning": "Still running.",
       "noOutput": "No output.",
       "loadFailed": "Could not load the tool call: {error}"
+    },
+    "rawAnswerDialog": {
+      "title": "Raw Answer",
+      "systemPrompt": "System prompt",
+      "show": "Show",
+      "hide": "Hide",
+      "tools": "Tools",
+      "messages": "Messages",
+      "user": "User",
+      "assistant": "Assistant",
+      "reasoning": "Reasoning",
+      "reasoningWithheld": "The provider withheld the reasoning.",
+      "toolUse": "Tool call",
+      "toolResult": "Tool result",
+      "error": "Error",
+      "notAvailable": "Nothing is stored for this answer. Answers interrupted by a restart have none.",
+      "copy": "Copy as JSON",
+      "copied": "Copied to the clipboard.",
+      "copyFailed": "Could not copy to the clipboard.",
+      "loadFailed": "Could not load the raw answer: {error}"
     },
     "proposedCommitPanel": {
       "applied": "Applied",
@@ -259,6 +280,8 @@
     },
     "usageDialog": {
       "title": "Token usage",
+      "showRaw": "Show what the language model got and returned",
+      "raw": "Raw",
       "type": "Type",
       "tokens": "Tokens",
       "inputHint": "Not read from or written to the cache",
@@ -268,7 +291,22 @@
       "cacheWriteHint": "Input written to the cache",
       "outputHint": "Including reasoning",
       "total": "Total",
-      "cost": "Cost"
+      "cost": "Cost",
+      "pricePerMillion": "{price} per 1M tokens"
+    },
+    "durationDialog": {
+      "title": "Duration",
+      "model": "Language model",
+      "speed": "Output speed",
+      "tokensPerSecond": "{speed} tok/s",
+      "tools": "Tool calls",
+      "callCount": "{count}×",
+      "lessThan": "<{duration}",
+      "toolsSum": "Tools, summed",
+      "toolsReal": "Tools, real time",
+      "toolsRealHint": "Tools run in parallel, so this is the time you actually waited for them",
+      "total": "Total",
+      "notMeasured": "How long the language model took was not measured for this answer."
     },
     "olderPage": {
       "title": "Older Chats",

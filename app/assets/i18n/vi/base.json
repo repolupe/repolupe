@@ -197,6 +197,7 @@
       "failed": "Không thể tạo câu trả lời.",
       "cancelled": "Đã hủy",
       "showUsage": "Xem lượng token sử dụng",
+      "showDuration": "Xem thời gian",
       "showToolCalls": "Xem các lệnh gọi công cụ",
       "toolCount": {
         "one": "{count} công cụ",
@@ -222,6 +223,26 @@
       "stillRunning": "Vẫn đang chạy.",
       "noOutput": "Không có đầu ra.",
       "loadFailed": "Không thể tải lệnh gọi công cụ: {error}"
+    },
+    "rawAnswerDialog": {
+      "title": "Câu trả lời thô",
+      "systemPrompt": "Lời nhắc hệ thống",
+      "show": "Xem",
+      "hide": "Ẩn",
+      "tools": "Công cụ",
+      "messages": "Tin nhắn",
+      "user": "Người dùng",
+      "assistant": "Trợ lý",
+      "reasoning": "Suy luận",
+      "reasoningWithheld": "Nhà cung cấp đã giữ lại phần suy luận.",
+      "toolUse": "Lệnh gọi công cụ",
+      "toolResult": "Kết quả công cụ",
+      "error": "Lỗi",
+      "notAvailable": "Không có dữ liệu nào được lưu cho câu trả lời này. Các câu trả lời bị gián đoạn do khởi động lại không có dữ liệu.",
+      "copy": "Sao chép dưới dạng JSON",
+      "copied": "Đã sao chép vào bộ nhớ tạm.",
+      "copyFailed": "Không thể sao chép vào bộ nhớ tạm.",
+      "loadFailed": "Không thể tải câu trả lời thô: {error}"
     },
     "proposedCommitPanel": {
       "applied": "Đã áp dụng",
@@ -259,6 +280,8 @@
     },
     "usageDialog": {
       "title": "Lượng token sử dụng",
+      "showRaw": "Xem những gì mô hình ngôn ngữ đã nhận và trả về",
+      "raw": "Thô",
       "type": "Loại",
       "tokens": "Token",
       "inputHint": "Không đọc từ hoặc ghi vào bộ nhớ đệm",
@@ -268,7 +291,22 @@
       "cacheWriteHint": "Đầu vào được ghi vào bộ nhớ đệm",
       "outputHint": "Bao gồm cả phần suy luận",
       "total": "Tổng",
-      "cost": "Chi phí"
+      "cost": "Chi phí",
+      "pricePerMillion": "{price} cho 1 triệu token"
+    },
+    "durationDialog": {
+      "title": "Thời gian",
+      "model": "Mô hình ngôn ngữ",
+      "speed": "Tốc độ đầu ra",
+      "tokensPerSecond": "{speed} token/giây",
+      "tools": "Lệnh gọi công cụ",
+      "callCount": "{count}×",
+      "lessThan": "<{duration}",
+      "toolsSum": "Công cụ, cộng dồn",
+      "toolsReal": "Công cụ, thời gian thực",
+      "toolsRealHint": "Các công cụ chạy song song, nên đây là thời gian bạn thực sự phải chờ chúng",
+      "total": "Tổng",
+      "notMeasured": "Thời gian của mô hình ngôn ngữ không được đo cho câu trả lời này."
     },
     "olderPage": {
       "title": "Đoạn chat cũ hơn",

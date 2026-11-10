@@ -34,12 +34,12 @@
     </div>
 
     <!-- One line on the left that never wraps, the model cut off when too long -->
-    <div v-if="props.modelName || toolCount || duration || props.message.usage"
+    <div v-if="modelName || toolCount || duration || props.message.usage"
          class="footer d-flex align-center text-caption text-medium-emphasis mt-3">
-      <IconText v-if="props.modelName" icon="mdi-robot-outline" class="footer-model" :title="props.modelName">
-        <span class="text-truncate">{{ props.modelName }}</span>
+      <IconText v-if="modelName" icon="mdi-robot-outline" class="footer-model" :title="modelName">
+        <span class="text-truncate">{{ modelName }}</span>
       </IconText>
-      <span v-if="props.modelName && (toolCount || duration || props.message.usage)" class="mx-2">•</span>
+      <span v-if="modelName && (toolCount || duration || props.message.usage)" class="mx-2">•</span>
       <span class="d-flex align-center flex-shrink-0">
         <button v-if="toolCount" type="button" class="footer-link tabular"
                 :title="$t('chat.assistantMessage.showToolCalls')" @click="emit('open-tool-calls')">
@@ -90,8 +90,6 @@ const {t} = useI18n();
 
 const props = defineProps<{
   message: MessageDto,
-  /** The model that wrote the answer, if it still exists. */
-  modelName?: string,
   /** Only the last answer can be retried, and only if it failed or was cancelled. */
   canRetry: boolean,
   retrying: boolean,
@@ -109,6 +107,8 @@ const emit = defineEmits<{
 const generating = computed(() => props.message.status === MessageStatus.GENERATING);
 
 const toolCount = computed(() => props.message.tool_calls.length);
+
+const modelName = computed(() => props.message.model_name);
 
 /** What a running call of the tool `name` does, e.g. "Calculating…". */
 const runningToolLabel = (name: string) => {

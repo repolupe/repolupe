@@ -53,7 +53,7 @@ void main() {
         child: TranslationProvider(
           child: MaterialApp(
             home: Scaffold(
-              body: MessageList(chatId: _chatId, messages: messages, modelName: (_) => null),
+              body: MessageList(chatId: _chatId, messages: messages),
             ),
           ),
         ),

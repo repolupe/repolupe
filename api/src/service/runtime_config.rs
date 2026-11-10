@@ -22,9 +22,9 @@ pub(crate) struct LiveConfig {
 }
 
 impl LiveConfig {
-    /// Applies the stored overrides to `defaults`. Invalid ones, e.g. stored by an older
-    /// version, or `mistral` after `OCR_API_KEY_MISTRAL` was removed, are skipped, so they cannot
-    /// keep the server from starting.
+    /// Applies the stored overrides to `defaults`. Invalid ones, e.g. `mistral` after
+    /// `OCR_API_KEY_MISTRAL` was removed, are skipped, so they cannot keep the server from
+    /// starting.
     pub(crate) async fn load(
         db: &DatabasePool,
         defaults: RuntimeConfig,

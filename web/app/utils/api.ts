@@ -532,7 +532,7 @@ export async function retryMessage(chatId: string, messageId: string): Promise<M
 
 /**
  * What the language model got and returned for an answer. `NOT_FOUND` for user messages, and for answers that are
- * generating, were interrupted by a restart, or are from before it was stored.
+ * generating or were interrupted by a restart.
  */
 export async function getRawAnswer(chatId: string, messageId: string): Promise<RawAnswerDto> {
     return await makeRequest({route: `chats/${chatId}/messages/${messageId}/raw`, method: 'GET'});

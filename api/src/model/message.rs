@@ -20,6 +20,9 @@ pub struct Message {
     pub error: Option<String>,
     /// The model that wrote the answer, `None` for user messages or if the model was deleted.
     pub model_id: Option<Uuid>,
+    /// The display name, else the API name, of the model when the answer started, kept when the
+    /// model is renamed or deleted. `None` exactly for user messages.
+    pub model_name: Option<String>,
     pub created_at: DateTime<Utc>,
     /// When the answer reached its final status, `None` for user messages, while `GENERATING`,
     /// or if it was interrupted by a restart.
@@ -32,13 +35,18 @@ pub struct Message {
     pub cache_read_tokens: Option<i64>,
     pub cache_write_tokens: Option<i64>,
     /// How long the responses of the language model took in milliseconds, from sending each
-    /// request to its last token, summed over the tool loop. Known exactly when the tokens are,
-    /// 0 despite output tokens for answers from before it was measured.
+    /// request to its last token, summed over the tool loop. Known exactly when the tokens are.
     pub response_ms: Option<i64>,
     /// In `cost_currency`, at the prices when the answer finished. `None` if the model had no
     /// prices or the tokens are unknown.
     pub cost: Option<Text<Decimal>>,
     pub cost_currency: Option<String>,
+    /// Per million tokens in `cost_currency`, what the tokens of the answer were charged at. All
+    /// set or all `None`, only set with a `cost`.
+    pub input_price: Option<Text<Decimal>>,
+    pub output_price: Option<Text<Decimal>>,
+    pub cache_read_price: Option<Text<Decimal>>,
+    pub cache_write_price: Option<Text<Decimal>>,
 }
 
 /// What the language model got and returned for an answer, stored as gzip-compressed JSON in

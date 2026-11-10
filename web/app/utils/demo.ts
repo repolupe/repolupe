@@ -19,6 +19,7 @@ import {
     type ModelDto,
     type RepositoryDto,
     RepositorySyncStatus,
+    type TokenPricesDto,
     ToolCallStatus,
     type ToolCallSummaryDto,
     type UserDto,
@@ -90,7 +91,7 @@ const MODELS: ModelDto[] = [{
  * Of the hosted demo model, in USD per million tokens, so an answer costs a fraction of a cent. The local one has no
  * prices, so its answers show no cost.
  */
-const PRICES = {input: 1, output: 5, cache_read: 0.1, cache_write: 1.25};
+const PRICES: TokenPricesDto = {input: '1', output: '5', cache_read: '0.1', cache_write: '1.25'};
 
 const HEAD_SHA = '3f786850e387550fdab836ed7e6dc881de23001b';
 
@@ -200,14 +201,15 @@ function userMessage(chat: ChatDetailDto, content: string, attachmentId: string 
 }
 
 function newMessage(role: MessageRole, content: string, attachment: AttachmentDto | null = null,
-                    modelId: string | null = null): MessageDto {
+                    model: ModelDto | null = null): MessageDto {
     return {
         id: crypto.randomUUID(),
         role,
         content,
         status: role === MessageRole.USER ? MessageStatus.COMPLETED : MessageStatus.GENERATING,
         error: null,
-        model_id: modelId,
+        model_id: model?.id ?? null,
+        model_name: model?.display_name ?? null,
         tool_calls: [],
         created_at: new Date().toISOString(),
         finished_at: null,
@@ -233,11 +235,11 @@ function findProposedCommit(chatId: string, toolCallId: string) {
  */
 function startAnswer(chat: ChatDetailDto): MessageDto {
     // like `llm_config.rs`: the chat's model, else the default (the demo user has none of its own)
-    const modelId = MODELS.find(m => m.id === chat.model_id)?.id ?? MODELS.find(m => m.is_default)!.id;
+    const model = MODELS.find(m => m.id === chat.model_id) ?? MODELS.find(m => m.is_default)!;
     // the question is the last message, also when an answer is retried
     const attachment = chat.messages.at(-1)?.attachment ?? null;
     const firstQuestion = chat.messages.filter(m => m.role === MessageRole.USER).length === 1;
-    const message = newMessage(MessageRole.ASSISTANT, '', null, modelId);
+    const message = newMessage(MessageRole.ASSISTANT, '', null, model);
     chat.messages.push(message);
     chat.updated_at = message.created_at;
     const generation: Generation = {cancelled: false, listeners: new Set(), responseStartedAt: Date.now()};
@@ -395,9 +397,10 @@ function cost(message: MessageDto): CostDto | null {
     if (!usage || message.model_id !== HOSTED_MODEL_ID) {
         return null;
     }
-    const amount = (usage.input_tokens * PRICES.input + usage.output_tokens * PRICES.output
-        + usage.cache_read_tokens * PRICES.cache_read + usage.cache_write_tokens * PRICES.cache_write) / 1_000_000;
-    return {amount: amount.toFixed(8).replace(/\.?0+$/, ''), currency: 'USD'};
+    const amount = (usage.input_tokens * Number(PRICES.input) + usage.output_tokens * Number(PRICES.output)
+        + usage.cache_read_tokens * Number(PRICES.cache_read)
+        + usage.cache_write_tokens * Number(PRICES.cache_write)) / 1_000_000;
+    return {amount: amount.toFixed(8).replace(/\.?0+$/, ''), currency: 'USD', prices: {...PRICES}};
 }
 
 function createChat(body: Record<string, any>): ChatDetailDto {

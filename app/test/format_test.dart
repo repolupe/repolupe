@@ -3,6 +3,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
 
 void main() {
+  test('tokenCost charges the price per million tokens exactly', () {
+    expect(tokenCost(1500, '3'), '0.0045');
+    expect(tokenCost(3, '0.1'), '0.0000003');
+    expect(tokenCost(2000000, '15.50'), '31');
+    expect(tokenCost(1234567, '1.25'), '1.54320875');
+    expect(tokenCost(0, '3'), '0');
+    expect(tokenCost(1000, '0'), '0');
+  });
+
   test('formatTokens abbreviates the same in every language, localizing only the decimal separator', () {
     addTearDown(() => Intl.defaultLocale = null);
     const tokens = [0, 850, 999, 1000, 3600, 12345, 123456, 999949, 999950, 1234567, 2500000000];

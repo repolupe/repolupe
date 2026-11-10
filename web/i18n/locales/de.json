@@ -224,7 +224,7 @@
       "toolUse": "Tool-Aufruf",
       "toolResult": "Tool-Ergebnis",
       "error": "Fehler",
-      "notAvailable": "Für diese Antwort ist nichts gespeichert. Antworten von vor der Aufzeichnung und durch einen Neustart unterbrochene Antworten haben keine.",
+      "notAvailable": "Für diese Antwort ist nichts gespeichert. Durch einen Neustart unterbrochene Antworten haben keine.",
       "copy": "Als JSON kopieren",
       "copied": "In die Zwischenablage kopiert.",
       "copyFailed": "Konnte nicht in die Zwischenablage kopiert werden.",
@@ -274,7 +274,8 @@
       "cacheWriteHint": "In den Cache geschriebene Eingabe",
       "outputHint": "Einschließlich Denkschritten",
       "total": "Gesamt",
-      "cost": "Kosten"
+      "cost": "Kosten",
+      "pricePerMillion": "{price} pro 1 Mio. Tokens"
     },
     "durationDialog": {
       "title": "Dauer",

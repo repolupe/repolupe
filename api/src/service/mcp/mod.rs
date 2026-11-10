@@ -506,7 +506,7 @@ fn stored_tools(tools: Vec<Tool>, server_id: Uuid) -> Vec<McpTool> {
         .into_iter()
         .filter_map(|tool| stored_tool(tool, server_id))
         .filter(|tool| {
-            let size = tool.definition_bytes.unwrap_or_default();
+            let size = tool.definition_bytes;
             if bytes + size > MAX_SERVER_DEFINITION_BYTES {
                 tracing::info!(
                     "Leaving out the tool {} of MCP server {server_id}, too many bytes of \
@@ -554,9 +554,9 @@ fn stored_tool(tool: Tool, server_id: Uuid) -> Option<McpTool> {
         title,
         description,
         input_schema,
-        definition_bytes: None,
+        definition_bytes: 0,
     };
-    tool.definition_bytes = Some(definition_bytes(&tool, size));
+    tool.definition_bytes = definition_bytes(&tool, size);
     Some(tool)
 }
 
@@ -932,13 +932,13 @@ mod tests {
         let mut expected: Vec<String> = (0..8).map(|n| format!("large{n}")).collect();
         expected.push("small".to_string());
         assert_eq!(names, expected);
-        let total: usize = stored.iter().filter_map(|t| t.definition_bytes).sum();
+        let total: usize = stored.iter().map(|t| t.definition_bytes).sum();
         assert!(total <= MAX_SERVER_DEFINITION_BYTES);
         // As the answers would measure it.
         let schema = serde_json::to_vec(&stored[0].input_schema).unwrap().len();
         assert_eq!(
             stored[0].definition_bytes,
-            Some(definition_bytes(&stored[0], schema))
+            definition_bytes(&stored[0], schema)
         );
         assert!(schema > 60 * 1024);
     }

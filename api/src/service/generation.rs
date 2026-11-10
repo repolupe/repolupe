@@ -5,13 +5,12 @@ use crate::dto::chat::MessageStatus;
 use crate::model::message::{Message, RawAnswer, RawBlock, RawMessage, RawTool};
 use crate::model::tool_call::{ProposedChange, ToolCallSummary};
 use crate::repository;
-use crate::repository::message::{FinishedMessage, NewToolCall, TokenUsage};
+use crate::repository::message::{Cost, FinishedMessage, NewToolCall, TokenUsage};
 use crate::service::answer;
 use crate::service::llm::{ChatMessage, ContentBlock, LlmConfig, Role, ToolDefinition, Usage};
 use crate::service::llm_config::AnsweringModel;
 use crate::service::pricing::Pricing;
 use chrono::{DateTime, FixedOffset, Utc};
-use rust_decimal::Decimal;
 use sqlx::types::Text;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -74,6 +73,7 @@ impl GenerationRegistry {
             user_id,
             client,
             model_id: model.id,
+            model_name: model.name.clone(),
             pricing: model.pricing.clone(),
             created_at,
             state: Mutex::new(GenerationState::default()),
@@ -124,6 +124,7 @@ pub(crate) struct Generation {
     pub user_id: Uuid,
     pub client: ClientContext,
     model_id: Uuid,
+    model_name: String,
     /// Prices of the model when the message was sent, `None` if it has none.
     pricing: Option<Pricing>,
     created_at: DateTime<Utc>,
@@ -194,8 +195,8 @@ pub(crate) enum GenerationEvent {
         usage: TokenUsage,
         /// How long the responses so far took in milliseconds.
         response_ms: i64,
-        /// The amount and its currency, `None` if the model has no prices.
-        cost: Option<(Decimal, String)>,
+        /// `None` if the model has no prices.
+        cost: Option<Cost>,
     },
     /// The final message, sent once.
     Done {
@@ -243,6 +244,7 @@ impl Generation {
         }
         let usage = state.usage.as_ref().map(token_usage);
         let cost = state.usage.as_ref().and_then(|usage| self.cost(usage));
+        let prices = cost.as_ref().map(|cost| cost.prices);
         Subscription::Live {
             message: Message {
                 id: self.message_id,
@@ -251,6 +253,7 @@ impl Generation {
                 status: MessageStatus::Generating,
                 error: None,
                 model_id: Some(self.model_id),
+                model_name: Some(self.model_name.clone()),
                 created_at: self.created_at,
                 finished_at: None,
                 input_tokens: usage.map(|usage| usage.input),
@@ -258,8 +261,12 @@ impl Generation {
                 cache_read_tokens: usage.map(|usage| usage.cache_read),
                 cache_write_tokens: usage.map(|usage| usage.cache_write),
                 response_ms: usage.map(|_| millis(state.response_time)),
-                cost: cost.map(|(amount, _)| Text(amount)),
-                cost_currency: cost.map(|(_, currency)| currency.to_string()),
+                cost: cost.as_ref().map(|cost| Text(cost.amount)),
+                cost_currency: cost.map(|cost| cost.currency),
+                input_price: prices.map(|prices| Text(prices.input)),
+                output_price: prices.map(|prices| Text(prices.output)),
+                cache_read_price: prices.map(|prices| Text(prices.cache_read)),
+                cache_write_price: prices.map(|prices| Text(prices.cache_write)),
             },
             tool_calls: state.tool_calls.clone(),
             events: self.events.subscribe(),
@@ -289,18 +296,14 @@ impl Generation {
         let _ = self.events.send(GenerationEvent::Usage {
             usage: token_usage(total),
             response_ms,
-            cost: self
-                .cost(total)
-                .map(|(amount, currency)| (amount, currency.to_string())),
+            cost: self.cost(total),
         });
         Ok(())
     }
 
-    /// The amount and its currency, `None` if the model has no prices.
-    fn cost(&self, usage: &Usage) -> Option<(Decimal, &str)> {
-        self.pricing
-            .as_ref()
-            .map(|pricing| (pricing.cost(usage), pricing.currency.as_str()))
+    /// `None` if the model has no prices.
+    fn cost(&self, usage: &Usage) -> Option<Cost> {
+        self.pricing.as_ref().map(|pricing| pricing.cost(usage))
     }
 
     pub(crate) fn append_content(&self, text: &str) -> Result<(), GenerationError> {

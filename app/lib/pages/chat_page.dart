@@ -173,7 +173,7 @@ class _Chat extends StatelessWidget {
         // The bottom padding is the message input's height, which only the messages scroll behind.
         bottom: false,
         child: !state.loading && chat != null && state.messages.isNotEmpty
-            ? MessageList(chatId: chat.id, messages: state.messages, modelName: state.modelName, maxWidth: _maxWidth)
+            ? MessageList(chatId: chat.id, messages: state.messages, maxWidth: _maxWidth)
             : Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: _maxWidth),

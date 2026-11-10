@@ -2,7 +2,7 @@ use crate::config::error::AppError;
 use crate::config::state::AppState;
 use crate::dto::chat::MessageStatus;
 use crate::dto::chat::{
-    ChatDetailDto, ChatDto, ChatPageDto, ContentDeltaDto, CostDto, CreateChatRequest, FileDiffDto,
+    ChatDetailDto, ChatDto, ChatPageDto, ContentDeltaDto, CreateChatRequest, FileDiffDto,
     ListChatsQuery, MessageDto, ProposedCommitDto, RawAnswerDto, RetryMessageRequest,
     SearchChatsQuery, SendMessageRequest, ToolCallDto, ToolCallFinishedDto, ToolCallStatus,
     ToolCallSummaryDto, UpdateChatRequest, UsageUpdateDto,
@@ -191,7 +191,7 @@ pub(crate) async fn create_chat(
             attachment_id: payload.attachment_id,
             user_message_id,
             assistant_message_id,
-            answer_model_id: model.id,
+            answer_model: model.message_model(),
             created_at: now,
         },
     )
@@ -281,7 +281,7 @@ pub(crate) async fn send_message(
             attachment_id: payload.attachment_id,
             user_message_id,
             assistant_message_id,
-            model_id: model.id,
+            model: model.message_model(),
             created_at: now,
         },
     )
@@ -422,7 +422,7 @@ pub(crate) async fn retry_message(
         chat_id,
         message_id,
         new_message_id,
-        model.id,
+        model.message_model(),
         now,
     )
     .await;
@@ -443,7 +443,7 @@ pub(crate) async fn retry_message(
 }
 
 /// What the language model got and returned for an answer. Not found for user messages, and for
-/// answers that are generating, were interrupted by a restart, or are from before it was stored.
+/// answers that are generating or were interrupted by a restart.
 pub(crate) async fn get_raw_answer(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthenticatedUser>,
@@ -745,7 +745,7 @@ fn generation_event(event: GenerationEvent) -> Result<Event, axum::Error> {
             .json_data(ToolCallFinishedDto {
                 id,
                 status: ToolCallStatus::new(true, is_error),
-                duration_ms: Some(duration_ms),
+                duration_ms,
             }),
         GenerationEvent::Usage {
             usage,
@@ -753,11 +753,8 @@ fn generation_event(event: GenerationEvent) -> Result<Event, axum::Error> {
             cost,
         } => Event::default().event("usage").json_data(UsageUpdateDto {
             usage: usage.into(),
-            response_ms: Some(response_ms),
-            cost: cost.map(|(amount, currency)| CostDto {
-                amount: amount.to_string(),
-                currency,
-            }),
+            response_ms,
+            cost: cost.map(Into::into),
         }),
         GenerationEvent::Done {
             message,

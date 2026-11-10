@@ -7,6 +7,7 @@ CREATE TABLE messages_new
     status             TEXT      NOT NULL CHECK (status IN ('GENERATING', 'COMPLETED', 'FAILED', 'CANCELLED')),
     error              TEXT,
     model_id           BLOB REFERENCES llm_models (id) ON DELETE SET NULL,
+    model_name         TEXT,
     created_at         TIMESTAMP NOT NULL,
     finished_at        TIMESTAMP,
     input_tokens       BIGINT,
@@ -16,19 +17,29 @@ CREATE TABLE messages_new
     response_ms        BIGINT CHECK (response_ms >= 0),
     cost               TEXT,
     cost_currency      TEXT,
+    -- per million tokens in cost_currency, as charged: a cache price the model didn't set is its input price
+    input_price        TEXT,
+    output_price       TEXT,
+    cache_read_price   TEXT,
+    cache_write_price  TEXT,
 
     CHECK (role = 'ASSISTANT' OR status = 'COMPLETED'),
     CHECK ((status = 'FAILED') = (error IS NOT NULL)),
     CHECK (role = 'ASSISTANT' OR model_id IS NULL),
+    CHECK ((role = 'ASSISTANT') = (model_name IS NOT NULL)),
     CHECK (role = 'ASSISTANT' OR finished_at IS NULL),
     CHECK ((input_tokens IS NULL) + (output_tokens IS NULL) + (cache_read_tokens IS NULL)
                + (cache_write_tokens IS NULL) + (response_ms IS NULL) IN (0, 5)),
     CHECK ((cost IS NULL) = (cost_currency IS NULL)),
+    CHECK ((input_price IS NULL) + (output_price IS NULL) + (cache_read_price IS NULL)
+               + (cache_write_price IS NULL) IN (0, 4)),
+    CHECK (input_price IS NULL OR cost IS NOT NULL),
     CHECK (status <> 'GENERATING' OR finished_at IS NULL)
 );
 
-INSERT INTO messages_new (id, chat_id, role, content, status, error, model_id, created_at, finished_at, input_tokens,
-                          output_tokens, cache_read_tokens, cache_write_tokens, response_ms, cost, cost_currency)
+INSERT INTO messages_new (id, chat_id, role, content, status, error, model_id, model_name, created_at, finished_at,
+                          input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, response_ms, cost,
+                          cost_currency)
 SELECT id,
        chat_id,
        role,
@@ -36,6 +47,11 @@ SELECT id,
        status,
        error,
        model_id,
+       CASE
+           WHEN role = 'ASSISTANT' THEN COALESCE((SELECT COALESCE(l.display_name, l.api_name)
+                                                  FROM llm_models l
+                                                  WHERE l.id = m.model_id), 'Unknown model')
+           END,
        created_at,
        finished_at,
        input_tokens,
@@ -45,7 +61,7 @@ SELECT id,
        CASE WHEN input_tokens IS NOT NULL THEN 0 END,
        cost,
        cost_currency
-FROM messages;
+FROM messages m;
 
 DROP TABLE messages;
 ALTER TABLE messages_new RENAME TO messages;

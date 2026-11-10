@@ -218,6 +218,7 @@ async fn chat_model_overrides_the_users_model(db: SqlitePool) {
     let answer = alice.wait_for_answer(id).await;
     assert_eq!(answer["status"], "COMPLETED", "{answer}");
     assert_eq!(answer["model_id"], json!(default_model));
+    assert_eq!(answer["model_name"], "Mock Model");
 
     // Without a model of its own, the chat uses the user's model
     let update = format!("/api/v1/chats/{id}/update");
@@ -232,7 +233,9 @@ async fn chat_model_overrides_the_users_model(db: SqlitePool) {
         .await;
     assert_eq!(status, StatusCode::CREATED, "{body}");
     assert_eq!(body[0]["model_id"], json!(null));
+    assert_eq!(body[0]["model_name"], json!(null));
     assert_eq!(body[1]["model_id"], json!(other_model));
+    assert_eq!(body[1]["model_name"], "Other Model");
     assert_eq!(alice.wait_for_answer(id).await["status"], "COMPLETED");
 
     let requests = llm.requests();
@@ -259,7 +262,7 @@ async fn chat_model_overrides_the_users_model(db: SqlitePool) {
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");
     assert_eq!(body["code"], "UNKNOWN_MODEL");
 
-    // Deleting a model clears it from the chat and the answers it wrote
+    // Deleting a model clears it from the chat and the answers it wrote, which keep its name
     let (status, body) = alice
         .post(
             &update,
@@ -283,6 +286,21 @@ async fn chat_model_overrides_the_users_model(db: SqlitePool) {
     assert_eq!(
         model_ids,
         vec![json!(null), json!(default_model), json!(null), json!(null)]
+    );
+    let model_names: Vec<_> = body["messages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|m| m["model_name"].clone())
+        .collect();
+    assert_eq!(
+        model_names,
+        vec![
+            json!(null),
+            json!("Mock Model"),
+            json!(null),
+            json!("Other Model")
+        ]
     );
 }
 
@@ -326,10 +344,14 @@ async fn records_usage_and_cost_of_all_rounds(db: SqlitePool) {
         json!({"input_tokens": 2, "output_tokens": 2, "cache_read_tokens": 0, "cache_write_tokens": 0})
     );
     assert!(answer["response_ms"].is_u64(), "{answer}");
-    // (2 * 3 + 2 * 15.50) / 1M
+    // (2 * 3 + 2 * 15.50) / 1M, the cache charged at the input price
     assert_eq!(
         answer["cost"],
-        json!({"amount": "0.000037", "currency": "EUR"})
+        json!({
+            "amount": "0.000037",
+            "currency": "EUR",
+            "prices": {"input": "3", "output": "15.50", "cache_read": "3", "cache_write": "3"},
+        })
     );
 
     // Without prices, the usage is still recorded but there is no cost
@@ -405,16 +427,17 @@ async fn streams_the_usage_after_each_round(db: SqlitePool) {
         })
         .collect();
     assert!(response_ms[0] <= response_ms[1], "{response_ms:?}");
+    let prices = json!({"input": "3", "output": "15.50", "cache_read": "3", "cache_write": "3"});
     assert_eq!(
         updates,
         [
             json!({
                 "usage": {"input_tokens": 1, "output_tokens": 1, "cache_read_tokens": 0, "cache_write_tokens": 0},
-                "cost": {"amount": "0.0000185", "currency": "EUR"},
+                "cost": {"amount": "0.0000185", "currency": "EUR", "prices": prices},
             }),
             json!({
                 "usage": {"input_tokens": 2, "output_tokens": 2, "cache_read_tokens": 0, "cache_write_tokens": 0},
-                "cost": {"amount": "0.000037", "currency": "EUR"},
+                "cost": {"amount": "0.000037", "currency": "EUR", "prices": prices},
             }),
         ],
         "{events:?}"
@@ -465,6 +488,7 @@ async fn snapshot_has_the_usage_so_far(db: SqlitePool) {
     let usage = json!({"input_tokens": 1, "output_tokens": 1, "cache_read_tokens": 0, "cache_write_tokens": 0});
     let (snapshot, done) = (&events[0].1, &events[1].1);
     assert_eq!(snapshot["status"], "GENERATING", "{snapshot}");
+    assert_eq!(snapshot["model_name"], "Mock Model", "{snapshot}");
     assert_eq!(snapshot["usage"], usage, "{snapshot}");
     assert!(snapshot["response_ms"].is_u64(), "{snapshot}");
     // No prices, so no cost

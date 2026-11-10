@@ -147,9 +147,6 @@ class ChatState with ChatStateMappable {
   /// Its content stays as it was sent until it is finished, the [MessageService] has the current one.
   MessageDto? get answer => messages.where((m) => m.status == MessageStatus.generating).lastOrNull;
 
-  /// The name of the model [modelId], `null` if it no longer exists.
-  String? modelName(UuidValue? modelId) => models.where((m) => m.id == modelId).firstOrNull?.displayName;
-
   /// The model chosen for the chat (or the new one), `null` for the user's model.
   UuidValue? get chosenModelId => chat == null ? modelId : chat!.modelId;
 

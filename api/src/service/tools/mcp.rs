@@ -335,7 +335,7 @@ fn select(servers: &mut [McpServerTools]) {
             if count == MAX_TOOLS {
                 break 'rounds;
             }
-            let size = definition_size(tool);
+            let size = tool.definition_bytes;
             if bytes + size <= MAX_DEFINITION_BYTES {
                 keep[round] = true;
                 count += 1;
@@ -355,15 +355,6 @@ fn select(servers: &mut [McpServerTools]) {
             );
         }
     }
-}
-
-/// About the size of the tool's definition as sent to the LLM: as stored with the tool, or
-/// measured for tools stored without it.
-fn definition_size(tool: &McpTool) -> usize {
-    tool.definition_bytes.unwrap_or_else(|| {
-        let schema = serde_json::to_vec(&tool.input_schema).map_or(usize::MAX, |json| json.len());
-        definition_bytes(tool, schema)
-    })
 }
 
 /// About the size of the tool's definition as sent to the LLM, with `schema_bytes` the size of
@@ -493,7 +484,7 @@ mod tests {
             title: None,
             description: Some("Does things.".to_string()),
             input_schema: json!({"type": "object"}).as_object().unwrap().clone(),
-            definition_bytes: None,
+            definition_bytes: 100,
         }
     }
 
@@ -599,26 +590,13 @@ mod tests {
     #[test]
     fn skips_tools_beyond_the_bytes() {
         let mut large = server("A", &["large", "small"]);
-        large.tools[0].description = Some("x".repeat(100 * 1024));
+        large.tools[0].definition_bytes = 100 * 1024;
         let mut other = server("B", &["large"]);
-        other.tools[0].description = Some("x".repeat(100 * 1024));
+        other.tools[0].definition_bytes = 100 * 1024;
         let tools = tools(vec![large, other]);
         let names: Vec<String> = tools.definitions().map(|d| d.name).collect();
         assert_eq!(names, ["mcp__a__large", "mcp__a__small"]);
         assert_eq!(tools.server_names(), [("A", None)]);
-    }
-
-    #[test]
-    fn uses_the_stored_sizes() {
-        // Small, but stored as large.
-        let mut stored = server("A", &["stored", "small"]);
-        stored.tools[0].definition_bytes = Some(100 * 1024);
-        // Stored without a size, so measured.
-        let mut measured = server("B", &["measured"]);
-        measured.tools[0].description = Some("x".repeat(100 * 1024));
-        let tools = tools(vec![stored, measured]);
-        let names: Vec<String> = tools.definitions().map(|d| d.name).collect();
-        assert_eq!(names, ["mcp__a__stored", "mcp__a__small"]);
     }
 
     #[test]

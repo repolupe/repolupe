@@ -194,6 +194,7 @@ MessageDto _copyMessage(
     status: status ?? m.status,
     error: error ?? m.error,
     modelId: m.modelId,
+    modelName: m.modelName,
     toolCalls: toolCalls ?? m.toolCalls,
     createdAt: m.createdAt,
     finishedAt: m.finishedAt,

@@ -43,7 +43,7 @@
         <div v-if="chat" class="d-flex flex-column ga-6">
           <template v-for="message in chat.messages" :key="message.id">
             <UserMessage v-if="message.role === MessageRole.USER" :message="message"/>
-            <AssistantMessage v-else :message="message" :model-name="modelNames.get(message.model_id ?? '')"
+            <AssistantMessage v-else :message="message"
                               :can-retry="message.id === retryableId"
                               :retrying="retryingId === message.id" @retry="doRetry(message)"
                               @open-tool-calls="showToolCallListDialog(message)"
@@ -84,8 +84,7 @@
 
       <UsageDialog ref="usage-dialog" v-model="dialogUsage" @open-raw="showRawAnswerDialog"/>
 
-      <DurationDialog v-model="dialogDuration" :message="durationMessage"
-                      :model-name="modelNames.get(durationMessage?.model_id ?? '') ?? null"/>
+      <DurationDialog v-model="dialogDuration" :message="durationMessage"/>
 
       <RawAnswerDialog v-if="chat" ref="raw-answer-dialog" v-model="dialogRawAnswer" :chat-id="chat.id"/>
     </div>
@@ -244,7 +243,6 @@ const retryableId = computed(() => {
 const canSend = computed(() => !!chat.value && !sending.value && !generatingMessage.value
     && (attachment.value ? !!attachment.value.uploaded : !!input.value.trim()));
 
-const modelNames = computed(() => new Map(models.value.map(m => [m.id, m.display_name])));
 
 // --- scrolling ---
 
@@ -596,7 +594,7 @@ const showToolCallDialog = (toolCall: ToolCallSummaryDto) => {
 // --- usage ---
 
 const showUsageDialog = (message: MessageDto) => {
-  usageDialog.value!.load(message, modelNames.value.get(message.model_id ?? '') ?? null);
+  usageDialog.value!.load(message);
   dialogUsage.value = true;
 };
 

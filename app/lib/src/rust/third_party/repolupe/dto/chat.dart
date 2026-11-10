@@ -136,17 +136,22 @@ class CostDto {
   /// ISO 4217 code, e.g. `USD`.
   final String currency;
 
+  /// What the tokens were charged at, `null` if unknown.
+  final TokenPricesDto? prices;
+
   const CostDto({
     required this.amount,
     required this.currency,
+    this.prices,
   });
 
   @override
-  int get hashCode => amount.hashCode ^ currency.hashCode;
+  int get hashCode => amount.hashCode ^ currency.hashCode ^ prices.hashCode;
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) || other is CostDto && runtimeType == other.runtimeType && amount == other.amount && currency == other.currency;
+      identical(this, other) ||
+      other is CostDto && runtimeType == other.runtimeType && amount == other.amount && currency == other.currency && prices == other.prices;
 }
 
 class CreateChatRequest {
@@ -379,6 +384,10 @@ class MessageDto {
 
   /// The model that wrote the answer, `null` for user messages or if the model was deleted.
   final UuidValue? modelId;
+
+  /// The display name of the model when the answer started, kept when the model is renamed or
+  /// deleted. `null` for user messages.
+  final String? modelName;
   final List<ToolCallSummaryDto> toolCalls;
   final DateTime createdAt;
 
@@ -394,7 +403,7 @@ class MessageDto {
   /// How long the responses of the language model took in milliseconds, from sending each
   /// request to its last token, summed over the tool loop. Unlike `finished_at`, without the
   /// time tools ran. Like `usage`, of the responses so far while `GENERATING`; `null` if the
-  /// usage is unknown. 0 despite output tokens for answers from before it was measured.
+  /// usage is unknown.
   final PlatformInt64? responseMs;
 
   /// At the prices when the answer finished, `null` if the model had no prices or the usage
@@ -411,6 +420,7 @@ class MessageDto {
     required this.status,
     this.error,
     this.modelId,
+    this.modelName,
     required this.toolCalls,
     required this.createdAt,
     this.finishedAt,
@@ -428,6 +438,7 @@ class MessageDto {
       status.hashCode ^
       error.hashCode ^
       modelId.hashCode ^
+      modelName.hashCode ^
       toolCalls.hashCode ^
       createdAt.hashCode ^
       finishedAt.hashCode ^
@@ -447,6 +458,7 @@ class MessageDto {
           status == other.status &&
           error == other.error &&
           modelId == other.modelId &&
+          modelName == other.modelName &&
           toolCalls == other.toolCalls &&
           createdAt == other.createdAt &&
           finishedAt == other.finishedAt &&
@@ -602,6 +614,39 @@ class SendMessageRequest {
           utcOffsetMinutes == other.utcOffsetMinutes;
 }
 
+/// Per million tokens in the currency of the cost, as decimal strings. Each kind of token in
+/// [`UsageDto`] costs its amount times its price.
+class TokenPricesDto {
+  final String input;
+  final String output;
+
+  /// The input price if the model has no price for it.
+  final String cacheRead;
+
+  /// The input price if the model has no price for it.
+  final String cacheWrite;
+
+  const TokenPricesDto({
+    required this.input,
+    required this.output,
+    required this.cacheRead,
+    required this.cacheWrite,
+  });
+
+  @override
+  int get hashCode => input.hashCode ^ output.hashCode ^ cacheRead.hashCode ^ cacheWrite.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TokenPricesDto &&
+          runtimeType == other.runtimeType &&
+          input == other.input &&
+          output == other.output &&
+          cacheRead == other.cacheRead &&
+          cacheWrite == other.cacheWrite;
+}
+
 class ToolCallDto {
   final ToolCallSummaryDto summary;
 
@@ -626,14 +671,13 @@ class ToolCallFinishedDto {
   final UuidValue id;
   final ToolCallStatus status;
 
-  /// See [`ToolCallSummaryDto::duration_ms`]. Always sent, `None` only from servers from before
-  /// it was measured.
-  final PlatformInt64? durationMs;
+  /// See [`ToolCallSummaryDto::duration_ms`].
+  final PlatformInt64 durationMs;
 
   const ToolCallFinishedDto({
     required this.id,
     required this.status,
-    this.durationMs,
+    required this.durationMs,
   });
 
   @override
@@ -668,8 +712,7 @@ class ToolCallSummaryDto {
   final String? commitSha;
   final ToolCallStatus status;
 
-  /// How long the tool ran in milliseconds, `null` while `RUNNING`, if it was interrupted, or
-  /// for calls from before it was measured.
+  /// How long the tool ran in milliseconds, `null` while `RUNNING` or if it was interrupted.
   final PlatformInt64? durationMs;
   final DateTime createdAt;
 
@@ -762,15 +805,14 @@ class UsageUpdateDto {
   final UsageDto usage;
 
   /// How long the responses so far took in milliseconds, see [`MessageDto::response_ms`].
-  /// Always sent, `None` only from servers from before it was measured.
-  final PlatformInt64? responseMs;
+  final PlatformInt64 responseMs;
 
   /// `null` if the model has no prices.
   final CostDto? cost;
 
   const UsageUpdateDto({
     required this.usage,
-    this.responseMs,
+    required this.responseMs,
     this.cost,
   });
 

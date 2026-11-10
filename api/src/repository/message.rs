@@ -24,8 +24,16 @@ pub(crate) struct NewMessage<'a> {
     pub role: MessageRole,
     pub content: &'a str,
     /// The model that writes the answer, `None` for user messages.
-    pub model_id: Option<Uuid>,
+    pub model: Option<MessageModel<'a>>,
     pub created_at: DateTime<Utc>,
+}
+
+/// The model that writes an answer, as recorded on the message.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct MessageModel<'a> {
+    pub id: Uuid,
+    /// Its display name, else its API name. Kept when the model is renamed or deleted.
+    pub name: &'a str,
 }
 
 /// The final state of an answer, see [`finish_message`].
@@ -38,8 +46,8 @@ pub(crate) struct FinishedMessage<'a> {
     pub usage: Option<TokenUsage>,
     /// How long the responses of the language model took in milliseconds, `None` if unknown.
     pub response_ms: Option<i64>,
-    /// The amount and its currency, `None` if unknown.
-    pub cost: Option<(Decimal, &'a str)>,
+    /// `None` if unknown.
+    pub cost: Option<Cost>,
     /// `None` if the answer failed before its first request.
     pub raw: Option<&'a RawAnswer>,
     pub finished_at: DateTime<Utc>,
@@ -51,6 +59,26 @@ pub(crate) struct TokenUsage {
     pub output: i64,
     pub cache_read: i64,
     pub cache_write: i64,
+}
+
+/// What an answer cost, and the prices it was charged at.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Cost {
+    /// In `currency`, unrounded.
+    pub amount: Decimal,
+    /// ISO 4217 code, e.g. `USD`.
+    pub currency: String,
+    pub prices: TokenPrices,
+}
+
+/// Per million tokens, for each kind in [`TokenUsage`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct TokenPrices {
+    /// Input not read from or written to the cache.
+    pub input: Decimal,
+    pub output: Decimal,
+    pub cache_read: Decimal,
+    pub cache_write: Decimal,
 }
 
 pub(crate) struct NewToolCall<'a> {
@@ -73,21 +101,26 @@ pub(crate) async fn insert_message(
         MessageRole::User => MessageStatus::Completed,
         MessageRole::Assistant => MessageStatus::Generating,
     };
+    let (model_id, model_name) = new.model.map(|model| (model.id, model.name)).unzip();
     let message = sqlx::query_as!(
         Message,
-        r#"INSERT INTO messages (id, chat_id, role, content, status, model_id, created_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
+        r#"INSERT INTO messages (id, chat_id, role, content, status, model_id, model_name, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
            RETURNING id AS "id: Uuid", role AS "role: MessageRole", content,
-                     status AS "status: MessageStatus", error, model_id AS "model_id: Uuid",
+                     status AS "status: MessageStatus", error, model_id AS "model_id: Uuid", model_name,
                      created_at AS "created_at: DateTime<Utc>", finished_at AS "finished_at: DateTime<Utc>",
                      input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, response_ms,
-                     cost AS "cost: Text<Decimal>", cost_currency"#,
+                     cost AS "cost: Text<Decimal>", cost_currency, input_price AS "input_price: Text<Decimal>",
+                     output_price AS "output_price: Text<Decimal>",
+                     cache_read_price AS "cache_read_price: Text<Decimal>",
+                     cache_write_price AS "cache_write_price: Text<Decimal>""#,
         new.id,
         new.chat_id,
         new.role,
         new.content,
         status,
-        new.model_id,
+        model_id,
+        model_name,
         new.created_at,
     )
     .fetch_one(conn)
@@ -114,10 +147,13 @@ pub(crate) async fn list_messages(
     let messages = sqlx::query_as!(
         Message,
         r#"SELECT id AS "id: Uuid", role AS "role: MessageRole", content,
-                  status AS "status: MessageStatus", error, model_id AS "model_id: Uuid",
+                  status AS "status: MessageStatus", error, model_id AS "model_id: Uuid", model_name,
                   created_at AS "created_at: DateTime<Utc>", finished_at AS "finished_at: DateTime<Utc>",
                   input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, response_ms,
-                  cost AS "cost: Text<Decimal>", cost_currency
+                  cost AS "cost: Text<Decimal>", cost_currency, input_price AS "input_price: Text<Decimal>",
+                  output_price AS "output_price: Text<Decimal>",
+                  cache_read_price AS "cache_read_price: Text<Decimal>",
+                  cache_write_price AS "cache_write_price: Text<Decimal>"
            FROM messages
            WHERE chat_id = $1
            ORDER BY created_at, id"#,
@@ -137,10 +173,13 @@ pub(crate) async fn get_message(
     let message = sqlx::query_as!(
         Message,
         r#"SELECT m.id AS "id: Uuid", m.role AS "role: MessageRole", m.content,
-                  m.status AS "status: MessageStatus", m.error, m.model_id AS "model_id: Uuid",
+                  m.status AS "status: MessageStatus", m.error, m.model_id AS "model_id: Uuid", m.model_name,
                   m.created_at AS "created_at: DateTime<Utc>", m.finished_at AS "finished_at: DateTime<Utc>",
                   m.input_tokens, m.output_tokens, m.cache_read_tokens, m.cache_write_tokens, m.response_ms,
-                  m.cost AS "cost: Text<Decimal>", m.cost_currency
+                  m.cost AS "cost: Text<Decimal>", m.cost_currency, m.input_price AS "input_price: Text<Decimal>",
+                  m.output_price AS "output_price: Text<Decimal>",
+                  m.cache_read_price AS "cache_read_price: Text<Decimal>",
+                  m.cache_write_price AS "cache_write_price: Text<Decimal>"
            FROM messages m
            JOIN chats c ON c.id = m.chat_id
            WHERE m.id = $1 AND m.chat_id = $2 AND c.user_id = $3"#,
@@ -154,7 +193,7 @@ pub(crate) async fn get_message(
 }
 
 /// `None` if the message doesn't exist, isn't the user's, or has no raw answer (user messages,
-/// answers that are generating, were interrupted by a restart, or are from before it was stored).
+/// answers that are generating or were interrupted by a restart).
 pub(crate) async fn get_raw_answer(
     db: &DatabasePool,
     user_id: Uuid,
@@ -252,8 +291,18 @@ pub(crate) async fn finish_message(
     finished: FinishedMessage<'_>,
 ) -> Result<Option<Message>, AppError> {
     let usage = finished.usage;
-    let (cost, cost_currency) = finished.cost.unzip();
-    let cost = cost.map(Text);
+    let cost = finished.cost;
+    let (cost_amount, cost_currency) = (
+        cost.as_ref().map(|c| Text(c.amount)),
+        cost.as_ref().map(|c| c.currency.as_str()),
+    );
+    let prices = cost.as_ref().map(|c| c.prices);
+    let (input_price, output_price, cache_read_price, cache_write_price) = (
+        prices.map(|p| Text(p.input)),
+        prices.map(|p| Text(p.output)),
+        prices.map(|p| Text(p.cache_read)),
+        prices.map(|p| Text(p.cache_write)),
+    );
     // Before the transaction, so the write lock isn't held while compressing
     let raw = finished
         .raw
@@ -280,13 +329,20 @@ pub(crate) async fn finish_message(
                cache_write_tokens = $9,
                response_ms        = $10,
                cost               = $11,
-               cost_currency      = $12
+               cost_currency      = $12,
+               input_price        = $13,
+               output_price       = $14,
+               cache_read_price   = $15,
+               cache_write_price  = $16
            WHERE id = $1 AND status = 'GENERATING'
            RETURNING id AS "id: Uuid", role AS "role: MessageRole", content,
-                     status AS "status: MessageStatus", error, model_id AS "model_id: Uuid",
+                     status AS "status: MessageStatus", error, model_id AS "model_id: Uuid", model_name,
                      created_at AS "created_at: DateTime<Utc>", finished_at AS "finished_at: DateTime<Utc>",
                      input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, response_ms,
-                     cost AS "cost: Text<Decimal>", cost_currency"#,
+                     cost AS "cost: Text<Decimal>", cost_currency, input_price AS "input_price: Text<Decimal>",
+                     output_price AS "output_price: Text<Decimal>",
+                     cache_read_price AS "cache_read_price: Text<Decimal>",
+                     cache_write_price AS "cache_write_price: Text<Decimal>""#,
         id,
         finished.status,
         finished.content,
@@ -297,8 +353,12 @@ pub(crate) async fn finish_message(
         cache_read_tokens,
         cache_write_tokens,
         finished.response_ms,
-        cost,
+        cost_amount,
         cost_currency,
+        input_price,
+        output_price,
+        cache_read_price,
+        cache_write_price,
     )
     .fetch_optional(&mut *tx)
     .await?;

@@ -1,5 +1,5 @@
 import {afterEach, describe, expect, it} from 'vitest';
-import {formatTokens, parseMcpToolName, parseSavedScope} from '~/utils/utils';
+import {formatTokens, parseMcpToolName, parseSavedScope, tokenCost} from '~/utils/utils';
 import {setFormatLocale} from '~/utils/i18n';
 
 describe('parseMcpToolName', () => {
@@ -70,5 +70,19 @@ describe('formatTokens', () => {
             '0 T.', '850 T.', '999 T.', '1k T.', '3,6k T.', '12,3k T.', '123,5k T.', '999,9k T.', '1M T.', '1,2M T.',
             '2,5B T.',
         ]);
+    });
+});
+
+describe('tokenCost', () => {
+    it('charges the price per million tokens exactly', () => {
+        expect(tokenCost(1_500, '3')).toBe('0.0045');
+        expect(tokenCost(3, '0.1')).toBe('0.0000003');
+        expect(tokenCost(2_000_000, '15.50')).toBe('31');
+        expect(tokenCost(1_234_567, '1.25')).toBe('1.54320875');
+    });
+
+    it('is zero without tokens or price', () => {
+        expect(tokenCost(0, '3')).toBe('0');
+        expect(tokenCost(1_000, '0')).toBe('0');
     });
 });

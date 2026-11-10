@@ -3145,6 +3145,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TokenPricesDto dco_decode_box_autoadd_token_prices_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_token_prices_dto(raw);
+  }
+
+  @protected
   ToolCallFinishedDto dco_decode_box_autoadd_tool_call_finished_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_tool_call_finished_dto(raw);
@@ -3338,10 +3344,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   CostDto dco_decode_cost_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return CostDto(
       amount: dco_decode_String(arr[0]),
       currency: dco_decode_String(arr[1]),
+      prices: dco_decode_opt_box_autoadd_token_prices_dto(arr[2]),
     );
   }
 
@@ -4048,7 +4055,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   MessageDto dco_decode_message_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 13) throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
+    if (arr.length != 14) throw Exception('unexpected arr length: expect 14 but see ${arr.length}');
     return MessageDto(
       id: dco_decode_Uuid(arr[0]),
       role: dco_decode_message_role(arr[1]),
@@ -4056,13 +4063,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       status: dco_decode_message_status(arr[3]),
       error: dco_decode_opt_String(arr[4]),
       modelId: dco_decode_opt_Uuid(arr[5]),
-      toolCalls: dco_decode_list_tool_call_summary_dto(arr[6]),
-      createdAt: dco_decode_Chrono_Utc(arr[7]),
-      finishedAt: dco_decode_opt_box_autoadd_Chrono_Utc(arr[8]),
-      usage: dco_decode_opt_box_autoadd_usage_dto(arr[9]),
-      responseMs: dco_decode_opt_box_autoadd_i_64(arr[10]),
-      cost: dco_decode_opt_box_autoadd_cost_dto(arr[11]),
-      attachment: dco_decode_opt_box_autoadd_attachment_dto(arr[12]),
+      modelName: dco_decode_opt_String(arr[6]),
+      toolCalls: dco_decode_list_tool_call_summary_dto(arr[7]),
+      createdAt: dco_decode_Chrono_Utc(arr[8]),
+      finishedAt: dco_decode_opt_box_autoadd_Chrono_Utc(arr[9]),
+      usage: dco_decode_opt_box_autoadd_usage_dto(arr[10]),
+      responseMs: dco_decode_opt_box_autoadd_i_64(arr[11]),
+      cost: dco_decode_opt_box_autoadd_cost_dto(arr[12]),
+      attachment: dco_decode_opt_box_autoadd_attachment_dto(arr[13]),
     );
   }
 
@@ -4253,6 +4261,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RepositoryTokenDto? dco_decode_opt_box_autoadd_repository_token_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_repository_token_dto(raw);
+  }
+
+  @protected
+  TokenPricesDto? dco_decode_opt_box_autoadd_token_prices_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_token_prices_dto(raw);
   }
 
   @protected
@@ -4582,6 +4596,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TokenPricesDto dco_decode_token_prices_dto(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4) throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return TokenPricesDto(
+      input: dco_decode_String(arr[0]),
+      output: dco_decode_String(arr[1]),
+      cacheRead: dco_decode_String(arr[2]),
+      cacheWrite: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
   ToolCallDto dco_decode_tool_call_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -4600,7 +4627,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return ToolCallFinishedDto(
       id: dco_decode_Uuid(arr[0]),
       status: dco_decode_tool_call_status(arr[1]),
-      durationMs: dco_decode_opt_box_autoadd_i_64(arr[2]),
+      durationMs: dco_decode_i_64(arr[2]),
     );
   }
 
@@ -4774,7 +4801,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return UsageUpdateDto(
       usage: dco_decode_usage_dto(arr[0]),
-      responseMs: dco_decode_opt_box_autoadd_i_64(arr[1]),
+      responseMs: dco_decode_i_64(arr[1]),
       cost: dco_decode_opt_box_autoadd_cost_dto(arr[2]),
     );
   }
@@ -5258,6 +5285,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TokenPricesDto sse_decode_box_autoadd_token_prices_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_token_prices_dto(deserializer));
+  }
+
+  @protected
   ToolCallFinishedDto sse_decode_box_autoadd_tool_call_finished_dto(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_tool_call_finished_dto(deserializer));
@@ -5441,7 +5474,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_amount = sse_decode_String(deserializer);
     var var_currency = sse_decode_String(deserializer);
-    return CostDto(amount: var_amount, currency: var_currency);
+    var var_prices = sse_decode_opt_box_autoadd_token_prices_dto(deserializer);
+    return CostDto(amount: var_amount, currency: var_currency, prices: var_prices);
   }
 
   @protected
@@ -6284,6 +6318,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_status = sse_decode_message_status(deserializer);
     var var_error = sse_decode_opt_String(deserializer);
     var var_modelId = sse_decode_opt_Uuid(deserializer);
+    var var_modelName = sse_decode_opt_String(deserializer);
     var var_toolCalls = sse_decode_list_tool_call_summary_dto(deserializer);
     var var_createdAt = sse_decode_Chrono_Utc(deserializer);
     var var_finishedAt = sse_decode_opt_box_autoadd_Chrono_Utc(deserializer);
@@ -6298,6 +6333,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       status: var_status,
       error: var_error,
       modelId: var_modelId,
+      modelName: var_modelName,
       toolCalls: var_toolCalls,
       createdAt: var_createdAt,
       finishedAt: var_finishedAt,
@@ -6591,6 +6627,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_repository_token_dto(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  TokenPricesDto? sse_decode_opt_box_autoadd_token_prices_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_token_prices_dto(deserializer));
     } else {
       return null;
     }
@@ -6906,6 +6953,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TokenPricesDto sse_decode_token_prices_dto(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_input = sse_decode_String(deserializer);
+    var var_output = sse_decode_String(deserializer);
+    var var_cacheRead = sse_decode_String(deserializer);
+    var var_cacheWrite = sse_decode_String(deserializer);
+    return TokenPricesDto(input: var_input, output: var_output, cacheRead: var_cacheRead, cacheWrite: var_cacheWrite);
+  }
+
+  @protected
   ToolCallDto sse_decode_tool_call_dto(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_summary = sse_decode_tool_call_summary_dto(deserializer);
@@ -6918,7 +6975,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_id = sse_decode_Uuid(deserializer);
     var var_status = sse_decode_tool_call_status(deserializer);
-    var var_durationMs = sse_decode_opt_box_autoadd_i_64(deserializer);
+    var var_durationMs = sse_decode_i_64(deserializer);
     return ToolCallFinishedDto(id: var_id, status: var_status, durationMs: var_durationMs);
   }
 
@@ -7078,7 +7135,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   UsageUpdateDto sse_decode_usage_update_dto(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_usage = sse_decode_usage_dto(deserializer);
-    var var_responseMs = sse_decode_opt_box_autoadd_i_64(deserializer);
+    var var_responseMs = sse_decode_i_64(deserializer);
     var var_cost = sse_decode_opt_box_autoadd_cost_dto(deserializer);
     return UsageUpdateDto(usage: var_usage, responseMs: var_responseMs, cost: var_cost);
   }
@@ -7565,6 +7622,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_token_prices_dto(TokenPricesDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_token_prices_dto(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_tool_call_finished_dto(ToolCallFinishedDto self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_tool_call_finished_dto(self, serializer);
@@ -7726,6 +7789,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.amount, serializer);
     sse_encode_String(self.currency, serializer);
+    sse_encode_opt_box_autoadd_token_prices_dto(self.prices, serializer);
   }
 
   @protected
@@ -8374,6 +8438,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_message_status(self.status, serializer);
     sse_encode_opt_String(self.error, serializer);
     sse_encode_opt_Uuid(self.modelId, serializer);
+    sse_encode_opt_String(self.modelName, serializer);
     sse_encode_list_tool_call_summary_dto(self.toolCalls, serializer);
     sse_encode_Chrono_Utc(self.createdAt, serializer);
     sse_encode_opt_box_autoadd_Chrono_Utc(self.finishedAt, serializer);
@@ -8644,6 +8709,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_token_prices_dto(TokenPricesDto? self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_token_prices_dto(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_usage_dto(UsageDto? self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
 
@@ -8893,6 +8968,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_token_prices_dto(TokenPricesDto self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.input, serializer);
+    sse_encode_String(self.output, serializer);
+    sse_encode_String(self.cacheRead, serializer);
+    sse_encode_String(self.cacheWrite, serializer);
+  }
+
+  @protected
   void sse_encode_tool_call_dto(ToolCallDto self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_tool_call_summary_dto(self.summary, serializer);
@@ -8904,7 +8988,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_Uuid(self.id, serializer);
     sse_encode_tool_call_status(self.status, serializer);
-    sse_encode_opt_box_autoadd_i_64(self.durationMs, serializer);
+    sse_encode_i_64(self.durationMs, serializer);
   }
 
   @protected
@@ -9029,7 +9113,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_usage_update_dto(UsageUpdateDto self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usage_dto(self.usage, serializer);
-    sse_encode_opt_box_autoadd_i_64(self.responseMs, serializer);
+    sse_encode_i_64(self.responseMs, serializer);
     sse_encode_opt_box_autoadd_cost_dto(self.cost, serializer);
   }
 

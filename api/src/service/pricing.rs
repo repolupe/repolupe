@@ -1,27 +1,22 @@
 //! The cost of an answer, from the tokens it used and the prices of its model.
 
+use crate::repository::message::{Cost, TokenPrices};
 use crate::service::llm::Usage;
 use rust_decimal::Decimal;
 
 const TOKENS_PER_PRICE: u64 = 1_000_000;
 
-/// The prices of a model, per million tokens. Only known if the currency and the input and output
-/// prices are set.
+/// The prices of a model. Only known if the currency and the input and output prices are set.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct Pricing {
     /// ISO 4217 code, e.g. `USD`.
-    pub currency: String,
-    /// Input not read from or written to the cache.
-    pub input: Decimal,
-    pub output: Decimal,
-    /// `None` charges `input`.
-    pub cache_read: Option<Decimal>,
-    /// `None` charges `input`.
-    pub cache_write: Option<Decimal>,
+    currency: String,
+    prices: TokenPrices,
 }
 
 impl Pricing {
-    /// `None` if the currency, input or output price is not set.
+    /// `None` if the currency, input or output price is not set. A cache price that is not set
+    /// charges the input price.
     pub(crate) fn new(
         currency: Option<String>,
         input: Option<Decimal>,
@@ -29,23 +24,29 @@ impl Pricing {
         cache_read: Option<Decimal>,
         cache_write: Option<Decimal>,
     ) -> Option<Self> {
+        let input = input?;
         Some(Pricing {
             currency: currency?,
-            input: input?,
-            output: output?,
-            cache_read,
-            cache_write,
+            prices: TokenPrices {
+                input,
+                output: output?,
+                cache_read: cache_read.unwrap_or(input),
+                cache_write: cache_write.unwrap_or(input),
+            },
         })
     }
 
-    /// In [`Self::currency`], unrounded.
-    pub(crate) fn cost(&self, usage: &Usage) -> Decimal {
-        let total = Decimal::from(usage.input_tokens) * self.input
-            + Decimal::from(usage.output_tokens) * self.output
-            + Decimal::from(usage.cache_read_input_tokens) * self.cache_read.unwrap_or(self.input)
-            + Decimal::from(usage.cache_creation_input_tokens)
-                * self.cache_write.unwrap_or(self.input);
-        (total / Decimal::from(TOKENS_PER_PRICE)).normalize()
+    pub(crate) fn cost(&self, usage: &Usage) -> Cost {
+        let prices = self.prices;
+        let total = Decimal::from(usage.input_tokens) * prices.input
+            + Decimal::from(usage.output_tokens) * prices.output
+            + Decimal::from(usage.cache_read_input_tokens) * prices.cache_read
+            + Decimal::from(usage.cache_creation_input_tokens) * prices.cache_write;
+        Cost {
+            amount: (total / Decimal::from(TOKENS_PER_PRICE)).normalize(),
+            currency: self.currency.clone(),
+            prices,
+        }
     }
 }
 
@@ -91,7 +92,16 @@ mod tests {
         // 0.003 + 0.015 + 0.0003 + 0.00375
         assert_eq!(
             pricing.cost(&usage(1000, 1000, 1000, 1000)),
-            price("0.02205")
+            Cost {
+                amount: price("0.02205"),
+                currency: "USD".to_string(),
+                prices: TokenPrices {
+                    input: price("3"),
+                    output: price("15"),
+                    cache_read: price("0.30"),
+                    cache_write: price("3.75"),
+                },
+            }
         );
     }
 
@@ -105,7 +115,11 @@ mod tests {
             None,
         )
         .unwrap();
-        assert_eq!(pricing.cost(&usage(0, 0, 500_000, 500_000)), price("2"));
+        let cost = pricing.cost(&usage(0, 0, 500_000, 500_000));
+        assert_eq!(cost.amount, price("2"));
+        // Stored as charged
+        assert_eq!(cost.prices.cache_read, price("2"));
+        assert_eq!(cost.prices.cache_write, price("2"));
     }
 
     #[test]
@@ -118,6 +132,6 @@ mod tests {
             None,
         )
         .unwrap();
-        assert_eq!(pricing.cost(&Usage::default()), Decimal::ZERO);
+        assert_eq!(pricing.cost(&Usage::default()).amount, Decimal::ZERO);
     }
 }

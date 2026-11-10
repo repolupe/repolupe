@@ -92,9 +92,8 @@ pub struct McpTool {
     /// The JSON schema of the arguments, an object schema.
     pub input_schema: Map<String, Value>,
     /// About the size of the tool's definition as sent to the LLM, measured when the list was
-    /// stored. `None` in lists stored before it was added.
-    #[serde(default)]
-    pub definition_bytes: Option<usize>,
+    /// stored.
+    pub definition_bytes: usize,
 }
 
 /// A stored [`McpTool`] without its schema, which is skipped when reading it.
@@ -111,16 +110,17 @@ mod tests {
     use serde_json::json;
 
     #[test]
-    fn reads_tools_stored_without_their_size() {
+    fn reads_stored_tools() {
         let stored = json!([{
             "name": "search",
             "title": null,
             "description": "Searches.",
             "input_schema": {"type": "object"},
+            "definition_bytes": 120,
         }]);
         let tools: Vec<McpTool> = serde_json::from_value(stored.clone()).unwrap();
         assert_eq!(tools[0].name, "search");
-        assert_eq!(tools[0].definition_bytes, None);
+        assert_eq!(tools[0].definition_bytes, 120);
         let summaries: Vec<McpToolSummary> = serde_json::from_value(stored).unwrap();
         assert_eq!(
             summaries,

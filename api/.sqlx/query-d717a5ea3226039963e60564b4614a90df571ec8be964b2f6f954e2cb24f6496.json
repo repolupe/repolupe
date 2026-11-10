@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT m.id AS \"model_id: Uuid\", p.id AS \"provider_id: Uuid\", p.api_format AS \"api_format: LlmApiFormat\",\n                  p.base_url, p.api_key_encrypted, m.api_name AS model, m.max_output_tokens, p.currency,\n                  m.input_price AS \"input_price: Text<Decimal>\", m.output_price AS \"output_price: Text<Decimal>\",\n                  m.cache_read_price AS \"cache_read_price: Text<Decimal>\",\n                  m.cache_write_price AS \"cache_write_price: Text<Decimal>\"\n           FROM llm_models m\n           JOIN llm_providers p ON p.id = m.provider_id\n           WHERE m.id = COALESCE((SELECT id FROM llm_models WHERE id = $2),\n                                 (SELECT default_model_id FROM users WHERE id = $1),\n                                 (SELECT id FROM llm_models WHERE is_default))",
+  "query": "SELECT m.id AS \"model_id: Uuid\", p.id AS \"provider_id: Uuid\", p.api_format AS \"api_format: LlmApiFormat\",\n                  p.base_url, p.api_key_encrypted, m.api_name AS model,\n                  COALESCE(m.display_name, m.api_name) AS \"name!: String\", m.max_output_tokens, p.currency,\n                  m.input_price AS \"input_price: Text<Decimal>\", m.output_price AS \"output_price: Text<Decimal>\",\n                  m.cache_read_price AS \"cache_read_price: Text<Decimal>\",\n                  m.cache_write_price AS \"cache_write_price: Text<Decimal>\"\n           FROM llm_models m\n           JOIN llm_providers p ON p.id = m.provider_id\n           WHERE m.id = COALESCE((SELECT id FROM llm_models WHERE id = $2),\n                                 (SELECT default_model_id FROM users WHERE id = $1),\n                                 (SELECT id FROM llm_models WHERE is_default))",
   "describe": {
     "columns": [
       {
@@ -34,33 +34,38 @@
         "type_info": "Text"
       },
       {
-        "name": "max_output_tokens",
+        "name": "name!: String",
         "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "max_output_tokens",
+        "ordinal": 7,
         "type_info": "Int4"
       },
       {
         "name": "currency",
-        "ordinal": 7,
-        "type_info": "Text"
-      },
-      {
-        "name": "input_price: Text<Decimal>",
         "ordinal": 8,
         "type_info": "Text"
       },
       {
-        "name": "output_price: Text<Decimal>",
+        "name": "input_price: Text<Decimal>",
         "ordinal": 9,
         "type_info": "Text"
       },
       {
-        "name": "cache_read_price: Text<Decimal>",
+        "name": "output_price: Text<Decimal>",
         "ordinal": 10,
         "type_info": "Text"
       },
       {
-        "name": "cache_write_price: Text<Decimal>",
+        "name": "cache_read_price: Text<Decimal>",
         "ordinal": 11,
+        "type_info": "Text"
+      },
+      {
+        "name": "cache_write_price: Text<Decimal>",
+        "ordinal": 12,
         "type_info": "Text"
       }
     ],
@@ -74,6 +79,7 @@
       false,
       true,
       false,
+      false,
       true,
       true,
       true,
@@ -82,5 +88,5 @@
       true
     ]
   },
-  "hash": "5ac505ba9dcb2d8f79e59898c2fe46fb437a64eede52c446488678202aaed686"
+  "hash": "d717a5ea3226039963e60564b4614a90df571ec8be964b2f6f954e2cb24f6496"
 }

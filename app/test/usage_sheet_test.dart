@@ -27,12 +27,8 @@ Future<void> _openSheet(WidgetTester tester, {CostDto? cost, String? modelName})
 }
 
 void main() {
-  testWidgets('shows the tokens by type, their total and the exact cost', (tester) async {
-    await _openSheet(
-      tester,
-      cost: const CostDto(amount: '0.00033525', currency: 'USD'),
-      modelName: 'Claude',
-    );
+  testWidgets('shows the tokens by type and their total', (tester) async {
+    await _openSheet(tester, modelName: 'Claude');
 
     expect(find.text('Token usage'), findsOneWidget);
     expect(find.text('Claude'), findsOneWidget);
@@ -40,7 +36,30 @@ void main() {
     expect(find.text('10,000'), findsOneWidget);
     expect(find.text('345'), findsOneWidget);
     expect(find.text('11,545'), findsOneWidget);
-    expect(find.text(r'$0.00033525'), findsOneWidget);
+  });
+
+  testWidgets('shows the cost of each type at its price', (tester) async {
+    await _openSheet(
+      tester,
+      cost: const CostDto(
+        amount: '0.0003925',
+        currency: 'USD',
+        prices: TokenPricesDto(input: '0.1', output: '0.5', cacheRead: '0.01', cacheWrite: '0.125'),
+      ),
+    );
+
+    // 1,200 input, 10,000 read from the cache, none written to it and 345 output tokens
+    expect(find.text(r'$0.00012'), findsOneWidget);
+    expect(find.text(r'$0.10 per 1M tokens'), findsOneWidget);
+    expect(find.text(r'$0.0001'), findsOneWidget);
+    expect(find.text(r'$0.01 per 1M tokens'), findsOneWidget);
+    expect(find.text(r'$0.00'), findsOneWidget);
+    expect(find.text(r'$0.125 per 1M tokens'), findsOneWidget);
+    expect(find.text(r'$0.0001725'), findsOneWidget);
+    expect(find.text(r'$0.50 per 1M tokens'), findsOneWidget);
+    expect(find.text(r'$0.0003925'), findsOneWidget);
+    // Only as the column header, the total cost is in the row of the total tokens
+    expect(find.text('Cost'), findsOneWidget);
   });
 
   testWidgets('leaves out the cost and the model when unknown', (tester) async {

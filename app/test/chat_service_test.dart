@@ -190,7 +190,6 @@ void main() {
     var state = container.read(chatProvider);
     // The user comes from `meProvider`, it is not loaded again for every chat.
     expect(requests.map((r) => r.$2), isNot(contains('/api/v1/me')));
-    expect(state.modelName(UuidValue.fromString(_modelId)), 'Claude');
     final userModelId = UuidValue.fromString(_otherModelId);
     // The user's own model, not the default one.
     expect(state.answeringModel(userModelId)?.displayName, 'Haiku');
@@ -535,7 +534,7 @@ void main() {
       response.headers.contentType = ContentType('text', 'event-stream');
       response.write('event: snapshot\ndata: ${jsonEncode(_message(id: _answerId, role: 'ASSISTANT', content: '', status: 'GENERATING'))}\n\n');
       response.write('event: tool_call_started\ndata: ${jsonEncode(toolCall)}\n\n');
-      response.write('event: tool_call_finished\ndata: ${jsonEncode({'id': _toolCallId, 'status': 'COMPLETED'})}\n\n');
+      response.write('event: tool_call_finished\ndata: ${jsonEncode({'id': _toolCallId, 'status': 'COMPLETED', 'duration_ms': 120})}\n\n');
       final usage = {
         'usage': {'input_tokens': 4, 'output_tokens': 2, 'cache_read_tokens': 0, 'cache_write_tokens': 0},
         'response_ms': 1500,

@@ -232,7 +232,9 @@ describe('demo API', () => {
         const answer = await finished(chat.id, chat.messages[1]!.id);
 
         expect(answer.model_id).toBe(hosted.id);
+        expect(answer.model_name).toBe(hosted.display_name);
         expect(answer.cost?.currency).toBe('USD');
+        expect(answer.cost?.prices).toEqual({input: '1', output: '5', cache_read: '0.1', cache_write: '1.25'});
         expect(Number(answer.cost?.amount)).toBeGreaterThan(0);
     });
 
@@ -245,7 +247,11 @@ describe('demo API', () => {
 
         expect(answer.status).toBe(MessageStatus.CANCELLED);
         expect(answer.usage).toEqual({input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, cache_write_tokens: 0});
-        expect(answer.cost).toEqual({amount: '0', currency: 'USD'});
+        expect(answer.cost).toEqual({
+            amount: '0',
+            currency: 'USD',
+            prices: {input: '1', output: '5', cache_read: '0.1', cache_write: '1.25'},
+        });
     });
 
     it('does not list temporary chats', async () => {
