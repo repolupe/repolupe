@@ -1099,7 +1099,7 @@ async fn stores_what_the_model_got_and_returned(db: SqlitePool) {
     assert_eq!(status, StatusCode::OK, "{raw}");
 
     assert!(
-        raw["system"].as_str().unwrap().contains("- `demo` (branch"),
+        raw["system"].as_str().unwrap().contains("- `demo`\n"),
         "{raw}"
     );
     let names = |tools: &Value| -> Vec<String> {

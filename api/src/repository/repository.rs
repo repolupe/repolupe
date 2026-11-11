@@ -108,7 +108,7 @@ pub(crate) async fn list_scoped_repositories(
 ) -> Result<Vec<ScopedRepository>, AppError> {
     let repositories = sqlx::query_as!(
         ScopedRepository,
-        r#"SELECT r.id AS "id: Uuid", r.name, r.description, r.branch, r.head_commit_sha,
+        r#"SELECT r.id AS "id: Uuid", r.name, r.description, r.head_commit_sha,
                   r.allow_commits AND u.can_manage_repositories
                       AND (r.user_id = c.user_id
                            OR EXISTS (SELECT 1

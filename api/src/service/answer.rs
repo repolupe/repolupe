@@ -469,7 +469,11 @@ fn system_prompt(
         return prompt;
     }
 
-    let mut prompt = String::from("You answer questions about the user's Git repositories.\n\n");
+    let mut prompt = String::from(
+        "You are a helpful assistant, and the user's Git repositories are your knowledge base. \
+        Most questions are about what is in them, but the user may also ask something unrelated, \
+        which you answer without them.\n\n",
+    );
     push_user_section(&mut prompt, profile, true);
     push_time_section(&mut prompt, utc_offset);
 
@@ -478,19 +482,10 @@ fn system_prompt(
         let Some(scoped) = scoped.iter().find(|s| s.id == repository.id) else {
             continue;
         };
-        let commit = repository.snapshot.commit();
-        let commit = &commit[..commit.len().min(12)];
-        let _ = write!(
-            prompt,
-            "- `{}` (branch `{}`, commit {commit}{})",
-            repository.name,
-            scoped.branch,
-            if repository.can_commit {
-                ", you can propose changes"
-            } else {
-                ""
-            }
-        );
+        let _ = write!(prompt, "- `{}`", repository.name);
+        if repository.can_commit {
+            prompt.push_str(" (you can propose changes)");
+        }
         if let Some(description) = scoped.description.as_deref().map(str::trim)
             && !description.is_empty()
         {
@@ -526,12 +521,13 @@ fn system_prompt(
     let _ = writeln!(
         prompt,
         "\nHow to answer:\n\
-        - Look things up with the tools instead of answering from memory. Search for the terms \
-        of the question with grep, which also searches the text converted from PDFs, or get an \
-        overview with list_files. For long Markdown files, use outline and read only the \
-        relevant sections with read_file. Read PDFs with read_file.\n\
-        - Base your answer on what you read. If the repositories do not cover the question, \
-        say so instead of guessing.\n\
+        - When the repositories may cover the question, look it up with the tools instead of \
+        answering from memory. Search for the terms of the question with grep, which also \
+        searches the text converted from PDFs, or get an overview with list_files. For long \
+        Markdown files, use outline and read only the relevant sections with read_file. Read \
+        PDFs with read_file.\n\
+        - Base such an answer on what you read. If the repositories do not contain what the \
+        user asks about, say so instead of guessing.\n\
         - Name the files your answer is based on, e.g. `docs/setup.md`, with the repository if \
         there are several.\n\
         - When the user wants to see a file, or a file is what they are looking for, show it with \
@@ -784,7 +780,6 @@ mod tests {
             id: Uuid::now_v7(),
             name: name.to_string(),
             description: Some("Team\nhandbook".to_string()),
-            branch: "main".to_string(),
             head_commit_sha: head_commit_sha.map(str::to_string),
             can_commit: false,
         }
@@ -850,7 +845,7 @@ Answer in the language of the question, or in the language of the locale `de-DE`
                 &tools_for(&unsynced)
             ),
             "\
-You answer questions about the user's Git repositories.
+You are a helpful assistant, and the user's Git repositories are your knowledge base. Most questions are about what is in them, but the user may also ask something unrelated, which you answer without them.
 
 The user's messages start with the date and time they were sent, in UTC, since the user's time zone is unknown. The last one is the current date and time.
 
@@ -874,17 +869,17 @@ None of the repositories can be read yet, so you cannot look anything up in them
         assert_eq!(
             system_prompt(&UserProfile::default(), None, &scoped, &tools_for(&scoped)),
             "\
-You answer questions about the user's Git repositories.
+You are a helpful assistant, and the user's Git repositories are your knowledge base. Most questions are about what is in them, but the user may also ask something unrelated, which you answer without them.
 
 The user's messages start with the date and time they were sent, in UTC, since the user's time zone is unknown. The last one is the current date and time.
 
 Repositories you can read:
-- `handbook` (branch `main`, commit 0123456789ab, you can propose changes): Team handbook
+- `handbook` (you can propose changes): Team handbook
 Not available yet, since they were not synced: `wiki`.
 
 How to answer:
-- Look things up with the tools instead of answering from memory. Search for the terms of the question with grep, which also searches the text converted from PDFs, or get an overview with list_files. For long Markdown files, use outline and read only the relevant sections with read_file. Read PDFs with read_file.
-- Base your answer on what you read. If the repositories do not cover the question, say so instead of guessing.
+- When the repositories may cover the question, look it up with the tools instead of answering from memory. Search for the terms of the question with grep, which also searches the text converted from PDFs, or get an overview with list_files. For long Markdown files, use outline and read only the relevant sections with read_file. Read PDFs with read_file.
+- Base such an answer on what you read. If the repositories do not contain what the user asks about, say so instead of guessing.
 - Name the files your answer is based on, e.g. `docs/setup.md`, with the repository if there are several.
 - When the user wants to see a file, or a file is what they are looking for, show it with present_file_to_user instead of copying its content into the answer.
 - For calculations, e.g. totals, percentages or date differences, run a script with run_script instead of working them out in your head, and pass it the files with the data.

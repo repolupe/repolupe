@@ -101,8 +101,7 @@ async fn profile_tells_the_llm_who_is_asking(db: SqlitePool) {
     let alice = app.user("alice@example.com").await;
     let llm = MockLlm::start(vec![text_response("It is 123.")]).await;
     app.configure_llm(&llm).await;
-    let repo = app
-        .seed_repository(alice.user_id, "family", &[("README.md", "# Family")])
+    app.seed_repository(alice.user_id, "family", &[("README.md", "# Family")])
         .await;
 
     let (status, _) = alice
@@ -154,12 +153,10 @@ async fn profile_tells_the_llm_who_is_asking(db: SqlitePool) {
         .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
     assert_eq!(body["code"], "VALIDATION_ERROR");
-    let commit = &repo.commit_sha[..12];
     assert_eq!(
         llm.requests()[0]["system"][0]["text"].as_str().unwrap(),
-        format!(
-            "\
-You answer questions about the user's Git repositories.
+        "\
+You are a helpful assistant, and the user's Git repositories are your knowledge base. Most questions are about what is in them, but the user may also ask something unrelated, which you answer without them.
 
 The user asking is Alice Doe.
 What the user says about themselves:
@@ -171,18 +168,17 @@ Married to Bob Doe.
 The user's messages start with the date and time they were sent, in the user's local time (UTC+01:00). The last one is the current date and time.
 
 Repositories you can read:
-- `family` (branch `main`, commit {commit})
+- `family`
 
 How to answer:
-- Look things up with the tools instead of answering from memory. Search for the terms of the question with grep, which also searches the text converted from PDFs, or get an overview with list_files. For long Markdown files, use outline and read only the relevant sections with read_file. Read PDFs with read_file.
-- Base your answer on what you read. If the repositories do not cover the question, say so instead of guessing.
+- When the repositories may cover the question, look it up with the tools instead of answering from memory. Search for the terms of the question with grep, which also searches the text converted from PDFs, or get an overview with list_files. For long Markdown files, use outline and read only the relevant sections with read_file. Read PDFs with read_file.
+- Base such an answer on what you read. If the repositories do not contain what the user asks about, say so instead of guessing.
 - Name the files your answer is based on, e.g. `docs/setup.md`, with the repository if there are several.
 - When the user wants to see a file, or a file is what they are looking for, show it with present_file_to_user instead of copying its content into the answer.
 - For calculations, e.g. totals, percentages or date differences, run a script with run_script instead of working them out in your head, and pass it the files with the data.
 - The user may not be technical and does not see your tool calls. Describe what you looked at in plain words, e.g. \"I searched all files\", without naming the tools or terms like grep, regular expression, Markdown or OCR.
 - Answer in the language of the question, or in the language of the locale `de-DE` if that is unclear, and format it with Markdown.
 "
-        )
     );
 
     // Empty strings clear the fields, invalid ones are rejected

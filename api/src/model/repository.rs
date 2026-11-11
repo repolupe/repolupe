@@ -167,7 +167,6 @@ pub struct ScopedRepository {
     pub id: Uuid,
     pub name: String,
     pub description: Option<String>,
-    pub branch: String,
     /// `None` until the first sync finished.
     pub head_commit_sha: Option<String>,
     /// Whether the model may propose commits to the user of the chat: commits are allowed on

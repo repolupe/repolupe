@@ -123,15 +123,13 @@ const RESULTS: &str = r#"
 "#;
 
 pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
-    let mut description = format!(
+    let mut description = String::from(
         "Run JavaScript (ES2023) to calculate, count, sort, or transform data, instead of \
         working it out in your head. Print results with `console.log`; the value of the last \
         expression is returned too. The script runs in a sandbox: there is no network, no \
         file system, no `require`, `import`, `fetch` or timers, and nothing carries over between \
-        calls. It is stopped after {} s or {} of memory. Numbers are 64-bit floats, so use \
-        BigInt for exact large integers and round amounts of money when printing them.",
-        MAX_DURATION.as_secs(),
-        format_size(MAX_MEMORY as u64),
+        calls. Numbers are 64-bit floats, so use BigInt for exact large integers and round \
+        amounts of money when printing them.",
     );
     let mut properties = json!({
         "code": {
