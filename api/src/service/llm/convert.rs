@@ -9,7 +9,9 @@ use super::{
     ToolUse, Usage,
 };
 use crate::dto::llm::LlmApiFormat;
-use rig_core::completion::{self, CompletionRequest, CompletionResponse, FinishReason};
+use rig_core::completion::{
+    self, CompletionRequest, CompletionResponse, Effort, FinishReason, OnUnsupported,
+};
 use rig_core::message::{
     AssistantContent, AssistantMessage, CallId, Message, Origin, Text, ToolCall, ToolFunction,
     ToolName, ToolResult, ToolResultContent, UserContent,
@@ -19,6 +21,10 @@ use std::collections::HashMap;
 
 /// The Messages API requires `max_tokens`, unlike OpenAI-compatible servers.
 const DEFAULT_MAX_OUTPUT_TOKENS: u64 = 32_000;
+
+/// Sent with every request: `reasoning_effort` in the OpenAI format, adaptive thinking with
+/// `output_config.effort` in the Anthropic one.
+const REASONING_EFFORT: Effort = Effort::High;
 
 /// A block of a response as rig decoded it, with the turn it came from: reasoning, other
 /// provider items, and the provider's form of a tool call. Rig sends it back unchanged as
@@ -68,7 +74,10 @@ pub(super) fn request(
     let mut completion = CompletionRequest::new(prompt)
         .messages(messages)
         .tools(tools)
-        .max_tokens(max_tokens);
+        .max_tokens(max_tokens)
+        .reasoning(REASONING_EFFORT)
+        // Models rig knows not to take the effort answer without it
+        .on_unsupported(OnUnsupported::Ignore);
     if !request.system.is_empty() {
         completion = completion.preamble(request.system);
     }

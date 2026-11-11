@@ -318,6 +318,8 @@ async fn sends_anthropic_thinking_back_in_the_tool_loop() {
     assert_eq!(first.headers["x-api-key"], "sk-test");
     assert_eq!(first.body["model"], "test-model");
     assert_eq!(first.body["max_tokens"], 32_000);
+    assert_eq!(first.body["thinking"], json!({"type": "adaptive"}));
+    assert_eq!(first.body["output_config"], json!({"effort": "high"}));
     assert_eq!(first.body["stream"], true);
     assert_eq!(first.body["system"][0]["text"], "You answer questions.");
     assert!(first.body["system"][0]["cache_control"].is_object());
@@ -417,6 +419,7 @@ async fn streams_openai_tool_calls_in_pieces() {
     assert_eq!(body["stream"], true);
     assert_eq!(body["stream_options"]["include_usage"], true);
     assert_eq!(body["max_tokens"], 1000);
+    assert_eq!(body["reasoning_effort"], "high");
     assert_eq!(
         body["messages"],
         json!([
