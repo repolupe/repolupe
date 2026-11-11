@@ -42,7 +42,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -412189488;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1863015113;
 
 // Section: executor
 
@@ -3183,6 +3183,71 @@ fn wire__crate__api__client__Client_remove_repository_user_impl(
         },
     )
 }
+fn wire__crate__api__client__Client_resend_message_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "Client_resend_message",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Client>,
+            >>::sse_decode(&mut deserializer);
+            let api_chat_id = <uuid::Uuid>::sse_decode(&mut deserializer);
+            let api_message_id = <uuid::Uuid>::sse_decode(&mut deserializer);
+            let api_request =
+                <repolupe::dto::chat::ResendMessageRequest>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::error::ClientError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::Client::resend_message(
+                            &*api_that_guard,
+                            api_chat_id,
+                            api_message_id,
+                            api_request,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__client__Client_reset_password_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -3296,71 +3361,6 @@ fn wire__crate__api__client__Client_retry_document_extraction_impl(
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = crate::api::client::Client::retry_document_extraction(
                             &*api_that_guard,
-                            api_request,
-                        )
-                        .await?;
-                        std::result::Result::Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    )
-}
-fn wire__crate__api__client__Client_retry_message_impl(
-    port_: flutter_rust_bridge::for_generated::MessagePort,
-    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
-    rust_vec_len_: i32,
-    data_len_: i32,
-) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "Client_retry_message",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            let message = unsafe {
-                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
-                    ptr_,
-                    rust_vec_len_,
-                    data_len_,
-                )
-            };
-            let mut deserializer =
-                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
-            let api_that = <RustOpaqueMoi<
-                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<Client>,
-            >>::sse_decode(&mut deserializer);
-            let api_chat_id = <uuid::Uuid>::sse_decode(&mut deserializer);
-            let api_message_id = <uuid::Uuid>::sse_decode(&mut deserializer);
-            let api_request =
-                <repolupe::dto::chat::RetryMessageRequest>::sse_decode(&mut deserializer);
-            deserializer.end();
-            move |context| async move {
-                transform_result_sse::<_, crate::api::error::ClientError>(
-                    (move || async move {
-                        let mut api_that_guard = None;
-                        let decode_indices_ =
-                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
-                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
-                                    &api_that, 0, false,
-                                )],
-                            );
-                        for i in decode_indices_ {
-                            match i {
-                                0 => {
-                                    api_that_guard =
-                                        Some(api_that.lockable_decode_async_ref().await)
-                                }
-                                _ => unreachable!(),
-                            }
-                        }
-                        let api_that_guard = api_that_guard.unwrap();
-                        let output_ok = crate::api::client::Client::retry_message(
-                            &*api_that_guard,
-                            api_chat_id,
-                            api_message_id,
                             api_request,
                         )
                         .await?;
@@ -5611,6 +5611,11 @@ const _: fn() = || {
         let _: chrono::DateTime<chrono::Utc> = RepositoryUserDto.created_at;
     }
     {
+        let ResendMessageRequest = None::<repolupe::dto::chat::ResendMessageRequest>.unwrap();
+        let _: Option<String> = ResendMessageRequest.content;
+        let _: Option<i32> = ResendMessageRequest.utc_offset_minutes;
+    }
+    {
         let ResetPasswordRequest = None::<repolupe::dto::user::ResetPasswordRequest>.unwrap();
         let _: String = ResetPasswordRequest.password;
         let _: bool = ResetPasswordRequest.must_change_password;
@@ -5618,10 +5623,6 @@ const _: fn() = || {
     {
         let RetryDocumentRequest = None::<repolupe::dto::extraction::RetryDocumentRequest>.unwrap();
         let _: String = RetryDocumentRequest.blob_oid;
-    }
-    {
-        let RetryMessageRequest = None::<repolupe::dto::chat::RetryMessageRequest>.unwrap();
-        let _: Option<i32> = RetryMessageRequest.utc_offset_minutes;
     }
     {
         let SendMessageRequest = None::<repolupe::dto::chat::SendMessageRequest>.unwrap();
@@ -6439,16 +6440,15 @@ impl SseDecode for repolupe::dto::error::ErrorCode {
             17 => repolupe::dto::error::ErrorCode::UnknownMcpServer,
             18 => repolupe::dto::error::ErrorCode::UnknownUser,
             19 => repolupe::dto::error::ErrorCode::GenerationInProgress,
-            20 => repolupe::dto::error::ErrorCode::NotRetryable,
-            21 => repolupe::dto::error::ErrorCode::WrongPassword,
-            22 => repolupe::dto::error::ErrorCode::SamePassword,
-            23 => repolupe::dto::error::ErrorCode::PasswordChangeRequired,
-            24 => repolupe::dto::error::ErrorCode::UnknownModel,
-            25 => repolupe::dto::error::ErrorCode::NoModelConfigured,
-            26 => repolupe::dto::error::ErrorCode::Unavailable,
-            27 => repolupe::dto::error::ErrorCode::FileUnavailable,
-            28 => repolupe::dto::error::ErrorCode::UnknownAttachment,
-            29 => repolupe::dto::error::ErrorCode::Unknown,
+            20 => repolupe::dto::error::ErrorCode::WrongPassword,
+            21 => repolupe::dto::error::ErrorCode::SamePassword,
+            22 => repolupe::dto::error::ErrorCode::PasswordChangeRequired,
+            23 => repolupe::dto::error::ErrorCode::UnknownModel,
+            24 => repolupe::dto::error::ErrorCode::NoModelConfigured,
+            25 => repolupe::dto::error::ErrorCode::Unavailable,
+            26 => repolupe::dto::error::ErrorCode::FileUnavailable,
+            27 => repolupe::dto::error::ErrorCode::UnknownAttachment,
+            28 => repolupe::dto::error::ErrorCode::Unknown,
             _ => unreachable!("Invalid variant for ErrorCode: {}", inner),
         };
     }
@@ -8108,6 +8108,18 @@ impl SseDecode for repolupe::dto::repository::RepositoryUserDto {
     }
 }
 
+impl SseDecode for repolupe::dto::chat::ResendMessageRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_content = <Option<String>>::sse_decode(deserializer);
+        let mut var_utcOffsetMinutes = <Option<i32>>::sse_decode(deserializer);
+        return repolupe::dto::chat::ResendMessageRequest {
+            content: var_content,
+            utc_offset_minutes: var_utcOffsetMinutes,
+        };
+    }
+}
+
 impl SseDecode for repolupe::dto::user::ResetPasswordRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -8126,16 +8138,6 @@ impl SseDecode for repolupe::dto::extraction::RetryDocumentRequest {
         let mut var_blobOid = <String>::sse_decode(deserializer);
         return repolupe::dto::extraction::RetryDocumentRequest {
             blob_oid: var_blobOid,
-        };
-    }
-}
-
-impl SseDecode for repolupe::dto::chat::RetryMessageRequest {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
-        let mut var_utcOffsetMinutes = <Option<i32>>::sse_decode(deserializer);
-        return repolupe::dto::chat::RetryMessageRequest {
-            utc_offset_minutes: var_utcOffsetMinutes,
         };
     }
 }
@@ -8762,17 +8764,17 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         55 => {
+            wire__crate__api__client__Client_resend_message_impl(port, ptr, rust_vec_len, data_len)
+        }
+        56 => {
             wire__crate__api__client__Client_reset_password_impl(port, ptr, rust_vec_len, data_len)
         }
-        56 => wire__crate__api__client__Client_retry_document_extraction_impl(
+        57 => wire__crate__api__client__Client_retry_document_extraction_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        57 => {
-            wire__crate__api__client__Client_retry_message_impl(port, ptr, rust_vec_len, data_len)
-        }
         58 => wire__crate__api__client__Client_search_chats_impl(port, ptr, rust_vec_len, data_len),
         59 => wire__crate__api__client__Client_send_message_impl(port, ptr, rust_vec_len, data_len),
         61 => wire__crate__api__client__Client_set_config_impl(port, ptr, rust_vec_len, data_len),
@@ -9726,16 +9728,15 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::error::ErrorCod
             repolupe::dto::error::ErrorCode::UnknownMcpServer => 17.into_dart(),
             repolupe::dto::error::ErrorCode::UnknownUser => 18.into_dart(),
             repolupe::dto::error::ErrorCode::GenerationInProgress => 19.into_dart(),
-            repolupe::dto::error::ErrorCode::NotRetryable => 20.into_dart(),
-            repolupe::dto::error::ErrorCode::WrongPassword => 21.into_dart(),
-            repolupe::dto::error::ErrorCode::SamePassword => 22.into_dart(),
-            repolupe::dto::error::ErrorCode::PasswordChangeRequired => 23.into_dart(),
-            repolupe::dto::error::ErrorCode::UnknownModel => 24.into_dart(),
-            repolupe::dto::error::ErrorCode::NoModelConfigured => 25.into_dart(),
-            repolupe::dto::error::ErrorCode::Unavailable => 26.into_dart(),
-            repolupe::dto::error::ErrorCode::FileUnavailable => 27.into_dart(),
-            repolupe::dto::error::ErrorCode::UnknownAttachment => 28.into_dart(),
-            repolupe::dto::error::ErrorCode::Unknown => 29.into_dart(),
+            repolupe::dto::error::ErrorCode::WrongPassword => 20.into_dart(),
+            repolupe::dto::error::ErrorCode::SamePassword => 21.into_dart(),
+            repolupe::dto::error::ErrorCode::PasswordChangeRequired => 22.into_dart(),
+            repolupe::dto::error::ErrorCode::UnknownModel => 23.into_dart(),
+            repolupe::dto::error::ErrorCode::NoModelConfigured => 24.into_dart(),
+            repolupe::dto::error::ErrorCode::Unavailable => 25.into_dart(),
+            repolupe::dto::error::ErrorCode::FileUnavailable => 26.into_dart(),
+            repolupe::dto::error::ErrorCode::UnknownAttachment => 27.into_dart(),
+            repolupe::dto::error::ErrorCode::Unknown => 28.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -10992,6 +10993,27 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::repository::Rep
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::ResendMessageRequest> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.0.content.into_into_dart().into_dart(),
+            self.0.utc_offset_minutes.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for FrbWrapper<repolupe::dto::chat::ResendMessageRequest>
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::chat::ResendMessageRequest>>
+    for repolupe::dto::chat::ResendMessageRequest
+{
+    fn into_into_dart(self) -> FrbWrapper<repolupe::dto::chat::ResendMessageRequest> {
+        self.into()
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::user::ResetPasswordRequest> {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -11026,23 +11048,6 @@ impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::extraction::Ret
     for repolupe::dto::extraction::RetryDocumentRequest
 {
     fn into_into_dart(self) -> FrbWrapper<repolupe::dto::extraction::RetryDocumentRequest> {
-        self.into()
-    }
-}
-// Codec=Dco (DartCObject based), see doc to use other codecs
-impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::RetryMessageRequest> {
-    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
-        [self.0.utc_offset_minutes.into_into_dart().into_dart()].into_dart()
-    }
-}
-impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
-    for FrbWrapper<repolupe::dto::chat::RetryMessageRequest>
-{
-}
-impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<repolupe::dto::chat::RetryMessageRequest>>
-    for repolupe::dto::chat::RetryMessageRequest
-{
-    fn into_into_dart(self) -> FrbWrapper<repolupe::dto::chat::RetryMessageRequest> {
         self.into()
     }
 }
@@ -12118,16 +12123,15 @@ impl SseEncode for repolupe::dto::error::ErrorCode {
                 repolupe::dto::error::ErrorCode::UnknownMcpServer => 17,
                 repolupe::dto::error::ErrorCode::UnknownUser => 18,
                 repolupe::dto::error::ErrorCode::GenerationInProgress => 19,
-                repolupe::dto::error::ErrorCode::NotRetryable => 20,
-                repolupe::dto::error::ErrorCode::WrongPassword => 21,
-                repolupe::dto::error::ErrorCode::SamePassword => 22,
-                repolupe::dto::error::ErrorCode::PasswordChangeRequired => 23,
-                repolupe::dto::error::ErrorCode::UnknownModel => 24,
-                repolupe::dto::error::ErrorCode::NoModelConfigured => 25,
-                repolupe::dto::error::ErrorCode::Unavailable => 26,
-                repolupe::dto::error::ErrorCode::FileUnavailable => 27,
-                repolupe::dto::error::ErrorCode::UnknownAttachment => 28,
-                repolupe::dto::error::ErrorCode::Unknown => 29,
+                repolupe::dto::error::ErrorCode::WrongPassword => 20,
+                repolupe::dto::error::ErrorCode::SamePassword => 21,
+                repolupe::dto::error::ErrorCode::PasswordChangeRequired => 22,
+                repolupe::dto::error::ErrorCode::UnknownModel => 23,
+                repolupe::dto::error::ErrorCode::NoModelConfigured => 24,
+                repolupe::dto::error::ErrorCode::Unavailable => 25,
+                repolupe::dto::error::ErrorCode::FileUnavailable => 26,
+                repolupe::dto::error::ErrorCode::UnknownAttachment => 27,
+                repolupe::dto::error::ErrorCode::Unknown => 28,
                 _ => {
                     unimplemented!("");
                 }
@@ -13396,6 +13400,14 @@ impl SseEncode for repolupe::dto::repository::RepositoryUserDto {
     }
 }
 
+impl SseEncode for repolupe::dto::chat::ResendMessageRequest {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<String>>::sse_encode(self.content, serializer);
+        <Option<i32>>::sse_encode(self.utc_offset_minutes, serializer);
+    }
+}
+
 impl SseEncode for repolupe::dto::user::ResetPasswordRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -13408,13 +13420,6 @@ impl SseEncode for repolupe::dto::extraction::RetryDocumentRequest {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.blob_oid, serializer);
-    }
-}
-
-impl SseEncode for repolupe::dto::chat::RetryMessageRequest {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
-        <Option<i32>>::sse_encode(self.utc_offset_minutes, serializer);
     }
 }
 

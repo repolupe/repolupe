@@ -60,10 +60,33 @@ List<MessageDto> _messages(String question) => [
   ),
 ];
 
+/// Two finished questions with their answers.
+List<MessageDto> _twoExchanges() => [
+  ..._messages('Earlier'),
+  MessageDto(
+    id: UuidValue.fromString('0199a8d4-6d5e-7c3a-9b1f-000000000005'),
+    role: MessageRole.user,
+    content: 'Later',
+    status: MessageStatus.completed,
+    toolCalls: const [],
+    createdAt: DateTime.utc(2026, 10, 21, 13),
+  ),
+  MessageDto(
+    id: UuidValue.fromString('0199a8d4-6d5e-7c3a-9b1f-000000000006'),
+    role: MessageRole.assistant,
+    content: 'The later answer',
+    status: MessageStatus.completed,
+    toolCalls: const [],
+    createdAt: DateTime.utc(2026, 10, 21, 13),
+    finishedAt: DateTime.utc(2026, 10, 21, 13, 1),
+  ),
+];
+
 /// The chat page in a window of [size] on the server `Acme Docs`, with the saved chat listed. A new chat is titled
 /// after its question and listed first from then on, unless it is temporary. Chats are renamed and deleted in the list,
 /// except that deleting fails if [deleteFails]. The panel was hidden before unless [panelVisible]. The [user] is
-/// loaded, if given. The server has the [models], none by default.
+/// loaded, if given. The server has the [models], none by default. The saved chat has the [savedMessages]; a message
+/// sent again is added to [resends] with its new text and gets a finished answer, unless [resendFails].
 Future<RefenaContainer> _pumpChatPage(
   WidgetTester tester,
   Size size, {
@@ -71,6 +94,9 @@ Future<RefenaContainer> _pumpChatPage(
   UserDto? user,
   List<ModelDto> models = const [],
   bool deleteFails = false,
+  List<MessageDto>? savedMessages,
+  List<(UuidValue, String?)>? resends,
+  bool resendFails = false,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -111,7 +137,36 @@ Future<RefenaContainer> _pumpChatPage(
           if (action.chatId != _savedId) {
             throw apiError(ErrorCode.notFound, status: 404);
           }
-          return (state, ChatDetailDto(chat: _chat(_savedId, 'Saved chat'), messages: _messages('Earlier')));
+          return (state, ChatDetailDto(chat: _chat(_savedId, 'Saved chat'), messages: savedMessages ?? _messages('Earlier')));
+        });
+        mock.on<ApiResendMessageAction>((state, action) {
+          if (resendFails) {
+            throw apiError(ErrorCode.internalError, status: 500, message: 'Disk full');
+          }
+          resends?.add((action.messageId, action.content));
+          final sent = savedMessages!.firstWhere((m) => m.id == action.messageId);
+          return (
+            state,
+            [
+              MessageDto(
+                id: sent.id,
+                role: MessageRole.user,
+                content: action.content ?? sent.content,
+                status: MessageStatus.completed,
+                toolCalls: const [],
+                createdAt: DateTime.utc(2026, 10, 21, 14),
+              ),
+              MessageDto(
+                id: UuidValue.fromString('0199a8d4-6d5e-7c3a-9b1f-000000000007'),
+                role: MessageRole.assistant,
+                content: 'The new answer',
+                status: MessageStatus.completed,
+                toolCalls: const [],
+                createdAt: DateTime.utc(2026, 10, 21, 14),
+                finishedAt: DateTime.utc(2026, 10, 21, 14, 1),
+              ),
+            ],
+          );
         });
       },
     );
@@ -296,6 +351,81 @@ void main() {
     expect(find.byKey(const ValueKey('chat.delete.confirm.error')), findsOneWidget);
     expect(container.read(chatProvider).chat?.id, _savedId);
     expect(_listed('Saved chat'), findsOneWidget);
+  });
+
+  testWidgets('a long press on a sent message edits it, sending it again instead of the messages after it', (tester) async {
+    final resends = <(UuidValue, String?)>[];
+    final messages = _twoExchanges();
+    final container = await _pumpChatPage(tester, _phone, savedMessages: messages, resends: resends);
+    await container.redux(chatProvider).dispatchAsync(OpenChatAction(_savedId));
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.text('Earlier'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('chat.message.${messages[0].id}.edit')));
+    await tester.pumpAndSettle();
+    final field = find.byKey(const ValueKey('chat.editMessageDialog.content'));
+    expect(find.descendant(of: field, matching: find.text('Earlier')), findsOneWidget);
+    expect(find.text('Sending it removes the messages after it.'), findsOneWidget);
+
+    // A blank message is not sent.
+    await tester.enterText(field, '  ');
+    await tester.tap(find.byKey(const ValueKey('chat.editMessageDialog.send')));
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: find.byKey(const ValueKey('chat.editMessageDialog.error')), matching: find.text('Required.')), findsOneWidget);
+    expect(resends, isEmpty);
+
+    await tester.enterText(field, 'Edited');
+    await tester.tap(find.byKey(const ValueKey('chat.editMessageDialog.send')));
+    await tester.pumpAndSettle();
+    expect(field, findsNothing);
+    expect(resends, [(messages[0].id, 'Edited')]);
+    expect(container.read(chatProvider).messages.map((m) => m.content), ['Edited', 'The new answer']);
+    expect(find.text('Edited'), findsOneWidget);
+    expect(find.text('Later'), findsNothing);
+  });
+
+  testWidgets('a long press on a sent message retries it, after confirming if more than its answer is removed', (tester) async {
+    final resends = <(UuidValue, String?)>[];
+    final messages = _twoExchanges();
+    final container = await _pumpChatPage(tester, _phone, savedMessages: messages, resends: resends);
+    await container.redux(chatProvider).dispatchAsync(OpenChatAction(_savedId));
+    await tester.pumpAndSettle();
+
+    // The last question right away.
+    await tester.longPress(find.text('Later'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('chat.message.${messages[2].id}.retry')));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(resends, [(messages[2].id, null)]);
+    expect(container.read(chatProvider).messages.map((m) => m.content), ['Earlier', 'The answer', 'Later', 'The new answer']);
+
+    await tester.longPress(find.text('Earlier'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('chat.message.${messages[0].id}.retry')));
+    await tester.pumpAndSettle();
+    expect(find.text('The message is answered again, and the messages after it are removed.'), findsOneWidget);
+    expect(resends, hasLength(1));
+    await tester.tap(find.byKey(const ValueKey('chat.retryMessage.confirm')));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(resends.last, (messages[0].id, null));
+    expect(container.read(chatProvider).messages.map((m) => m.content), ['Earlier', 'The new answer']);
+  });
+
+  testWidgets('a message that fails to be sent again stays, with the error in a snack bar', (tester) async {
+    final container = await _pumpChatPage(tester, _phone, savedMessages: _messages('Earlier'), resendFails: true);
+    await container.redux(chatProvider).dispatchAsync(OpenChatAction(_savedId));
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.text('Earlier'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('chat.message.${_messages('Earlier')[0].id}.retry')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Could not send the message'), findsOneWidget);
+    expect(container.read(chatProvider).messages.map((m) => m.content), ['Earlier', 'The answer']);
+    expect(container.read(chatProvider).busy, isFalse);
   });
 
   testWidgets('neither a new chat nor a temporary one has a menu', (tester) async {

@@ -221,8 +221,6 @@ class _Translations$base$errors$de extends Translations$base$errors$en {
   @override
   String get generationInProgress => 'In diesem Chat wird bereits eine Antwort erstellt.';
   @override
-  String get notRetryable => 'Nur eine fehlgeschlagene oder abgebrochene Antwort am Ende des Chats kann wiederholt werden.';
-  @override
   String get wrongPassword => 'Das aktuelle Passwort ist falsch.';
   @override
   String get samePassword => 'Das neue Passwort muss sich vom aktuellen unterscheiden.';
@@ -413,6 +411,10 @@ class _Translations$base$chat$de extends Translations$base$chat$en {
   late final _Translations$base$chat$assistantMessage$de assistantMessage = _Translations$base$chat$assistantMessage$de._(_root);
   @override
   late final _Translations$base$chat$userMessage$de userMessage = _Translations$base$chat$userMessage$de._(_root);
+  @override
+  late final _Translations$base$chat$editMessageDialog$de editMessageDialog = _Translations$base$chat$editMessageDialog$de._(_root);
+  @override
+  late final _Translations$base$chat$retryMessageDialog$de retryMessageDialog = _Translations$base$chat$retryMessageDialog$de._(_root);
   @override
   late final _Translations$base$chat$toolCallList$de toolCallList = _Translations$base$chat$toolCallList$de._(_root);
   @override
@@ -889,8 +891,6 @@ class _Translations$base$chat$page$de extends Translations$base$chat$page$en {
   @override
   String sendFailed({required Object error}) => 'Die Nachricht konnte nicht gesendet werden: ${error}';
   @override
-  String retryFailed({required Object error}) => 'Die Antwort konnte nicht erneut erstellt werden: ${error}';
-  @override
   String stopFailed({required Object error}) => 'Die Antwort konnte nicht gestoppt werden: ${error}';
   @override
   String renameFailed({required Object error}) => 'Der Chat konnte nicht umbenannt werden: ${error}';
@@ -973,6 +973,32 @@ class _Translations$base$chat$userMessage$de extends Translations$base$chat$user
   // Translations
   @override
   String download({required Object name}) => '${name} herunterladen';
+}
+
+// Path: base.chat.editMessageDialog
+class _Translations$base$chat$editMessageDialog$de extends Translations$base$chat$editMessageDialog$en {
+  _Translations$base$chat$editMessageDialog$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'Nachricht bearbeiten';
+  @override
+  String get removesLater => 'Beim Senden werden die Nachrichten danach entfernt.';
+}
+
+// Path: base.chat.retryMessageDialog
+class _Translations$base$chat$retryMessageDialog$de extends Translations$base$chat$retryMessageDialog$en {
+  _Translations$base$chat$retryMessageDialog$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'Nachricht erneut senden';
+  @override
+  String get text => 'Die Nachricht wird erneut beantwortet, und die Nachrichten danach werden entfernt.';
 }
 
 // Path: base.chat.toolCallList

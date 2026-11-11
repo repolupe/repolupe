@@ -6,11 +6,12 @@ use crate::dto::error::ErrorCode;
 use crate::model::attachment::Attachment;
 use crate::model::chat::Chat;
 use crate::model::message::Message;
-use crate::repository::attachment::send_attachment;
+use crate::repository::attachment::{get_message_attachment, send_attachment};
 use crate::repository::begin_write;
 use crate::repository::message::{MessageModel, NewMessage, insert_message};
 use chrono::{DateTime, Utc};
-use sqlx::types::Json;
+use rust_decimal::Decimal;
+use sqlx::types::{Json, Text};
 use sqlx::{SqliteConnection, SqliteExecutor};
 use uuid::Uuid;
 
@@ -74,10 +75,15 @@ pub(crate) struct Exchange {
     pub attachment: Option<Attachment>,
 }
 
-pub(crate) enum RetryOutcome {
-    Retried(Box<Message>),
-    ChatNotFound,
-    MessageNotFound,
+/// A user message to ask again, see [`resend_message`].
+pub(crate) struct Resend<'a> {
+    pub message_id: Uuid,
+    /// Replaces the text of the message, `None` keeps it.
+    pub content: Option<&'a str>,
+    pub assistant_message_id: Uuid,
+    /// The model that writes the answer.
+    pub model: MessageModel<'a>,
+    pub created_at: DateTime<Utc>,
 }
 
 pub(crate) async fn list_chats(
@@ -318,57 +324,83 @@ pub(crate) async fn add_exchange(
     Ok(Some(exchange))
 }
 
-/// Replaces the failed or cancelled last answer with a new `GENERATING` one written by
-/// `model`, and bumps `updated_at`.
-pub(crate) async fn retry_message(
+/// Asks a message of the user again: removes every message after it, adds a `GENERATING`
+/// answer, and bumps `updated_at`. The message is sent at `created_at` from then on, and keeps
+/// its attachment. Returns `None` if the chat or the message does not exist, or if it is an
+/// answer. Fails with `GENERATION_IN_PROGRESS` while an answer is generated in the chat, so
+/// that none is removed while it is still written.
+pub(crate) async fn resend_message(
     db: &DatabasePool,
     user_id: Uuid,
     chat_id: Uuid,
-    message_id: Uuid,
-    new_message_id: Uuid,
-    model: MessageModel<'_>,
-    created_at: DateTime<Utc>,
-) -> Result<RetryOutcome, AppError> {
+    resend: Resend<'_>,
+) -> Result<Option<Exchange>, AppError> {
+    let Resend {
+        message_id,
+        content,
+        assistant_message_id,
+        model,
+        created_at,
+    } = resend;
     let mut tx = begin_write(db).await?;
     if !has_chat(&mut tx, user_id, chat_id).await? {
-        return Ok(RetryOutcome::ChatNotFound);
+        return Ok(None);
     }
-
-    let target = sqlx::query!(
-        r#"SELECT role AS "role: MessageRole", status AS "status: MessageStatus",
-                  NOT EXISTS (SELECT 1 FROM messages later
-                              WHERE later.chat_id = m.chat_id
-                                AND (later.created_at, later.id) > (m.created_at, m.id)) AS "is_last!: bool"
-           FROM messages m
-           WHERE m.id = $1 AND m.chat_id = $2"#,
-        message_id,
+    let generating = sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM messages WHERE chat_id = $1 AND status = 'GENERATING') AS "generating!: bool""#,
         chat_id,
     )
-    .fetch_optional(&mut *tx)
+    .fetch_one(&mut *tx)
     .await?;
-    let Some(target) = target else {
-        return Ok(RetryOutcome::MessageNotFound);
-    };
-    let retryable = target.role == MessageRole::Assistant
-        && matches!(
-            target.status,
-            MessageStatus::Failed | MessageStatus::Cancelled
-        )
-        && target.is_last;
-    if !retryable {
-        return Err(AppError::Unprocessable(
-            ErrorCode::NotRetryable,
-            "Only a failed or cancelled answer at the end of the chat can be retried".to_string(),
+    if generating {
+        return Err(AppError::Conflict(
+            ErrorCode::GenerationInProgress,
+            "An answer is already being generated in this chat".to_string(),
         ));
     }
 
-    sqlx::query!("DELETE FROM messages WHERE id = $1", message_id)
-        .execute(&mut *tx)
-        .await?;
-    let message = insert_message(
+    // Before the message is dated anew, which would also put it after the answers to remove
+    let removed = sqlx::query!(
+        r#"DELETE FROM messages
+           WHERE chat_id = $2
+             AND (created_at, id) > (SELECT m.created_at, m.id
+                                     FROM messages m
+                                     WHERE m.id = $1 AND m.chat_id = $2 AND m.role = 'USER')"#,
+        message_id,
+        chat_id,
+    )
+    .execute(&mut *tx)
+    .await?;
+    let user_message = sqlx::query_as!(
+        Message,
+        r#"UPDATE messages
+           SET content = COALESCE($3, content), created_at = $4
+           WHERE id = $1 AND chat_id = $2 AND role = 'USER'
+           RETURNING id AS "id: Uuid", role AS "role: MessageRole", content,
+                     status AS "status: MessageStatus", error, model_id AS "model_id: Uuid", model_name,
+                     created_at AS "created_at: DateTime<Utc>", finished_at AS "finished_at: DateTime<Utc>",
+                     input_tokens, output_tokens, cache_read_tokens, cache_write_tokens, response_ms,
+                     cost AS "cost: Text<Decimal>", cost_currency, input_price AS "input_price: Text<Decimal>",
+                     output_price AS "output_price: Text<Decimal>",
+                     cache_read_price AS "cache_read_price: Text<Decimal>",
+                     cache_write_price AS "cache_write_price: Text<Decimal>""#,
+        message_id,
+        chat_id,
+        content,
+        created_at,
+    )
+    .fetch_optional(&mut *tx)
+    .await?;
+    let Some(user_message) = user_message else {
+        // Nothing was removed either, the subquery had no row to compare with
+        debug_assert_eq!(removed.rows_affected(), 0);
+        return Ok(None);
+    };
+
+    let assistant_message = insert_message(
         &mut tx,
         NewMessage {
-            id: new_message_id,
+            id: assistant_message_id,
             chat_id,
             role: MessageRole::Assistant,
             content: "",
@@ -377,9 +409,14 @@ pub(crate) async fn retry_message(
         },
     )
     .await?;
+    let attachment = get_message_attachment(&mut *tx, message_id).await?;
     bump_updated_at(&mut tx, chat_id, created_at).await?;
     tx.commit().await?;
-    Ok(RetryOutcome::Retried(Box::new(message)))
+    Ok(Some(Exchange {
+        user_message,
+        assistant_message,
+        attachment,
+    }))
 }
 
 async fn fetch_chat<'e>(
@@ -409,7 +446,7 @@ async fn fetch_chat<'e>(
     Ok(chat)
 }
 
-/// Whether the user has the chat. Concurrent sends and retries within one chat are serialized
+/// Whether the user has the chat. Concurrent sends and resends within one chat are serialized
 /// by [`begin_write`].
 async fn has_chat(conn: &mut SqliteConnection, user_id: Uuid, id: Uuid) -> Result<bool, AppError> {
     let row = sqlx::query!(

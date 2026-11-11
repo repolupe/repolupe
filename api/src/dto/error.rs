@@ -26,7 +26,6 @@ pub enum ErrorCode {
     UnknownMcpServer,
     UnknownUser,
     GenerationInProgress,
-    NotRetryable,
     WrongPassword,
     SamePassword,
     PasswordChangeRequired,

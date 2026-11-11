@@ -151,7 +151,6 @@ extension on ErrorCode {
       ErrorCode.unknownMcpServer => null,
       ErrorCode.unknownUser => errors.unknownUser,
       ErrorCode.generationInProgress => errors.generationInProgress,
-      ErrorCode.notRetryable => errors.notRetryable,
       ErrorCode.wrongPassword => errors.wrongPassword,
       ErrorCode.samePassword => errors.samePassword,
       ErrorCode.passwordChangeRequired => errors.passwordChangeRequired,

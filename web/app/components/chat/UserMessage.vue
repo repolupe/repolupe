@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex flex-column align-end ga-2">
+  <div class="user-message-row d-flex flex-column align-end ga-2">
     <v-chip v-if="props.message.attachment" :href="attachmentUrl(props.message.attachment.id)" size="large"
             variant="tonal" color="primary" prepend-icon="mdi-paperclip" class="attachment-chip"
             :title="$t('chat.userMessage.download', {name: props.message.attachment.file_name})">
@@ -8,6 +8,14 @@
     </v-chip>
     <div v-if="props.message.content.trim()" class="user-message bg-user-message"
          :title="formatDateTime(props.message.created_at)">{{ props.message.content }}</div>
+
+    <!-- In the space below the message, so showing them moves nothing -->
+    <div v-if="props.canResend" class="actions d-flex text-medium-emphasis">
+      <v-btn icon="mdi-pencil-outline" variant="text" size="x-small" density="comfortable"
+             :aria-label="$t('common.edit')" :title="$t('common.edit')" @click="emit('edit')"/>
+      <v-btn icon="mdi-refresh" variant="text" size="x-small" density="comfortable"
+             :aria-label="$t('common.retry')" :title="$t('common.retry')" @click="emit('retry')"/>
+    </div>
   </div>
 </template>
 
@@ -18,10 +26,21 @@ import {formatBytes, formatDateTime} from "~/utils/utils";
 
 const props = defineProps<{
   message: MessageDto,
+  /** Whether the message can be sent again, with or without a new text: not while an answer is generated. */
+  canResend: boolean,
+}>();
+
+const emit = defineEmits<{
+  (e: 'edit'): void,
+  (e: 'retry'): void,
 }>();
 </script>
 
 <style scoped>
+.user-message-row {
+  position: relative;
+}
+
 .user-message {
   max-width: 85%;
   padding: 10px 16px;
@@ -33,5 +52,24 @@ const props = defineProps<{
 
 .attachment-chip {
   max-width: 85%;
+}
+
+.actions {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.user-message-row:hover .actions, .actions:focus-within {
+  opacity: 1;
+}
+
+/* nothing to hover with, e.g. on a phone */
+@media (hover: none) {
+  .actions {
+    opacity: 1;
+  }
 }
 </style>

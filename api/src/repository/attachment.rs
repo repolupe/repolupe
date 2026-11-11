@@ -3,7 +3,7 @@ use crate::config::state::DatabasePool;
 use crate::dto::error::ErrorCode;
 use crate::model::attachment::Attachment;
 use chrono::{DateTime, Utc};
-use sqlx::SqliteConnection;
+use sqlx::{SqliteConnection, SqliteExecutor};
 use std::collections::HashSet;
 use uuid::Uuid;
 
@@ -78,6 +78,25 @@ pub(crate) async fn list_chat_attachments(
     .fetch_all(db)
     .await?;
     Ok(attachments)
+}
+
+/// The attachment sent with the message. The caller must have checked that the message belongs
+/// to the user.
+pub(crate) async fn get_message_attachment<'e>(
+    executor: impl SqliteExecutor<'e>,
+    message_id: Uuid,
+) -> Result<Option<Attachment>, AppError> {
+    let attachment = sqlx::query_as!(
+        Attachment,
+        r#"SELECT id AS "id: Uuid", message_id AS "message_id: Uuid", number, file_name, content_type, size,
+                  blob_oid, created_at AS "created_at: DateTime<Utc>"
+           FROM attachments
+           WHERE message_id = $1"#,
+        message_id,
+    )
+    .fetch_optional(executor)
+    .await?;
+    Ok(attachment)
 }
 
 /// Sends the attachment `id` of the user with `message_id` and gives it the next number in the

@@ -48,7 +48,6 @@
     "unknownMcpServer": "Một máy chủ MCP không còn tồn tại.",
     "unknownUser": "Không có người dùng nào với tên người dùng hoặc email này.",
     "generationInProgress": "Một câu trả lời đang được tạo trong đoạn chat này.",
-    "notRetryable": "Chỉ có thể thử lại câu trả lời thất bại hoặc đã bị hủy ở cuối đoạn chat.",
     "wrongPassword": "Mật khẩu hiện tại không đúng.",
     "samePassword": "Mật khẩu mới phải khác mật khẩu hiện tại.",
     "passwordChangeRequired": "Bạn phải đổi mật khẩu trước.",
@@ -161,7 +160,6 @@
       "deleted": "Đã xóa đoạn chat.",
       "openFailed": "Không thể mở đoạn chat: {error}",
       "sendFailed": "Không thể gửi tin nhắn: {error}",
-      "retryFailed": "Không thể tạo lại câu trả lời: {error}",
       "stopFailed": "Không thể dừng câu trả lời: {error}",
       "renameFailed": "Không thể đổi tên đoạn chat: {error}",
       "changeModelFailed": "Không thể đổi mô hình: {error}",
@@ -194,6 +192,14 @@
     },
     "userMessage": {
       "download": "Tải xuống {name}"
+    },
+    "editMessageDialog": {
+      "title": "Sửa tin nhắn",
+      "removesLater": "Khi gửi, các tin nhắn sau đó sẽ bị xóa."
+    },
+    "retryMessageDialog": {
+      "title": "Gửi lại tin nhắn",
+      "text": "Tin nhắn sẽ được trả lời lại, và các tin nhắn sau đó sẽ bị xóa."
     },
     "toolCallList": {
       "running": "Đang sử dụng công cụ",

@@ -20,7 +20,7 @@ use repolupe::dto::attachment::{AttachmentDto, UploadAttachmentQuery};
 use repolupe::dto::auth::{LoginRequest, LoginResponse};
 use repolupe::dto::chat::{
     ChatDetailDto, ChatDto, ChatPageDto, CreateChatRequest, FileDiffDto, ListChatsQuery,
-    MessageDto, ProposedCommitDto, RawAnswerDto, RetryMessageRequest, SearchChatsQuery,
+    MessageDto, ProposedCommitDto, RawAnswerDto, ResendMessageRequest, SearchChatsQuery,
     SendMessageRequest, ToolCallDto, UpdateChatRequest,
 };
 use repolupe::dto::config::ConfigEntryDto;
@@ -330,15 +330,16 @@ impl Client {
         Ok(MessageEvents::new(response.status, response.body))
     }
 
-    /// `POST /api/v1/chats/{id}/messages/{message_id}/retry`: the new answer being generated.
-    pub async fn retry_message(
+    /// `POST /api/v1/chats/{id}/messages/{message_id}/resend`: the user message, sent again
+    /// instead of the messages after it, and the answer being generated.
+    pub async fn resend_message(
         &self,
         chat_id: Uuid,
         message_id: Uuid,
-        request: RetryMessageRequest,
-    ) -> Result<MessageDto, ClientError> {
+        request: ResendMessageRequest,
+    ) -> Result<Vec<MessageDto>, ClientError> {
         self.post(
-            format!("/api/v1/chats/{chat_id}/messages/{message_id}/retry"),
+            format!("/api/v1/chats/{chat_id}/messages/{message_id}/resend"),
             &request,
         )
         .await

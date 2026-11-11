@@ -1,11 +1,10 @@
 use crate::config::error::AppError;
 use crate::config::state::AppState;
-use crate::dto::chat::MessageStatus;
 use crate::dto::chat::{
     ChatDetailDto, ChatDto, ChatPageDto, ContentDeltaDto, CreateChatRequest, FileDiffDto,
-    ListChatsQuery, MessageDto, ProposedCommitDto, RawAnswerDto, RetryMessageRequest,
-    SearchChatsQuery, SendMessageRequest, ToolCallDto, ToolCallFinishedDto, ToolCallStatus,
-    ToolCallSummaryDto, UpdateChatRequest, UsageUpdateDto,
+    ListChatsQuery, MessageDto, MessageRole, MessageStatus, ProposedCommitDto, RawAnswerDto,
+    ResendMessageRequest, SearchChatsQuery, SendMessageRequest, ToolCallDto, ToolCallFinishedDto,
+    ToolCallStatus, ToolCallSummaryDto, UpdateChatRequest, UsageUpdateDto,
 };
 use crate::dto::error::ErrorCode;
 use crate::middleware::auth::AuthenticatedUser;
@@ -14,7 +13,7 @@ use crate::model::chat::Chat;
 use crate::model::message::Message;
 use crate::model::tool_call::{ChangedPaths, ProposedCommit, ToolCallSummary};
 use crate::repository::chat::{
-    ChatChanges, ChatCursor, Exchange, NewChat, NewExchange, RetryOutcome, Scope,
+    ChatChanges, ChatCursor, Exchange, NewChat, NewExchange, Resend, Scope,
 };
 use crate::service::generation::{ClientContext, GenerationEvent, Subscription};
 use crate::service::llm_config::AnsweringModel;
@@ -169,7 +168,7 @@ pub(crate) async fn create_chat(
     let assistant_message_id = Uuid::now_v7();
     let now = Utc::now();
 
-    let generation = state.generations.reserve(
+    let reservation = state.generations.reserve(
         auth.user_id,
         id,
         assistant_message_id,
@@ -177,7 +176,7 @@ pub(crate) async fn create_chat(
         client_context(&headers, payload.utc_offset_minutes)?,
         now,
     )?;
-    let created = repository::chat::create_chat(
+    let (chat, exchange) = repository::chat::create_chat(
         &state.db,
         NewChat {
             id,
@@ -195,15 +194,8 @@ pub(crate) async fn create_chat(
             created_at: now,
         },
     )
-    .await;
-    let (chat, exchange) = match created {
-        Ok(created) => created,
-        Err(e) => {
-            state.generations.release(assistant_message_id);
-            return Err(e);
-        }
-    };
-    service::generation::spawn(state.clone(), generation, model.config);
+    .await?;
+    service::generation::spawn(state.clone(), reservation, model.config);
 
     Ok((
         StatusCode::CREATED,
@@ -264,7 +256,7 @@ pub(crate) async fn send_message(
     let assistant_message_id = Uuid::now_v7();
     let now = Utc::now();
 
-    let generation = state.generations.reserve(
+    let reservation = state.generations.reserve(
         auth.user_id,
         chat_id,
         assistant_message_id,
@@ -272,7 +264,7 @@ pub(crate) async fn send_message(
         client_context(&headers, payload.utc_offset_minutes)?,
         now,
     )?;
-    let added = repository::chat::add_exchange(
+    let exchange = repository::chat::add_exchange(
         &state.db,
         auth.user_id,
         chat_id,
@@ -285,19 +277,9 @@ pub(crate) async fn send_message(
             created_at: now,
         },
     )
-    .await;
-    let exchange = match added {
-        Ok(Some(exchange)) => exchange,
-        Ok(None) => {
-            state.generations.release(assistant_message_id);
-            return Err(AppError::NotFound);
-        }
-        Err(e) => {
-            state.generations.release(assistant_message_id);
-            return Err(e);
-        }
-    };
-    service::generation::spawn(state.clone(), generation, model.config);
+    .await?
+    .ok_or(AppError::NotFound)?;
+    service::generation::spawn(state.clone(), reservation, model.config);
 
     Ok((StatusCode::CREATED, Json(exchange_dtos(exchange))))
 }
@@ -395,51 +377,58 @@ pub(crate) async fn cancel_message(
     Ok(StatusCode::NO_CONTENT)
 }
 
-/// Replaces the failed or cancelled last answer with a new one.
-pub(crate) async fn retry_message(
+/// Asks a user message again, with a new text if `content` is given: removes every message after
+/// it and starts a new answer. This is also how an answer is retried, by asking its question
+/// again. Returns the user's message and the `GENERATING` answer, like [`send_message`]. Not
+/// found for answers, `GENERATION_IN_PROGRESS` while one is generated.
+pub(crate) async fn resend_message(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthenticatedUser>,
     PathParam((chat_id, message_id)): PathParam<(Uuid, Uuid)>,
     headers: HeaderMap,
-    JsonBody(payload): JsonBody<RetryMessageRequest>,
-) -> Result<(StatusCode, Json<MessageDto>), AppError> {
+    JsonBody(payload): JsonBody<ResendMessageRequest>,
+) -> Result<(StatusCode, Json<Vec<MessageDto>>), AppError> {
+    let message = repository::message::get_message(&state.db, auth.user_id, chat_id, message_id)
+        .await?
+        .ok_or(AppError::NotFound)?;
+    if message.role != MessageRole::User {
+        return Err(AppError::NotFound);
+    }
+    if let Some(content) = &payload.content {
+        let attachment =
+            repository::attachment::get_message_attachment(&state.db, message_id).await?;
+        validate_content(content, attachment.map(|attachment| attachment.id))?;
+    }
     let model = chat_model(&state, auth.user_id, chat_id).await?;
 
-    let new_message_id = Uuid::now_v7();
+    let assistant_message_id = Uuid::now_v7();
     let now = Utc::now();
 
-    let generation = state.generations.reserve(
+    let reservation = state.generations.reserve(
         auth.user_id,
         chat_id,
-        new_message_id,
+        assistant_message_id,
         &model,
         client_context(&headers, payload.utc_offset_minutes)?,
         now,
     )?;
-    let outcome = repository::chat::retry_message(
+    let exchange = repository::chat::resend_message(
         &state.db,
         auth.user_id,
         chat_id,
-        message_id,
-        new_message_id,
-        model.message_model(),
-        now,
+        Resend {
+            message_id,
+            content: payload.content.as_deref(),
+            assistant_message_id,
+            model: model.message_model(),
+            created_at: now,
+        },
     )
-    .await;
-    let message = match outcome {
-        Ok(RetryOutcome::Retried(message)) => *message,
-        Ok(RetryOutcome::ChatNotFound | RetryOutcome::MessageNotFound) => {
-            state.generations.release(new_message_id);
-            return Err(AppError::NotFound);
-        }
-        Err(e) => {
-            state.generations.release(new_message_id);
-            return Err(e);
-        }
-    };
-    service::generation::spawn(state.clone(), generation, model.config);
+    .await?
+    .ok_or(AppError::NotFound)?;
+    service::generation::spawn(state.clone(), reservation, model.config);
 
-    Ok((StatusCode::CREATED, Json(MessageDto::new(message, vec![]))))
+    Ok((StatusCode::CREATED, Json(exchange_dtos(exchange))))
 }
 
 /// What the language model got and returned for an answer. Not found for user messages, and for

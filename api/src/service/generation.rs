@@ -45,17 +45,17 @@ pub(crate) struct GenerationRegistry {
 }
 
 impl GenerationRegistry {
-    /// Registers the generation of `message_id`, written by `model`. Call [`Self::release`]
-    /// if the message is not inserted after all.
+    /// Registers the generation of `message_id`, written by `model`. Insert the message, then
+    /// [`spawn`] the reservation.
     pub(crate) fn reserve(
-        &self,
+        self: &Arc<Self>,
         user_id: Uuid,
         chat_id: Uuid,
         message_id: Uuid,
         model: &AnsweringModel,
         client: ClientContext,
         created_at: DateTime<Utc>,
-    ) -> Result<Arc<Generation>, AppError> {
+    ) -> Result<Reservation, AppError> {
         let mut live = self.live.lock().unwrap();
         if self.closed.load(Ordering::SeqCst) {
             return Err(AppError::Unavailable(
@@ -81,10 +81,14 @@ impl GenerationRegistry {
             cancel: CancellationToken::new(),
         });
         live.insert(message_id, generation.clone());
-        Ok(generation)
+        Ok(Reservation {
+            registry: self.clone(),
+            generation,
+            spawned: false,
+        })
     }
 
-    pub(crate) fn release(&self, message_id: Uuid) {
+    fn release(&self, message_id: Uuid) {
         self.live.lock().unwrap().remove(&message_id);
     }
 
@@ -107,6 +111,23 @@ impl GenerationRegistry {
         let live = self.live.lock().unwrap();
         self.closed.store(true, Ordering::SeqCst);
         live.values().cloned().collect()
+    }
+}
+
+/// A registered generation whose message is not inserted yet. Dropping it removes the
+/// generation again, e.g. when inserting the message fails or the request is aborted.
+pub(crate) struct Reservation {
+    registry: Arc<GenerationRegistry>,
+    generation: Arc<Generation>,
+    /// The generation is kept, [`finish`] removes it.
+    spawned: bool,
+}
+
+impl Drop for Reservation {
+    fn drop(&mut self) {
+        if !self.spawned {
+            self.registry.release(self.generation.message_id);
+        }
     }
 }
 
@@ -462,9 +483,11 @@ impl Generation {
     }
 }
 
-/// Generates the answer with the model of `llm` in the background and finishes the message
-/// afterwards.
-pub(crate) fn spawn(state: AppState, generation: Arc<Generation>, llm: LlmConfig) {
+/// Generates the answer of the inserted message with the model of `llm` in the background and
+/// finishes the message afterwards.
+pub(crate) fn spawn(state: AppState, mut reservation: Reservation, llm: LlmConfig) {
+    reservation.spawned = true;
+    let generation = reservation.generation.clone();
     tokio::spawn(async move {
         let task = tokio::spawn({
             let state = state.clone();

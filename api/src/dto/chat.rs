@@ -410,8 +410,13 @@ pub struct SendMessageRequest {
     pub utc_offset_minutes: Option<i32>,
 }
 
+/// `POST .../messages/{id}/resend`: asks a user message again, removing every message after it.
 #[derive(Serialize, Deserialize)]
-pub struct RetryMessageRequest {
+pub struct ResendMessageRequest {
+    /// Replaces the text of the message; absent or `null` keeps it. May be blank if the message
+    /// has an attachment, which stays.
+    #[serde(default)]
+    pub content: Option<String>,
     /// The user's offset from UTC in minutes, e.g. 60 for UTC+01:00, so the model knows their
     /// local time. Absent uses UTC.
     #[serde(default)]

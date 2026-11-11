@@ -48,7 +48,6 @@
     "unknownMcpServer": "An MCP server no longer exists.",
     "unknownUser": "There is no user with this user name or email.",
     "generationInProgress": "An answer is already being generated in this chat.",
-    "notRetryable": "Only a failed or cancelled answer at the end of the chat can be retried.",
     "wrongPassword": "The current password is incorrect.",
     "samePassword": "The new password must differ from the current one.",
     "passwordChangeRequired": "You must change your password first.",
@@ -172,7 +171,6 @@
       "deleted": "Chat deleted.",
       "openFailed": "Could not open the chat: {error}",
       "sendFailed": "Could not send the message: {error}",
-      "retryFailed": "Could not retry the answer: {error}",
       "stopFailed": "Could not stop the answer: {error}",
       "renameFailed": "Could not rename the chat: {error}",
       "changeModelFailed": "Could not change the model: {error}",
@@ -208,6 +206,14 @@
     },
     "userMessage": {
       "download": "Download {name}"
+    },
+    "editMessageDialog": {
+      "title": "Edit Message",
+      "removesLater": "Sending it removes the messages after it."
+    },
+    "retryMessageDialog": {
+      "title": "Retry Message",
+      "text": "The message is answered again, and the messages after it are removed."
     },
     "toolCallList": {
       "running": "Using tools",

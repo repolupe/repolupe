@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT EXISTS (SELECT 1 FROM messages WHERE chat_id = $1 AND status = 'GENERATING') AS \"generating!: bool\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "generating!: bool",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e5506d8bd17045b98aac9311e8c482c3b70ddbcdaa80bc221fa7807391097923"
+}

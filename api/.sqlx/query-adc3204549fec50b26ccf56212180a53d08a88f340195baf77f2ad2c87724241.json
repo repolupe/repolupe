@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM messages\n           WHERE chat_id = $2\n             AND (created_at, id) > (SELECT m.created_at, m.id\n                                     FROM messages m\n                                     WHERE m.id = $1 AND m.chat_id = $2 AND m.role = 'USER')",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "adc3204549fec50b26ccf56212180a53d08a88f340195baf77f2ad2c87724241"
+}

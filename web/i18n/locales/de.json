@@ -48,7 +48,6 @@
     "unknownMcpServer": "Ein MCP-Server existiert nicht mehr.",
     "unknownUser": "Es gibt keinen Benutzer mit diesem Benutzernamen oder dieser E-Mail.",
     "generationInProgress": "In diesem Chat wird bereits eine Antwort erstellt.",
-    "notRetryable": "Nur eine fehlgeschlagene oder abgebrochene Antwort am Ende des Chats kann wiederholt werden.",
     "wrongPassword": "Das aktuelle Passwort ist falsch.",
     "samePassword": "Das neue Passwort muss sich vom aktuellen unterscheiden.",
     "passwordChangeRequired": "Du musst zuerst dein Passwort ändern.",
@@ -161,7 +160,6 @@
       "deleted": "Chat gelöscht.",
       "openFailed": "Der Chat konnte nicht geöffnet werden: {error}",
       "sendFailed": "Die Nachricht konnte nicht gesendet werden: {error}",
-      "retryFailed": "Die Antwort konnte nicht erneut erstellt werden: {error}",
       "stopFailed": "Die Antwort konnte nicht gestoppt werden: {error}",
       "renameFailed": "Der Chat konnte nicht umbenannt werden: {error}",
       "changeModelFailed": "Das Modell konnte nicht geändert werden: {error}",
@@ -194,6 +192,14 @@
     },
     "userMessage": {
       "download": "{name} herunterladen"
+    },
+    "editMessageDialog": {
+      "title": "Nachricht bearbeiten",
+      "removesLater": "Beim Senden werden die Nachrichten danach entfernt."
+    },
+    "retryMessageDialog": {
+      "title": "Nachricht erneut senden",
+      "text": "Die Nachricht wird erneut beantwortet, und die Nachrichten danach werden entfernt."
     },
     "toolCallList": {
       "running": "Verwende Tools",

@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id AS \"id: Uuid\", message_id AS \"message_id: Uuid\", number, file_name, content_type, size,\n                  blob_oid, created_at AS \"created_at: DateTime<Utc>\"\n           FROM attachments\n           WHERE message_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "message_id: Uuid",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "number",
+        "ordinal": 2,
+        "type_info": "Int4"
+      },
+      {
+        "name": "file_name",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "content_type",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "size",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "blob_oid",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 7,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ae1df8653c073b85d80f7e5e12f376adc60424e779fd63e1d55fa498d38be34c"
+}

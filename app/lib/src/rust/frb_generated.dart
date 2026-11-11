@@ -85,7 +85,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -412189488;
+  int get rustContentHash => -1863015113;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'repolupe_ffi',
@@ -217,16 +217,16 @@ abstract class RustLibApi extends BaseApi {
 
   Future<void> crateApiClientClientRemoveRepositoryUser({required Client that, required UuidValue id, required UuidValue userId});
 
-  Future<UserDto> crateApiClientClientResetPassword({required Client that, required UuidValue id, required ResetPasswordRequest request});
-
-  Future<void> crateApiClientClientRetryDocumentExtraction({required Client that, required RetryDocumentRequest request});
-
-  Future<MessageDto> crateApiClientClientRetryMessage({
+  Future<List<MessageDto>> crateApiClientClientResendMessage({
     required Client that,
     required UuidValue chatId,
     required UuidValue messageId,
-    required RetryMessageRequest request,
+    required ResendMessageRequest request,
   });
+
+  Future<UserDto> crateApiClientClientResetPassword({required Client that, required UuidValue id, required ResetPasswordRequest request});
+
+  Future<void> crateApiClientClientRetryDocumentExtraction({required Client that, required RetryDocumentRequest request});
 
   Future<ChatPageDto> crateApiClientClientSearchChats({required Client that, required String query, PlatformInt64? limit, String? cursor});
 
@@ -1763,6 +1763,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<List<MessageDto>> crateApiClientClientResendMessage({
+    required Client that,
+    required UuidValue chatId,
+    required UuidValue messageId,
+    required ResendMessageRequest request,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
+          sse_encode_Uuid(chatId, serializer);
+          sse_encode_Uuid(messageId, serializer);
+          sse_encode_box_autoadd_resend_message_request(request, serializer);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 55, port: port_);
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_message_dto,
+          decodeErrorData: sse_decode_client_error,
+        ),
+        constMeta: kCrateApiClientClientResendMessageConstMeta,
+        argValues: [that, chatId, messageId, request],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientClientResendMessageConstMeta => const TaskConstMeta(
+    debugName: 'Client_resend_message',
+    argNames: ['that', 'chatId', 'messageId', 'request'],
+  );
+
+  @override
   Future<UserDto> crateApiClientClientResetPassword({required Client that, required UuidValue id, required ResetPasswordRequest request}) {
     return handler.executeNormal(
       NormalTask(
@@ -1771,7 +1804,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_Uuid(id, serializer);
           sse_encode_box_autoadd_reset_password_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 55, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 56, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_user_dto,
@@ -1797,7 +1830,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
           sse_encode_box_autoadd_retry_document_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 56, port: port_);
+          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 57, port: port_);
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -1813,39 +1846,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiClientClientRetryDocumentExtractionConstMeta => const TaskConstMeta(
     debugName: 'Client_retry_document_extraction',
     argNames: ['that', 'request'],
-  );
-
-  @override
-  Future<MessageDto> crateApiClientClientRetryMessage({
-    required Client that,
-    required UuidValue chatId,
-    required UuidValue messageId,
-    required RetryMessageRequest request,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerClient(that, serializer);
-          sse_encode_Uuid(chatId, serializer);
-          sse_encode_Uuid(messageId, serializer);
-          sse_encode_box_autoadd_retry_message_request(request, serializer);
-          pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 57, port: port_);
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_message_dto,
-          decodeErrorData: sse_decode_client_error,
-        ),
-        constMeta: kCrateApiClientClientRetryMessageConstMeta,
-        argValues: [that, chatId, messageId, request],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiClientClientRetryMessageConstMeta => const TaskConstMeta(
-    debugName: 'Client_retry_message',
-    argNames: ['that', 'chatId', 'messageId', 'request'],
   );
 
   @override
@@ -3126,6 +3126,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ResendMessageRequest dco_decode_box_autoadd_resend_message_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_resend_message_request(raw);
+  }
+
+  @protected
   ResetPasswordRequest dco_decode_box_autoadd_reset_password_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_reset_password_request(raw);
@@ -3135,12 +3141,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RetryDocumentRequest dco_decode_box_autoadd_retry_document_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_retry_document_request(raw);
-  }
-
-  @protected
-  RetryMessageRequest dco_decode_box_autoadd_retry_message_request(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return dco_decode_retry_message_request(raw);
   }
 
   @protected
@@ -4600,6 +4600,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ResendMessageRequest dco_decode_resend_message_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return ResendMessageRequest(
+      content: dco_decode_opt_String(arr[0]),
+      utcOffsetMinutes: dco_decode_opt_box_autoadd_i_32(arr[1]),
+    );
+  }
+
+  @protected
   ResetPasswordRequest dco_decode_reset_password_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -4617,16 +4628,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     if (arr.length != 1) throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
     return RetryDocumentRequest(
       blobOid: dco_decode_String(arr[0]),
-    );
-  }
-
-  @protected
-  RetryMessageRequest dco_decode_retry_message_request(dynamic raw) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    final arr = raw as List<dynamic>;
-    if (arr.length != 1) throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
-    return RetryMessageRequest(
-      utcOffsetMinutes: dco_decode_opt_box_autoadd_i_32(arr[0]),
     );
   }
 
@@ -5351,6 +5352,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ResendMessageRequest sse_decode_box_autoadd_resend_message_request(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_resend_message_request(deserializer));
+  }
+
+  @protected
   ResetPasswordRequest sse_decode_box_autoadd_reset_password_request(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_reset_password_request(deserializer));
@@ -5360,12 +5367,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RetryDocumentRequest sse_decode_box_autoadd_retry_document_request(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_retry_document_request(deserializer));
-  }
-
-  @protected
-  RetryMessageRequest sse_decode_box_autoadd_retry_message_request(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return (sse_decode_retry_message_request(deserializer));
   }
 
   @protected
@@ -7075,6 +7076,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ResendMessageRequest sse_decode_resend_message_request(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_content = sse_decode_opt_String(deserializer);
+    var var_utcOffsetMinutes = sse_decode_opt_box_autoadd_i_32(deserializer);
+    return ResendMessageRequest(content: var_content, utcOffsetMinutes: var_utcOffsetMinutes);
+  }
+
+  @protected
   ResetPasswordRequest sse_decode_reset_password_request(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_password = sse_decode_String(deserializer);
@@ -7087,13 +7096,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_blobOid = sse_decode_String(deserializer);
     return RetryDocumentRequest(blobOid: var_blobOid);
-  }
-
-  @protected
-  RetryMessageRequest sse_decode_retry_message_request(SseDeserializer deserializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    var var_utcOffsetMinutes = sse_decode_opt_box_autoadd_i_32(deserializer);
-    return RetryMessageRequest(utcOffsetMinutes: var_utcOffsetMinutes);
   }
 
   @protected
@@ -7780,6 +7782,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_resend_message_request(ResendMessageRequest self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_resend_message_request(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_reset_password_request(ResetPasswordRequest self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_reset_password_request(self, serializer);
@@ -7789,12 +7797,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_box_autoadd_retry_document_request(RetryDocumentRequest self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_retry_document_request(self, serializer);
-  }
-
-  @protected
-  void sse_encode_box_autoadd_retry_message_request(RetryMessageRequest self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_retry_message_request(self, serializer);
   }
 
   @protected
@@ -9179,6 +9181,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_resend_message_request(ResendMessageRequest self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_String(self.content, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.utcOffsetMinutes, serializer);
+  }
+
+  @protected
   void sse_encode_reset_password_request(ResetPasswordRequest self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.password, serializer);
@@ -9189,12 +9198,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_retry_document_request(RetryDocumentRequest self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.blobOid, serializer);
-  }
-
-  @protected
-  void sse_encode_retry_message_request(RetryMessageRequest self, SseSerializer serializer) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_opt_box_autoadd_i_32(self.utcOffsetMinutes, serializer);
   }
 
   @protected
@@ -9678,6 +9681,11 @@ class ClientImpl extends RustOpaque implements Client {
   Future<void> removeRepositoryUser({required UuidValue id, required UuidValue userId}) =>
       RustLib.instance.api.crateApiClientClientRemoveRepositoryUser(that: this, id: id, userId: userId);
 
+  /// `POST /api/v1/chats/{id}/messages/{message_id}/resend`: the user message, sent again
+  /// instead of the messages after it, and the answer being generated.
+  Future<List<MessageDto>> resendMessage({required UuidValue chatId, required UuidValue messageId, required ResendMessageRequest request}) =>
+      RustLib.instance.api.crateApiClientClientResendMessage(that: this, chatId: chatId, messageId: messageId, request: request);
+
   /// `POST /api/v1/users/{id}/password`: sets another user's password and signs them out.
   Future<UserDto> resetPassword({required UuidValue id, required ResetPasswordRequest request}) =>
       RustLib.instance.api.crateApiClientClientResetPassword(that: this, id: id, request: request);
@@ -9685,10 +9693,6 @@ class ClientImpl extends RustOpaque implements Client {
   /// `POST /api/v1/document-extraction/retry`: converts a document again.
   Future<void> retryDocumentExtraction({required RetryDocumentRequest request}) =>
       RustLib.instance.api.crateApiClientClientRetryDocumentExtraction(that: this, request: request);
-
-  /// `POST /api/v1/chats/{id}/messages/{message_id}/retry`: the new answer being generated.
-  Future<MessageDto> retryMessage({required UuidValue chatId, required UuidValue messageId, required RetryMessageRequest request}) =>
-      RustLib.instance.api.crateApiClientClientRetryMessage(that: this, chatId: chatId, messageId: messageId, request: request);
 
   /// `GET /api/v1/chats/search`: the chats in which every word of `query` occurs in the title or
   /// in a message, newest first. Paged like [`Self::list_chats`].

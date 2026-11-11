@@ -243,9 +243,6 @@ class Translations$base$errors$en {
   /// en: 'An answer is already being generated in this chat.'
   String get generationInProgress => 'An answer is already being generated in this chat.';
 
-  /// en: 'Only a failed or cancelled answer at the end of the chat can be retried.'
-  String get notRetryable => 'Only a failed or cancelled answer at the end of the chat can be retried.';
-
   /// en: 'The current password is incorrect.'
   String get wrongPassword => 'The current password is incorrect.';
 
@@ -487,6 +484,8 @@ class Translations$base$chat$en {
   late final Translations$base$chat$messageInput$en messageInput = Translations$base$chat$messageInput$en.internal(_root);
   late final Translations$base$chat$assistantMessage$en assistantMessage = Translations$base$chat$assistantMessage$en.internal(_root);
   late final Translations$base$chat$userMessage$en userMessage = Translations$base$chat$userMessage$en.internal(_root);
+  late final Translations$base$chat$editMessageDialog$en editMessageDialog = Translations$base$chat$editMessageDialog$en.internal(_root);
+  late final Translations$base$chat$retryMessageDialog$en retryMessageDialog = Translations$base$chat$retryMessageDialog$en.internal(_root);
   late final Translations$base$chat$toolCallList$en toolCallList = Translations$base$chat$toolCallList$en.internal(_root);
   late final Translations$base$chat$toolCallLabel$en toolCallLabel = Translations$base$chat$toolCallLabel$en.internal(_root);
   late final Translations$base$chat$toolCallDialog$en toolCallDialog = Translations$base$chat$toolCallDialog$en.internal(_root);
@@ -985,9 +984,6 @@ class Translations$base$chat$page$en {
   /// en: 'Could not send the message: {error}'
   String sendFailed({required Object error}) => 'Could not send the message: ${error}';
 
-  /// en: 'Could not retry the answer: {error}'
-  String retryFailed({required Object error}) => 'Could not retry the answer: ${error}';
-
   /// en: 'Could not stop the answer: {error}'
   String stopFailed({required Object error}) => 'Could not stop the answer: ${error}';
 
@@ -1096,6 +1092,36 @@ class Translations$base$chat$userMessage$en {
 
   /// en: 'Download {name}'
   String download({required Object name}) => 'Download ${name}';
+}
+
+// Path: base.chat.editMessageDialog
+class Translations$base$chat$editMessageDialog$en {
+  Translations$base$chat$editMessageDialog$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Edit Message'
+  String get title => 'Edit Message';
+
+  /// en: 'Sending it removes the messages after it.'
+  String get removesLater => 'Sending it removes the messages after it.';
+}
+
+// Path: base.chat.retryMessageDialog
+class Translations$base$chat$retryMessageDialog$en {
+  Translations$base$chat$retryMessageDialog$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Retry Message'
+  String get title => 'Retry Message';
+
+  /// en: 'The message is answered again, and the messages after it are removed.'
+  String get text => 'The message is answered again, and the messages after it are removed.';
 }
 
 // Path: base.chat.toolCallList

@@ -31,7 +31,6 @@ enum ErrorCode {
   unknownMcpServer,
   unknownUser,
   generationInProgress,
-  notRetryable,
   wrongPassword,
   samePassword,
   passwordChangeRequired,

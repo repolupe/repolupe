@@ -143,6 +143,16 @@ class ChatState with ChatStateMappable {
     return attachment != null ? attachment.uploaded != null : content.trim().isNotEmpty;
   }
 
+  /// Whether a message the user sent can be sent again, see [ResendMessageAction]: the chat is neither busy nor
+  /// answering.
+  bool get canResend => chat != null && !busy && answer == null;
+
+  /// Whether sending the message [messageId] again removes more than its answer.
+  bool resendRemovesLater(UuidValue messageId) {
+    final index = messages.indexWhere((m) => m.id == messageId);
+    return index >= 0 && index < messages.length - 2;
+  }
+
   /// The answer being generated, at most one per chat.
   /// Its content stays as it was sent until it is finished, the [MessageService] has the current one.
   MessageDto? get answer => messages.where((m) => m.status == MessageStatus.generating).lastOrNull;
@@ -473,6 +483,60 @@ class SendMessageAction extends AsyncReduxActionWithResult<ChatService, ChatStat
 
   @override
   String toString() => 'SendMessageAction(${content.length} chars)';
+}
+
+/// Sends the user's message [messageId] again, with [content] as its text unless `null`, instead of the messages after
+/// it, and follows the new answer. Returns why it failed, `null` if it was sent.
+class ResendMessageAction extends AsyncReduxActionWithResult<ChatService, ChatState, String?> {
+  final UuidValue messageId;
+  final String? content;
+
+  ResendMessageAction(this.messageId, {this.content});
+
+  @override
+  Future<(ChatState, String?)> reduce() async {
+    final chat = state.chat;
+    final message = state.messages.where((m) => m.id == messageId && m.role == MessageRole.user).firstOrNull;
+    if (notifier._api.state == null || chat == null || message == null || !state.canResend) {
+      return (state, null);
+    }
+    final content = this.content;
+    if (content != null && content.trim().isEmpty && message.attachment == null) {
+      // Only a message with an attachment may be blank.
+      return (state, t.base.common.required);
+    }
+
+    final epoch = state.epoch;
+    dispatch(_SetStateAction(state.copyWith(sending: true)));
+    final List<MessageDto> sent;
+    try {
+      sent = await external(
+        notifier._api,
+      ).dispatchAsyncTakeResult(ApiResendMessageAction(chatId: chat.id, messageId: messageId, content: content));
+    } on ClientError catch (e) {
+      if (epoch != state.epoch) {
+        return (state, null);
+      }
+      return (state.copyWith(sending: false), t.base.chat.page.sendFailed(error: e.userMessage));
+    }
+
+    if (epoch != state.epoch) {
+      return (state, null);
+    }
+    final next = state.copyWith(
+      messages: [...state.messages.takeWhile((m) => m.id != messageId), ...sent],
+      sending: false,
+    );
+    final answer = next.answer;
+    if (answer != null) {
+      // Runs until the answer is finished, or until the next chat.
+      unawaited(dispatchAsync(_FollowAnswerAction(answer)));
+    }
+    return (next, null);
+  }
+
+  @override
+  String toString() => 'ResendMessageAction($messageId, edited: ${content != null})';
 }
 
 /// Attaches the file [fileName] of [size] bytes to the next message, replacing the attached one, and uploads it with

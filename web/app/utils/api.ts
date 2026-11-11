@@ -83,7 +83,6 @@ const ERROR_TEXTS: Record<ErrorCode, string> = {
     [ErrorCode.UNKNOWN_MCP_SERVER]: 'errors.unknownMcpServer',
     [ErrorCode.UNKNOWN_USER]: 'errors.unknownUser',
     [ErrorCode.GENERATION_IN_PROGRESS]: 'errors.generationInProgress',
-    [ErrorCode.NOT_RETRYABLE]: 'errors.notRetryable',
     [ErrorCode.WRONG_PASSWORD]: 'errors.wrongPassword',
     [ErrorCode.SAME_PASSWORD]: 'errors.samePassword',
     [ErrorCode.PASSWORD_CHANGE_REQUIRED]: 'errors.passwordChangeRequired',
@@ -519,14 +518,16 @@ export async function cancelMessage(chatId: string, messageId: string): Promise<
 }
 
 /**
- * Replaces the failed or cancelled last answer with a new one (new id, status `GENERATING`), which is
- * returned. Fails with `NOT_RETRYABLE`.
+ * Sends a user message again, with `content` as its text unless `null` (may be blank if it has an attachment):
+ * removes every message after it and returns it with the new `GENERATING` answer. Also retries an answer, by
+ * sending its question again. Fails with
+ * `GENERATION_IN_PROGRESS`, `RATE_LIMITED` or `NO_MODEL_CONFIGURED` like `sendMessage`, and with `NOT_FOUND` for answers.
  */
-export async function retryMessage(chatId: string, messageId: string): Promise<MessageDto> {
+export async function resendMessage(chatId: string, messageId: string, content: string | null): Promise<[MessageDto, MessageDto]> {
     return await makeRequest({
-        route: `chats/${chatId}/messages/${messageId}/retry`,
+        route: `chats/${chatId}/messages/${messageId}/resend`,
         method: 'POST',
-        body: {utc_offset_minutes: utcOffsetMinutes()},
+        body: {content, utc_offset_minutes: utcOffsetMinutes()},
     });
 }
 

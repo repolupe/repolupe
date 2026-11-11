@@ -220,8 +220,6 @@ class _Translations$base$errors$vi extends Translations$base$errors$en {
   @override
   String get generationInProgress => 'Một câu trả lời đang được tạo trong đoạn chat này.';
   @override
-  String get notRetryable => 'Chỉ có thể thử lại câu trả lời thất bại hoặc đã bị hủy ở cuối đoạn chat.';
-  @override
   String get wrongPassword => 'Mật khẩu hiện tại không đúng.';
   @override
   String get samePassword => 'Mật khẩu mới phải khác mật khẩu hiện tại.';
@@ -412,6 +410,10 @@ class _Translations$base$chat$vi extends Translations$base$chat$en {
   late final _Translations$base$chat$assistantMessage$vi assistantMessage = _Translations$base$chat$assistantMessage$vi._(_root);
   @override
   late final _Translations$base$chat$userMessage$vi userMessage = _Translations$base$chat$userMessage$vi._(_root);
+  @override
+  late final _Translations$base$chat$editMessageDialog$vi editMessageDialog = _Translations$base$chat$editMessageDialog$vi._(_root);
+  @override
+  late final _Translations$base$chat$retryMessageDialog$vi retryMessageDialog = _Translations$base$chat$retryMessageDialog$vi._(_root);
   @override
   late final _Translations$base$chat$toolCallList$vi toolCallList = _Translations$base$chat$toolCallList$vi._(_root);
   @override
@@ -888,8 +890,6 @@ class _Translations$base$chat$page$vi extends Translations$base$chat$page$en {
   @override
   String sendFailed({required Object error}) => 'Không thể gửi tin nhắn: ${error}';
   @override
-  String retryFailed({required Object error}) => 'Không thể tạo lại câu trả lời: ${error}';
-  @override
   String stopFailed({required Object error}) => 'Không thể dừng câu trả lời: ${error}';
   @override
   String renameFailed({required Object error}) => 'Không thể đổi tên đoạn chat: ${error}';
@@ -972,6 +972,32 @@ class _Translations$base$chat$userMessage$vi extends Translations$base$chat$user
   // Translations
   @override
   String download({required Object name}) => 'Tải xuống ${name}';
+}
+
+// Path: base.chat.editMessageDialog
+class _Translations$base$chat$editMessageDialog$vi extends Translations$base$chat$editMessageDialog$en {
+  _Translations$base$chat$editMessageDialog$vi._(TranslationsVi root) : this._root = root, super.internal(root);
+
+  final TranslationsVi _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'Sửa tin nhắn';
+  @override
+  String get removesLater => 'Khi gửi, các tin nhắn sau đó sẽ bị xóa.';
+}
+
+// Path: base.chat.retryMessageDialog
+class _Translations$base$chat$retryMessageDialog$vi extends Translations$base$chat$retryMessageDialog$en {
+  _Translations$base$chat$retryMessageDialog$vi._(TranslationsVi root) : this._root = root, super.internal(root);
+
+  final TranslationsVi _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get title => 'Gửi lại tin nhắn';
+  @override
+  String get text => 'Tin nhắn sẽ được trả lời lại, và các tin nhắn sau đó sẽ bị xóa.';
 }
 
 // Path: base.chat.toolCallList

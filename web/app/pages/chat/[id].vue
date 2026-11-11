@@ -42,10 +42,11 @@
         <!-- messages -->
         <div v-if="chat" class="d-flex flex-column ga-6">
           <template v-for="message in chat.messages" :key="message.id">
-            <UserMessage v-if="message.role === MessageRole.USER" :message="message"/>
+            <UserMessage v-if="message.role === MessageRole.USER" :message="message" :can-resend="canResend"
+                         @edit="showEditMessageDialog(message)" @retry="onRetryMessage(message)"/>
             <AssistantMessage v-else :message="message"
                               :can-retry="message.id === retryableId"
-                              :retrying="retryingId === message.id" @retry="doRetry(message)"
+                              :retrying="resending" @retry="onRetryAnswer"
                               @open-tool-calls="showToolCallListDialog(message)"
                               @open-file="(t) => presentedFile = t"
                               @open-usage="showUsageDialog(message)"
@@ -71,6 +72,15 @@
       </div>
 
       <RenameChatDialog ref="rename-dialog" v-model="dialogRename" :loading="loading" @submit="doRename"/>
+
+      <EditMessageDialog ref="edit-message-dialog" v-model="dialogEditMessage" :loading="resending"
+                         :removes-later="resendRemovesLater" @submit="(content) => doResend(content)"/>
+
+      <GenericConfirmDialog v-model="dialogRetryMessage" :loading="resending"
+                            :title="$t('chat.retryMessageDialog.title')" :confirm-text="$t('common.retry')"
+                            confirm-icon="mdi-refresh" @confirm="doResend(null)">
+        {{ $t('chat.retryMessageDialog.text') }}
+      </GenericConfirmDialog>
 
       <GenericDeleteDialog v-model="dialogDelete" :loading="loading" :title="$t('chat.page.deleteTitle')"
                            @delete="doDelete">
@@ -131,7 +141,7 @@ import {
   getMcpServers,
   getModels,
   getRepositories,
-  retryMessage,
+  resendMessage,
   sendMessage,
   streamMessage,
   updateChat,
@@ -146,6 +156,7 @@ import {
   type PendingAttachment,
 } from "~/utils/utils";
 import {refreshChats, useFilePresented, useInstanceTitle, useUser} from "~/composables/states";
+import GenericConfirmDialog from "~/components/dialogs/GenericConfirmDialog.vue";
 import GenericDeleteDialog from "~/components/dialogs/GenericDeleteDialog.vue";
 import IconText from "~/components/IconText.vue";
 import UserMessage from "~/components/chat/UserMessage.vue";
@@ -158,6 +169,7 @@ import UsageDialog from "~/components/chat/UsageDialog.vue";
 import DurationDialog from "~/components/chat/DurationDialog.vue";
 import RawAnswerDialog from "~/components/chat/RawAnswerDialog.vue";
 import RenameChatDialog from "~/components/chat/RenameChatDialog.vue";
+import EditMessageDialog from "~/components/chat/EditMessageDialog.vue";
 import MessageInput from "~/components/chat/MessageInput.vue";
 import ChatModelSelect from "~/components/chat/ChatModelSelect.vue";
 
@@ -173,6 +185,7 @@ const instanceTitle = useInstanceTitle();
 const user = useUser();
 
 const renameDialog = useTemplateRef<InstanceType<typeof RenameChatDialog>>('rename-dialog');
+const editMessageDialog = useTemplateRef<InstanceType<typeof EditMessageDialog>>('edit-message-dialog');
 const toolCallDialog = useTemplateRef<InstanceType<typeof ToolCallDialog>>('tool-call-dialog');
 const usageDialog = useTemplateRef<InstanceType<typeof UsageDialog>>('usage-dialog');
 const rawAnswerDialog = useTemplateRef<InstanceType<typeof RawAnswerDialog>>('raw-answer-dialog');
@@ -192,10 +205,14 @@ const input = ref('');
 const attachment = ref<PendingAttachment | null>(null);
 const sending = ref(false);
 const stopping = ref(false);
-const retryingId = ref<string | null>(null);
+const resending = ref(false);
 
 const dialogRename = ref(false);
 const dialogDelete = ref(false);
+const dialogEditMessage = ref(false);
+const dialogRetryMessage = ref(false);
+/** The user message that is edited or retried, by id, like `toolCallListId`. */
+const resendId = ref<string | null>(null);
 const dialogToolCallList = ref(false);
 /** The answer whose tool calls are listed, by id, so the list follows the chat as it is refreshed and streamed. */
 const toolCallListId = ref<string | null>(null);
@@ -232,13 +249,23 @@ useHead({title: computed(() => chat.value ? `${chat.value.title} - ${instanceTit
 const generatingMessage = computed(() => chat.value?.messages
     .find(m => m.role === MessageRole.ASSISTANT && m.status === MessageStatus.GENERATING) ?? null);
 
-/** Only the last answer can be retried, and only if it failed or was cancelled. */
+/** Only the last answer offers to retry it, and only if it failed or was cancelled. */
 const retryableId = computed(() => {
   const last = chat.value?.messages.at(-1);
   if (!last || last.role !== MessageRole.ASSISTANT) {
     return null;
   }
   return last.status === MessageStatus.FAILED || last.status === MessageStatus.CANCELLED ? last.id : null;
+});
+
+/** A user message can be sent again, with or without a new text, unless an answer is generated. */
+const canResend = computed(() => !!chat.value && !sending.value && !resending.value && !generatingMessage.value);
+
+/** Whether sending the message of `resendId` again removes more than its answer. */
+const resendRemovesLater = computed(() => {
+  const messages = chat.value?.messages ?? [];
+  const index = messages.findIndex(m => m.id === resendId.value);
+  return index >= 0 && index < messages.length - 2;
 });
 
 const canSend = computed(() => !!chat.value && !sending.value && !generatingMessage.value
@@ -449,6 +476,8 @@ watch(() => route.params.id, async (id) => {
   attachment.value = null;
   dialogRename.value = false;
   dialogDelete.value = false;
+  dialogEditMessage.value = false;
+  dialogRetryMessage.value = false;
   dialogToolCallList.value = false;
   dialogToolCall.value = false;
   presentedFile.value = null;
@@ -542,30 +571,68 @@ const doStop = async () => {
   }
 };
 
-const doRetry = async (message: MessageDto) => {
-  if (!chat.value) {
+// --- edit & retry of user messages ---
+
+const showEditMessageDialog = (message: MessageDto) => {
+  resendId.value = message.id;
+  editMessageDialog.value!.load(message);
+  dialogEditMessage.value = true;
+};
+
+/** Asks first if more than the answer to the message would be removed. */
+const onRetryMessage = (message: MessageDto) => {
+  resendId.value = message.id;
+  if (resendRemovesLater.value) {
+    dialogRetryMessage.value = true;
+  } else {
+    doResend(null);
+  }
+};
+
+/** Retries the last answer by sending its question, the message before it, again. */
+const onRetryAnswer = () => {
+  const question = chat.value?.messages.at(-2);
+  if (question?.role === MessageRole.USER) {
+    onRetryMessage(question);
+  }
+};
+
+/** Sends the message of `resendId` again, with `content` as its text if given, instead of the messages after it. */
+const doResend = async (content: string | null) => {
+  const messageId = resendId.value;
+  if (!canResend.value || !messageId) {
     return;
   }
-  const chatId = chat.value.id;
-  retryingId.value = message.id;
+  const chatId = chat.value!.id;
+  resending.value = true;
   try {
-    const next = await retryMessage(chatId, message.id);
+    const [userMessage, assistantMessage] = await resendMessage(chatId, messageId, content);
     if (chat.value?.id !== chatId) {
       return;
     }
+    dialogEditMessage.value = false;
+    dialogRetryMessage.value = false;
     const messages = chat.value.messages;
-    const index = messages.findIndex(m => m.id === message.id);
-    if (index >= 0) {
-      messages[index] = next;
-    } else {
-      messages.push(next);
+    const index = messages.findIndex(m => m.id === messageId);
+    if (index < 0) {
+      // the chat was reloaded without the message in the meantime
+      await fetchChat(chatId, false);
+      return;
     }
-    startStream(chatId, next.id);
-    await scrollToBottom(false);
+    const removed = messages.splice(index, messages.length, userMessage, assistantMessage);
+    // the file of an answer that is gone
+    const fileId = presentedFile.value?.id;
+    if (fileId && removed.some(m => m.tool_calls.some(t => t.id === fileId))) {
+      presentedFile.value = null;
+    }
+    startStream(chatId, assistantMessage.id);
+    await scrollToBottom(true);
     refreshChats().catch(() => {});
   } catch (e) {
-    if (e instanceof ApiError && e.code === ErrorCode.NOT_RETRYABLE) {
-      // someone else already retried or answered, show the current state
+    if (e instanceof ApiError && (e.code === ErrorCode.GENERATION_IN_PROGRESS || e.code === ErrorCode.NOT_FOUND)) {
+      // changed elsewhere in the meantime, show the current state
+      dialogEditMessage.value = false;
+      dialogRetryMessage.value = false;
       showSnackbar(errorMessage(e));
       await fetchChat(chatId, false);
     } else if (e instanceof ApiError && e.code === ErrorCode.NO_MODEL_CONFIGURED) {
@@ -573,10 +640,10 @@ const doRetry = async (message: MessageDto) => {
     } else if (e instanceof ApiError && e.code === ErrorCode.RATE_LIMITED) {
       showSnackbar(t('chat.rateLimited'));
     } else {
-      showSnackbar(t('chat.page.retryFailed', {error: errorMessage(e)}));
+      showSnackbar(t('chat.page.sendFailed', {error: errorMessage(e)}));
     }
   } finally {
-    retryingId.value = null;
+    resending.value = false;
   }
 };
 

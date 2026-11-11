@@ -212,17 +212,39 @@ describe('demo API', () => {
         });
     });
 
-    it('retries the answer to the first message like the first', async () => {
+    it('retries a cancelled answer by resending its question', async () => {
         const chat = await createChat('Where is the invoice?');
-        const cancelled = chat.messages[1]!.id;
-        await request('POST', `chats/${chat.id}/messages/${cancelled}/cancel`);
+        const [question, cancelled] = chat.messages as [MessageDto, MessageDto];
+        await request('POST', `chats/${chat.id}/messages/${cancelled.id}/cancel`);
 
-        const retried = await request<MessageDto>('POST', `chats/${chat.id}/messages/${cancelled}/retry`);
+        const [, retried] = await request<[MessageDto, MessageDto]>('POST', `chats/${chat.id}/messages/${question.id}/resend`, {});
         const answer = await finished(chat.id, retried.id);
         expect(answer.status).toBe(MessageStatus.COMPLETED);
         expect(answer.content).toContain('scans/sample_scan.pdf');
         const messages = (await request<ChatDetailDto>('GET', `chats/${chat.id}`)).messages;
-        expect(messages.map(m => m.id)).toEqual([chat.messages[0]!.id, retried.id]);
+        expect(messages.map(m => m.id)).toEqual([question.id, retried.id]);
+    });
+
+    it('resends a message with a new text instead of the messages after it', async () => {
+        const chat = await createChat('Where is the invoice?');
+        const [question, answer] = chat.messages as [MessageDto, MessageDto];
+        const resend = `chats/${chat.id}/messages/${question.id}/resend`;
+        await expectError(await fetchDemo('POST', resend, {}), 409, ErrorCode.GENERATION_IN_PROGRESS);
+        await finished(chat.id, answer.id);
+        const [, second] = await sendMessage(chat.id, 'And the receipt?');
+        await finished(chat.id, second.id);
+        await expectError(await fetchDemo('POST', `chats/${chat.id}/messages/${answer.id}/resend`, {}),
+            404, ErrorCode.NOT_FOUND);
+
+        const [edited, next] = await request<[MessageDto, MessageDto]>('POST', resend, {content: 'Where is the scan?'});
+        expect(edited).toMatchObject({id: question.id, content: 'Where is the scan?'});
+        // the first question again, so it is answered like the first
+        expect((await finished(chat.id, next.id)).content).toContain('scans/sample_scan.pdf');
+        const messages = (await request<ChatDetailDto>('GET', `chats/${chat.id}`)).messages;
+        expect(messages.map(m => m.id)).toEqual([question.id, next.id]);
+
+        const [kept] = await request<[MessageDto, MessageDto]>('POST', resend, {content: null});
+        expect(kept.content).toBe('Where is the scan?');
     });
 
     it('prices only the answers of the hosted model', async () => {

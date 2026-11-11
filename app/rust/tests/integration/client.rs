@@ -12,7 +12,7 @@ use futures_executor::block_on;
 use futures_util::StreamExt;
 use repolupe::dto::auth::LoginRequest;
 use repolupe::dto::chat::{
-    CreateChatRequest, MessageDto, MessageStatus, RawBlockDto, RetryMessageRequest,
+    CreateChatRequest, MessageDto, MessageStatus, RawBlockDto, ResendMessageRequest,
     SendMessageRequest, ToolCallStatus, UpdateChatRequest,
 };
 use repolupe::dto::error::ErrorCode;
@@ -401,11 +401,12 @@ fn every_method_reaches_its_route() {
             api_code(block_on(client.cancel_message(id(), id()))),
         ),
         (
-            "retry_message",
-            api_code(block_on(client.retry_message(
+            "resend_message",
+            api_code(block_on(client.resend_message(
                 id(),
                 id(),
-                RetryMessageRequest {
+                ResendMessageRequest {
+                    content: None,
                     utc_offset_minutes: None,
                 },
             ))),
@@ -840,16 +841,18 @@ fn local_instance() {
     };
     assert_eq!(answer.status, MessageStatus::Cancelled);
     assert_eq!(answer.content, "Let me");
-    let retried = block_on(client.retry_message(
+    let resent = block_on(client.resend_message(
         chat_id,
-        answer.id,
-        RetryMessageRequest {
+        messages[0].id,
+        ResendMessageRequest {
+            content: None,
             utc_offset_minutes: None,
         },
     ))
     .unwrap();
-    assert_eq!(retried.status, MessageStatus::Generating);
-    let answer = wait_for_answer(client, chat_id, retried.id);
+    assert_eq!(resent[0].id, messages[0].id);
+    assert_eq!(resent[1].status, MessageStatus::Generating);
+    let answer = wait_for_answer(client, chat_id, resent[1].id);
     assert_eq!(answer.content, "Nothing else.");
 
     let updated = block_on(client.update_chat(

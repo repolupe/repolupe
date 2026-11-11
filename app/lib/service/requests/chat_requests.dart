@@ -205,6 +205,36 @@ class ApiSendMessageAction extends AsyncReduxActionWithResult<ApiService, Accoun
   String toString() => 'ApiSendMessageAction(chatId: $chatId, attachmentId: $attachmentId)';
 }
 
+/// Sends the user message [messageId] again, with [content] as its text unless `null` (may be blank if it has an
+/// attachment), instead of the messages after it. Returns it and the answer being generated.
+class ApiResendMessageAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, List<MessageDto>> {
+  final UuidValue chatId;
+  final UuidValue messageId;
+  final String? content;
+
+  ApiResendMessageAction({required this.chatId, required this.messageId, required this.content});
+
+  @override
+  Future<(AccountClient?, List<MessageDto>)> reduce() async {
+    final messages = await dispatchAsyncTakeResult(
+      _ApiCallAction(
+        call: (client) => client.resendMessage(
+          chatId: chatId,
+          messageId: messageId,
+          request: ResendMessageRequest(
+            content: content,
+            utcOffsetMinutes: DateTime.now().timeZoneOffset.inMinutes,
+          ),
+        ),
+      ),
+    );
+    return (state, messages);
+  }
+
+  @override
+  String toString() => 'ApiResendMessageAction(chatId: $chatId, messageId: $messageId, edited: ${content != null})';
+}
+
 /// Uploads [content] as the file [fileName], to send with the next message. The server infers its type from the name.
 class ApiUploadAttachmentAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, AttachmentDto> {
   final String fileName;

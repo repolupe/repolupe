@@ -440,15 +440,23 @@ function sendMessage(chatId: string, body: Record<string, any>): [MessageDto, Me
     return [copy(message), copy(startAnswer(chat))];
 }
 
-function retryMessage(chatId: string, messageId: string): MessageDto {
+/** Like the API: the user message again, with a new text if given, instead of the messages after it. */
+function resendMessage(chatId: string, messageId: string, body: Record<string, any>): [MessageDto, MessageDto] {
     const chat = findChat(chatId);
-    const last = chat.messages.at(-1);
-    if (!last || last.id !== messageId || last.role !== MessageRole.ASSISTANT
-        || (last.status !== MessageStatus.FAILED && last.status !== MessageStatus.CANCELLED)) {
-        throw new DemoError(409, ErrorCode.NOT_RETRYABLE, 'Only a failed or cancelled last answer can be retried.');
+    if (chat.messages.some(m => m.status === MessageStatus.GENERATING)) {
+        throw new DemoError(409, ErrorCode.GENERATION_IN_PROGRESS, 'An answer is still being generated.');
     }
-    chat.messages.pop();
-    return copy(startAnswer(chat));
+    const index = chat.messages.findIndex(m => m.id === messageId && m.role === MessageRole.USER);
+    if (index < 0) {
+        throw notFound();
+    }
+    const message = chat.messages[index]!;
+    chat.messages.splice(index + 1);
+    if (typeof body.content === 'string') {
+        message.content = body.content.trim();
+    }
+    message.created_at = new Date().toISOString();
+    return [copy(message), copy(startAnswer(chat))];
 }
 
 function getChats(params: Record<string, unknown>, filter: (chat: ChatDetailDto) => boolean = () => true) {
@@ -634,7 +642,7 @@ async function route(method: 'GET' | 'POST', route: string, body: Record<string,
             finishAnswer(findMessage(parts[1]!, parts[3]!), MessageStatus.CANCELLED);
             return null;
         }
-        if (match('chats/*/messages/*/retry')) return retryMessage(parts[1]!, parts[3]!);
+        if (match('chats/*/messages/*/resend')) return resendMessage(parts[1]!, parts[3]!, body);
         if (match('chats/*/tool-calls/*/commit')) return commitProposedCommit(parts[1]!, parts[3]!);
     }
     throw new DemoError(403, ErrorCode.FORBIDDEN, 'This is not available in the demo.');

@@ -194,14 +194,15 @@ abstract class Client implements RustOpaqueInterface {
   /// or leaves it (the user's own id).
   Future<void> removeRepositoryUser({required UuidValue id, required UuidValue userId});
 
+  /// `POST /api/v1/chats/{id}/messages/{message_id}/resend`: the user message, sent again
+  /// instead of the messages after it, and the answer being generated.
+  Future<List<MessageDto>> resendMessage({required UuidValue chatId, required UuidValue messageId, required ResendMessageRequest request});
+
   /// `POST /api/v1/users/{id}/password`: sets another user's password and signs them out.
   Future<UserDto> resetPassword({required UuidValue id, required ResetPasswordRequest request});
 
   /// `POST /api/v1/document-extraction/retry`: converts a document again.
   Future<void> retryDocumentExtraction({required RetryDocumentRequest request});
-
-  /// `POST /api/v1/chats/{id}/messages/{message_id}/retry`: the new answer being generated.
-  Future<MessageDto> retryMessage({required UuidValue chatId, required UuidValue messageId, required RetryMessageRequest request});
 
   /// `GET /api/v1/chats/search`: the chats in which every word of `query` occurs in the title or
   /// in a message, newest first. Paged like [`Self::list_chats`].

@@ -640,21 +640,28 @@ class RawToolDto {
           inputSchema == other.inputSchema;
 }
 
-class RetryMessageRequest {
+/// `POST .../messages/{id}/resend`: asks a user message again, removing every message after it.
+class ResendMessageRequest {
+  /// Replaces the text of the message; absent or `null` keeps it. May be blank if the message
+  /// has an attachment, which stays.
+  final String? content;
+
   /// The user's offset from UTC in minutes, e.g. 60 for UTC+01:00, so the model knows their
   /// local time. Absent uses UTC.
   final int? utcOffsetMinutes;
 
-  const RetryMessageRequest({
+  const ResendMessageRequest({
+    this.content,
     this.utcOffsetMinutes,
   });
 
   @override
-  int get hashCode => utcOffsetMinutes.hashCode;
+  int get hashCode => content.hashCode ^ utcOffsetMinutes.hashCode;
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) || other is RetryMessageRequest && runtimeType == other.runtimeType && utcOffsetMinutes == other.utcOffsetMinutes;
+      identical(this, other) ||
+      other is ResendMessageRequest && runtimeType == other.runtimeType && content == other.content && utcOffsetMinutes == other.utcOffsetMinutes;
 }
 
 class SendMessageRequest {

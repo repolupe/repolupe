@@ -113,6 +113,40 @@ async fn failing_llm_fails_the_answer(db: SqlitePool) {
 }
 
 #[sqlx::test]
+async fn rejected_messages_do_not_count_as_generations(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let alice = app.user("alice@example.com").await;
+    let llm = MockLlm::start(vec![text_response("Hi.")]).await;
+    app.configure_llm(&llm).await;
+
+    // More than a user may have generated at the same time
+    for _ in 0..5 {
+        let (status, body) = alice
+            .post(
+                "/api/v1/chats",
+                json!({
+                    "content": "Hello?",
+                    "all_repositories": true,
+                    "attachment_id": "0193a5e0-0000-7000-8000-000000000000",
+                }),
+            )
+            .await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY, "{body}");
+        assert_eq!(body["code"], "UNKNOWN_ATTACHMENT");
+    }
+
+    let (status, chat) = alice
+        .post(
+            "/api/v1/chats",
+            json!({"content": "Hello?", "all_repositories": true}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{chat}");
+    let answer = alice.wait_for_answer(chat["id"].as_str().unwrap()).await;
+    assert_eq!(answer["status"], "COMPLETED", "{answer}");
+}
+
+#[sqlx::test]
 async fn retries_errors_before_the_first_text(db: SqlitePool) {
     let app = TestApp::new(db).await;
     let alice = app.user("alice@example.com").await;
