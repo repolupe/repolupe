@@ -1,3 +1,14 @@
+## 1.2.0 (2026-11-11)
+
+- feat: edit a sent message or retry it, which answers it again and removes the messages after it
+- feat: the duration of an answer opens the time spent on the language model and on each tool, with the output speed
+- feat: show the raw answer with the system prompt, tools and messages sent to the model
+- feat: the token usage shows the cost and the price of each token type
+- feat: answers keep the model name, even if the model is changed or deleted later
+- feat(web): new user message color
+- feat(web): theme mode setting in demo mode
+- fix(app): tables too wide to fit scroll instead of being cut off
+
 ## 1.1.2 (2026-11-07)
 
 - feat: search older chats
