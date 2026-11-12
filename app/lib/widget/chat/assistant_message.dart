@@ -57,6 +57,9 @@ class _AssistantMessageState extends State<AssistantMessage> {
   String? _parsedContent;
   bool _parsedHasTable = false;
 
+  /// How long the content was when the last tool call started (or the answer was first shown).
+  late int _contentLengthAtToolCall = widget.message.content.length;
+
   bool get _generating => widget.message.status == MessageStatus.generating;
 
   Object get _scrollTablesId => ('scrollTables', widget.message.id);
@@ -87,12 +90,16 @@ class _AssistantMessageState extends State<AssistantMessage> {
   @override
   void didUpdateWidget(AssistantMessage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.message.toolCalls.length != oldWidget.message.toolCalls.length) {
+      _contentLengthAtToolCall = widget.message.content.length;
+    }
     _updateTimer();
   }
 
-  /// What the answer is doing while generating: the running tool, or, before it has text, the last one that ran, so
-  /// that a brief one doesn't flicker back to "Thinking…". Taken from the calls rather than from the running ones seen
-  /// in a build, since a brief call (e.g. `run_script`) often starts and finishes between two frames.
+  /// What the answer is doing while generating: the running tool, or, until text follows it, the last one that ran, so
+  /// that a brief one doesn't flicker back to "Thinking…" or to the dots below a preamble. Taken from the calls rather
+  /// than from the running ones seen in a build, since a brief call (e.g. `run_script`) often starts and finishes
+  /// between two frames.
   String? _statusLabel(BuildContext context) {
     if (!_generating) {
       return null;
@@ -102,11 +109,13 @@ class _AssistantMessageState extends State<AssistantMessage> {
     if (running != null) {
       return runningToolLabel(context, running);
     }
-    if (widget.message.content.isNotEmpty) {
-      return null;
-    }
+    final content = widget.message.content;
     final last = toolCalls.lastOrNull?.name;
-    return last != null ? runningToolLabel(context, last) : context.t.base.chat.assistantMessage.thinking;
+    if (last == null) {
+      // The dots below the content show progress instead.
+      return content.isEmpty ? context.t.base.chat.assistantMessage.thinking : null;
+    }
+    return content.length > _contentLengthAtToolCall ? null : runningToolLabel(context, last);
   }
 
   @override

@@ -139,10 +139,15 @@ const runningToolLabel = (name: string) => {
   }
 };
 
+/** How long the content was when the last tool call started (or the message was first shown). */
+const contentLengthAtToolCall = ref(props.message.content.length);
+
+watch(() => props.message.tool_calls.length, () => contentLengthAtToolCall.value = props.message.content.length);
+
 /**
  * What the answer is doing while generating, shown above the content (if there is any yet): the latest running
- * tool call, or, before there is content, the last call, so a brief one doesn't flicker back to "Thinking…" (also
- * when the chat is opened while the answer is generated)
+ * tool call, or, until text follows it, the last call, so a brief one doesn't flicker back to "Thinking…" or to
+ * the dots below a preamble (also when the chat is opened while the answer is generated)
  */
 const statusLabel = computed(() => {
   if (!generating.value) {
@@ -153,12 +158,12 @@ const statusLabel = computed(() => {
   if (running) {
     return runningToolLabel(running.name);
   }
-  if (props.message.content) {
-    // the dots below the content show progress instead
-    return null;
-  }
   const last = toolCalls.at(-1);
-  return last ? runningToolLabel(last.name) : t('chat.assistantMessage.thinking');
+  if (!last) {
+    // the dots below the content show progress instead
+    return props.message.content ? null : t('chat.assistantMessage.thinking');
+  }
+  return props.message.content.length > contentLengthAtToolCall.value ? null : runningToolLabel(last.name);
 });
 
 /** Streamed text is revealed smoothly rather than in the batches it arrives in. */

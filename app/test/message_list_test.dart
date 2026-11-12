@@ -151,4 +151,64 @@ void main() {
     expect(find.byType(RawAnswerPage), findsOneWidget);
     expect(loaded, [(_chatId, answer.id)]);
   });
+
+  testWidgets('a generating answer keeps the label of its last tool call until text follows it', (tester) async {
+    MessageDto generating(String content, List<ToolCallStatus> toolCalls) => MessageDto(
+      id: UuidValue.fromString('0199a8d4-6d5e-7c3a-9b1f-000000000002'),
+      role: MessageRole.assistant,
+      content: content,
+      status: MessageStatus.generating,
+      toolCalls: [
+        for (final (n, status) in toolCalls.indexed)
+          ToolCallSummaryDto(
+            id: UuidValue.fromString('0199a8d4-6d5e-7c3a-9b1f-00000000010$n'),
+            name: 'mcp__banking__list_accounts',
+            input: '{}',
+            status: status,
+            createdAt: DateTime.utc(2026, 11, 6, 12),
+          ),
+      ],
+      createdAt: DateTime.utc(2026, 11, 6, 12),
+    );
+
+    final container = (await tester.runAsync(() => mockContainer(account: fakeAccount(userId: 'user'))))!;
+    Future<void> show(MessageDto answer) async {
+      await tester.pumpWidget(
+        RefenaScope.withContainer(
+          container: container,
+          child: TranslationProvider(
+            child: MaterialApp(
+              home: Scaffold(
+                body: MessageList(chatId: _chatId, messages: [_message(1, MessageRole.user, 'First'), answer]),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(seconds: 1));
+    }
+
+    final label = find.text('${t.base.chat.toolCallList.running}…');
+
+    // The preamble alone has no label, only the spinner below it.
+    await show(generating('Let me look.', []));
+    expect(label, findsNothing);
+
+    await show(generating('Let me look.', [ToolCallStatus.running]));
+    expect(label, findsOneWidget);
+
+    // A finished call keeps its label while the model thinks, also when the next call has finished too.
+    await show(generating('Let me look.', [ToolCallStatus.completed]));
+    expect(label, findsOneWidget);
+    await show(generating('Let me look.', [ToolCallStatus.completed, ToolCallStatus.completed]));
+    expect(label, findsOneWidget);
+
+    // Text after the call replaces the label, until the next call.
+    await show(generating('Let me look.\n\nAll of them', [ToolCallStatus.completed, ToolCallStatus.completed]));
+    expect(label, findsNothing);
+    await show(
+      generating('Let me look.\n\nAll of them', [ToolCallStatus.completed, ToolCallStatus.completed, ToolCallStatus.completed]),
+    );
+    expect(label, findsOneWidget);
+  });
 }
