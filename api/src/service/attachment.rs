@@ -9,7 +9,7 @@ use crate::config::state::DatabasePool;
 use crate::model::attachment::Attachment;
 use crate::repository;
 use crate::repository::attachment::NewAttachment;
-use crate::service::{extraction, mirror};
+use crate::service::{extraction, image, mirror};
 use crate::util::validation::ValidationError;
 use chrono::{TimeDelta, Utc};
 use std::path::PathBuf;
@@ -51,7 +51,7 @@ impl AttachmentStore {
         content: Vec<u8>,
     ) -> Result<Attachment, AppError> {
         let file_name = parse_file_name(file_name)?;
-        let content_type = parse_content_type(&file_name, content_type);
+        let content_type = content_type_of(&file_name, content_type, &content);
         let size = content.len() as i64;
         let id = Uuid::now_v7();
 
@@ -172,35 +172,51 @@ fn parse_file_name(name: &str) -> Result<String, ValidationError> {
     Ok(name.to_string())
 }
 
-/// A media type like `application/pdf` without parameters, lowercase, or
-/// [`UNKNOWN_CONTENT_TYPE`] if `content_type` is missing or not one. A file with the extension of
-/// a document gets the document's type whatever the browser reported, so it is converted like
-/// one in a repository.
-fn parse_content_type(file_name: &str, content_type: Option<&str>) -> String {
-    if let Some(mime_type) = extraction::mime_type(file_name) {
-        return mime_type.to_string();
+/// The media type an upload is stored with, from the first of these that applies:
+/// 1. The extension of a document, whatever the client reported, so it is converted like one
+///    in a repository.
+/// 2. The type the client reported.
+/// 3. The signature of an image, so the clients show it. The app reports no type.
+/// 4. [`UNKNOWN_CONTENT_TYPE`].
+fn content_type_of(file_name: &str, reported: Option<&str>, content: &[u8]) -> String {
+    if let Some(document) = extraction::mime_type(file_name) {
+        return document.to_string();
     }
-    let token = |part: &str| {
-        !part.is_empty()
-            && part
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || "!#$&-^_.+".contains(c))
-    };
-    content_type
-        .and_then(|value| value.split(';').next())
-        .map(|value| value.trim().to_ascii_lowercase())
-        .filter(|value| {
-            value.len() <= MAX_CONTENT_TYPE_CHARS
-                && value
-                    .split_once('/')
-                    .is_some_and(|(kind, subtype)| token(kind) && token(subtype))
-        })
-        .unwrap_or_else(|| UNKNOWN_CONTENT_TYPE.to_string())
+    if let Some(reported) = reported.and_then(parse_media_type) {
+        return reported;
+    }
+    image::mime_type(content)
+        .unwrap_or(UNKNOWN_CONTENT_TYPE)
+        .to_string()
+}
+
+/// `value` as a media type like `application/pdf`, lowercase and without parameters. `None` if
+/// it is not one, or is [`UNKNOWN_CONTENT_TYPE`], which says nothing about the file.
+fn parse_media_type(value: &str) -> Option<String> {
+    let value = value.split(';').next()?.trim().to_ascii_lowercase();
+    let (kind, subtype) = value.split_once('/')?;
+    let valid = value.len() <= MAX_CONTENT_TYPE_CHARS
+        && is_token(kind)
+        && is_token(subtype)
+        && value != UNKNOWN_CONTENT_TYPE;
+    valid.then_some(value)
+}
+
+fn is_token(part: &str) -> bool {
+    !part.is_empty()
+        && part
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || "!#$&-^_.+".contains(c))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const JPEG: &[u8] = b"\xff\xd8\xff\xe0";
+
+    /// What a client sends when it doesn't know the type.
+    const UNREPORTED: [Option<&str>; 3] = [None, Some("pdf"), Some("application/octet-stream")];
 
     #[test]
     fn parses_file_names() {
@@ -213,28 +229,67 @@ mod tests {
     }
 
     #[test]
-    fn parses_content_types() {
+    fn parses_media_types() {
         assert_eq!(
-            parse_content_type("scan", Some("application/pdf")),
-            "application/pdf"
+            parse_media_type("application/pdf").as_deref(),
+            Some("application/pdf")
         );
         assert_eq!(
-            parse_content_type("a.txt", Some("Text/Plain; charset=utf-8")),
-            "text/plain"
+            parse_media_type("Text/Plain; charset=utf-8").as_deref(),
+            Some("text/plain")
         );
-        // By the extension of a document
+        for invalid in ["", "pdf", "text/", "a b/c", "application/octet-stream"] {
+            assert_eq!(parse_media_type(invalid), None, "{invalid:?}");
+        }
+    }
+
+    #[test]
+    fn prefers_the_extension_of_a_document() {
         for reported in [None, Some("application/octet-stream"), Some("text/plain")] {
             assert_eq!(
-                parse_content_type("Invoice.PDF", reported),
+                content_type_of("Invoice.PDF", reported, JPEG),
                 "application/pdf",
                 "{reported:?}"
             );
         }
-        for unknown in [None, Some(""), Some("pdf"), Some("text/"), Some("a b/c")] {
+    }
+
+    #[test]
+    fn keeps_a_reported_type() {
+        assert_eq!(
+            content_type_of("scan", Some("application/pdf"), b""),
+            "application/pdf"
+        );
+        assert_eq!(
+            content_type_of("a.bin", Some("text/plain"), JPEG),
+            "text/plain"
+        );
+    }
+
+    #[test]
+    fn detects_images_without_a_reported_type() {
+        let png = image::test_png(2, 2, false);
+        for unreported in UNREPORTED {
             assert_eq!(
-                parse_content_type("a.txt", unknown),
+                content_type_of("photo.txt", unreported, JPEG),
+                "image/jpeg",
+                "{unreported:?}"
+            );
+            assert_eq!(
+                content_type_of("photo", unreported, &png),
+                "image/png",
+                "{unreported:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn falls_back_to_the_unknown_type() {
+        for unreported in UNREPORTED {
+            assert_eq!(
+                content_type_of("a.txt", unreported, b"text"),
                 UNKNOWN_CONTENT_TYPE,
-                "{unknown:?}"
+                "{unreported:?}"
             );
         }
     }

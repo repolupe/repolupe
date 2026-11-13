@@ -235,7 +235,8 @@ class ApiResendMessageAction extends AsyncReduxActionWithResult<ApiService, Acco
   String toString() => 'ApiResendMessageAction(chatId: $chatId, messageId: $messageId, edited: ${content != null})';
 }
 
-/// Uploads [content] as the file [fileName], to send with the next message. The server infers its type from the name.
+/// Uploads [content] as the file [fileName], to send with the next message. The server infers its type: a document's from
+/// the name, an image's from the content.
 class ApiUploadAttachmentAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, AttachmentDto> {
   final String fileName;
   final Uint8List content;
