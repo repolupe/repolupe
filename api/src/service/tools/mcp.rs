@@ -11,12 +11,12 @@
 //! [`MAX_DEFINITION_BYTES`] together, shared fairly by the servers (see [`select`]).
 //!
 //! The model sees only errors and short results of the tools: the results are stored for
-//! [`RUN_SCRIPT`], so the model processes them with scripts instead of reading them, see
+//! [`super::RUN_SCRIPT`], so the model processes them with scripts instead of reading them, see
 //! [`super::support::results`].
 
 use super::support::MAX_OUTPUT_CHARS;
 use super::support::results::{ResultValue, StoredResults};
-use super::{Call, RUN_SCRIPT, ToolError};
+use super::{Call, ToolError};
 use crate::model::mcp_server::McpTool;
 use crate::service::llm::ToolDefinition;
 use crate::service::mcp::{
@@ -152,25 +152,14 @@ impl McpTools {
     pub(super) fn definitions(&self) -> impl Iterator<Item = ToolDefinition> + '_ {
         self.servers.iter().flat_map(|server| {
             server.tools.iter().map(|(name, tool)| {
-                let about = tool
-                    .description
-                    .as_deref()
-                    .or(tool.title.as_deref())
-                    .unwrap_or_default();
+                // The system prompt names the servers, and each result says where it is stored.
+                let about = tool.description.as_deref().or(tool.title.as_deref());
                 ToolDefinition {
                     name: name.clone(),
-                    description: format!(
-                        "A tool of the MCP server \"{}\", an external service {}. Its result \
-                        is stored for {RUN_SCRIPT}, and shown to you only if it is short. \
-                        {about}",
-                        server.name,
-                        match &server.shared_by {
-                            Some(owner) => format!("{owner} shared with the user"),
-                            None => "the user connected".to_string(),
-                        }
-                    )
-                    .trim_end()
-                    .to_string(),
+                    description: match about.map(str::trim) {
+                        Some(about) if !about.is_empty() => about.to_string(),
+                        _ => format!("A tool of the MCP server \"{}\".", server.name),
+                    },
                     input_schema: Value::Object(tool.input_schema.clone()),
                 }
             })
@@ -559,16 +548,18 @@ mod tests {
             [("Docs", None), ("docs", None), ("Wiki", Some("alice"))]
         );
         let descriptions: Vec<String> = tools.definitions().map(|d| d.description).collect();
+        assert_eq!(descriptions[0], "Does things.");
+    }
+
+    #[test]
+    fn describes_tools_without_a_description() {
+        let mut docs = server("Docs", &["find", "search"]);
+        docs.tools[0].description = None;
+        let tools = tools(vec![docs]);
+        let descriptions: Vec<String> = tools.definitions().map(|d| d.description).collect();
         assert_eq!(
-            descriptions[0],
-            "A tool of the MCP server \"Docs\", an external service the user connected. Its \
-            result is stored for run_script, and shown to you only if it is short. Does things."
-        );
-        assert_eq!(
-            descriptions[3],
-            "A tool of the MCP server \"Wiki\", an external service alice shared with the user. \
-            Its result is stored for run_script, and shown to you only if it is short. Does \
-            things."
+            descriptions,
+            ["A tool of the MCP server \"Docs\".", "Does things."]
         );
     }
 

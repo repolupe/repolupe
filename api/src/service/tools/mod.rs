@@ -327,6 +327,10 @@ impl RepositoryTools {
             definitions.push(read_attachment::definition(self));
         }
         definitions.push(run_script::definition(self));
+        // The only repository needs no naming, see `Self::repository`.
+        if self.repositories.len() == 1 {
+            definitions.iter_mut().for_each(remove_repository_argument);
+        }
         definitions.extend(self.mcp.definitions());
         definitions
     }
@@ -517,6 +521,17 @@ pub(crate) fn describe_attachment(attachment: &Attachment) -> String {
 }
 
 /// A pool that never connects, for tests of tools that do not read documents.
+/// Leaves `repository` out of the arguments of a built-in tool.
+fn remove_repository_argument(definition: &mut ToolDefinition) {
+    let schema = &mut definition.input_schema;
+    if let Some(properties) = schema.get_mut("properties").and_then(Value::as_object_mut) {
+        properties.retain(|name, _| name != "repository");
+    }
+    if let Some(required) = schema.get_mut("required").and_then(Value::as_array_mut) {
+        required.retain(|name| name.as_str() != Some("repository"));
+    }
+}
+
 #[cfg(test)]
 pub(crate) fn unused_db() -> DatabasePool {
     // Without them the pool spawns no maintenance tasks, which would need a runtime.
@@ -644,6 +659,16 @@ mod tests {
         let read_only =
             RepositoryTools::new(vec![repository("docs", false)], unused_db(), identities());
         assert_eq!(read_only.definitions().len(), 6);
+        // The only repository is not an argument.
+        for definition in read_only.definitions() {
+            let schema = &definition.input_schema;
+            assert!(schema["properties"]["repository"].is_null(), "{schema}");
+            assert!(!schema["required"].to_string().contains("repository"));
+        }
+        assert_eq!(
+            read_only.definitions()[1].input_schema["required"],
+            json!(["path"])
+        );
         assert_eq!(
             read_only.parse(&call("docs")).err().unwrap(),
             "There is no tool named `change_file`."

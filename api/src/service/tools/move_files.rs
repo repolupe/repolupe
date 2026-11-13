@@ -37,9 +37,8 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
                     "type": "array",
                     "minItems": 1,
                     "maxItems": MAX_MOVES,
-                    "description": "What to move. All moves start from the repository as you \
-                        read it, so their order doesn't matter, and no path may be inside \
-                        another move's paths.",
+                    "description": "What to move. Their order doesn't matter, and no path may \
+                        be inside another move's paths.",
                     "items": {
                         "type": "object",
                         "properties": {

@@ -124,12 +124,11 @@ const RESULTS: &str = r#"
 
 pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
     let mut description = String::from(
-        "Run JavaScript (ES2023) to calculate, count, sort, or transform data, instead of \
-        working it out in your head. Print results with `console.log`; the value of the last \
-        expression is returned too. The script runs in a sandbox: there is no network, no \
-        file system, no `require`, `import`, `fetch` or timers, and nothing carries over between \
-        calls. Numbers are 64-bit floats, so use BigInt for exact large integers and round \
-        amounts of money when printing them.",
+        "Run JavaScript (ES2023) to calculate, count, sort, or transform data. Print results \
+        with `console.log`; the value of the last expression is returned too. The script runs \
+        in a sandbox: there is no network, no file system, no `require`, `import`, `fetch` or \
+        timers, and nothing carries over between calls. Numbers are 64-bit floats, so use \
+        BigInt for exact large integers and round amounts of money when printing them.",
     );
     let mut properties = json!({
         "code": {
@@ -173,10 +172,10 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
     }
     if tools.mcp.has_tools() {
         description.push_str(
-            " The results of the MCP tools (named `mcp__…`) are stored, numbered from 1, and \
-            shown to you only if they are short. They are always in the global object `$results`, keyed by number, \
-            e.g. `$results[1]`, as text, or parsed if they are JSON. A result is stored once its \
-            call is complete, so use it in a later response than the call.",
+            " The results of the `mcp__` tools are in the global object `$results`, keyed by \
+            number, e.g. `$results[1]`, as text, or parsed if they are JSON: process long ones \
+            here and print only what you need. A result is stored once its call is complete, so \
+            use it in a later response than the call.",
         );
     }
     ToolDefinition {

@@ -20,11 +20,10 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
     ToolDefinition {
         name: READ_FILE.to_string(),
         description: format!(
-            "Read a text file, with line numbers. Returns up to {DEFAULT_READ_LINES} \
-            lines by default. PDFs are returned as Markdown converted from them, with \
-            the text of scanned pages recognized by OCR. Images (PNG, JPEG, GIF, WebP) are \
-            returned as the image itself, for you to look at. For long Markdown files, call \
-            {OUTLINE} first and read only the sections you need."
+            "Read a text file, with line numbers. PDFs are returned as Markdown converted \
+            from them, with the text of scanned pages recognized by OCR. Images (PNG, JPEG, \
+            GIF, WebP) are returned as the image itself, for you to look at. For long Markdown \
+            files, call {OUTLINE} first and read only the sections you need."
         ),
         input_schema: json!({
             "type": "object",

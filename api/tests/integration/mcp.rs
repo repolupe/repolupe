@@ -939,12 +939,7 @@ async fn answers_with_the_tools_of_shared_servers_the_user_turned_on(db: SqliteP
     assert_eq!(answer["tool_calls"][0]["status"], "COMPLETED", "{answer}");
     assert_eq!(mcp.calls(), [json!({"text": "hi"})]);
     let requests = llm.requests();
-    assert_eq!(
-        requests[1]["tools"][1]["description"],
-        "A tool of the MCP server \"Echo Server\", an external service admin shared with the \
-        user. Its result is stored for run_script, and shown to you only if it is short. Echoes \
-        the text."
-    );
+    assert_eq!(requests[1]["tools"][1]["description"], "Echoes the text.");
     let system = requests[1]["system"].to_string();
     assert!(
         system.contains("\\\"Echo Server\\\" (shared with the user by admin)"),

@@ -61,9 +61,8 @@ pub(super) fn writable_repository_schema(tools: &RepositoryTools, description: &
 pub(super) fn glob_schema() -> Value {
     json!({
         "type": "string",
-        "description": "Only include files matching this pattern, relative to `path`, \
-            e.g. `*.md` or `guides/**/*.md`. `*` and `?` do not match `/`, `**/` matches \
-            any number of directories. A pattern without `/` matches file names at any depth.",
+        "description": "Only include files matching this glob, relative to `path`, e.g. \
+            `*.md` or `guides/**/*.md`. Without `/` it matches file names at any depth.",
     })
 }
 

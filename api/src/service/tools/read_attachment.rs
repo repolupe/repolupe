@@ -29,8 +29,7 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
         name: READ_ATTACHMENT.to_string(),
         description: format!(
             "Read a file the user attached to the chat, with line numbers, like {READ_FILE} \
-            reads one in a repository. Returns up to {DEFAULT_READ_LINES} lines by default. \
-            PDFs are returned as Markdown converted from them, with the text of scanned pages \
+            reads one in a repository. PDFs are returned as Markdown converted from them, with the text of scanned pages \
             recognized by OCR. Images (PNG, JPEG, GIF, WebP) are returned as the image itself, \
             for you to look at. Other binary files can't be read."
         ),
