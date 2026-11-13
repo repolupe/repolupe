@@ -238,13 +238,18 @@ void main() {
     final uploaded = <ApiUploadAttachmentAction>[];
     final container = await _pumpChatPage(tester, repositories: const [], uploaded: uploaded);
     final content = Uint8List.fromList([255, 216, 255]);
-    ImagePickerPlatform.instance = FakeImagePicker(photo: XFile.fromData(content, path: '/tmp/image_picker_0199a8d4.jpg'));
+    final camera = FakeImagePicker(photo: XFile.fromData(content, path: '/tmp/image_picker_0199a8d4.jpg'));
+    ImagePickerPlatform.instance = camera;
 
     await tester.tap(find.byKey(const ValueKey('chat.options')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('chat.options.camera')));
     await tester.pumpAndSettle();
 
+    // Scaled down by the picker, so the full resolution is never uploaded
+    expect(camera.options?.maxWidth, 2048);
+    expect(camera.options?.maxHeight, 2048);
+    expect(camera.options?.imageQuality, 85);
     expect(uploaded.single.fileName, matches(RegExp(r'^IMG_\d{8}_\d{6}\.jpg$')));
     expect(uploaded.single.content, content);
     expect(container.read(chatProvider).attachment?.uploaded, isNotNull);

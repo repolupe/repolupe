@@ -14,6 +14,13 @@ import 'package:intl/intl.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
+/// Photos taken with the camera are scaled down to this edge before they are uploaded, since the model looks at
+/// them at 1568 px anyway. A little more keeps small writing legible if the photo is stored in a repository.
+const _maxPhotoEdge = 2048.0;
+
+/// Of the JPEG the scaled photo is encoded as.
+const _photoQuality = 85;
+
 /// The text field and below it the actions, in one box: a plus button with the options (taking a photo, attaching a
 /// file, and what a new chat reads), the model, and the button that sends the message, or stops the answer being
 /// generated. The attached file is above the text field, the repositories and MCP servers of the new chat (unless all)
@@ -62,11 +69,17 @@ class _MessageInputState extends State<MessageInput> with Refena {
     await ref.redux(chatProvider).dispatchAsync(AttachFileAction(fileName: file.name, size: size, read: file.readAsBytes));
   }
 
-  /// Attaches a photo taken with the camera, like a file.
+  /// Attaches a photo taken with the camera, like a file, but scaled down: unlike a file the user picks, it has no
+  /// original to keep, and at full resolution it takes megabytes to upload and store.
   Future<void> _takePhoto() async {
     final XFile? photo;
     try {
-      photo = await ImagePicker().pickImage(source: ImageSource.camera);
+      photo = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        maxWidth: _maxPhotoEdge,
+        maxHeight: _maxPhotoEdge,
+        imageQuality: _photoQuality,
+      );
     } on PlatformException catch (e) {
       final messages = t.flutter.chat.messageInput;
       ref.global.dispatch(ShowSnackBarAction(message: e.code == 'camera_access_denied' ? messages.cameraDenied : messages.cameraFailed));
