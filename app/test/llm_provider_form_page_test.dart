@@ -169,22 +169,28 @@ void main() {
 
     // All of them while the search is empty, then only the matching ones.
     await _openNamePicker(tester);
-    await tester.enterText(find.byKey(const ValueKey('providerNamePicker.search')), 'ak');
+    await tester.enterText(find.byKey(const ValueKey('providerNamePicker.search')), 'deep');
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('providerNamePicker.Anthropic')), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('providerNamePicker.Aki')));
+    await tester.tap(find.byKey(const ValueKey('providerNamePicker.DeepSeek')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('providerNamePicker.search')), findsNothing);
-    expect(find.text('Aki'), findsOneWidget);
-    expect(find.text('https://aki.io/anthropic'), findsOneWidget);
-    expect(find.text('EUR'), findsOneWidget);
+    // Neither the format nor the currency the form starts with.
+    expect(find.text('DeepSeek'), findsOneWidget);
+    expect(find.text('https://api.deepseek.com/anthropic'), findsOneWidget);
+    expect(find.text('USD'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('providerForm.save')));
     await tester.pumpAndSettle();
     expect(find.text('Provider created.'), findsOneWidget);
     expect(
       api.createRequest,
-      const CreateLlmProviderRequest(name: 'Aki', apiFormat: LlmApiFormat.anthropic, baseUrl: 'https://aki.io/anthropic', currency: 'EUR'),
+      const CreateLlmProviderRequest(
+        name: 'DeepSeek',
+        apiFormat: LlmApiFormat.anthropic,
+        baseUrl: 'https://api.deepseek.com/anthropic',
+        currency: 'USD',
+      ),
     );
   });
 
