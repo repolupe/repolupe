@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:app/gen/strings.g.dart';
 import 'package:app/src/rust/api/client.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/attachment.dart';
 import 'package:app/widget/chat/code_block.dart';
 import 'package:app/widget/chat/markdown_content.dart';
 import 'package:file_picker/file_picker.dart';
@@ -11,6 +12,42 @@ import 'package:pdfrx/pdfrx.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
+/// How the app shows a file, the same files the web shows next to the chat.
+enum FileKind {
+  pdf,
+  image,
+  markdown,
+  text;
+
+  /// By the file's `Content-Type`, and for Markdown by its name too, since not every browser reports a type for the
+  /// Markdown files it attaches. `null` if the app cannot show the file.
+  static FileKind? of({required String? contentType, String? fileName}) {
+    final type = (contentType ?? '').split(';').first.trim().toLowerCase();
+    final name = (fileName ?? '').toLowerCase();
+    return switch (type) {
+      'application/pdf' => pdf,
+      'image/png' || 'image/jpeg' || 'image/gif' || 'image/webp' => image,
+      'text/markdown' => markdown,
+      _ when name.endsWith('.md') || name.endsWith('.markdown') => markdown,
+      _ when type.startsWith('text/') => text,
+      _ => null,
+    };
+  }
+}
+
+/// Larger text attachments are saved instead of shown, like on the web.
+const _maxAttachmentTextBytes = 1024 * 1024;
+
+extension AttachmentKind on AttachmentDto {
+  /// Whether a tap shows the attachment in the app. Other files, and large text files, are saved instead, like the web
+  /// downloads them.
+  bool get canShow => switch (FileKind.of(contentType: contentType, fileName: fileName)) {
+    FileKind.pdf || FileKind.image => true,
+    FileKind.markdown || FileKind.text => size <= _maxAttachmentTextBytes,
+    null => false,
+  };
+}
+
 /// A downloaded file as it is shown: Markdown rendered, PDFs in a viewer, images zoomable, other text as it is.
 sealed class LoadedFile {
   const LoadedFile();
@@ -18,15 +55,14 @@ sealed class LoadedFile {
   /// Whether the content fills the rest of the page and scrolls itself, instead of scrolling with the page.
   bool get fillsPage => false;
 
-  /// By the file's `Content-Type`.
+  /// By its [FileKind].
   factory LoadedFile.of(FileDownload file) {
-    final type = (file.contentType ?? '').split(';').first.trim().toLowerCase();
-    return switch (type) {
-      'application/pdf' => PdfFile(file.content),
-      'image/png' || 'image/jpeg' || 'image/gif' || 'image/webp' => ImageFile(file.content),
-      'text/markdown' => MarkdownFile(utf8.decode(file.content, allowMalformed: true)),
-      _ when type.startsWith('text/') => TextFile(utf8.decode(file.content, allowMalformed: true)),
-      _ => const OtherFile(),
+    return switch (FileKind.of(contentType: file.contentType, fileName: file.fileName)) {
+      FileKind.pdf => PdfFile(file.content),
+      FileKind.image => ImageFile(file.content),
+      FileKind.markdown => MarkdownFile(utf8.decode(file.content, allowMalformed: true)),
+      FileKind.text => TextFile(utf8.decode(file.content, allowMalformed: true)),
+      null => const OtherFile(),
     };
   }
 }
@@ -109,7 +145,7 @@ class _CannotShow extends StatelessWidget {
   }
 }
 
-/// Saves [file] as [fileName] where the user chooses, or shows a snack bar if it cannot.
+/// Saves [file] as [fileName] with [saveDownload].
 class DownloadButton extends StatelessWidget {
   final FileDownload file;
   final String fileName;
@@ -122,22 +158,23 @@ class DownloadButton extends StatelessWidget {
     return IconButton(
       icon: const Icon(Icons.download),
       tooltip: context.t.base.common.download,
-      onPressed: () => _save(ref),
+      onPressed: () => saveDownload(ref, file, fileName),
     );
   }
+}
 
-  Future<void> _save(Ref ref) async {
-    // Without parameters like the charset, which Android's save dialog does not take.
-    final type = (file.contentType ?? '').split(';').first.trim();
-    try {
-      await FilePicker.saveFile(
-        fileName: fileName,
-        bytes: file.content,
-        mimeType: type.isEmpty ? 'application/octet-stream' : type,
-      );
-    } on PlatformException {
-      ref.global.dispatch(ShowSnackBarAction(message: t.flutter.chat.fileContent.saveFailed));
-    }
+/// Saves [file] as [fileName] where the user chooses, or shows a snack bar if it cannot.
+Future<void> saveDownload(Ref ref, FileDownload file, String fileName) async {
+  // Without parameters like the charset, which Android's save dialog does not take.
+  final type = (file.contentType ?? '').split(';').first.trim();
+  try {
+    await FilePicker.saveFile(
+      fileName: fileName,
+      bytes: file.content,
+      mimeType: type.isEmpty ? 'application/octet-stream' : type,
+    );
+  } on PlatformException {
+    ref.global.dispatch(ShowSnackBarAction(message: t.flutter.chat.fileContent.saveFailed));
   }
 }
 

@@ -2,14 +2,19 @@ import 'dart:async';
 
 import 'package:app/gen/strings.g.dart';
 import 'package:app/pages/attachment_page.dart';
+import 'package:app/service/api_service.dart';
 import 'package:app/service/chat_service.dart';
+import 'package:app/src/rust/api/error.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/attachment.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/widget/chat/attachment_label.dart';
 import 'package:app/widget/chat/edit_message_sheet.dart';
+import 'package:app/widget/chat/file_content.dart';
 import 'package:app/widget/confirm_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 enum _MessageAction { edit, retry }
 
@@ -74,7 +79,6 @@ class UserMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final ref = context.ref;
     final attachment = message.attachment;
     final canResend = context.watch(chatProvider.select((state) => state.canResend));
     return LayoutBuilder(
@@ -89,18 +93,7 @@ class UserMessage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               spacing: 8,
               children: [
-                if (attachment != null)
-                  FilledButton.tonalIcon(
-                    icon: const Icon(Icons.attach_file),
-                    label: AttachmentLabel(
-                      fileName: attachment.fileName,
-                      size: attachment.size,
-                      sizeColor: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.7),
-                    ),
-                    onPressed: () async {
-                      await ref.global.dispatchAsync(NavigateAction.push(AttachmentPage(attachment: attachment)));
-                    },
-                  ),
+                if (attachment != null) _AttachmentButton(messageId: message.id, attachment: attachment),
                 if (message.content.trim().isNotEmpty)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -118,6 +111,59 @@ class UserMessage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The file attached to a message. A tap shows it on its page, or, if the app cannot show it (see
+/// [AttachmentKind.canShow]), saves it where the user chooses, like the web shows the one and downloads the other.
+class _AttachmentButton extends StatefulWidget {
+  final UuidValue messageId;
+  final AttachmentDto attachment;
+
+  const _AttachmentButton({required this.messageId, required this.attachment});
+
+  @override
+  State<_AttachmentButton> createState() => _AttachmentButtonState();
+}
+
+class _AttachmentButtonState extends State<_AttachmentButton> {
+  /// While the file is loaded to save it.
+  bool _saving = false;
+
+  Future<void> _open() async {
+    final ref = context.ref;
+    final attachment = widget.attachment;
+    if (attachment.canShow) {
+      await ref.global.dispatchAsync(NavigateAction.push(AttachmentPage(attachment: attachment)));
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      final file = await ref.redux(apiProvider).dispatchAsyncTakeResult(ApiDownloadAttachmentAction(attachmentId: attachment.id));
+      await saveDownload(ref, file, attachment.fileName);
+    } on ClientError catch (e) {
+      ref.global.dispatch(ShowSnackBarAction(message: e.userMessage));
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return FilledButton.tonalIcon(
+      key: ValueKey('chat.message.${widget.messageId}.attachment'),
+      icon: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.attach_file),
+      label: AttachmentLabel(
+        fileName: widget.attachment.fileName,
+        size: widget.attachment.size,
+        sizeColor: theme.colorScheme.onSecondaryContainer.withValues(alpha: 0.7),
+      ),
+      onPressed: _saving ? null : _open,
     );
   }
 }
