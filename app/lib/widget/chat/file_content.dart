@@ -11,15 +11,19 @@ import 'package:pdfrx/pdfrx.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
-/// A downloaded file as it is shown: Markdown rendered, PDFs in a viewer, other text as it is.
+/// A downloaded file as it is shown: Markdown rendered, PDFs in a viewer, images zoomable, other text as it is.
 sealed class LoadedFile {
   const LoadedFile();
+
+  /// Whether the content fills the rest of the page and scrolls itself, instead of scrolling with the page.
+  bool get fillsPage => false;
 
   /// By the file's `Content-Type`.
   factory LoadedFile.of(FileDownload file) {
     final type = (file.contentType ?? '').split(';').first.trim().toLowerCase();
     return switch (type) {
       'application/pdf' => PdfFile(file.content),
+      'image/png' || 'image/jpeg' || 'image/gif' || 'image/webp' => ImageFile(file.content),
       'text/markdown' => MarkdownFile(utf8.decode(file.content, allowMalformed: true)),
       _ when type.startsWith('text/') => TextFile(utf8.decode(file.content, allowMalformed: true)),
       _ => const OtherFile(),
@@ -39,11 +43,23 @@ class TextFile extends LoadedFile {
   const TextFile(this.text);
 }
 
-/// Fills the rest of the page and scrolls itself.
 class PdfFile extends LoadedFile {
   final Uint8List content;
 
   const PdfFile(this.content);
+
+  @override
+  bool get fillsPage => true;
+}
+
+/// A PNG, JPEG, GIF or WebP image.
+class ImageFile extends LoadedFile {
+  final Uint8List content;
+
+  const ImageFile(this.content);
+
+  @override
+  bool get fillsPage => true;
 }
 
 /// A file of another type, which the app cannot show.
@@ -60,16 +76,36 @@ class FileContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return switch (file) {
       MarkdownFile(:final text) => MarkdownContent(content: text),
       TextFile(:final text) => CodeBlock(text: text),
       PdfFile(:final content) => PdfViewer.data(content, sourceName: sourceName),
-      OtherFile() => Text(
-        context.t.flutter.chat.fileContent.cannotShow,
-        style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+      ImageFile(:final content) => InteractiveViewer(
+        maxScale: 8,
+        child: SizedBox.expand(
+          child: Image.memory(
+            content,
+            fit: BoxFit.contain,
+            errorBuilder: (_, _, _) => const Center(child: _CannotShow()),
+          ),
+        ),
       ),
+      OtherFile() => const _CannotShow(),
     };
+  }
+}
+
+/// Says that the app cannot show the file.
+class _CannotShow extends StatelessWidget {
+  const _CannotShow();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(
+      context.t.flutter.chat.fileContent.cannotShow,
+      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+    );
   }
 }
 
@@ -119,7 +155,7 @@ class FileScaffold extends StatelessWidget {
   /// Below the page, e.g. an action that stays visible while the content scrolls.
   final Widget? footer;
 
-  /// Whether [child] fills the rest of the page and scrolls itself (e.g. a PDF viewer), instead of scrolling with the page.
+  /// Whether [child] fills the rest of the page and scrolls itself (see [LoadedFile.fillsPage]), instead of scrolling with the page.
   final bool fill;
 
   const FileScaffold({

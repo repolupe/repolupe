@@ -10,7 +10,7 @@ import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 /// The file the model showed with `present_file_to_user`, as it is at the call's commit:
-/// Markdown rendered, PDFs in a viewer, other text as it is. The download button saves it where the user chooses.
+/// Markdown rendered, PDFs in a viewer, images zoomable, other text as it is. The download button saves it where the user chooses.
 class PresentedFilePage extends StatefulWidget {
   final UuidValue chatId;
   final ToolCallSummaryDto toolCall;
@@ -75,7 +75,7 @@ class _PresentedFilePageState extends State<PresentedFilePage> with Refena {
             fileName: fileName(widget.path),
           ),
       ],
-      fill: _file is PdfFile,
+      fill: _file?.fillsPage ?? false,
       child: switch (_file) {
         final file? => FileContent(file: file, sourceName: widget.toolCall.id.toString()),
         null => null,

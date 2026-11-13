@@ -31,6 +31,18 @@ pub(crate) fn is_image(path: &str) -> bool {
     has_extension(path, EXTENSIONS)
 }
 
+/// The MIME type of the image file `content`, by its signature, or `None` if it is not in one
+/// of the formats of [`is_image`].
+pub(crate) fn mime_type(content: &[u8]) -> Option<&'static str> {
+    match ::image::guess_format(content).ok()? {
+        ::image::ImageFormat::Png => Some("image/png"),
+        ::image::ImageFormat::Jpeg => Some("image/jpeg"),
+        ::image::ImageFormat::Gif => Some("image/gif"),
+        ::image::ImageFormat::WebP => Some("image/webp"),
+        _ => None,
+    }
+}
+
 /// An image file as the model gets it.
 #[derive(Debug)]
 pub(crate) struct Prepared {
@@ -168,6 +180,21 @@ mod tests {
         assert!(!is_image("drawing.svg"));
         assert!(!is_image("photo.heic"));
         assert!(!is_image("png"));
+    }
+
+    #[test]
+    fn recognizes_formats_by_signature() {
+        assert_eq!(mime_type(&test_png(2, 2, false)), Some("image/png"));
+        assert_eq!(mime_type(b"\xff\xd8\xff\xe0"), Some("image/jpeg"));
+        assert_eq!(mime_type(b"GIF89a"), Some("image/gif"));
+        assert_eq!(mime_type(b"RIFF\0\0\0\0WEBPVP8 "), Some("image/webp"));
+        // An image, but not one the browsers and the app show
+        assert_eq!(mime_type(b"BM\0\0\0\0"), None);
+        assert_eq!(
+            mime_type(b"<svg xmlns=\"http://www.w3.org/2000/svg\"/>"),
+            None
+        );
+        assert_eq!(mime_type(b""), None);
     }
 
     #[test]

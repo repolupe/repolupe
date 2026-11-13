@@ -551,10 +551,11 @@ export interface FileContent {
 }
 
 /**
- * The file of a `present_file_to_user` call as it is in the repository (PDFs are the original
- * files), at the commit the answer read. The content type is `application/pdf`, `text/markdown` or
- * `text/plain`. `FILE_UNAVAILABLE` if it can no longer be read, `NOT_FOUND` if the repository is
- * gone or no longer shared with the user.
+ * The file of a `present_file_to_user` call as it is in the repository (PDFs and images are the
+ * original files), at the commit the answer read. The content type is `application/pdf`,
+ * `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `text/markdown` or `text/plain`.
+ * `FILE_UNAVAILABLE` if it can no longer be read, `NOT_FOUND` if the repository is gone or no longer
+ * shared with the user.
  */
 export async function getPresentedFile(chatId: string, toolCallId: string): Promise<FileContent> {
     const response = await fetchResponse({route: `chats/${chatId}/tool-calls/${toolCallId}/file`, method: 'GET'});

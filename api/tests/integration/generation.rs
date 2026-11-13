@@ -2,7 +2,7 @@ use super::mock_llm::{
     MODELS, MockLlm, error_response, gated, stalled_response, text_and_tool_use_response,
     text_response, tool_result, tool_use_response,
 };
-use super::support::{TestApp, read_events};
+use super::support::{TestApp, png, read_events};
 use axum::http::StatusCode;
 use serde_json::{Value, json};
 use sqlx::SqlitePool;
@@ -763,16 +763,26 @@ async fn shows_presented_files(db: SqlitePool) {
             "present_file_to_user",
             json!({"repository": "demo", "path": "docs/report.pdf"}),
         ),
-        text_response("Here are the guide and the report."),
+        tool_use_response(
+            "toolu_3",
+            "present_file_to_user",
+            json!({"repository": "demo", "path": "docs/photo.png"}),
+        ),
+        text_response("Here are the guide, the report and the photo."),
     ])
     .await;
     app.configure_llm(&llm).await;
     let pdf = "%PDF-1.4\n%%EOF\n";
+    let photo = png(3, 2);
     let repo = app
         .seed_repository(
             alice.user_id,
             "demo",
-            &[("docs/guide.md", "# Guide\n"), ("docs/report.pdf", pdf)],
+            &[
+                ("docs/guide.md", "# Guide\n".as_bytes()),
+                ("docs/report.pdf", pdf.as_bytes()),
+                ("docs/photo.png", &photo),
+            ],
         )
         .await;
 
@@ -780,7 +790,7 @@ async fn shows_presented_files(db: SqlitePool) {
         .post(
             "/api/v1/chats",
             json!({
-                "content": "Show me the guide and the report",
+                "content": "Show me the guide, the report and the photo",
                 "all_repositories": false,
                 "repository_ids": [repo.id],
             }),
@@ -791,9 +801,12 @@ async fn shows_presented_files(db: SqlitePool) {
     let answer = alice.wait_for_answer(chat_id).await;
     assert_eq!(answer["status"], "COMPLETED", "{answer}");
     // Presented before the answer, as the system prompt asks
-    assert_eq!(answer["content"], "Here are the guide and the report.");
+    assert_eq!(
+        answer["content"],
+        "Here are the guide, the report and the photo."
+    );
     let tool_calls = answer["tool_calls"].as_array().unwrap();
-    assert_eq!(tool_calls.len(), 2);
+    assert_eq!(tool_calls.len(), 3);
     let file_url = |tool_call: &Value| {
         assert_eq!(tool_call["name"], "present_file_to_user");
         assert_eq!(tool_call["status"], "COMPLETED", "{tool_call}");
@@ -817,6 +830,12 @@ async fn shows_presented_files(db: SqlitePool) {
     assert_eq!(status, StatusCode::OK);
     assert_eq!(content_type.as_deref(), Some("application/pdf"));
     assert_eq!(body, pdf.as_bytes());
+
+    // The image as it is
+    let (status, content_type, body) = alice.get_raw(&file_url(&tool_calls[2])).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(content_type.as_deref(), Some("image/png"));
+    assert_eq!(body, photo);
 
     // Only the user of the chat sees it
     let bob = app.user("bob@example.com").await;

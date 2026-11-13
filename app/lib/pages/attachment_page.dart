@@ -6,7 +6,7 @@ import 'package:app/widget/chat/file_content.dart';
 import 'package:flutter/material.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
-/// A file the user attached to a message: Markdown rendered, PDFs in a viewer, other text as it is.
+/// A file the user attached to a message: Markdown rendered, PDFs in a viewer, images zoomable, other text as it is.
 /// The download button saves it where the user chooses.
 class AttachmentPage extends StatefulWidget {
   final AttachmentDto attachment;
@@ -67,7 +67,7 @@ class _AttachmentPageState extends State<AttachmentPage> with Refena {
             fileName: widget.attachment.fileName,
           ),
       ],
-      fill: _file is PdfFile,
+      fill: _file?.fillsPage ?? false,
       child: switch (_file) {
         final file? => FileContent(file: file, sourceName: widget.attachment.id.toString()),
         null => null,

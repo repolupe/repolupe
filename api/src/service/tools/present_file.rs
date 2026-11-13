@@ -9,6 +9,7 @@ use crate::config::error::AppError;
 use crate::config::state::DatabasePool;
 use crate::dto::error::ErrorCode;
 use crate::service::extraction;
+use crate::service::image::{self, ImageError};
 use crate::service::llm::ToolDefinition;
 use crate::service::mirror::{Content, PathEntry};
 use serde::Deserialize;
@@ -23,8 +24,8 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
         description: "Show a file to the user. It appears below your answer as a button \
             that opens the file, so you don't need to copy its content into the answer. \
             Use it when the user wants to see or get a file, or when a file is what they \
-            are looking for. Call it before writing your answer. Text files and PDFs can \
-            be shown."
+            are looking for. Call it before writing your answer. Text files, PDFs and \
+            images can be shown."
             .to_string(),
         input_schema: json!({
             "type": "object",
@@ -91,28 +92,47 @@ pub(crate) async fn read_presented_file(
 }
 
 /// Documents are the original files, not the Markdown converted from them, so they can be
-/// shown even if they could not be converted.
+/// shown even if they could not be converted. Images are the files as they are too, not scaled
+/// down like the ones the model looks at.
 async fn load_presented_file(
     repository: &ToolRepository,
     db: &DatabasePool,
     path: &str,
 ) -> Result<PresentedFile, ToolError> {
-    if let Some(mime_type) = extraction::mime_type(path)
+    let document_type = extraction::mime_type(path);
+    if (document_type.is_some() || image::is_image(path))
         && let PathEntry::Blob { oid, .. } = repository.snapshot.entry(path).await?
     {
-        return match repository.snapshot.read(&oid, MAX_PRESENT_BYTES).await? {
-            Content::Bytes(content) => Ok(PresentedFile {
-                content,
-                content_type: mime_type,
-            }),
-            Content::TooLarge(_) => Err(ToolError::Invalid(format!(
-                "`{path}` is too large to show."
-            ))),
+        let content = match repository.snapshot.read(&oid, MAX_PRESENT_BYTES).await? {
+            Content::Bytes(content) => content,
+            Content::TooLarge(_) => {
+                return Err(ToolError::Invalid(format!(
+                    "`{path}` is too large to show."
+                )));
+            }
             // The sync downloads documents, unless they could not be downloaded yet.
-            Content::Unavailable => Err(ToolError::Invalid(format!(
-                "`{path}` is not available yet."
-            ))),
+            Content::Unavailable if document_type.is_some() => {
+                return Err(ToolError::Invalid(format!(
+                    "`{path}` is not available yet."
+                )));
+            }
+            // Large images in LFS are not downloaded.
+            Content::Unavailable => {
+                return Err(ToolError::Invalid(format!(
+                    "`{path}` can't be shown, its content was not downloaded."
+                )));
+            }
         };
+        let content_type = match document_type {
+            Some(document_type) => document_type,
+            None => image::mime_type(&content).ok_or_else(|| {
+                ToolError::Invalid(format!("`{path}` can't be shown. {}.", ImageError::Invalid))
+            })?,
+        };
+        return Ok(PresentedFile {
+            content,
+            content_type,
+        });
     }
     // Text files, and the errors for paths that are not files.
     let content = read_text(repository, db, path).await?.content;
@@ -130,6 +150,7 @@ async fn load_presented_file(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::service::image::test_png;
     use crate::service::tools::support::fixture::{Fixture, GUIDE, docs};
 
     #[tokio::test]
@@ -140,12 +161,6 @@ mod tests {
                 .ok(PRESENT_FILE, json!({"path": "./docs/guide.md"}))
                 .await,
             "`docs/guide.md` is shown to the user as a button below your answer that opens the file."
-        );
-        assert_eq!(
-            fixture
-                .error(PRESENT_FILE, json!({"path": "logo.png"}))
-                .await,
-            "`logo.png` is a binary file and can't be shown."
         );
 
         // Its LFS object was not downloaded.
@@ -180,5 +195,43 @@ mod tests {
             .unwrap();
         assert_eq!(file.content, pdf);
         assert_eq!(file.content_type, "application/pdf");
+    }
+
+    #[tokio::test]
+    async fn presents_images() {
+        // Larger than the model looks at, and named unlike its format
+        let png = test_png(2000, 1000, false);
+        let fixture = Fixture::new(&[
+            ("img/Photo.JPG", &png),
+            ("broken.gif", b"GIF"),
+            ("font.woff2", b"wOF2\0\0"),
+        ]);
+        assert_eq!(
+            fixture
+                .ok(PRESENT_FILE, json!({"path": "img/Photo.JPG"}))
+                .await,
+            "`img/Photo.JPG` is shown to the user as a button below your answer that opens the file."
+        );
+        assert_eq!(
+            fixture
+                .error(PRESENT_FILE, json!({"path": "broken.gif"}))
+                .await,
+            "`broken.gif` can't be shown. It is not a valid PNG, JPEG, GIF or WebP image."
+        );
+        // Other binary files still can't be shown
+        assert_eq!(
+            fixture
+                .error(PRESENT_FILE, json!({"path": "font.woff2"}))
+                .await,
+            "`font.woff2` is a binary file and can't be shown."
+        );
+
+        // The file as it is
+        let repository = &fixture.tools.repositories()[0];
+        let file = read_presented_file(repository, &fixture.tools.db, "img/Photo.JPG")
+            .await
+            .unwrap();
+        assert_eq!(file.content, png);
+        assert_eq!(file.content_type, "image/png");
     }
 }

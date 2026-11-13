@@ -469,7 +469,7 @@ pub(crate) async fn get_tool_call(
 }
 
 /// The file of a successful `present_file_to_user` call as it is in the repository (documents
-/// like PDFs are the original files), at the commit the answer read. Like the chat itself, it is
+/// like PDFs and images are the original files), at the commit the answer read. Like the chat itself, it is
 /// only available while the user can still read the repository.
 pub(crate) async fn get_presented_file(
     State(state): State<AppState>,

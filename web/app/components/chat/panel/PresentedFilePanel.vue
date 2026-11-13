@@ -7,6 +7,7 @@
     </template>
 
     <iframe v-if="file?.kind === 'pdf'" :src="file.url" :title="path" class="file-pdf"/>
+    <img v-else-if="file?.kind === 'image'" :src="file.url" :alt="path" class="file-image pa-4">
     <MarkdownContent v-else-if="file?.kind === 'markdown'" :content="file.text" class="text-body-1 pa-4"/>
     <pre v-else-if="file" class="file-text ma-4">{{ file.text }}</pre>
   </ToolCallPanel>
@@ -31,9 +32,10 @@ const emit = defineEmits<{
   (e: 'close'): void,
 }>();
 
-/** The file as it is shown. `url` is an object URL of its content, for the PDF viewer and the download. */
+/** The file as it is shown. `url` is an object URL of its content, for the PDF viewer, the image and the download. */
 type LoadedFile =
     | { kind: 'pdf', url: string }
+    | { kind: 'image', url: string }
     | { kind: 'markdown' | 'text', url: string, text: string };
 
 const file = ref<LoadedFile | null>(null);
@@ -57,9 +59,10 @@ const fetchFile = async () => {
   try {
     const {contentType, blob} = await getPresentedFile(props.chatId, id);
     const type = contentType.split(';')[0]!.trim().toLowerCase();
-    const loaded: LoadedFile = type === 'application/pdf'
-        ? {kind: 'pdf', url: URL.createObjectURL(blob)}
-        : {kind: type === 'text/markdown' ? 'markdown' : 'text', url: URL.createObjectURL(blob), text: await blob.text()};
+    const url = URL.createObjectURL(blob);
+    const loaded: LoadedFile = type === 'application/pdf' ? {kind: 'pdf', url}
+        : type.startsWith('image/') ? {kind: 'image', url}
+        : {kind: type === 'text/markdown' ? 'markdown' : 'text', url, text: await blob.text()};
     if (props.toolCall.id === id) {
       setFile(loaded);
     } else {
@@ -78,7 +81,7 @@ const fetchFile = async () => {
 
 watch(() => props.toolCall.id, fetchFile, {immediate: true});
 
-// PDFs can be large
+// PDFs and images can be large
 onBeforeUnmount(() => setFile(null));
 </script>
 
@@ -92,6 +95,14 @@ onBeforeUnmount(() => setFile(null));
   padding: 10px 12px;
   overflow: auto;
   white-space: pre;
+}
+
+/* As large as it is, scaled down to the width of the panel. */
+.file-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
 }
 
 .file-pdf {

@@ -33,8 +33,11 @@ final _toolCall = ToolCallSummaryDto(
   createdAt: DateTime.utc(2026, 10, 21, 12),
 );
 
-/// Opens the page of the `present_file_to_user` call, which loads `# Guide` as Markdown.
-Future<void> _openPage(WidgetTester tester) async {
+/// A PNG of one pixel.
+final _png = base64Decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+
+/// Opens the page of the `present_file_to_user` call, which loads [file], by default `# Guide` as Markdown.
+Future<void> _openPage(WidgetTester tester, {FileDownload? file}) async {
   final container = (await tester.runAsync(
     () => mockContainer(
       account: fakeAccount(userId: _userId),
@@ -42,7 +45,7 @@ Future<void> _openPage(WidgetTester tester) async {
         mock.on<ApiGetPresentedFileAction>(
           (state, _) => (
             state,
-            FileDownload(content: Uint8List.fromList(utf8.encode('# Guide')), contentType: 'text/markdown; charset=utf-8'),
+            file ?? FileDownload(content: Uint8List.fromList(utf8.encode('# Guide')), contentType: 'text/markdown; charset=utf-8'),
           ),
         );
       },
@@ -82,6 +85,23 @@ void main() {
     expect(name, 'README.md');
     expect(utf8.decode(bytes), '# Guide');
     expect(mimeType, 'text/markdown');
+  });
+
+  testWidgets('an image is shown and saved as it is', (tester) async {
+    final picker = FakeFilePicker();
+    FilePickerPlatform.instance = picker;
+
+    await _openPage(tester, file: FileDownload(content: _png, contentType: 'image/png'));
+    final image = tester.widget<Image>(find.descendant(of: find.byType(InteractiveViewer), matching: find.byType(Image)));
+    expect((image.image as MemoryImage).bytes, _png);
+    expect(find.text('This file cannot be shown in the app.'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('presentedFile.download')));
+    await tester.pump();
+
+    final (_, bytes, mimeType) = picker.saved.single;
+    expect(bytes, _png);
+    expect(mimeType, 'image/png');
   });
 
   testWidgets('a failed save shows a snack bar', (tester) async {

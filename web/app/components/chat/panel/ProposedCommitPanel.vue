@@ -1,6 +1,6 @@
 <template>
   <ToolCallPanel :icon="CHANGE_ICONS[props.toolCall.name] ?? 'mdi-pencil-outline'" :tool-call="props.toolCall"
-                 :repositories="props.repositories" :fetching="fetching" :error="error" :fill="!!pdfUrl"
+                 :repositories="props.repositories" :fetching="fetching" :error="error" :fill="preview?.kind === 'pdf'"
                  :title="subject" @close="emit('close')">
     <template v-slot:title-append>
       <v-chip v-if="change && applied" color="success" size="small" variant="tonal"
@@ -20,7 +20,7 @@
       </v-menu>
     </template>
 
-    <div v-if="diff" class="d-flex flex-column ga-4 pa-4" :class="{'pdf-layout': pdfUrl}">
+    <div v-if="diff" class="d-flex flex-column ga-4 pa-4" :class="{'pdf-layout': preview?.kind === 'pdf'}">
       <p v-if="body" class="text-body-2 text-medium-emphasis commit-body">{{ body }}</p>
 
       <v-alert v-if="change?.error" :type="change.status === ProposedCommitStatus.CONFLICT ? 'warning' : 'error'"
@@ -68,7 +68,8 @@
           </template>
         </div>
       </div>
-      <iframe v-else-if="pdfUrl" :src="pdfUrl" :title="path" class="file-pdf"/>
+      <iframe v-else-if="preview?.kind === 'pdf'" :src="preview.url" :title="path" class="file-pdf"/>
+      <img v-else-if="preview" :src="preview.url" :alt="path" class="file-image">
       <p v-else-if="diff.kind !== DiffFileKind.DELETED && !diff.moves" class="text-body-2 text-medium-emphasis">
         {{ previewError ?? $t('chat.proposedCommitPanel.noPreview') }}
       </p>
@@ -148,9 +149,14 @@ const lineText = (line: DiffLineDto) => line.parts.map(part => part.text).join('
 const diff = ref<FileDiffDto | null>(null);
 /** Whether it was committed. */
 const change = ref<ProposedCommitDto | null>(null);
-/** An object URL of the proposed file if it is a PDF, which the patch has no diff of. */
-const pdfUrl = ref<string | null>(null);
-/** Why the PDF can't be shown. */
+/** The proposed file if it is a PDF or an image, which the patch has no diff of. `url` is an object URL of its content. */
+type Preview = { kind: 'pdf' | 'image', url: string };
+
+/** Extensions of the files that are shown instead of a diff, as `present_file_to_user` shows them. */
+const PREVIEW_EXTENSIONS = /\.(pdf|png|jpe?g|gif|webp)$/i;
+
+const preview = ref<Preview | null>(null);
+/** Why the file can't be shown. */
 const previewError = ref<string | null>(null);
 const error = ref<string | null>(null);
 const fetching = ref(false);
@@ -173,20 +179,22 @@ const message = computed(() => {
 const subject = computed(() => message.value.split('\n')[0] ?? '');
 const body = computed(() => message.value.split('\n').slice(1).join('\n').trim());
 
-const setPdfUrl = (url: string | null) => {
-  if (pdfUrl.value) {
-    URL.revokeObjectURL(pdfUrl.value);
+const setPreview = (value: Preview | null) => {
+  if (preview.value) {
+    URL.revokeObjectURL(preview.value.url);
   }
-  pdfUrl.value = url;
+  preview.value = value;
 };
 
-/** The proposed PDF as an object URL, or why it can't be shown. */
-const fetchPdf = async (id: string): Promise<{ url: string | null, error: string | null }> => {
+/** The proposed PDF or image, or why it can't be shown. */
+const fetchPreview = async (id: string): Promise<{ preview: Preview | null, error: string | null }> => {
   try {
-    const {blob} = await getProposedCommitFile(props.chatId, id);
-    return {url: URL.createObjectURL(blob), error: null};
+    const {contentType, blob} = await getProposedCommitFile(props.chatId, id);
+    const type = contentType.split(';')[0]!.trim().toLowerCase();
+    const kind = type === 'application/pdf' ? 'pdf' : type.startsWith('image/') ? 'image' : null;
+    return {preview: kind ? {kind, url: URL.createObjectURL(blob)} : null, error: null};
   } catch (e) {
-    return {url: null, error: errorMessage(e)};
+    return {preview: null, error: errorMessage(e)};
   }
 };
 
@@ -194,7 +202,7 @@ const fetchDiff = async () => {
   const id = props.toolCall.id;
   diff.value = null;
   change.value = null;
-  setPdfUrl(null);
+  setPreview(null);
   previewError.value = null;
   error.value = null;
   fetching.value = true;
@@ -203,17 +211,17 @@ const fetchDiff = async () => {
       getProposedCommitDiff(props.chatId, id),
       getProposedCommit(props.chatId, id),
     ]);
-    const pdf = loadedDiff.hunks.length === 0 && loadedDiff.kind !== DiffFileKind.DELETED
-    && !!loadedChange.path?.toLowerCase().endsWith('.pdf')
-        ? await fetchPdf(id)
+    const loaded = loadedDiff.hunks.length === 0 && loadedDiff.kind !== DiffFileKind.DELETED
+    && PREVIEW_EXTENSIONS.test(loadedChange.path ?? '')
+        ? await fetchPreview(id)
         : null;
     if (props.toolCall.id === id) {
       diff.value = loadedDiff;
       change.value = loadedChange;
-      setPdfUrl(pdf?.url ?? null);
-      previewError.value = pdf?.error ?? null;
-    } else if (pdf?.url) {
-      URL.revokeObjectURL(pdf.url);
+      setPreview(loaded?.preview ?? null);
+      previewError.value = loaded?.error ?? null;
+    } else if (loaded?.preview) {
+      URL.revokeObjectURL(loaded.preview.url);
     }
   } catch (e) {
     if (props.toolCall.id === id) {
@@ -285,8 +293,8 @@ const download = async () => {
 
 watch(() => props.toolCall.id, fetchDiff, {immediate: true});
 
-// PDFs can be large
-onBeforeUnmount(() => setPdfUrl(null));
+// PDFs and images can be large
+onBeforeUnmount(() => setPreview(null));
 </script>
 
 <style scoped>
@@ -397,6 +405,16 @@ onBeforeUnmount(() => setPdfUrl(null));
   flex: 1;
   width: 100%;
   min-height: 0;
+  border: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 8px;
+}
+
+/* As large as it is, scaled down to the width of the panel. */
+.file-image {
+  display: block;
+  align-self: center;
+  max-width: 100%;
+  height: auto;
   border: thin solid rgba(var(--v-border-color), var(--v-border-opacity));
   border-radius: 8px;
 }
