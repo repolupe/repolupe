@@ -36,6 +36,7 @@
       "cameraFailed": "Máy ảnh không khả dụng."
     },
     "assistantMessage": {
+      "noTools": "Không có công cụ",
       "fitTables": "Co bảng cho vừa chiều rộng",
       "scrollTables": "Cuộn ngang các bảng rộng"
     },

@@ -36,6 +36,7 @@
       "cameraFailed": "Die Kamera ist nicht verfügbar."
     },
     "assistantMessage": {
+      "noTools": "Keine Tools",
       "fitTables": "Tabellen an die Breite anpassen",
       "scrollTables": "Breite Tabellen scrollen"
     },

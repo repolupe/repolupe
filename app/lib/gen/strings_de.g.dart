@@ -2168,6 +2168,8 @@ class _Translations$flutter$chat$assistantMessage$de extends Translations$flutte
 
   // Translations
   @override
+  String get noTools => 'Keine Tools';
+  @override
   String get fitTables => 'Tabellen an die Breite anpassen';
   @override
   String get scrollTables => 'Breite Tabellen scrollen';

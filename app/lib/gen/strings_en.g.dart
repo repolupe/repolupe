@@ -2616,6 +2616,9 @@ class Translations$flutter$chat$assistantMessage$en {
 
   // Translations
 
+  /// en: 'No Tools'
+  String get noTools => 'No Tools';
+
   /// en: 'Fit tables to the width'
   String get fitTables => 'Fit tables to the width';
 

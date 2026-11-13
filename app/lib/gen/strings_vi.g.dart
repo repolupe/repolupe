@@ -2166,6 +2166,8 @@ class _Translations$flutter$chat$assistantMessage$vi extends Translations$flutte
 
   // Translations
   @override
+  String get noTools => 'Không có công cụ';
+  @override
   String get fitTables => 'Co bảng cho vừa chiều rộng';
   @override
   String get scrollTables => 'Cuộn ngang các bảng rộng';

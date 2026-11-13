@@ -139,6 +139,8 @@ void main() {
 
     // The raw answer is stored once the answer is finished.
     expect(find.byKey(ValueKey('chat.message.${generating.id}.menu')), findsNothing);
+    // Neither answer used a tool, which only the finished one says, as the other may still use one.
+    expect(find.text('No Tools'), findsOneWidget);
 
     await tester.tap(find.byKey(ValueKey('chat.message.${answer.id}.menu')));
     await tester.pump();

@@ -12,6 +12,7 @@ import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 /// The tool calls of an answer, collapsed into how many there were; tapping it lists them in a [ToolCallSheet].
+/// Without any, it says so and can't be tapped.
 class ToolCallList extends StatelessWidget {
   final UuidValue chatId;
   final UuidValue messageId;
@@ -27,17 +28,22 @@ class ToolCallList extends StatelessWidget {
     return TextButton(
       style: TextButton.styleFrom(
         foregroundColor: muted,
+        disabledForegroundColor: muted,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         minimumSize: const Size(0, 32),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
-      onPressed: () => ToolCallSheet.show(context, chatId: chatId, messageId: messageId, toolCalls: toolCalls),
+      onPressed: toolCalls.isEmpty ? null : () => ToolCallSheet.show(context, chatId: chatId, messageId: messageId, toolCalls: toolCalls),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (running) const ToolCallStatusIcon(status: ToolCallStatus.running) else Icon(Icons.handyman_outlined, size: 16, color: muted),
           const SizedBox(width: 8),
-          Text(context.t.base.chat.assistantMessage.toolCount(count: toolCalls.length)),
+          Text(
+            toolCalls.isEmpty
+                ? context.t.flutter.chat.assistantMessage.noTools
+                : context.t.base.chat.assistantMessage.toolCount(count: toolCalls.length),
+          ),
         ],
       ),
     );

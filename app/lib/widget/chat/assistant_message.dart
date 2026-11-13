@@ -19,9 +19,9 @@ import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-/// An answer, with the tools it used above it (and right after them its menu, once it is finished), and below it the
-/// files the model showed and the changes it proposed (each opening a page), the model that wrote it, how long it took
-/// and what it cost (like the web's).
+/// An answer, with the tools it used above it (and right after them its menu, once it is finished, when it also says
+/// if it used none), and below it the files the model showed and the changes it proposed (each opening a page), the
+/// model that wrote it, how long it took and what it cost (like the web's).
 class AssistantMessage extends StatefulWidget {
   final UuidValue chatId;
   final MessageDto message;
@@ -167,7 +167,7 @@ class _AssistantMessageState extends State<AssistantMessage> {
             padding: padding,
             child: Row(
               children: [
-                if (message.toolCalls.isNotEmpty) ToolCallList(chatId: widget.chatId, messageId: message.id, toolCalls: message.toolCalls),
+                ToolCallList(chatId: widget.chatId, messageId: message.id, toolCalls: message.toolCalls),
                 if (menu)
                   _AnswerMenu(
                     chatId: widget.chatId,

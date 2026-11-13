@@ -36,6 +36,7 @@
       "cameraFailed": "The camera is not available."
     },
     "assistantMessage": {
+      "noTools": "No Tools",
       "fitTables": "Fit tables to the width",
       "scrollTables": "Scroll wide tables"
     },
