@@ -32,6 +32,10 @@ pub const OCR_ENGINE: &str = "OCR_ENGINE";
 pub const OCR_LANGUAGES: &str = "OCR_LANGUAGES";
 /// [`RuntimeConfig::ocr_scan_confidence`].
 pub const OCR_SCAN_CONFIDENCE: &str = "OCR_SCAN_CONFIDENCE";
+/// [`RuntimeConfig::usage_visibility`].
+pub const USAGE_VISIBILITY: &str = "USAGE_VISIBILITY";
+/// [`RuntimeConfig::cost_visibility`].
+pub const COST_VISIBILITY: &str = "COST_VISIBILITY";
 
 /// A file in the working directory, created if missing.
 pub const DEFAULT_DATABASE_URL: &str = "sqlite:rp.db";
@@ -171,6 +175,7 @@ fn env_var(key: &str) -> Option<String> {
 mod tests {
     use super::*;
     use crate::config::init::OcrEngine;
+    use crate::config::runtime::Visibility;
 
     fn vars(vars: &[(&str, &str)]) -> impl Fn(&str) -> Option<String> {
         let vars: BTreeMap<String, String> = vars
@@ -212,18 +217,22 @@ mod tests {
             (OCR_API_KEY_MISTRAL, "key"),
             (OCR_ENGINE, "mistral"),
             (OCR_SCAN_CONFIDENCE, "0.7"),
+            (COST_VISIBILITY, "admin"),
         ]))
         .unwrap();
         assert_eq!(config.repos_dir, PathBuf::from("/data/repos"));
         assert_eq!(config.ocr_api_key_mistral.as_deref(), Some("key"));
         assert_eq!(config.runtime.ocr_engine, Some(OcrEngine::Mistral));
         assert_eq!(config.runtime.ocr_scan_confidence, 0.7);
+        assert_eq!(config.runtime.cost_visibility, Visibility::Admin);
+        assert_eq!(config.runtime.usage_visibility, Visibility::All);
         let set = |value: &str| Some(value.to_string());
         assert_eq!(
             config.to_env_map(),
             BTreeMap::from([
                 (ADMIN_PASSWORD.to_string(), set(SECRET_MASK)),
                 (ATTACHMENTS_DIR.to_string(), set("/data/attachments")),
+                (COST_VISIBILITY.to_string(), set("admin")),
                 (DATABASE_URL.to_string(), set(SECRET_MASK)),
                 (DEBUG_API.to_string(), set("true")),
                 (FRONTEND_DIR.to_string(), set("/frontend")),
@@ -234,6 +243,7 @@ mod tests {
                 (OCR_SCAN_CONFIDENCE.to_string(), set("0.7")),
                 (REPOS_DIR.to_string(), set("/data/repos")),
                 (TOKEN_ENCRYPTION_KEY.to_string(), set(SECRET_MASK)),
+                (USAGE_VISIBILITY.to_string(), set("all")),
             ])
         );
 
@@ -253,6 +263,7 @@ mod tests {
                 (TOKEN_ENCRYPTION_KEY, "secret"),
                 (OCR_SCAN_CONFIDENCE, "70%"),
             ],
+            vec![(TOKEN_ENCRYPTION_KEY, "secret"), (USAGE_VISIBILITY, "none")],
         ] {
             assert!(Config::from_vars(vars(&invalid)).is_err(), "{invalid:?}");
         }

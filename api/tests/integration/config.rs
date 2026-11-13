@@ -35,6 +35,7 @@ async fn admin_overrides_runtime_config(db: SqlitePool) {
         json!([
             entry("ADMIN_PASSWORD", None, false),
             entry("ATTACHMENTS_DIR", Some(&attachments_dir), false),
+            entry("COST_VISIBILITY", Some("all"), true),
             entry("DATABASE_URL", Some("******"), false),
             entry("DEBUG_API", Some("false"), false),
             entry("FRONTEND_DIR", None, false),
@@ -45,6 +46,7 @@ async fn admin_overrides_runtime_config(db: SqlitePool) {
             entry("OCR_SCAN_CONFIDENCE", Some("0.5"), true),
             entry("REPOS_DIR", Some(&repos_dir), false),
             entry("TOKEN_ENCRYPTION_KEY", Some("******"), false),
+            entry("USAGE_VISIBILITY", Some("all"), true),
         ])
     );
 
@@ -59,7 +61,7 @@ async fn admin_overrides_runtime_config(db: SqlitePool) {
         overrides(&body),
         json!({"INSTANCE_NAME": "Acme", "OCR_LANGUAGES": "deu,eng", "OCR_SCAN_CONFIDENCE": "0.7"})
     );
-    assert_eq!(body[5]["env"], INSTANCE_NAME);
+    assert_eq!(body[6]["env"], INSTANCE_NAME);
     let (_, fetched) = admin.get("/api/v1/config").await;
     assert_eq!(fetched, body);
     // Applied without a restart
@@ -121,6 +123,8 @@ async fn invalid_config_is_rejected(db: SqlitePool) {
         // Without OCR_API_KEY_MISTRAL
         json!({"OCR_ENGINE": "mistral"}),
         json!({"OCR_LANGUAGES": "../eng"}),
+        json!({"COST_VISIBILITY": "none"}),
+        json!({"USAGE_VISIBILITY": "ADMIN"}),
         json!({"DEBUG_API": true}),
         json!(["INSTANCE_NAME"]),
     ] {

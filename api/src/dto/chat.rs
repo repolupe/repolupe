@@ -96,17 +96,17 @@ pub struct MessageDto {
     /// When the answer reached its final status, `null` for user messages, while `GENERATING`,
     /// or if it was interrupted by a restart.
     pub finished_at: Option<DateTime<Utc>>,
-    /// Tokens used for the answer, `null` for user messages or if unknown. While `GENERATING`,
-    /// only the message stream has them: the tokens so far, `null` before the first response of
-    /// the language model.
+    /// Tokens used for the answer, `null` for user messages, if unknown, or if hidden from the
+    /// user (`USAGE_VISIBILITY`). While `GENERATING`, only the message stream has them: the
+    /// tokens so far, `null` before the first response of the language model.
     pub usage: Option<UsageDto>,
     /// How long the responses of the language model took in milliseconds, from sending each
     /// request to its last token, summed over the tool loop. Unlike `finished_at`, without the
     /// time tools ran. Like `usage`, of the responses so far while `GENERATING`; `null` if the
-    /// usage is unknown.
+    /// usage is unknown, but not if it is only hidden.
     pub response_ms: Option<i64>,
-    /// At the prices when the answer finished, `null` if the model had no prices or the usage
-    /// is unknown.
+    /// At the prices when the answer finished, `null` if the model had no prices, the usage is
+    /// unknown, or it is hidden from the user (`COST_VISIBILITY`, or along with the usage).
     pub cost: Option<CostDto>,
     /// The file sent with a user message, `null` if none.
     pub attachment: Option<AttachmentDto>,
@@ -430,13 +430,14 @@ pub struct ContentDeltaDto {
 }
 
 /// The `usage` event of `GET .../messages/{id}/stream`, sent after each response of the language
-/// model: the tokens used so far, not only by that response.
+/// model: the tokens used so far, not only by that response. Not sent to users the usage is
+/// hidden from, see [`MessageDto::usage`].
 #[derive(Serialize, Deserialize)]
 pub struct UsageUpdateDto {
     pub usage: UsageDto,
     /// How long the responses so far took in milliseconds, see [`MessageDto::response_ms`].
     pub response_ms: i64,
-    /// `null` if the model has no prices.
+    /// `null` if the model has no prices, or if it is hidden from the user.
     pub cost: Option<CostDto>,
 }
 

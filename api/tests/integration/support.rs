@@ -210,6 +210,26 @@ impl TestApp {
         }
     }
 
+    /// Gives `mock-model` prices: 3 per million input tokens and 15.50 per million output
+    /// tokens, so a response of 1 input and 1 output token costs 0.0000185. Returns the model.
+    pub async fn set_prices(&self, llm: &ConfiguredLlm) -> Value {
+        let (status, model) = self
+            .admin
+            .post(
+                &format!("/api/v1/models/{}/update", llm.model_id),
+                json!({"api_name": "mock-model", "display_name": "Mock Model", "input_price": "3", "output_price": "15.50"}),
+            )
+            .await;
+        assert_eq!(status, StatusCode::OK, "{model}");
+        model
+    }
+
+    /// Replaces the overrides of the runtime config, like an admin with `POST /api/v1/config`.
+    pub async fn set_config(&self, overrides: Value) {
+        let (status, body) = self.admin.post("/api/v1/config", overrides).await;
+        assert_eq!(status, StatusCode::OK, "{body}");
+    }
+
     /// Creates a repository of `user_id` with `files` committed on `main`, in the state a
     /// successful sync leaves: a bare repository in its directory, and the row `READY` at
     /// that commit. Nothing is fetched, the remote URL is a placeholder.

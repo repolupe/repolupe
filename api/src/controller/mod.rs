@@ -15,6 +15,7 @@ pub(crate) mod server;
 pub(crate) mod user;
 
 use crate::config::error::AppError;
+use crate::config::runtime::UsageAccess;
 use crate::config::state::AppState;
 use crate::dto::attachment::AttachmentDto;
 use crate::dto::chat::{
@@ -381,7 +382,12 @@ impl From<model::attachment::Attachment> for AttachmentDto {
 }
 
 impl MessageDto {
-    pub(crate) fn new(message: model::message::Message, tool_calls: Vec<ToolCallSummary>) -> Self {
+    /// Without the usage and the cost the user may not see, as given by `access`.
+    pub(crate) fn new(
+        message: model::message::Message,
+        tool_calls: Vec<ToolCallSummary>,
+        access: UsageAccess,
+    ) -> Self {
         let usage = match (
             message.input_tokens,
             message.output_tokens,
@@ -429,9 +435,9 @@ impl MessageDto {
             tool_calls: tool_calls.into_iter().map(Into::into).collect(),
             created_at: message.created_at,
             finished_at: message.finished_at,
-            usage,
+            usage: usage.filter(|_| access.usage),
             response_ms: message.response_ms,
-            cost,
+            cost: cost.filter(|_| access.cost),
             attachment: None,
         }
     }

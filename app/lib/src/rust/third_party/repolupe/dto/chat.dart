@@ -396,19 +396,19 @@ class MessageDto {
   /// or if it was interrupted by a restart.
   final DateTime? finishedAt;
 
-  /// Tokens used for the answer, `null` for user messages or if unknown. While `GENERATING`,
-  /// only the message stream has them: the tokens so far, `null` before the first response of
-  /// the language model.
+  /// Tokens used for the answer, `null` for user messages, if unknown, or if hidden from the
+  /// user (`USAGE_VISIBILITY`). While `GENERATING`, only the message stream has them: the
+  /// tokens so far, `null` before the first response of the language model.
   final UsageDto? usage;
 
   /// How long the responses of the language model took in milliseconds, from sending each
   /// request to its last token, summed over the tool loop. Unlike `finished_at`, without the
   /// time tools ran. Like `usage`, of the responses so far while `GENERATING`; `null` if the
-  /// usage is unknown.
+  /// usage is unknown, but not if it is only hidden.
   final PlatformInt64? responseMs;
 
-  /// At the prices when the answer finished, `null` if the model had no prices or the usage
-  /// is unknown.
+  /// At the prices when the answer finished, `null` if the model had no prices, the usage is
+  /// unknown, or it is hidden from the user (`COST_VISIBILITY`, or along with the usage).
   final CostDto? cost;
 
   /// The file sent with a user message, `null` if none.
@@ -880,14 +880,15 @@ class UsageDto {
 }
 
 /// The `usage` event of `GET .../messages/{id}/stream`, sent after each response of the language
-/// model: the tokens used so far, not only by that response.
+/// model: the tokens used so far, not only by that response. Not sent to users the usage is
+/// hidden from, see [`MessageDto::usage`].
 class UsageUpdateDto {
   final UsageDto usage;
 
   /// How long the responses so far took in milliseconds, see [`MessageDto::response_ms`].
   final PlatformInt64 responseMs;
 
-  /// `null` if the model has no prices.
+  /// `null` if the model has no prices, or if it is hidden from the user.
   final CostDto? cost;
 
   const UsageUpdateDto({

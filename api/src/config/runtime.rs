@@ -1,7 +1,9 @@
 use crate::config::env::{
-    INSTANCE_NAME, OCR_API_KEY_MISTRAL, OCR_ENGINE, OCR_LANGUAGES, OCR_SCAN_CONFIDENCE,
+    COST_VISIBILITY, INSTANCE_NAME, OCR_API_KEY_MISTRAL, OCR_ENGINE, OCR_LANGUAGES,
+    OCR_SCAN_CONFIDENCE, USAGE_VISIBILITY,
 };
 use crate::config::init::{OcrConfig, OcrEngine};
+use crate::dto::user::UserRole;
 use crate::util::validation;
 use std::collections::BTreeMap;
 
@@ -29,9 +31,14 @@ pub struct RuntimeConfig {
     /// recognizes text documents with a full-page background image too; 0 recognizes every
     /// page. Changing it converts the documents again, see [`Self::ocr_engine`].
     pub ocr_scan_confidence: f64,
+    /// `USAGE_VISIBILITY` (`all` or `admin`): who sees the tokens their answers used. The cost
+    /// is hidden along with them, since it is the same usage in money.
+    pub usage_visibility: Visibility,
+    /// `COST_VISIBILITY` (`all` or `admin`): who sees what their answers cost.
+    pub cost_visibility: Visibility,
 }
 
-/// Without OCR.
+/// Without OCR, and nothing hidden.
 impl Default for RuntimeConfig {
     fn default() -> Self {
         Self {
@@ -39,8 +46,51 @@ impl Default for RuntimeConfig {
             ocr_engine: None,
             ocr_languages: vec!["eng".to_string()],
             ocr_scan_confidence: 0.5,
+            usage_visibility: Visibility::All,
+            cost_visibility: Visibility::All,
         }
     }
+}
+
+/// Which users see a detail of their own chats, like the usage.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Visibility {
+    /// Every user.
+    All,
+    /// Only admins.
+    Admin,
+}
+
+impl Visibility {
+    fn includes(self, role: UserRole) -> bool {
+        match self {
+            Self::All => true,
+            Self::Admin => role == UserRole::Admin,
+        }
+    }
+
+    fn name(self) -> &'static str {
+        match self {
+            Self::All => "all",
+            Self::Admin => "admin",
+        }
+    }
+
+    fn parse(key: &str, value: &str) -> Result<Self, InvalidConfigValue> {
+        match value {
+            "all" => Ok(Self::All),
+            "admin" => Ok(Self::Admin),
+            _ => Err(InvalidConfigValue(format!("{key}: expected all or admin"))),
+        }
+    }
+}
+
+/// What a user sees of the tokens their answers used, see [`RuntimeConfig::usage_access`].
+#[derive(Clone, Copy)]
+pub(crate) struct UsageAccess {
+    pub usage: bool,
+    /// Never without `usage`.
+    pub cost: bool,
 }
 
 /// A value [`RuntimeConfig::set`] does not accept.
@@ -49,12 +99,23 @@ impl Default for RuntimeConfig {
 pub struct InvalidConfigValue(String);
 
 impl RuntimeConfig {
-    pub const KEYS: [&str; 4] = [
+    pub const KEYS: [&str; 6] = [
         INSTANCE_NAME,
         OCR_ENGINE,
         OCR_LANGUAGES,
         OCR_SCAN_CONFIDENCE,
+        USAGE_VISIBILITY,
+        COST_VISIBILITY,
     ];
+
+    /// What a user with `role` sees of the tokens their answers used.
+    pub(crate) fn usage_access(&self, role: UserRole) -> UsageAccess {
+        let usage = self.usage_visibility.includes(role);
+        UsageAccess {
+            usage,
+            cost: usage && self.cost_visibility.includes(role),
+        }
+    }
 
     pub fn ocr(&self) -> Option<OcrConfig> {
         self.ocr_engine.map(|engine| OcrConfig {
@@ -107,6 +168,8 @@ impl RuntimeConfig {
                         ))
                     })?;
             }
+            USAGE_VISIBILITY => self.usage_visibility = Visibility::parse(key, value)?,
+            COST_VISIBILITY => self.cost_visibility = Visibility::parse(key, value)?,
             _ => {
                 return Err(InvalidConfigValue(format!(
                     "Unknown config key {key:?}, expected one of {}",
@@ -129,6 +192,14 @@ impl RuntimeConfig {
             (
                 OCR_SCAN_CONFIDENCE.to_string(),
                 self.ocr_scan_confidence.to_string(),
+            ),
+            (
+                USAGE_VISIBILITY.to_string(),
+                self.usage_visibility.name().to_string(),
+            ),
+            (
+                COST_VISIBILITY.to_string(),
+                self.cost_visibility.name().to_string(),
             ),
         ])
     }
@@ -223,6 +294,8 @@ mod tests {
         config.set(OCR_ENGINE, "mistral").unwrap();
         config.set(OCR_LANGUAGES, "deu, eng").unwrap();
         config.set(OCR_SCAN_CONFIDENCE, " 0.75").unwrap();
+        config.set(USAGE_VISIBILITY, "all").unwrap();
+        config.set(COST_VISIBILITY, " admin").unwrap();
         assert_eq!(
             config,
             RuntimeConfig {
@@ -230,6 +303,8 @@ mod tests {
                 ocr_engine: Some(OcrEngine::Mistral),
                 ocr_languages: vec!["deu".to_string(), "eng".to_string()],
                 ocr_scan_confidence: 0.75,
+                usage_visibility: Visibility::All,
+                cost_visibility: Visibility::Admin,
             }
         );
         assert_eq!(config.with_overrides(&config.to_map()).unwrap(), config);
@@ -243,6 +318,23 @@ mod tests {
             assert_eq!(config.ocr_engine, Some(engine));
             assert_eq!(config.with_overrides(&config.to_map()).unwrap(), config);
         }
+    }
+
+    #[test]
+    fn hides_usage_and_cost_from_users() {
+        let access = |usage: &str, cost: &str, role: UserRole| {
+            let mut config = RuntimeConfig::default();
+            config.set(USAGE_VISIBILITY, usage).unwrap();
+            config.set(COST_VISIBILITY, cost).unwrap();
+            let access = config.usage_access(role);
+            (access.usage, access.cost)
+        };
+        assert_eq!(access("all", "all", UserRole::User), (true, true));
+        assert_eq!(access("all", "admin", UserRole::User), (true, false));
+        // The cost is hidden along with the usage
+        assert_eq!(access("admin", "all", UserRole::User), (false, false));
+        assert_eq!(access("admin", "admin", UserRole::User), (false, false));
+        assert_eq!(access("admin", "admin", UserRole::Admin), (true, true));
     }
 
     #[cfg(not(feature = "local-ocr"))]
@@ -287,6 +379,9 @@ mod tests {
             (OCR_SCAN_CONFIDENCE, "-0.1"),
             (OCR_SCAN_CONFIDENCE, "NaN"),
             (OCR_SCAN_CONFIDENCE, "high"),
+            (USAGE_VISIBILITY, "none"),
+            (COST_VISIBILITY, "Admin"),
+            (COST_VISIBILITY, ""),
         ] {
             assert!(config.set(key, value).is_err(), "{key}={value}");
         }

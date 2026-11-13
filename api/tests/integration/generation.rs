@@ -350,14 +350,7 @@ async fn records_usage_and_cost_of_all_rounds(db: SqlitePool) {
     ])
     .await;
     let configured = app.configure_llm(&llm).await;
-    let (status, model) = app
-        .admin()
-        .post(
-            &format!("/api/v1/models/{}/update", configured.model_id),
-            json!({"api_name": "mock-model", "display_name": "Mock Model", "input_price": "3", "output_price": "15.50"}),
-        )
-        .await;
-    assert_eq!(status, StatusCode::OK, "{model}");
+    let model = app.set_prices(&configured).await;
     assert_eq!(model["input_price"], "3");
     assert_eq!(model["output_price"], "15.50");
     assert_eq!(model["cache_read_price"], json!(null));
@@ -419,14 +412,7 @@ async fn streams_the_usage_after_each_round(db: SqlitePool) {
     let (first, gate) = gated(tool_use_response("toolu_1", "unknown_tool", json!({})));
     let llm = MockLlm::start(vec![first, text_response("Done.")]).await;
     let configured = app.configure_llm(&llm).await;
-    let (status, model) = app
-        .admin()
-        .post(
-            &format!("/api/v1/models/{}/update", configured.model_id),
-            json!({"api_name": "mock-model", "display_name": "Mock Model", "input_price": "3", "output_price": "15.50"}),
-        )
-        .await;
-    assert_eq!(status, StatusCode::OK, "{model}");
+    app.set_prices(&configured).await;
 
     let (status, chat) = alice
         .post(
@@ -483,6 +469,97 @@ async fn streams_the_usage_after_each_round(db: SqlitePool) {
     assert_eq!(done["usage"], updates[1]["usage"]);
     assert_eq!(done["cost"], updates[1]["cost"]);
     assert_eq!(done["response_ms"], response_ms[1]);
+}
+
+#[sqlx::test]
+async fn hides_usage_and_cost_from_users(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let admin = app.admin();
+    let alice = app.user("alice@example.com").await;
+    // Held back, so the streams are open before the answers end. Each response uses 1 input
+    // and 1 output token
+    let (first, first_gate) = gated(text_response("One."));
+    let (second, second_gate) = gated(text_response("Two."));
+    let llm = MockLlm::start(vec![first, second, text_response("Three.")]).await;
+    let configured = app.configure_llm(&llm).await;
+    app.set_prices(&configured).await;
+    let usage = json!({"input_tokens": 1, "output_tokens": 1, "cache_read_tokens": 0, "cache_write_tokens": 0});
+
+    // Only the cost is hidden
+    app.set_config(json!({"COST_VISIBILITY": "admin"})).await;
+    let (status, chat) = alice
+        .post(
+            "/api/v1/chats",
+            json!({"content": "Hello?", "all_repositories": true}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{chat}");
+    let id = chat["id"].as_str().unwrap();
+    let first_id = chat["messages"][1]["id"].as_str().unwrap();
+    let stream = alice.open_stream(id, first_id).await;
+    first_gate.notify_one();
+    let events = read_events(stream).await;
+    let updates: Vec<&Value> = events
+        .iter()
+        .filter(|(name, _)| name == "usage" || name == "done")
+        .map(|(_, data)| data)
+        .collect();
+    assert_eq!(updates.len(), 2, "{events:?}");
+    for update in updates {
+        assert_eq!(update["usage"], usage, "{update}");
+        assert_eq!(update["cost"], json!(null), "{update}");
+    }
+
+    // Hiding the usage hides the cost too, and the stream sends no updates of it
+    app.set_config(json!({"USAGE_VISIBILITY": "admin"})).await;
+    let (status, body) = alice
+        .post(
+            &format!("/api/v1/chats/{id}/messages"),
+            json!({"content": "Again?"}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    let stream = alice.open_stream(id, body[1]["id"].as_str().unwrap()).await;
+    second_gate.notify_one();
+    let events = read_events(stream).await;
+    assert!(events.iter().all(|(name, _)| name != "usage"), "{events:?}");
+    let (_, done) = events.last().unwrap();
+    assert_eq!(done["status"], "COMPLETED", "{done}");
+    assert_eq!(done["usage"], json!(null), "{done}");
+    assert_eq!(done["cost"], json!(null), "{done}");
+    // The time is not part of the usage
+    assert!(done["response_ms"].is_u64(), "{done}");
+    // Also of the answers from before
+    let (_, chat) = alice.get(&format!("/api/v1/chats/{id}")).await;
+    assert_eq!(chat["messages"][1]["usage"], json!(null), "{chat}");
+    assert_eq!(chat["messages"][1]["cost"], json!(null), "{chat}");
+    let events = read_events(alice.open_stream(id, first_id).await).await;
+    for (_, message) in &events {
+        assert_eq!(message["usage"], json!(null), "{message}");
+        assert_eq!(message["cost"], json!(null), "{message}");
+    }
+
+    // Admins see both
+    app.set_config(json!({"USAGE_VISIBILITY": "admin", "COST_VISIBILITY": "admin"}))
+        .await;
+    let (status, chat) = admin
+        .post(
+            "/api/v1/chats",
+            json!({"content": "Hello?", "all_repositories": true}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{chat}");
+    let answer = admin.wait_for_answer(chat["id"].as_str().unwrap()).await;
+    assert_eq!(answer["usage"], usage, "{answer}");
+    assert_eq!(answer["cost"]["amount"], "0.0000185", "{answer}");
+
+    // They were recorded all along
+    app.set_config(json!({})).await;
+    let (_, chat) = alice.get(&format!("/api/v1/chats/{id}")).await;
+    for answer in [&chat["messages"][1], &chat["messages"][3]] {
+        assert_eq!(answer["usage"], usage, "{answer}");
+        assert_eq!(answer["cost"]["amount"], "0.0000185", "{answer}");
+    }
 }
 
 #[sqlx::test]

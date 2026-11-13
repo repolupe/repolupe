@@ -33,7 +33,7 @@ pub use config::init::{
     Config, DEFAULT_INITIAL_ADMIN_PASSWORD, DEFAULT_SESSION_IDLE_TIMEOUT, DatabaseConfig,
     INITIAL_ADMIN_USER_NAME, InitError, OcrConfig, OcrEngine,
 };
-pub use config::runtime::{InvalidConfigValue, RuntimeConfig};
+pub use config::runtime::{InvalidConfigValue, RuntimeConfig, Visibility};
 
 /// A running Repolupe: its database, background tasks and live answer generations.
 ///

@@ -1,4 +1,5 @@
 use crate::config::error::AppError;
+use crate::config::runtime::UsageAccess;
 use crate::config::state::AppState;
 use crate::dto::chat::{
     ChatDetailDto, ChatDto, ChatPageDto, ContentDeltaDto, CreateChatRequest, FileDiffDto,
@@ -117,6 +118,7 @@ pub(crate) async fn get_chat(
             .or_default()
             .push(tool_call);
     }
+    let access = usage_access(&state, &auth);
     let messages = messages
         .into_iter()
         .map(|message| {
@@ -124,7 +126,7 @@ pub(crate) async fn get_chat(
                 .remove(&message.id)
                 .unwrap_or_default();
             let attachment = attachments.remove(&message.id);
-            MessageDto::new(message, tool_calls).with_attachment(attachment)
+            MessageDto::new(message, tool_calls, access).with_attachment(attachment)
         })
         .collect();
 
@@ -201,7 +203,7 @@ pub(crate) async fn create_chat(
         StatusCode::CREATED,
         Json(ChatDetailDto {
             chat: chat.into(),
-            messages: exchange_dtos(exchange),
+            messages: exchange_dtos(exchange, usage_access(&state, &auth)),
         }),
     ))
 }
@@ -281,14 +283,15 @@ pub(crate) async fn send_message(
     .ok_or(AppError::NotFound)?;
     service::generation::spawn(state.clone(), reservation, model.config);
 
-    Ok((StatusCode::CREATED, Json(exchange_dtos(exchange))))
+    let access = usage_access(&state, &auth);
+    Ok((StatusCode::CREATED, Json(exchange_dtos(exchange, access))))
 }
 
 /// Server-sent events of a message: `snapshot` with the state so far, then `content_delta`,
-/// `tool_call_started`, `tool_call_finished` and `usage` (the total after each LLM response)
-/// while generating, and finally `done`. The content while generating includes the preambles
-/// to tool calls, which `done` leaves out. A finished message gets `snapshot` and `done` right
-/// away.
+/// `tool_call_started`, `tool_call_finished` and `usage` (the total after each LLM response,
+/// unless the usage is hidden from the user) while generating, and finally `done`. The content
+/// while generating includes the preambles to tool calls, which `done` leaves out. A finished
+/// message gets `snapshot` and `done` right away.
 pub(crate) async fn stream_message(
     State(state): State<AppState>,
     Extension(auth): Extension<AuthenticatedUser>,
@@ -324,13 +327,15 @@ pub(crate) async fn stream_message(
         }
     };
 
+    // As it is when the stream starts: a change applies to the streams opened after it.
+    let access = usage_access(&state, &auth);
     let (initial, events) = match subscription {
         Subscription::Live {
             message,
             tool_calls,
             events,
         } => (
-            vec![message_event("snapshot", message, tool_calls)],
+            vec![message_event("snapshot", message, tool_calls, access)],
             Some(events),
         ),
         Subscription::Done {
@@ -338,25 +343,29 @@ pub(crate) async fn stream_message(
             tool_calls,
         } => (
             vec![
-                message_event("snapshot", message.clone(), tool_calls.clone()),
-                message_event("done", message, tool_calls),
+                message_event("snapshot", message.clone(), tool_calls.clone(), access),
+                message_event("done", message, tool_calls, access),
             ],
             None,
         ),
     };
 
-    let live = stream::unfold(events, |events| async move {
+    let live = stream::unfold(events, move |events| async move {
         let mut events = events?;
-        let event = match events.recv().await {
-            Ok(GenerationEvent::Done {
-                message,
-                tool_calls,
-            }) => return Some((message_event("done", message, tool_calls), None)),
-            Ok(event) => generation_event(event),
-            // A client that fell behind reconnects and starts from a fresh snapshot.
-            Err(_) => return None,
-        };
-        Some((event, Some(events)))
+        loop {
+            let event = match events.recv().await {
+                Ok(GenerationEvent::Done {
+                    message,
+                    tool_calls,
+                }) => return Some((message_event("done", message, tool_calls, access), None)),
+                // Hidden from the user, see `UsageAccess`.
+                Ok(GenerationEvent::Usage { .. }) if !access.usage => continue,
+                Ok(event) => generation_event(event, access),
+                // A client that fell behind reconnects and starts from a fresh snapshot.
+                Err(_) => return None,
+            };
+            return Some((event, Some(events)));
+        }
     });
 
     Ok(Sse::new(stream::iter(initial).chain(live)).keep_alive(KeepAlive::default()))
@@ -428,7 +437,8 @@ pub(crate) async fn resend_message(
     .ok_or(AppError::NotFound)?;
     service::generation::spawn(state.clone(), reservation, model.config);
 
-    Ok((StatusCode::CREATED, Json(exchange_dtos(exchange))))
+    let access = usage_access(&state, &auth);
+    Ok((StatusCode::CREATED, Json(exchange_dtos(exchange, access))))
 }
 
 /// What the language model got and returned for an answer. Not found for user messages, and for
@@ -661,11 +671,16 @@ pub(crate) async fn commit_proposed_commit(
 }
 
 /// The user's message with its attachment, and the `GENERATING` answer.
-fn exchange_dtos(exchange: Exchange) -> Vec<MessageDto> {
+fn exchange_dtos(exchange: Exchange, access: UsageAccess) -> Vec<MessageDto> {
     vec![
-        MessageDto::new(exchange.user_message, vec![]).with_attachment(exchange.attachment),
-        MessageDto::new(exchange.assistant_message, vec![]),
+        MessageDto::new(exchange.user_message, vec![], access).with_attachment(exchange.attachment),
+        MessageDto::new(exchange.assistant_message, vec![], access),
     ]
+}
+
+/// What the user sees of the tokens their answers used.
+fn usage_access(state: &AppState, auth: &AuthenticatedUser) -> UsageAccess {
+    state.runtime_config.current().usage_access(auth.role)
 }
 
 /// A message needs text, unless it sends an attachment.
@@ -711,13 +726,14 @@ fn message_event(
     name: &str,
     message: Message,
     tool_calls: Vec<ToolCallSummary>,
+    access: UsageAccess,
 ) -> Result<Event, axum::Error> {
     Event::default()
         .event(name)
-        .json_data(MessageDto::new(message, tool_calls))
+        .json_data(MessageDto::new(message, tool_calls, access))
 }
 
-fn generation_event(event: GenerationEvent) -> Result<Event, axum::Error> {
+fn generation_event(event: GenerationEvent, access: UsageAccess) -> Result<Event, axum::Error> {
     match event {
         GenerationEvent::ContentDelta(text) => Event::default()
             .event("content_delta")
@@ -743,12 +759,12 @@ fn generation_event(event: GenerationEvent) -> Result<Event, axum::Error> {
         } => Event::default().event("usage").json_data(UsageUpdateDto {
             usage: usage.into(),
             response_ms,
-            cost: cost.map(Into::into),
+            cost: cost.filter(|_| access.cost).map(Into::into),
         }),
         GenerationEvent::Done {
             message,
             tool_calls,
-        } => message_event("done", message, tool_calls),
+        } => message_event("done", message, tool_calls, access),
     }
 }
 
