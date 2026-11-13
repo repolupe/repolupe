@@ -575,6 +575,15 @@ function proposedCommitFile(chatId: string, toolCallId: string): Response {
         {headers: {'Content-Type': attachment.content_type}});
 }
 
+/** The file of an attachment, as it was uploaded. */
+function attachmentFile(id: string): Response {
+    const stored = state.attachments.get(id);
+    if (!stored) {
+        throw notFound();
+    }
+    return new Response(stored.file, {headers: {'Content-Type': stored.dto.content_type}});
+}
+
 /** Commits the change of a `save_attachment` call, which always succeeds; a committed change stays committed. */
 function commitProposedCommit(chatId: string, toolCallId: string): ProposedCommitDto {
     const {dto} = findProposedCommit(chatId, toolCallId);
@@ -622,6 +631,7 @@ async function route(method: 'GET' | 'POST', route: string, body: Record<string,
         if (match('chats/*/tool-calls/*/diff')) return await proposedCommitDiff(parts[1]!, parts[3]!);
         if (match('chats/*/tool-calls/*/proposed-commit')) return copy(findProposedCommit(parts[1]!, parts[3]!).dto);
         if (match('chats/*/tool-calls/*/proposed-commit/file')) return proposedCommitFile(parts[1]!, parts[3]!);
+        if (match('attachments/*')) return attachmentFile(parts[1]!);
     } else {
         if (route === 'chats') return createChat(body);
         if (match('chats/*/update')) {

@@ -205,7 +205,8 @@
       "durationMinutes": "{minutes} min {seconds} s"
     },
     "userMessage": {
-      "download": "{name} herunterladen"
+      "download": "{name} herunterladen",
+      "show": "{name} anzeigen"
     },
     "editMessageDialog": {
       "title": "Nachricht bearbeiten",

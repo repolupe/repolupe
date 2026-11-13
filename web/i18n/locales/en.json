@@ -191,7 +191,8 @@
       "durationMinutes": "{minutes}m {seconds}s"
     },
     "userMessage": {
-      "download": "Download {name}"
+      "download": "Download {name}",
+      "show": "Show {name}"
     },
     "editMessageDialog": {
       "title": "Edit Message",

@@ -6,10 +6,7 @@
              :aria-label="$t('common.download')" :href="file.url" :download="fileName(path)"/>
     </template>
 
-    <iframe v-if="file?.kind === 'pdf'" :src="file.url" :title="path" class="file-pdf"/>
-    <img v-else-if="file?.kind === 'image'" :src="file.url" :alt="path" class="file-image pa-4">
-    <MarkdownContent v-else-if="file?.kind === 'markdown'" :content="file.text" class="text-body-1 pa-4"/>
-    <pre v-else-if="file" class="file-text ma-4">{{ file.text }}</pre>
+    <FilePreview v-if="file" :file="file" :name="path"/>
   </ToolCallPanel>
 </template>
 
@@ -17,8 +14,8 @@
 import {computed, onBeforeUnmount, ref, watch} from "vue";
 import type {RepositoryDto, ToolCallSummaryDto} from "~/utils/model";
 import {errorMessage, getPresentedFile} from "~/utils/api";
-import {fileName, toolCallPath} from "~/utils/utils";
-import MarkdownContent from "~/components/chat/MarkdownContent.vue";
+import {fileName, toolCallPath, type LoadedFile} from "~/utils/utils";
+import FilePreview from "~/components/chat/panel/FilePreview.vue";
 import ToolCallPanel from "~/components/chat/panel/ToolCallPanel.vue";
 
 const props = defineProps<{
@@ -31,12 +28,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'close'): void,
 }>();
-
-/** The file as it is shown. `url` is an object URL of its content, for the PDF viewer, the image and the download. */
-type LoadedFile =
-    | { kind: 'pdf', url: string }
-    | { kind: 'image', url: string }
-    | { kind: 'markdown' | 'text', url: string, text: string };
 
 const file = ref<LoadedFile | null>(null);
 const error = ref<string | null>(null);
@@ -84,31 +75,3 @@ watch(() => props.toolCall.id, fetchFile, {immediate: true});
 // PDFs and images can be large
 onBeforeUnmount(() => setFile(null));
 </script>
-
-<style scoped>
-.file-text {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.8rem;
-  line-height: 1.5;
-  background: rgba(var(--v-theme-on-surface), 0.05);
-  border-radius: 6px;
-  padding: 10px 12px;
-  overflow: auto;
-  white-space: pre;
-}
-
-/* As large as it is, scaled down to the width of the panel. */
-.file-image {
-  display: block;
-  max-width: 100%;
-  height: auto;
-  margin: 0 auto;
-}
-
-.file-pdf {
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: 0;
-}
-</style>

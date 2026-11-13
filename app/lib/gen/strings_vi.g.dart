@@ -974,6 +974,8 @@ class _Translations$base$chat$userMessage$vi extends Translations$base$chat$user
   // Translations
   @override
   String download({required Object name}) => 'Tải xuống ${name}';
+  @override
+  String show({required Object name}) => 'Hiển thị ${name}';
 }
 
 // Path: base.chat.editMessageDialog

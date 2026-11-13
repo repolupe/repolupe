@@ -1,35 +1,25 @@
 <template>
-  <v-card class="d-flex flex-column" variant="flat">
-    <div class="d-flex align-center pl-4 pr-2 pt-2">
-      <v-icon :icon="props.icon" size="20" class="mr-2"/>
-      <span class="text-subtitle-1 text-truncate" :title="heading">{{ heading }}</span>
+  <PanelFrame :icon="props.icon" :heading="heading" :fetching="props.fetching" :error="props.error" :fill="props.fill"
+              @close="emit('close')">
+    <template v-slot:title-append>
       <slot name="title-append"/>
-      <v-spacer/>
-      <slot name="actions"/>
-      <v-btn icon="mdi-close" variant="text" size="small" :title="$t('common.close')" :aria-label="$t('common.close')"
-             @click="emit('close')"/>
-    </div>
-
-    <div class="px-4 pb-2 text-body-2 text-medium-emphasis">
+    </template>
+    <template v-slot:subtitle>
       <IconText v-if="repositoryName" icon="mdi-source-repository" class="file-path" :title="path">
         {{ repositoryName }}<template v-if="path"> › {{ path }}</template>
       </IconText>
       <span v-else class="file-path">{{ path }}</span>
-    </div>
+    </template>
+    <template v-slot:actions>
+      <slot name="actions"/>
+    </template>
 
-    <v-progress-linear :active="props.fetching" indeterminate color="primary"/>
-    <v-divider/>
+    <slot/>
 
-    <div class="panel-body" :class="{'panel-body-fill': props.fill}">
-      <!-- fades in when loaded, and goes at once when another one is loading -->
-      <Transition name="panel-fade">
-        <v-alert v-if="props.error" type="error" variant="tonal" density="compact" :text="props.error" class="ma-4"/>
-        <slot v-else/>
-      </Transition>
-    </div>
-
-    <slot name="footer"/>
-  </v-card>
+    <template v-slot:footer>
+      <slot name="footer"/>
+    </template>
+  </PanelFrame>
 </template>
 
 <script setup lang="ts">
@@ -37,8 +27,9 @@ import {computed} from "vue";
 import type {RepositoryDto, ToolCallSummaryDto} from "~/utils/model";
 import {fileName, toolCallPath} from "~/utils/utils";
 import IconText from "~/components/IconText.vue";
+import PanelFrame from "~/components/chat/panel/PanelFrame.vue";
 
-/** The frame of a panel that shows what a tool call refers to (a file, or the moves of `move_files`); the slot shows it once it is loaded. */
+/** A panel that shows what a tool call refers to (a file, or the moves of `move_files`); the slot shows it once it is loaded. */
 const props = defineProps<{
   icon: string,
   toolCall: ToolCallSummaryDto,
@@ -69,29 +60,5 @@ const repositoryName = computed(() => {
 <style scoped>
 .file-path {
   overflow-wrap: anywhere;
-}
-
-.panel-body {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-}
-
-.panel-body-fill {
-  overflow: hidden;
-}
-
-.panel-fade-enter-active {
-  transition: opacity 200ms ease-out;
-}
-
-.panel-fade-enter-from {
-  opacity: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .panel-fade-enter-active {
-    transition: none;
-  }
 }
 </style>

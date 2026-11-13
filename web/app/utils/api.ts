@@ -513,6 +513,12 @@ export function attachmentUrl(id: string): string {
     return `${API_URL}/attachments/${id}`;
 }
 
+/** The file of an attachment as it was uploaded, to show it. `NOT_FOUND` unless it is one of the user. */
+export async function getAttachmentFile(id: string): Promise<FileContent> {
+    const response = await fetchResponse({route: `attachments/${id}`, method: 'GET'});
+    return {contentType: response.headers.get('Content-Type') ?? '', blob: await response.blob()};
+}
+
 export async function cancelMessage(chatId: string, messageId: string): Promise<void> {
     await makeRequest({route: `chats/${chatId}/messages/${messageId}/cancel`, method: 'POST'});
 }

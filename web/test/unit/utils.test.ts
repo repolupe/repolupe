@@ -1,5 +1,6 @@
 import {afterEach, describe, expect, it} from 'vitest';
-import {formatTokens, parseMcpToolName, parseSavedScope, tokenCost} from '~/utils/utils';
+import {attachmentPreviewKind, formatTokens, parseMcpToolName, parseSavedScope, tokenCost} from '~/utils/utils';
+import type {AttachmentDto} from '~/utils/model';
 import {setFormatLocale} from '~/utils/i18n';
 
 describe('parseMcpToolName', () => {
@@ -84,5 +85,32 @@ describe('tokenCost', () => {
     it('is zero without tokens or price', () => {
         expect(tokenCost(0, '3')).toBe('0');
         expect(tokenCost(1_000, '0')).toBe('0');
+    });
+});
+
+describe('attachmentPreviewKind', () => {
+    const attachment = (file_name: string, content_type: string, size = 1000): AttachmentDto =>
+        ({id: 'a', number: 1, file_name, content_type, size, created_at: '2026-01-01T00:00:00Z'});
+
+    it('shows PDFs and the images a browser displays', () => {
+        expect(attachmentPreviewKind(attachment('invoice.pdf', 'application/pdf'))).toBe('pdf');
+        expect(attachmentPreviewKind(attachment('photo.jpg', 'image/jpeg'))).toBe('image');
+        expect(attachmentPreviewKind(attachment('scan.tiff', 'image/tiff'))).toBeNull();
+    });
+
+    it('renders Markdown, also if the browser reported no type for it', () => {
+        expect(attachmentPreviewKind(attachment('notes.txt', 'text/markdown'))).toBe('markdown');
+        expect(attachmentPreviewKind(attachment('README.MD', 'application/octet-stream'))).toBe('markdown');
+    });
+
+    it('shows other text as it is, unless it is large', () => {
+        expect(attachmentPreviewKind(attachment('data.csv', 'text/csv'))).toBe('text');
+        expect(attachmentPreviewKind(attachment('page.html', 'text/html'))).toBe('text');
+        expect(attachmentPreviewKind(attachment('server.log', 'text/plain', 2 * 1024 * 1024))).toBeNull();
+    });
+
+    it('only downloads everything else', () => {
+        expect(attachmentPreviewKind(attachment('archive.zip', 'application/zip'))).toBeNull();
+        expect(attachmentPreviewKind(attachment('report.docx', 'application/octet-stream'))).toBeNull();
     });
 });

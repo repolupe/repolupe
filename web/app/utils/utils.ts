@@ -267,6 +267,36 @@ export function presentedFiles(message: MessageDto): { toolCall: ToolCallSummary
     return [...files.values()];
 }
 
+/** A file as it is shown next to the chat. `url` is an object URL of its content, for the PDF viewer, the image and the download. */
+export type LoadedFile =
+    | { kind: 'pdf', url: string }
+    | { kind: 'image', url: string }
+    | { kind: 'markdown' | 'text', url: string, text: string };
+
+/** Larger text attachments are downloaded instead of shown. */
+const MAX_ATTACHMENT_TEXT_BYTES = 1024 * 1024;
+
+/**
+ * How an attachment is shown next to the chat, like the files of `present_file_to_user`: PDFs and
+ * PNG, JPEG, GIF and WebP images as they are, Markdown rendered, other text as it is. `null` if it
+ * can only be downloaded.
+ */
+export function attachmentPreviewKind(attachment: AttachmentDto): LoadedFile['kind'] | null {
+    const type = attachment.content_type;
+    if (type === 'application/pdf') {
+        return 'pdf';
+    }
+    if (/^image\/(png|jpeg|gif|webp)$/.test(type)) {
+        return 'image';
+    }
+    // browsers don't report a type for every Markdown file
+    const markdown = type === 'text/markdown' || /\.(md|markdown)$/i.test(attachment.file_name);
+    if ((!markdown && !type.startsWith('text/')) || attachment.size > MAX_ATTACHMENT_TEXT_BYTES) {
+        return null;
+    }
+    return markdown ? 'markdown' : 'text';
+}
+
 /** A file dropped into the composer, uploading while `uploaded` is `null`. */
 export interface PendingAttachment {
     /** Tells uploads apart, so a finished one only updates the attachment it started. */

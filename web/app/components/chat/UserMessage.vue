@@ -1,8 +1,11 @@
 <template>
   <div class="user-message-row d-flex flex-column align-end ga-2">
-    <v-chip v-if="props.message.attachment" :href="attachmentUrl(props.message.attachment.id)" size="large"
-            variant="tonal" color="primary" prepend-icon="mdi-paperclip" class="attachment-chip"
-            :title="$t('chat.userMessage.download', {name: props.message.attachment.file_name})">
+    <!-- shown next to the chat if it can be, else downloaded -->
+    <v-chip v-if="props.message.attachment" :href="previewable ? undefined : attachmentUrl(props.message.attachment.id)"
+            size="large" variant="tonal" color="primary" prepend-icon="mdi-paperclip" class="attachment-chip"
+            :title="$t(previewable ? 'chat.userMessage.show' : 'chat.userMessage.download',
+                {name: props.message.attachment.file_name})"
+            @click="previewable && emit('open-attachment', props.message.attachment)">
       <span class="text-truncate">{{ props.message.attachment.file_name }}</span>
       <span class="text-medium-emphasis ml-2 text-no-wrap">{{ formatBytes(props.message.attachment.size) }}</span>
     </v-chip>
@@ -20,9 +23,10 @@
 </template>
 
 <script setup lang="ts">
-import type {MessageDto} from "~/utils/model";
+import {computed} from "vue";
+import type {AttachmentDto, MessageDto} from "~/utils/model";
 import {attachmentUrl} from "~/utils/api";
-import {formatBytes, formatDateTime} from "~/utils/utils";
+import {attachmentPreviewKind, formatBytes, formatDateTime} from "~/utils/utils";
 
 const props = defineProps<{
   message: MessageDto,
@@ -33,7 +37,10 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'edit'): void,
   (e: 'retry'): void,
+  (e: 'open-attachment', attachment: AttachmentDto): void,
 }>();
+
+const previewable = computed(() => !!props.message.attachment && attachmentPreviewKind(props.message.attachment) !== null);
 </script>
 
 <style scoped>

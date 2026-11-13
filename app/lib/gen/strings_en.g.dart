@@ -1093,6 +1093,9 @@ class Translations$base$chat$userMessage$en {
 
   /// en: 'Download {name}'
   String download({required Object name}) => 'Download ${name}';
+
+  /// en: 'Show {name}'
+  String show({required Object name}) => 'Show ${name}';
 }
 
 // Path: base.chat.editMessageDialog

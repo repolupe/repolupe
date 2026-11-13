@@ -43,12 +43,13 @@
         <div v-if="chat" class="d-flex flex-column ga-6">
           <template v-for="message in chat.messages" :key="message.id">
             <UserMessage v-if="message.role === MessageRole.USER" :message="message" :can-resend="canResend"
-                         @edit="showEditMessageDialog(message)" @retry="onRetryMessage(message)"/>
+                         @edit="showEditMessageDialog(message)" @retry="onRetryMessage(message)"
+                         @open-attachment="openAttachment"/>
             <AssistantMessage v-else :message="message"
                               :can-retry="message.id === retryableId"
                               :retrying="resending" @retry="onRetryAnswer"
                               @open-tool-calls="showToolCallListDialog(message)"
-                              @open-file="(t) => presentedFile = t"
+                              @open-file="openFile"
                               @open-usage="showUsageDialog(message)"
                               @open-duration="showDurationDialog(message)"
                               @open-raw="showRawAnswerDialog(message)"/>
@@ -101,14 +102,16 @@
     </div>
 
     <Transition name="file-panel">
-      <div v-if="chat && presentedFile" class="file-panel">
+      <div v-if="chat && (presentedFile || presentedAttachment)" class="file-panel">
         <!-- stays while the panel is open, so switching to another kind of file does not fade in again -->
         <div class="file-panel-content">
-          <ProposedCommitPanel v-if="CHANGE_TOOLS.includes(presentedFile.name)" class="file-panel-card"
-                           :chat-id="chat.id" :tool-call="presentedFile" :repositories="repositories"
-                           @close="presentedFile = null"/>
-          <PresentedFilePanel v-else class="file-panel-card" :chat-id="chat.id" :tool-call="presentedFile"
-                              :repositories="repositories" @close="presentedFile = null"/>
+          <AttachmentPanel v-if="presentedAttachment" class="file-panel-card" :attachment="presentedAttachment"
+                           @close="closePanel"/>
+          <ProposedCommitPanel v-else-if="presentedFile && CHANGE_TOOLS.includes(presentedFile.name)"
+                               class="file-panel-card" :chat-id="chat.id" :tool-call="presentedFile"
+                               :repositories="repositories" @close="closePanel"/>
+          <PresentedFilePanel v-else-if="presentedFile" class="file-panel-card" :chat-id="chat.id"
+                              :tool-call="presentedFile" :repositories="repositories" @close="closePanel"/>
         </div>
       </div>
     </Transition>
@@ -124,6 +127,7 @@ import {
   ErrorCode,
   MessageRole,
   MessageStatus,
+  type AttachmentDto,
   type ChatDetailDto,
   type McpServerDto,
   type MessageDto,
@@ -163,6 +167,7 @@ import UserMessage from "~/components/chat/UserMessage.vue";
 import AssistantMessage from "~/components/chat/AssistantMessage.vue";
 import ToolCallDialog from "~/components/chat/ToolCallDialog.vue";
 import ToolCallListDialog from "~/components/chat/ToolCallListDialog.vue";
+import AttachmentPanel from "~/components/chat/panel/AttachmentPanel.vue";
 import PresentedFilePanel from "~/components/chat/panel/PresentedFilePanel.vue";
 import ProposedCommitPanel from "~/components/chat/panel/ProposedCommitPanel.vue";
 import UsageDialog from "~/components/chat/UsageDialog.vue";
@@ -227,10 +232,27 @@ const durationMessage = computed(() => chat.value?.messages.find(m => m.id === d
 
 /** The `present_file_to_user` call whose file, or the `change_file` or `save_attachment` call whose change, is shown next to the chat. */
 const presentedFile = ref<ToolCallSummaryDto | null>(null);
+/** The attachment of a user message that is shown next to the chat, instead of `presentedFile`. */
+const presentedAttachment = ref<AttachmentDto | null>(null);
+
+const openFile = (toolCall: ToolCallSummaryDto) => {
+  presentedAttachment.value = null;
+  presentedFile.value = toolCall;
+};
+
+const openAttachment = (attachment: AttachmentDto) => {
+  presentedFile.value = null;
+  presentedAttachment.value = attachment;
+};
+
+const closePanel = () => {
+  presentedFile.value = null;
+  presentedAttachment.value = null;
+};
 
 const filePresented = useFilePresented();
-watch(presentedFile, (file) => {
-  filePresented.value = !!file;
+watch(() => !!presentedFile.value || !!presentedAttachment.value, (presented) => {
+  filePresented.value = presented;
 });
 
 /** Whether the start page created the chat as temporary, known before the chat is loaded. */
@@ -366,9 +388,9 @@ const applyStreamEvent = (messageId: string, event: MessageStreamEvent) => {
       const changes = proposedChanges(event.data);
       const autoOpen = event.data.status === MessageStatus.COMPLETED && !display.smAndDown.value;
       if (autoOpen && changes.length === 1 && !user.value?.auto_commit) {
-        presentedFile.value = changes[0]!.toolCall;
+        openFile(changes[0]!.toolCall);
       } else if (autoOpen && changes.length === 0 && files.length === 1) {
-        presentedFile.value = files[0]!.toolCall;
+        openFile(files[0]!.toolCall);
       }
       // the stream closes itself after `done`
       closeStream = null;
@@ -480,7 +502,7 @@ watch(() => route.params.id, async (id) => {
   dialogRetryMessage.value = false;
   dialogToolCallList.value = false;
   dialogToolCall.value = false;
-  presentedFile.value = null;
+  closePanel();
   dialogUsage.value = false;
   dialogDuration.value = false;
   dialogRawAnswer.value = false;
@@ -491,14 +513,14 @@ watch(() => route.params.id, async (id) => {
 
 /** Escape closes the file, unless it is meant for a dialog or menu open above it. */
 const onKeydown = (e: KeyboardEvent) => {
-  if (e.key !== 'Escape' || !presentedFile.value || e.defaultPrevented) {
+  if (e.key !== 'Escape' || !(presentedFile.value || presentedAttachment.value) || e.defaultPrevented) {
     return;
   }
   // still marked active while the overlay closes on this same key
   if (document.querySelector('.v-overlay--active:not(.v-tooltip)')) {
     return;
   }
-  presentedFile.value = null;
+  closePanel();
 };
 
 onMounted(() => {
@@ -620,10 +642,12 @@ const doResend = async (content: string | null) => {
       return;
     }
     const removed = messages.splice(index, messages.length, userMessage, assistantMessage);
-    // the file of an answer that is gone
+    // the file of an answer that is gone, or the attachment of a question that is
     const fileId = presentedFile.value?.id;
-    if (fileId && removed.some(m => m.tool_calls.some(t => t.id === fileId))) {
-      presentedFile.value = null;
+    const attachmentId = presentedAttachment.value?.id;
+    if (fileId && removed.some(m => m.tool_calls.some(t => t.id === fileId))
+        || attachmentId && !messages.some(m => m.attachment?.id === attachmentId)) {
+      closePanel();
     }
     startStream(chatId, assistantMessage.id);
     await scrollToBottom(true);

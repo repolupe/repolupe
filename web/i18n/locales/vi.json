@@ -191,7 +191,8 @@
       "durationMinutes": "{minutes} phút {seconds} giây"
     },
     "userMessage": {
-      "download": "Tải xuống {name}"
+      "download": "Tải xuống {name}",
+      "show": "Hiển thị {name}"
     },
     "editMessageDialog": {
       "title": "Sửa tin nhắn",
