@@ -256,8 +256,8 @@ pub fn stalled_response() -> MockResponse {
 }
 
 /// The result the model got for its tool call in `request`, the first block of the last
-/// message, with its text content as one string and `is_error` also when it is false, which
-/// the client may leave out.
+/// message, with its text content as one string, without its images, and `is_error` also when
+/// it is false, which the client may leave out.
 pub fn tool_result(request: &Value) -> Value {
     let messages = request["messages"].as_array().unwrap();
     let mut result = messages.last().unwrap()["content"][0].clone();
@@ -265,7 +265,7 @@ pub fn tool_result(request: &Value) -> Value {
     if let Some(blocks) = result["content"].as_array() {
         let text: Vec<&str> = blocks
             .iter()
-            .map(|block| block["text"].as_str().unwrap())
+            .filter_map(|block| block["text"].as_str())
             .collect();
         result["content"] = json!(text.join("\n"));
     }
@@ -273,6 +273,17 @@ pub fn tool_result(request: &Value) -> Value {
         result["is_error"] = json!(false);
     }
     result
+}
+
+/// The image in the result the model got for its tool call in `request`, see [`tool_result`].
+pub fn tool_result_image(request: &Value) -> Value {
+    let messages = request["messages"].as_array().unwrap();
+    let result = &messages.last().unwrap()["content"][0];
+    let blocks = result["content"].as_array().unwrap();
+    let image = blocks.iter().find(|block| block["type"] == "image");
+    image
+        .unwrap_or_else(|| panic!("no image in {result}"))
+        .clone()
 }
 
 fn complete(events: &[Value]) -> MockResponse {

@@ -84,12 +84,39 @@ pub(crate) enum ContentBlock {
     ToolResult {
         tool_use_id: String,
         content: String,
+        /// For the model to look at, described by `content`.
+        image: Option<Image>,
         is_error: bool,
     },
     /// Reasoning and other provider items of a response, e.g. Anthropic's thinking blocks.
     /// Has to be sent back unchanged for the rest of the tool loop, and the history before it
     /// must not change meanwhile.
     Provider(ProviderBlock),
+}
+
+/// An image in a form both API formats take, see [`crate::service::image`].
+#[derive(Clone, PartialEq)]
+pub(crate) struct Image {
+    pub format: ImageFormat,
+    /// The file as base64.
+    pub data: String,
+}
+
+impl fmt::Debug for Image {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Image")
+            .field("format", &self.format)
+            .field("base64_len", &self.data.len())
+            .finish()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ImageFormat {
+    Png,
+    Jpeg,
+    Gif,
+    Webp,
 }
 
 #[derive(Debug, Clone, PartialEq)]

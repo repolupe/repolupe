@@ -1,7 +1,9 @@
-use super::mock_llm::{MockLlm, text_response, tool_result, tool_use_response};
-use super::support::TestApp;
+use super::mock_llm::{MockLlm, text_response, tool_result, tool_result_image, tool_use_response};
+use super::support::{TestApp, png};
 use axum::body::Body;
 use axum::http::{Method, StatusCode, header};
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD as BASE64;
 use serde_json::{Value, json};
 use sqlx::SqlitePool;
 use std::time::Duration;
@@ -220,6 +222,8 @@ async fn reads_attachments(db: SqlitePool) {
         text_response("Noted."),
         tool_use_response("toolu_3", "read_attachment", json!({"attachment": 3})),
         text_response("It is an image."),
+        tool_use_response("toolu_4", "read_attachment", json!({"attachment": 4})),
+        text_response("It is a font."),
     ])
     .await;
     app.configure_llm(&llm).await;
@@ -263,7 +267,9 @@ async fn reads_attachments(db: SqlitePool) {
     // Probably still converting when the model reads it
     let chat_id = send(None, "manual.pdf", TEXT_PDF).await;
     send(Some(&chat_id), "notes.md", b"# Notes\n\nSecond line\n").await;
-    send(Some(&chat_id), "logo.png", b"\x89PNG\r\n\x1a\n\0logo").await;
+    let png = png(2, 1);
+    send(Some(&chat_id), "logo.png", &png).await;
+    send(Some(&chat_id), "font.woff2", b"wOF2\0\0").await;
 
     let requests = llm.requests();
     assert_eq!(tool_names(&requests[0]), ["read_attachment", "run_script"]);
@@ -274,11 +280,22 @@ async fn reads_attachments(db: SqlitePool) {
     let notes = tool_result(&requests[3]);
     assert_eq!(notes["is_error"], false, "{notes}");
     assert_eq!(notes["content"], "2\t\n3\tSecond line");
+    // The model gets the image itself
     let logo = tool_result(&requests[5]);
-    assert_eq!(logo["is_error"], true, "{logo}");
+    assert_eq!(logo["is_error"], false, "{logo}");
+    assert_eq!(logo["content"], "`logo.png`: PNG image, 2 × 1 px.");
     assert_eq!(
-        logo["content"],
-        "`logo.png` is a binary file and can't be shown."
+        tool_result_image(&requests[5]),
+        json!({
+            "type": "image",
+            "source": {"type": "base64", "media_type": "image/png", "data": BASE64.encode(&png)},
+        })
+    );
+    let font = tool_result(&requests[7]);
+    assert_eq!(font["is_error"], true, "{font}");
+    assert_eq!(
+        font["content"],
+        "`font.woff2` is a binary file and can't be shown."
     );
 }
 

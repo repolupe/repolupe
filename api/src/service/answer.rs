@@ -185,7 +185,9 @@ async fn run(
         let results = if round == MAX_TOOL_ROUNDS {
             tool_uses
                 .iter()
-                .map(|tool_use| tool_result(tool_use, TOOL_LIMIT_REACHED.to_string(), true))
+                .map(|tool_use| {
+                    tool_result(tool_use, ToolOutput::error(TOOL_LIMIT_REACHED.to_string()))
+                })
                 .collect()
         } else {
             run_tools(state, generation, &tools, &tool_uses, &mut proposals).await?
@@ -362,16 +364,18 @@ async fn run_tools(
         if let (Some(change), Some(repository_id)) = (&output.change, repository_id) {
             proposals.add(tool_use, *repository_id, change, *id);
         }
-        results.push(tool_result(tool_use, output.content, output.is_error));
+        results.push(tool_result(tool_use, output));
     }
     Ok(results)
 }
 
-fn tool_result(tool_use: &ToolUse, content: String, is_error: bool) -> ContentBlock {
+/// The result of `tool_use` for the model.
+fn tool_result(tool_use: &ToolUse, output: ToolOutput) -> ContentBlock {
     ContentBlock::ToolResult {
         tool_use_id: tool_use.id.clone(),
-        content,
-        is_error,
+        content: output.content,
+        image: output.image,
+        is_error: output.is_error,
     }
 }
 

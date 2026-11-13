@@ -10,13 +10,15 @@ pub(super) mod markdown;
 pub(super) mod patch;
 pub(super) mod results;
 
-use super::{LIST_FILES, RepositoryTools, ToolError, ToolRepository};
+use super::{LIST_FILES, RepositoryTools, ToolError, ToolOutput, ToolRepository};
 use crate::config::error::AppError;
 use crate::config::state::DatabasePool;
 use crate::model::document_extraction::DocumentExtraction;
 use crate::repository;
 use crate::service::extraction;
+use crate::service::image::{self, MAX_IMAGE_BYTES};
 use crate::service::mirror::{Content, PathEntry};
+use crate::util::path::has_extension;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
@@ -99,11 +101,7 @@ pub(super) fn normalize_path(path: &str) -> Result<String, String> {
 }
 
 pub(super) fn is_markdown(path: &str) -> bool {
-    path.rsplit_once('.').is_some_and(|(_, extension)| {
-        MARKDOWN_EXTENSIONS
-            .iter()
-            .any(|e| e.eq_ignore_ascii_case(extension))
-    })
+    has_extension(path, MARKDOWN_EXTENSIONS)
 }
 
 /// A text file, or the Markdown converted from a document.
@@ -120,33 +118,49 @@ pub(super) async fn read_text(
     db: &DatabasePool,
     path: &str,
 ) -> Result<Text, ToolError> {
+    let oid = file_oid(repository, path).await?;
+    if extraction::is_document(path) {
+        return read_document(db, path, &oid).await;
+    }
+    let content = read_blob(repository, path, &oid, MAX_READ_BYTES).await?;
+    decode_text(path, &content)
+}
+
+/// Reads the image at `path` for the model to look at, see [`image::is_image`]. Missing paths
+/// and files that are no images are errors for the model.
+pub(super) async fn read_image(
+    repository: &ToolRepository,
+    path: &str,
+) -> Result<ToolOutput, ToolError> {
+    let oid = file_oid(repository, path).await?;
+    let content = read_blob(repository, path, &oid, MAX_IMAGE_BYTES).await?;
+    image_output(path, content).await
+}
+
+/// `content` of the image file `name` for the model to look at.
+pub(super) async fn image_output(name: &str, content: Vec<u8>) -> Result<ToolOutput, ToolError> {
+    // Decoding and scaling a photo takes a while
+    let prepared = tokio::task::spawn_blocking(move || image::prepare(&content))
+        .await
+        .map_err(|e| AppError::InternalServerError(format!("Preparing an image failed: {e}")))?;
+    match prepared {
+        Ok(prepared) => Ok(ToolOutput {
+            image: Some(prepared.image),
+            ..ToolOutput::text(format!("`{name}`: {}.", prepared.description))
+        }),
+        Err(e) => Err(ToolError::Invalid(format!("`{name}` can't be shown. {e}."))),
+    }
+}
+
+/// The blob of the file at `path`. Directories and missing paths are errors for the model.
+async fn file_oid(repository: &ToolRepository, path: &str) -> Result<String, ToolError> {
     if path.is_empty() {
         return Err(ToolError::Invalid(format!(
             "`path` must be a file. Use {LIST_FILES} to see the files."
         )));
     }
     match repository.snapshot.entry(path).await? {
-        PathEntry::Blob { oid, .. } if extraction::is_document(path) => {
-            read_document(db, path, &oid).await
-        }
-        PathEntry::Blob { oid, .. } => {
-            let content = match repository.snapshot.read(&oid, MAX_READ_BYTES).await? {
-                Content::Bytes(content) => content,
-                Content::TooLarge(size) => {
-                    return Err(ToolError::Invalid(format!(
-                        "`{path}` is too large to read ({}).",
-                        format_size(size)
-                    )));
-                }
-                // Large and binary LFS files are not downloaded.
-                Content::Unavailable => {
-                    return Err(ToolError::Invalid(format!(
-                        "`{path}` can't be shown, its content was not downloaded."
-                    )));
-                }
-            };
-            decode_text(path, &content)
-        }
+        PathEntry::Blob { oid, .. } => Ok(oid),
         PathEntry::Tree => Err(ToolError::Invalid(format!(
             "`{path}` is a directory. Use {LIST_FILES} to see its files."
         ))),
@@ -154,6 +168,27 @@ pub(super) async fn read_text(
             "`{path}` is not a file, e.g. a submodule."
         ))),
         PathEntry::Missing => Err(missing_path(repository, path).await?),
+    }
+}
+
+/// The content of the file at `path`, whose blob is `oid`. Files larger than `max_size` bytes
+/// and files that were not downloaded are errors for the model.
+async fn read_blob(
+    repository: &ToolRepository,
+    path: &str,
+    oid: &str,
+    max_size: u64,
+) -> Result<Vec<u8>, ToolError> {
+    match repository.snapshot.read(oid, max_size).await? {
+        Content::Bytes(content) => Ok(content),
+        Content::TooLarge(size) => Err(ToolError::Invalid(format!(
+            "`{path}` is too large to read ({}).",
+            format_size(size)
+        ))),
+        // Large and binary LFS files are not downloaded.
+        Content::Unavailable => Err(ToolError::Invalid(format!(
+            "`{path}` can't be shown, its content was not downloaded."
+        ))),
     }
 }
 

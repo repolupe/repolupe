@@ -4,6 +4,7 @@ pub(crate) mod commit;
 pub(crate) mod debug;
 pub(crate) mod extraction;
 pub(crate) mod generation;
+pub(crate) mod image;
 pub(crate) mod llm;
 pub(crate) mod llm_config;
 pub(crate) mod mcp;

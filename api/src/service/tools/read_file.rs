@@ -1,9 +1,12 @@
-//! [`READ_FILE`]: a text file with line numbers, or the Markdown converted from a document.
+//! [`READ_FILE`]: a text file with line numbers, the Markdown converted from a document, or an
+//! image for the model to look at.
 
 use super::support::{
-    Output, Text, file_path_schema, normalize_path, parse_args, read_text, repository_schema,
+    Output, Text, file_path_schema, normalize_path, parse_args, read_image, read_text,
+    repository_schema,
 };
-use super::{Call, Invocation, OUTLINE, READ_FILE, RepositoryTools, ToolError};
+use super::{Call, Invocation, OUTLINE, READ_FILE, RepositoryTools, ToolError, ToolOutput};
+use crate::service::image::is_image;
 use crate::service::llm::ToolDefinition;
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -19,7 +22,8 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
         description: format!(
             "Read a text file, with line numbers. Returns up to {DEFAULT_READ_LINES} \
             lines by default. PDFs are returned as Markdown converted from them, with \
-            the text of scanned pages recognized by OCR. For long Markdown files, call \
+            the text of scanned pages recognized by OCR. Images (PNG, JPEG, GIF, WebP) are \
+            returned as the image itself, for you to look at. For long Markdown files, call \
             {OUTLINE} first and read only the sections you need."
         ),
         input_schema: json!({
@@ -70,10 +74,14 @@ pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
     Ok((input.repository, Call::ReadFile(args)))
 }
 
-pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<String, ToolError> {
+pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<ToolOutput, ToolError> {
     let path = args.path.as_str();
-    let text = read_text(invocation.target()?, invocation.db, path).await?;
-    format_lines(path, text, args.offset, args.limit)
+    let repository = invocation.target()?;
+    if is_image(path) {
+        return read_image(repository, path).await;
+    }
+    let text = read_text(repository, invocation.db, path).await?;
+    format_lines(path, text, args.offset, args.limit).map(ToolOutput::text)
 }
 
 /// Lines `offset` (from 1) to `offset + limit` of `text`, the content of the file `name`, with
@@ -130,7 +138,11 @@ pub(super) fn format_lines(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::service::tools::support::fixture::docs;
+    use crate::service::image::test_png;
+    use crate::service::llm::ImageFormat;
+    use crate::service::tools::support::fixture::{Fixture, docs};
+    use base64::Engine;
+    use base64::engine::general_purpose::STANDARD as BASE64;
 
     #[tokio::test]
     async fn reads_files() {
@@ -168,6 +180,29 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn reads_images() {
+        let png = test_png(40, 20, false);
+        let fixture = Fixture::new(&[("img/Logo.PNG", &png), ("font.woff2", b"wOF2\0\0")]);
+        let output = fixture
+            .run(READ_FILE, json!({"path": "img/Logo.PNG"}))
+            .await;
+        assert!(!output.is_error, "{}", output.content);
+        assert_eq!(output.content, "`img/Logo.PNG`: PNG image, 40 × 20 px.");
+        let image = output.image.unwrap();
+        assert_eq!(image.format, ImageFormat::Png);
+        assert_eq!(image.data, BASE64.encode(&png));
+
+        // Other binary files stay unreadable
+        let font = fixture.run(READ_FILE, json!({"path": "font.woff2"})).await;
+        assert!(font.is_error);
+        assert_eq!(
+            font.content,
+            "`font.woff2` is a binary file and can't be shown."
+        );
+        assert!(font.image.is_none());
+    }
+
+    #[tokio::test]
     async fn explains_unreadable_paths() {
         let fixture = docs();
         let read = |path: &'static str| fixture.error(READ_FILE, json!({"path": path}));
@@ -175,9 +210,10 @@ mod tests {
             read("docs").await,
             "`docs` is a directory. Use list_files to see its files."
         );
+        // Only the signature of a PNG
         assert_eq!(
             read("logo.png").await,
-            "`logo.png` is a binary file and can't be shown."
+            "`logo.png` can't be shown. It is not a valid PNG, JPEG, GIF or WebP image."
         );
         // The sync downloads no LFS objects of binary files like videos.
         assert_eq!(

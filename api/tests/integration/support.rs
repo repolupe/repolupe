@@ -10,6 +10,7 @@ use repolupe::{
 };
 use serde_json::{Value, json};
 use sqlx::SqlitePool;
+use std::io::Cursor;
 use std::path::Path;
 use std::process::Command;
 use std::time::Duration;
@@ -428,6 +429,15 @@ pub fn create_bare_repository(target: &Path, files: &[(&str, impl AsRef<[u8]>)])
         &["clone", "--bare", "--quiet", ".", target.to_str().unwrap()],
     );
     commit_sha
+}
+
+/// A PNG file of `width` × `height` pixels.
+pub fn png(width: u32, height: u32) -> Vec<u8> {
+    let mut encoded = Vec::new();
+    image::RgbImage::new(width, height)
+        .write_to(&mut Cursor::new(&mut encoded), image::ImageFormat::Png)
+        .unwrap();
+    encoded
 }
 
 /// Runs git in `dir` and returns its stdout.

@@ -648,9 +648,11 @@ fn raw_message(role: Role, content: &[ContentBlock]) -> RawMessage {
                     name: tool_use.name.clone(),
                     input: tool_use.input.clone(),
                 }),
+                // Without its image, which `content` describes
                 ContentBlock::ToolResult {
                     tool_use_id,
                     content,
+                    image: _,
                     is_error,
                 } => Some(RawBlock::ToolResult {
                     tool_use_id: tool_use_id.clone(),

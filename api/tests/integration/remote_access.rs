@@ -1,6 +1,6 @@
 use super::local_remote::{LocalRemote, wait_for_commit};
-use super::mock_llm::{MockLlm, text_response, tool_result, tool_use_response};
-use super::support::{TestApp, TestClient};
+use super::mock_llm::{MockLlm, text_response, tool_result, tool_result_image, tool_use_response};
+use super::support::{TestApp, TestClient, png};
 use axum::http::StatusCode;
 use chrono::{DateTime, TimeDelta, Utc};
 use serde_json::{Value, json};
@@ -207,15 +207,17 @@ async fn missing_branch_is_rejected(db: SqlitePool) {
 }
 
 #[sqlx::test]
-async fn tools_read_and_search_small_text_files_in_lfs(db: SqlitePool) {
+async fn tools_read_small_text_files_and_images_in_lfs(db: SqlitePool) {
     let app = TestApp::new(db).await;
     let remote = LocalRemote::start().await;
     let notes = remote.add_lfs_object(b"= Rent\nThe rent is 900 EUR.\n");
-    let photo = remote.add_lfs_object(b"\x89PNG\r\n\x1a\n\0photo");
+    let photo = remote.add_lfs_object(&png(3, 2));
+    let video = remote.add_lfs_object(b"\0\0\0 ftypisom video");
     let large = remote.add_lfs_object(&vec![b'a'; 1024 * 1024 + 1]);
     let commit = remote.push_commit(&[
         ("notes.typ", &notes),
         ("photo.png", &photo),
+        ("video.mp4", &video),
         ("large.typ", &large),
     ]);
     let read = |id: &str, path: &str| {
@@ -228,11 +230,12 @@ async fn tools_read_and_search_small_text_files_in_lfs(db: SqlitePool) {
     let llm = MockLlm::start(vec![
         read("toolu_1", "notes.typ"),
         read("toolu_2", "photo.png"),
-        read("toolu_3", "large.typ"),
+        read("toolu_3", "video.mp4"),
+        read("toolu_4", "large.typ"),
         tool_use_response(
-            "toolu_4",
+            "toolu_5",
             "grep",
-            json!({"repository": "internal", "pattern": "rent|photo|aaa"}),
+            json!({"repository": "internal", "pattern": "rent|video|aaa"}),
         ),
         text_response("The rent is 900 EUR."),
     ])
@@ -259,20 +262,26 @@ async fn tools_read_and_search_small_text_files_in_lfs(db: SqlitePool) {
     let answer = admin.wait_for_answer(chat["id"].as_str().unwrap()).await;
     assert_eq!(answer["status"], "COMPLETED", "{answer}");
 
-    let results: Vec<Value> = llm.requests()[1..].iter().map(tool_result).collect();
+    let requests = llm.requests();
+    let results: Vec<Value> = requests[1..].iter().map(tool_result).collect();
     assert_eq!(results[0]["is_error"], false, "{}", results[0]);
     assert_eq!(results[0]["content"], "1\t= Rent\n2\tThe rent is 900 EUR.");
-    for (result, path) in results[1..3].iter().zip(["photo.png", "large.typ"]) {
+    // The model gets the image itself
+    assert_eq!(results[1]["is_error"], false, "{}", results[1]);
+    assert_eq!(results[1]["content"], "`photo.png`: PNG image, 3 × 2 px.");
+    let photo = tool_result_image(&requests[2]);
+    assert_eq!(photo["source"]["media_type"], "image/png");
+    for (result, path) in results[2..4].iter().zip(["video.mp4", "large.typ"]) {
         assert_eq!(result["is_error"], true, "{result}");
         assert_eq!(
             result["content"],
             format!("`{path}` can't be shown, its content was not downloaded.")
         );
     }
-    // The files that were not downloaded are skipped.
-    assert_eq!(results[3]["is_error"], false, "{}", results[3]);
+    // The files that were not downloaded and the binary ones are skipped.
+    assert_eq!(results[4]["is_error"], false, "{}", results[4]);
     assert_eq!(
-        results[3]["content"],
+        results[4]["content"],
         "1 matching line in 1 file:\n\nnotes.typ\n2:The rent is 900 EUR."
     );
 }

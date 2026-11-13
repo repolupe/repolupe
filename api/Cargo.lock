@@ -5462,6 +5462,7 @@ dependencies = [
  "gix-pack",
  "gix-transport",
  "hex",
+ "image",
  "ort",
  "rand 0.10.3",
  "reqwest",

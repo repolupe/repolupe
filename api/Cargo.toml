@@ -54,6 +54,8 @@ fancy-regex = "0.19.2"
 bytes = "1"
 gix-pack = { version = "0.77", default-features = false, features = ["generate"] }
 similar = "3"
+# Decodes and scales the images the model looks at, see `service::image`.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp"] }
 # The interpreter of the `run_script` tool, see `service::tools::run_script`.
 rquickjs = { version = "0.14", features = ["allocator"] }
 

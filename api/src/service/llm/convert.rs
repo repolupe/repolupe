@@ -5,16 +5,16 @@
 //! block through the tool loop for that, so nothing provider-specific is modeled here.
 
 use super::{
-    ChatMessage, ContentBlock, LlmConfig, LlmError, LlmRequest, LlmResponse, Role, StopReason,
-    ToolUse, Usage,
+    ChatMessage, ContentBlock, Image, ImageFormat, LlmConfig, LlmError, LlmRequest, LlmResponse,
+    Role, StopReason, ToolUse, Usage,
 };
 use crate::dto::llm::LlmApiFormat;
 use rig_core::completion::{
     self, CompletionRequest, CompletionResponse, Effort, FinishReason, OnUnsupported,
 };
 use rig_core::message::{
-    AssistantContent, AssistantMessage, CallId, Message, Origin, Text, ToolCall, ToolFunction,
-    ToolName, ToolResult, ToolResultContent, UserContent,
+    self, AssistantContent, AssistantMessage, CallId, DocumentSourceKind, ImageMediaType, Message,
+    Origin, Text, ToolCall, ToolFunction, ToolName, ToolResult, ToolResultContent, UserContent,
 };
 use serde_json::Value;
 use std::collections::HashMap;
@@ -155,6 +155,7 @@ fn user_message(
             ContentBlock::ToolResult {
                 tool_use_id,
                 content,
+                image,
                 is_error,
             } => {
                 let (call, name) = calls.get(tool_use_id.as_str()).cloned().unwrap_or_else(|| {
@@ -162,15 +163,22 @@ fn user_message(
                     let name = ToolName::new("unknown").expect("the name is not empty");
                     (CallId::from_wire(tool_use_id), name)
                 });
-                let content = match api_format {
+                let text = match api_format {
                     // The format has no error flag
                     LlmApiFormat::OpenAi if *is_error => format!("Error: {content}"),
                     _ => content.clone(),
                 };
+                let mut parts = vec![ToolResultContent::Text(Text::new(text))];
+                if let Some(image) = image {
+                    // Rig sends it inside the result for Anthropic and in a user message after
+                    // the results for OpenAI-compatible servers, and replaces it with a note
+                    // for models it knows can't read images.
+                    parts.push(ToolResultContent::Image(rig_image(image)));
+                }
                 Some(UserContent::ToolResult(ToolResult {
                     call,
                     name,
-                    content: vec![ToolResultContent::Text(Text::new(content))],
+                    content: parts,
                     is_error: *is_error,
                 }))
             }
@@ -178,6 +186,19 @@ fn user_message(
         })
         .collect();
     (!content.is_empty()).then_some(Message::User { content })
+}
+
+fn rig_image(image: &Image) -> message::Image {
+    message::Image {
+        data: DocumentSourceKind::Base64(image.data.clone()),
+        media_type: Some(match image.format {
+            ImageFormat::Png => ImageMediaType::PNG,
+            ImageFormat::Jpeg => ImageMediaType::JPEG,
+            ImageFormat::Gif => ImageMediaType::GIF,
+            ImageFormat::Webp => ImageMediaType::WEBP,
+        }),
+        ..Default::default()
+    }
 }
 
 fn tool_name(name: &str) -> Result<ToolName, LlmError> {

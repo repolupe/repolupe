@@ -30,7 +30,7 @@ use crate::model::attachment::Attachment;
 use crate::model::tool_call::ProposedChange;
 use crate::service::attachment::AttachmentStore;
 use crate::service::extraction::DocumentExtractor;
-use crate::service::llm::{ToolDefinition, ToolUse};
+use crate::service::llm::{Image, ToolDefinition, ToolUse};
 use crate::service::mcp::McpClient;
 use crate::service::mirror::Snapshot;
 use serde_json::Value;
@@ -161,6 +161,9 @@ enum Call {
 #[derive(Debug)]
 pub(crate) struct ToolOutput {
     pub(crate) content: String,
+    /// The image a successful [`READ_FILE`] or [`READ_ATTACHMENT`] call read, for the model to
+    /// look at. Not stored with the call, unlike `content`, which says what it is.
+    pub(crate) image: Option<Image>,
     pub(crate) is_error: bool,
     /// The commit a successful [`CHANGE_FILE`], [`MOVE_FILES`] or [`SAVE_ATTACHMENT`] call
     /// proposed, to store with the call.
@@ -168,11 +171,20 @@ pub(crate) struct ToolOutput {
 }
 
 impl ToolOutput {
-    pub(crate) fn error(content: String) -> Self {
+    /// Of a successful call that returns only text.
+    fn text(content: String) -> Self {
         Self {
             content,
-            is_error: true,
+            image: None,
+            is_error: false,
             change: None,
+        }
+    }
+
+    pub(crate) fn error(content: String) -> Self {
+        Self {
+            is_error: true,
+            ..Self::text(content)
         }
     }
 }
@@ -429,7 +441,7 @@ impl Invocation<'_> {
     pub(crate) async fn run(&self) -> ToolOutput {
         let result = match &self.call {
             Call::ListFiles(args) => list_files::run(self, args).await,
-            Call::ReadFile(args) => read_file::run(self, args).await,
+            Call::ReadFile(args) => return self.file(read_file::run(self, args).await),
             Call::Grep(args) => grep::run(self, args).await,
             Call::Outline(args) => outline::run(self, args).await,
             Call::PresentFile(args) => present_file::run(self, args).await,
@@ -438,18 +450,21 @@ impl Invocation<'_> {
             Call::SaveAttachment(args) => {
                 return self.proposal(save_attachment::run(self, args).await);
             }
-            Call::ReadAttachment(args) => read_attachment::run(self, args).await,
+            Call::ReadAttachment(args) => {
+                return self.file(read_attachment::run(self, args).await);
+            }
             Call::RunScript(args) => run_script::run(self, args).await,
             Call::Mcp(args) => self.mcp.run(args, self.results).await,
         };
         match result {
-            Ok(content) => ToolOutput {
-                content,
-                is_error: false,
-                change: None,
-            },
+            Ok(content) => ToolOutput::text(content),
             Err(e) => self.error_output(e),
         }
+    }
+
+    /// The output of a call that reads a file, which may be an image.
+    fn file(&self, result: Result<ToolOutput, ToolError>) -> ToolOutput {
+        result.unwrap_or_else(|e| self.error_output(e))
     }
 
     /// What happens to the commit the call proposed, for its output.
@@ -467,9 +482,8 @@ impl Invocation<'_> {
     fn proposal(&self, result: Result<(String, ProposedChange), ToolError>) -> ToolOutput {
         match result {
             Ok((content, change)) => ToolOutput {
-                content,
-                is_error: false,
                 change: Some(change),
+                ..ToolOutput::text(content)
             },
             Err(e) => self.error_output(e),
         }

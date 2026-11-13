@@ -4,7 +4,9 @@ use crate::model::remote_access::RemoteAccess;
 use crate::model::repository::SyncJob;
 use crate::repository;
 use crate::service::extraction;
+use crate::service::image::{self, MAX_IMAGE_BYTES};
 use crate::service::mirror::Update;
+use crate::util::path::has_extension;
 use chrono::{TimeDelta, Utc};
 use std::collections::{HashMap, HashSet};
 use std::time::{Duration, Instant};
@@ -27,9 +29,11 @@ const TEMPORARY_CHAT_LIFETIME: TimeDelta = TimeDelta::days(1);
 /// [`download_lfs_object`].
 const MAX_TEXT_LFS_OBJECT_SIZE: u64 = 1024 * 1024;
 /// Files that are never text, whose LFS objects are not downloaded.
+// rustfmt moves the comment of a group to the end of a short line before it
+#[rustfmt::skip]
 const BINARY_EXTENSIONS: &[&str] = &[
-    // Images
-    "png", "jpg", "jpeg", "gif", "webp", "bmp", "ico", "tif", "tiff", "heic", "heif", "avif", "psd",
+    // Images the model can't look at, see [`image::is_image`]
+    "bmp", "ico", "tif", "tiff", "heic", "heif", "avif", "psd",
     // Audio and video
     "mp3", "wav", "flac", "ogg", "m4a", "aac", "mp4", "m4v", "mov", "avi", "mkv", "webm",
     // Archives
@@ -208,17 +212,15 @@ async fn fetch(state: &AppState, job: &SyncJob) -> Result<Update, AppError> {
 }
 
 /// Whether to download the LFS object of the file at `path`, of `size` bytes: documents, to
-/// convert them, and small files that may be text, so the tools can read them.
+/// convert them, and images and small files that may be text, so the tools can read them.
 fn download_lfs_object(path: &str, size: u64) -> bool {
     if extraction::is_document(path) {
         return true;
     }
-    let binary = path.rsplit_once('.').is_some_and(|(_, extension)| {
-        BINARY_EXTENSIONS
-            .iter()
-            .any(|e| e.eq_ignore_ascii_case(extension))
-    });
-    !binary && size <= MAX_TEXT_LFS_OBJECT_SIZE
+    if image::is_image(path) {
+        return size <= MAX_IMAGE_BYTES;
+    }
+    !has_extension(path, BINARY_EXTENSIONS) && size <= MAX_TEXT_LFS_OBJECT_SIZE
 }
 
 /// Removes the mirrors of repositories that no longer exist, except those `in_use`.
@@ -246,12 +248,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn downloads_documents_and_small_files_that_may_be_text() {
+    fn downloads_documents_images_and_small_files_that_may_be_text() {
         let large = MAX_TEXT_LFS_OBJECT_SIZE + 1;
         assert!(download_lfs_object("Mietangebot.typ", 2_000));
         assert!(download_lfs_object("Makefile", 2_000));
         assert!(!download_lfs_object("Mietangebot.typ", large));
-        assert!(!download_lfs_object("Photo.JPG", 2_000));
+        assert!(!download_lfs_object("Video.MP4", 2_000));
         assert!(download_lfs_object("scan.pdf", large));
+        assert!(download_lfs_object("Photo.JPG", large));
+        assert!(!download_lfs_object("Photo.JPG", MAX_IMAGE_BYTES + 1));
     }
 }

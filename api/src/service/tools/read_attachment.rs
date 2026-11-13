@@ -3,15 +3,19 @@
 //! [`crate::service::extraction`]), so this waits for a conversion that is still running.
 
 use super::read_file::{DEFAULT_READ_LINES, MAX_READ_LINES, format_lines};
-use super::support::{MAX_READ_BYTES, Text, decode_text, document_text, format_size, parse_args};
+use super::support::{
+    MAX_READ_BYTES, Text, decode_text, document_text, format_size, image_output, parse_args,
+};
 use super::{
     Call, ChatAttachments, Invocation, READ_ATTACHMENT, READ_FILE, RepositoryTools, ToolError,
+    ToolOutput,
 };
 use crate::config::error::AppError;
 use crate::config::state::DatabasePool;
 use crate::model::attachment::Attachment;
 use crate::model::document_extraction::DocumentExtraction;
 use crate::service::extraction;
+use crate::service::image::{MAX_IMAGE_BYTES, is_image};
 use crate::service::llm::ToolDefinition;
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -27,7 +31,8 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
             "Read a file the user attached to the chat, with line numbers, like {READ_FILE} \
             reads one in a repository. Returns up to {DEFAULT_READ_LINES} lines by default. \
             PDFs are returned as Markdown converted from them, with the text of scanned pages \
-            recognized by OCR. Binary files, e.g. images, can't be read."
+            recognized by OCR. Images (PNG, JPEG, GIF, WebP) are returned as the image itself, \
+            for you to look at. Other binary files can't be read."
         ),
         input_schema: json!({
             "type": "object",
@@ -80,11 +85,16 @@ pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
     Ok((None, Call::ReadAttachment(args)))
 }
 
-pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<String, ToolError> {
+pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<ToolOutput, ToolError> {
     let attachments = invocation.attachments;
-    let name = &attachments.find(args.number)?.file_name;
+    let attachment = attachments.find(args.number)?;
+    let name = &attachment.file_name;
+    if is_image(name) {
+        let content = read_content(attachments, attachment, MAX_IMAGE_BYTES).await?;
+        return image_output(name, content).await;
+    }
     let text = read_text(attachments, invocation.db, args.number).await?;
-    format_lines(name, text, args.offset, args.limit)
+    format_lines(name, text, args.offset, args.limit).map(ToolOutput::text)
 }
 
 /// Waits until the text of attachment `number` can be read with [`read_text`], i.e. until it is
@@ -113,15 +123,25 @@ pub(super) async fn read_text(
     if extraction::document_type(&attachment.content_type).is_some() {
         return document_text(name, converted(attachments, db, attachment).await?);
     }
+    let content = read_content(attachments, attachment, MAX_READ_BYTES).await?;
+    decode_text(name, &content)
+}
+
+/// The content of `attachment`, an error for the model if it is larger than `max_size` bytes.
+async fn read_content(
+    attachments: &ChatAttachments,
+    attachment: &Attachment,
+    max_size: u64,
+) -> Result<Vec<u8>, ToolError> {
     let size = attachment.size.max(0) as u64;
-    if size > MAX_READ_BYTES {
+    if size > max_size {
         return Err(ToolError::Invalid(format!(
-            "`{name}` is too large to read ({}).",
+            "`{}` is too large to read ({}).",
+            attachment.file_name,
             format_size(size)
         )));
     }
-    let content = attachments.store()?.read(attachment.id).await?;
-    decode_text(name, &content)
+    Ok(attachments.store()?.read(attachment.id).await?)
 }
 
 /// The conversion of the document `attachment`, waiting for it if it is still running.

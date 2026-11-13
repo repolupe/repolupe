@@ -204,6 +204,7 @@ fn continue_loop(messages: &mut Vec<ChatMessage>, response: LlmResponse) {
         .map(|tool_use| ContentBlock::ToolResult {
             tool_use_id: tool_use.id.clone(),
             content: "no matches".to_string(),
+            image: None,
             is_error: tool_use.name != "grep",
         })
         .collect();
@@ -488,6 +489,106 @@ async fn sends_openai_reasoning_and_call_extras_back() {
     assert_eq!(
         body["messages"][2],
         json!({"role": "tool", "tool_call_id": "function-call-1", "content": "no matches"})
+    );
+}
+
+/// A question, two calls of `read_file` and their results, the second one an image.
+fn messages_with_image() -> Vec<ChatMessage> {
+    let call = |id: &str, path: &str| {
+        ContentBlock::ToolUse(ToolUse {
+            id: id.to_string(),
+            name: "read_file".to_string(),
+            input: json!({"path": path}),
+            native: None,
+        })
+    };
+    let result = |id: &str, content: &str, image: Option<Image>| ContentBlock::ToolResult {
+        tool_use_id: id.to_string(),
+        content: content.to_string(),
+        image,
+        is_error: false,
+    };
+    let image = Image {
+        format: ImageFormat::Png,
+        data: "iVBORw0KGgo=".to_string(),
+    };
+    vec![
+        user("What is on the logo?"),
+        ChatMessage {
+            role: Role::Assistant,
+            content: vec![call("call_1", "README.md"), call("call_2", "logo.png")],
+        },
+        ChatMessage {
+            role: Role::User,
+            content: vec![
+                result("call_1", "1\t# Project", None),
+                result("call_2", "`logo.png`: PNG image, 8 × 8 px.", Some(image)),
+            ],
+        },
+    ]
+}
+
+#[tokio::test]
+async fn sends_images_of_tool_results() {
+    let server = FakeServer::start(vec![
+        anthropic_text("A lens."),
+        openai_sse(&[
+            json!({"choices": [{"index": 0, "delta": {"content": "A lens."}, "finish_reason": "stop"}]}),
+        ]),
+    ])
+    .await;
+    let client = LlmClient::new().unwrap();
+    let messages = messages_with_image();
+    // Without tools, rig sends the calls and their results as text
+    let tools = [ToolDefinition {
+        name: "read_file".to_string(),
+        description: "Reads a file".to_string(),
+        input_schema: json!({"type": "object", "properties": {"path": {"type": "string"}}}),
+    }];
+    let request = LlmRequest {
+        system: "",
+        messages: &messages,
+        tools: &tools,
+    };
+    for api_format in [LlmApiFormat::Anthropic, LlmApiFormat::OpenAi] {
+        let config = server.config(api_format, None);
+        let (texts, _) = collect(&client, &config, &request).await.unwrap();
+        assert_eq!(texts, ["A lens."]);
+    }
+
+    // In the result
+    let requests = server.requests();
+    let results = &requests[0].body["messages"][2];
+    assert_eq!(results["role"], "user");
+    assert_eq!(
+        results["content"][0]["content"],
+        json!([{"type": "text", "text": "1\t# Project"}])
+    );
+    assert_eq!(
+        results["content"][1]["content"],
+        json!([
+            {"type": "text", "text": "`logo.png`: PNG image, 8 × 8 px."},
+            {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": "iVBORw0KGgo="}},
+        ])
+    );
+    assert!(results["content"][2].is_null());
+
+    // Rig moves it to a user message after the results, since the format takes only text in them
+    let messages = requests[1].body["messages"].as_array().unwrap();
+    assert_eq!(
+        messages[2..],
+        [
+            json!({"role": "tool", "tool_call_id": "call_1", "content": "1\t# Project"}),
+            json!({
+                "role": "tool",
+                "tool_call_id": "call_2",
+                "content": "`logo.png`: PNG image, 8 × 8 px.\n(see attached image)",
+            }),
+            json!({"role": "user", "content": [
+                {"type": "text", "text": "Attached image(s) from tool result:"},
+                {"type": "image_url", "image_url": {"url": "data:image/png;base64,iVBORw0KGgo=", "detail": "auto"}},
+            ]}),
+        ]
     );
 }
 
