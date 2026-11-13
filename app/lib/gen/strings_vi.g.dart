@@ -649,6 +649,8 @@ class _Translations$flutter$chat$vi extends Translations$flutter$chat$en {
   @override
   late final _Translations$flutter$chat$leaveTemporaryDialog$vi leaveTemporaryDialog = _Translations$flutter$chat$leaveTemporaryDialog$vi._(_root);
   @override
+  late final _Translations$flutter$chat$messageInput$vi messageInput = _Translations$flutter$chat$messageInput$vi._(_root);
+  @override
   late final _Translations$flutter$chat$assistantMessage$vi assistantMessage = _Translations$flutter$chat$assistantMessage$vi._(_root);
   @override
   late final _Translations$flutter$chat$markdownContent$vi markdownContent = _Translations$flutter$chat$markdownContent$vi._(_root);
@@ -2139,6 +2141,21 @@ class _Translations$flutter$chat$leaveTemporaryDialog$vi extends Translations$fl
       'Đoạn chat tạm thời không có trong danh sách đoạn chat của bạn, nên bạn không thể quay lại đoạn chat này. Nó sẽ bị xóa một ngày sau tin nhắn cuối cùng.';
   @override
   String get leave => 'Rời khỏi';
+}
+
+// Path: flutter.chat.messageInput
+class _Translations$flutter$chat$messageInput$vi extends Translations$flutter$chat$messageInput$en {
+  _Translations$flutter$chat$messageInput$vi._(TranslationsVi root) : this._root = root, super.internal(root);
+
+  final TranslationsVi _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get camera => 'Máy ảnh';
+  @override
+  String get cameraDenied => 'Repolupe không được phép dùng máy ảnh. Hãy cho phép trong phần cài đặt hệ thống.';
+  @override
+  String get cameraFailed => 'Máy ảnh không khả dụng.';
 }
 
 // Path: flutter.chat.assistantMessage

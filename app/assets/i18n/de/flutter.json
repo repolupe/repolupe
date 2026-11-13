@@ -30,6 +30,11 @@
       "text": "Temporäre Chats werden nicht in deinen Chats aufgeführt, du kannst also nicht zu diesem zurückkehren. Er wird einen Tag nach seiner letzten Nachricht gelöscht.",
       "leave": "Verlassen"
     },
+    "messageInput": {
+      "camera": "Kamera",
+      "cameraDenied": "Repolupe darf die Kamera nicht verwenden. Erlaube es in den Systemeinstellungen.",
+      "cameraFailed": "Die Kamera ist nicht verfügbar."
+    },
     "assistantMessage": {
       "fitTables": "Tabellen an die Breite anpassen",
       "scrollTables": "Breite Tabellen scrollen"

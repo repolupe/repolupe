@@ -8,12 +8,16 @@ import 'package:app/widget/chat/model_sheet.dart';
 import 'package:app/widget/chat/repository_sheet.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
-/// The text field and below it the actions, in one box: a plus button with the options of a new chat (or, without
-/// options to choose, a button that attaches a file), the model, and the button that sends the message, or stops the
-/// answer being generated. The attached file is above the text field, the repositories and MCP servers of the new chat
-/// (unless all) above the plus button.
+/// The text field and below it the actions, in one box: a plus button with the options (taking a photo, attaching a
+/// file, and what a new chat reads), the model, and the button that sends the message, or stops the answer being
+/// generated. The attached file is above the text field, the repositories and MCP servers of the new chat (unless all)
+/// above the plus button.
 class MessageInput extends StatefulWidget {
   const MessageInput({super.key});
 
@@ -58,12 +62,35 @@ class _MessageInputState extends State<MessageInput> with Refena {
     await ref.redux(chatProvider).dispatchAsync(AttachFileAction(fileName: file.name, size: size, read: file.readAsBytes));
   }
 
+  /// Attaches a photo taken with the camera, like a file.
+  Future<void> _takePhoto() async {
+    final XFile? photo;
+    try {
+      photo = await ImagePicker().pickImage(source: ImageSource.camera);
+    } on PlatformException catch (e) {
+      final messages = t.flutter.chat.messageInput;
+      ref.global.dispatch(ShowSnackBarAction(message: e.code == 'camera_access_denied' ? messages.cameraDenied : messages.cameraFailed));
+      return;
+    }
+    if (photo == null || !mounted) {
+      return;
+    }
+    // The picker names it with a random id, so it is named after the time instead, keeping the extension.
+    final dot = photo.name.lastIndexOf('.');
+    final extension = dot < 0 ? '.jpg' : photo.name.substring(dot);
+    final fileName = 'IMG_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}$extension';
+    final size = await photo.length();
+    await ref.redux(chatProvider).dispatchAsync(AttachFileAction(fileName: fileName, size: size, read: photo.readAsBytes));
+  }
+
   Future<void> _showOptions() async {
     final option = await InputOptionsSheet.show(context);
     if (!mounted) {
       return;
     }
     switch (option) {
+      case InputOption.camera:
+        await _takePhoto();
       case InputOption.attach:
         await _attach();
       case InputOption.repositories:
@@ -80,8 +107,6 @@ class _MessageInputState extends State<MessageInput> with Refena {
     final answering = state.answer != null;
     final canSend = state.canSend(_controller.text);
     final attachment = state.attachment;
-    // A new chat has options to choose; assumed while it loads, so the attach button does not turn into the plus.
-    final options = state.chat == null && !state.loading && (!state.loaded || state.repositories.isNotEmpty || state.mcpServers.isNotEmpty);
     // Only the scopes that are not all items, so the default takes no space.
     final newChat = state.chat == null && state.loaded;
     final chips = [
@@ -162,20 +187,13 @@ class _MessageInputState extends State<MessageInput> with Refena {
               padding: const EdgeInsets.fromLTRB(4, 0, 4, 4),
               child: Row(
                 children: [
-                  if (options)
-                    IconButton(
-                      key: const ValueKey('chat.options'),
-                      icon: const Icon(Icons.add),
-                      tooltip: context.t.base.chat.messageInput.options,
-                      onPressed: !state.busy && state.loaded ? _showOptions : null,
-                    )
-                  else
-                    IconButton(
-                      key: const ValueKey('chat.attach'),
-                      icon: const Icon(Icons.attach_file),
-                      tooltip: context.t.base.chat.messageInput.attach,
-                      onPressed: state.busy ? null : _attach,
-                    ),
+                  IconButton(
+                    key: const ValueKey('chat.options'),
+                    icon: const Icon(Icons.add),
+                    tooltip: context.t.base.chat.messageInput.options,
+                    // A new chat has more options once they are loaded.
+                    onPressed: !state.busy && (state.chat != null || state.loaded) ? _showOptions : null,
+                  ),
                   Expanded(
                     // Taps on the free space focus the text field, as if the box were the field.
                     child: GestureDetector(

@@ -30,6 +30,11 @@
       "text": "Đoạn chat tạm thời không có trong danh sách đoạn chat của bạn, nên bạn không thể quay lại đoạn chat này. Nó sẽ bị xóa một ngày sau tin nhắn cuối cùng.",
       "leave": "Rời khỏi"
     },
+    "messageInput": {
+      "camera": "Máy ảnh",
+      "cameraDenied": "Repolupe không được phép dùng máy ảnh. Hãy cho phép trong phần cài đặt hệ thống.",
+      "cameraFailed": "Máy ảnh không khả dụng."
+    },
     "assistantMessage": {
       "fitTables": "Co bảng cho vừa chiều rộng",
       "scrollTables": "Cuộn ngang các bảng rộng"

@@ -650,6 +650,8 @@ class _Translations$flutter$chat$de extends Translations$flutter$chat$en {
   @override
   late final _Translations$flutter$chat$leaveTemporaryDialog$de leaveTemporaryDialog = _Translations$flutter$chat$leaveTemporaryDialog$de._(_root);
   @override
+  late final _Translations$flutter$chat$messageInput$de messageInput = _Translations$flutter$chat$messageInput$de._(_root);
+  @override
   late final _Translations$flutter$chat$assistantMessage$de assistantMessage = _Translations$flutter$chat$assistantMessage$de._(_root);
   @override
   late final _Translations$flutter$chat$markdownContent$de markdownContent = _Translations$flutter$chat$markdownContent$de._(_root);
@@ -2141,6 +2143,21 @@ class _Translations$flutter$chat$leaveTemporaryDialog$de extends Translations$fl
       'Temporäre Chats werden nicht in deinen Chats aufgeführt, du kannst also nicht zu diesem zurückkehren. Er wird einen Tag nach seiner letzten Nachricht gelöscht.';
   @override
   String get leave => 'Verlassen';
+}
+
+// Path: flutter.chat.messageInput
+class _Translations$flutter$chat$messageInput$de extends Translations$flutter$chat$messageInput$en {
+  _Translations$flutter$chat$messageInput$de._(TranslationsDe root) : this._root = root, super.internal(root);
+
+  final TranslationsDe _root; // ignore: unused_field
+
+  // Translations
+  @override
+  String get camera => 'Kamera';
+  @override
+  String get cameraDenied => 'Repolupe darf die Kamera nicht verwenden. Erlaube es in den Systemeinstellungen.';
+  @override
+  String get cameraFailed => 'Die Kamera ist nicht verfügbar.';
 }
 
 // Path: flutter.chat.assistantMessage

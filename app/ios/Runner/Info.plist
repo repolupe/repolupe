@@ -34,6 +34,8 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Repolupe uses the camera to take photos that you attach to your messages.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Repolupe connects to servers on your local network, such as a self-hosted Repolupe server.</string>
 	<key>UIApplicationSceneManifest</key>

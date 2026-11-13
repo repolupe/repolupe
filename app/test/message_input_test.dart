@@ -2,18 +2,22 @@ import 'package:app/gen/strings.g.dart';
 import 'package:app/pages/chat_page.dart';
 import 'package:app/service/api_service.dart';
 import 'package:app/service/chat_service.dart';
+import 'package:app/src/rust/third_party/repolupe/dto/attachment.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/llm.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/mcp.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import 'support/api.dart';
 import 'support/fake_repository.dart';
+import 'support/image_picker.dart';
 import 'support/rust.dart';
 
 const _userId = '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12';
@@ -65,12 +69,14 @@ McpServerDto _mcpServer({
   updatedAt: DateTime.utc(2026, 10, 21, 12),
 );
 
-/// The chat page of a user with [repositories] and [mcpServers], recording the chats it creates in [created].
+/// The chat page of a user with [repositories] and [mcpServers], recording the chats it creates in [created] and the
+/// files it uploads in [uploaded].
 Future<RefenaContainer> _pumpChatPage(
   WidgetTester tester, {
   required List<RepositoryDto> repositories,
   List<McpServerDto> mcpServers = const [],
   List<ApiCreateChatAction>? created,
+  List<ApiUploadAttachmentAction>? uploaded,
 }) async {
   final container = (await tester.runAsync(
     () => mockContainer(
@@ -101,6 +107,18 @@ Future<RefenaContainer> _pumpChatPage(
             createdAt: DateTime.utc(2026, 10, 21, 12),
           );
           return (state, ChatDetailDto(chat: chat, messages: [message]));
+        });
+        mock.on<ApiUploadAttachmentAction>((state, action) {
+          uploaded?.add(action);
+          final attachment = AttachmentDto(
+            id: UuidValue.fromString('0199a8d4-6d5e-7c3a-9b1f-000000000051'),
+            number: 1,
+            fileName: action.fileName,
+            contentType: 'image/jpeg',
+            size: action.content.length,
+            createdAt: DateTime.utc(2026, 10, 21, 12),
+          );
+          return (state, attachment);
         });
       },
     ),
@@ -142,12 +160,12 @@ void main() {
     final created = <ApiCreateChatAction>[];
     final container = await _pumpChatPage(tester, repositories: repositories, created: created);
 
-    expect(find.byKey(const ValueKey('chat.attach')), findsNothing);
     // All repositories are the default, which takes no space.
     expect(find.byKey(const ValueKey('chat.repositories')), findsNothing);
 
     await tester.tap(find.byKey(const ValueKey('chat.options')));
     await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('chat.options.camera')), findsOneWidget);
     expect(find.byKey(const ValueKey('chat.options.attach')), findsOneWidget);
     expect(
       find.descendant(of: find.byKey(const ValueKey('chat.options.repositories')), matching: find.text('All Repositories')),
@@ -180,11 +198,14 @@ void main() {
     expect(created.single.allRepositories, isFalse);
     expect(created.single.repositoryIds, [UuidValue.fromString(_docsId), UuidValue.fromString(_notesId)]);
 
-    // The chat keeps its repositories, so there is nothing more to choose.
+    // The chat keeps its repositories, so the plus button only offers the camera and attaching a file.
     expect(container.read(chatProvider).chat?.id, _chatId);
     expect(find.byKey(const ValueKey('chat.repositories')), findsNothing);
-    expect(find.byKey(const ValueKey('chat.options')), findsNothing);
-    expect(find.byKey(const ValueKey('chat.attach')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('chat.options')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('chat.options.camera')), findsOneWidget);
+    expect(find.byKey(const ValueKey('chat.options.attach')), findsOneWidget);
+    expect(find.byKey(const ValueKey('chat.options.repositories')), findsNothing);
   });
 
   testWidgets('removing the repository chip reads all repositories again', (tester) async {
@@ -202,12 +223,50 @@ void main() {
     expect(chip, findsNothing);
   });
 
-  testWidgets('without repositories, the button attaches a file', (tester) async {
+  testWidgets('without repositories, the plus button offers the camera and attaching a file', (tester) async {
     await _pumpChatPage(tester, repositories: const []);
 
-    expect(find.byKey(const ValueKey('chat.options')), findsNothing);
-    expect(find.byKey(const ValueKey('chat.attach')), findsOneWidget);
-    expect(find.byKey(const ValueKey('chat.repositories')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('chat.options')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('chat.options.camera')), findsOneWidget);
+    expect(find.byKey(const ValueKey('chat.options.attach')), findsOneWidget);
+    expect(find.byKey(const ValueKey('chat.options.repositories')), findsNothing);
+    expect(find.byKey(const ValueKey('chat.options.mcpServers')), findsNothing);
+  });
+
+  testWidgets('the camera attaches the photo it takes, named after the time', (tester) async {
+    final uploaded = <ApiUploadAttachmentAction>[];
+    final container = await _pumpChatPage(tester, repositories: const [], uploaded: uploaded);
+    final content = Uint8List.fromList([255, 216, 255]);
+    ImagePickerPlatform.instance = FakeImagePicker(photo: XFile.fromData(content, path: '/tmp/image_picker_0199a8d4.jpg'));
+
+    await tester.tap(find.byKey(const ValueKey('chat.options')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('chat.options.camera')));
+    await tester.pumpAndSettle();
+
+    expect(uploaded.single.fileName, matches(RegExp(r'^IMG_\d{8}_\d{6}\.jpg$')));
+    expect(uploaded.single.content, content);
+    expect(container.read(chatProvider).attachment?.uploaded, isNotNull);
+    expect(find.textContaining(uploaded.single.fileName, findRichText: true), findsOneWidget);
+  });
+
+  testWidgets('a camera that may not be used says so, and a cancelled photo attaches nothing', (tester) async {
+    final container = await _pumpChatPage(tester, repositories: const []);
+
+    ImagePickerPlatform.instance = FakeImagePicker(error: PlatformException(code: 'camera_access_denied'));
+    await tester.tap(find.byKey(const ValueKey('chat.options')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('chat.options.camera')));
+    await tester.pumpAndSettle();
+    expect(find.text('Repolupe may not use the camera. Allow it in the system settings.'), findsOneWidget);
+
+    ImagePickerPlatform.instance = FakeImagePicker();
+    await tester.tap(find.byKey(const ValueKey('chat.options')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('chat.options.camera')));
+    await tester.pumpAndSettle();
+    expect(container.read(chatProvider).attachment, isNull);
   });
 
   testWidgets('the plus button chooses the MCP servers of a new chat among those that are on', (tester) async {
@@ -225,8 +284,6 @@ void main() {
       created: created,
     );
 
-    // MCP servers alone make it a plus button.
-    expect(find.byKey(const ValueKey('chat.attach')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('chat.options')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('chat.options.repositories')), findsNothing);

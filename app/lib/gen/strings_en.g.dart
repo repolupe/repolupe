@@ -722,6 +722,7 @@ class Translations$flutter$chat$en {
   late final Translations$flutter$chat$leaveTemporaryDialog$en leaveTemporaryDialog = Translations$flutter$chat$leaveTemporaryDialog$en.internal(
     _root,
   );
+  late final Translations$flutter$chat$messageInput$en messageInput = Translations$flutter$chat$messageInput$en.internal(_root);
   late final Translations$flutter$chat$assistantMessage$en assistantMessage = Translations$flutter$chat$assistantMessage$en.internal(_root);
   late final Translations$flutter$chat$markdownContent$en markdownContent = Translations$flutter$chat$markdownContent$en.internal(_root);
   late final Translations$flutter$chat$toolCallPage$en toolCallPage = Translations$flutter$chat$toolCallPage$en.internal(_root);
@@ -2587,6 +2588,24 @@ class Translations$flutter$chat$leaveTemporaryDialog$en {
 
   /// en: 'Leave'
   String get leave => 'Leave';
+}
+
+// Path: flutter.chat.messageInput
+class Translations$flutter$chat$messageInput$en {
+  Translations$flutter$chat$messageInput$en.internal(this._root);
+
+  final Translations _root; // ignore: unused_field
+
+  // Translations
+
+  /// en: 'Camera'
+  String get camera => 'Camera';
+
+  /// en: 'Repolupe may not use the camera. Allow it in the system settings.'
+  String get cameraDenied => 'Repolupe may not use the camera. Allow it in the system settings.';
+
+  /// en: 'The camera is not available.'
+  String get cameraFailed => 'The camera is not available.';
 }
 
 // Path: flutter.chat.assistantMessage
