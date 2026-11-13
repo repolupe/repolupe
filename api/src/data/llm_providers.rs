@@ -161,8 +161,8 @@ pub(crate) const SUGGESTIONS: &[Suggestion] = &[
     },
     Suggestion {
         name: "Aki",
-        api_format: LlmApiFormat::Anthropic,
-        base_url: "https://aki.io/anthropic",
+        api_format: LlmApiFormat::OpenAi,
+        base_url: "https://aki.io/openai/v1",
         currency: Some("EUR"),
         country_code: Some("DE"),
         runs_inference: true,
