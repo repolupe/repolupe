@@ -1,3 +1,12 @@
+## 1.3.0 (2026-11-13)
+
+- feat: the model can look at images in repositories and attachments (PNG, JPEG, GIF, WebP)
+- feat: the model can show images to the user, and images it proposes to save are previewed
+- feat: models are asked for high reasoning effort
+- feat(app): attach a photo taken with the camera
+- feat(app): answers that used no tools say so
+- fix: the description of a tool call stays until the answer continues
+
 ## 1.2.0 (2026-11-11)
 
 - feat: edit a sent message or retry it, which answers it again and removes the messages after it
