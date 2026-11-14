@@ -101,7 +101,7 @@
       "collapse": "Einklappen",
       "collapseNavigation": "Navigation einklappen",
       "newChat": "Neuer Chat",
-      "older": "Älter"
+      "allChats": "Alle Chats"
     },
     "mainContainer": {
       "quotedTitle": "„{title}“"
@@ -310,8 +310,8 @@
       "total": "Gesamt",
       "notMeasured": "Wie lange das Sprachmodell brauchte, wurde für diese Antwort nicht gemessen."
     },
-    "olderPage": {
-      "title": "Ältere Chats",
+    "allPage": {
+      "title": "Alle Chats",
       "noResults": "Keine Chats gefunden"
     },
     "loadFailed": "Die Chats konnten nicht geladen werden: {error}"

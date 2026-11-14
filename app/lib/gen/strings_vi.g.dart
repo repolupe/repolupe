@@ -431,7 +431,7 @@ class _Translations$base$chat$vi extends Translations$base$chat$en {
   @override
   late final _Translations$base$chat$durationDialog$vi durationDialog = _Translations$base$chat$durationDialog$vi._(_root);
   @override
-  late final _Translations$base$chat$olderPage$vi olderPage = _Translations$base$chat$olderPage$vi._(_root);
+  late final _Translations$base$chat$allPage$vi allPage = _Translations$base$chat$allPage$vi._(_root);
   @override
   String loadFailed({required Object error}) => 'Không thể tải danh sách đoạn chat: ${error}';
 }
@@ -789,7 +789,7 @@ class _Translations$base$app$navigation$vi extends Translations$base$app$navigat
   @override
   String get newChat => 'Đoạn chat mới';
   @override
-  String get older => 'Cũ hơn';
+  String get allChats => 'Tất cả đoạn chat';
 }
 
 // Path: base.app.mainContainer
@@ -1231,15 +1231,15 @@ class _Translations$base$chat$durationDialog$vi extends Translations$base$chat$d
   String get notMeasured => 'Thời gian của mô hình ngôn ngữ không được đo cho câu trả lời này.';
 }
 
-// Path: base.chat.olderPage
-class _Translations$base$chat$olderPage$vi extends Translations$base$chat$olderPage$en {
-  _Translations$base$chat$olderPage$vi._(TranslationsVi root) : this._root = root, super.internal(root);
+// Path: base.chat.allPage
+class _Translations$base$chat$allPage$vi extends Translations$base$chat$allPage$en {
+  _Translations$base$chat$allPage$vi._(TranslationsVi root) : this._root = root, super.internal(root);
 
   final TranslationsVi _root; // ignore: unused_field
 
   // Translations
   @override
-  String get title => 'Đoạn chat cũ hơn';
+  String get title => 'Tất cả đoạn chat';
   @override
   String get noResults => 'Không tìm thấy đoạn chat nào';
 }

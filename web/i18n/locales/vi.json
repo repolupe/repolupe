@@ -101,7 +101,7 @@
       "collapse": "Thu gọn",
       "collapseNavigation": "Thu gọn thanh điều hướng",
       "newChat": "Đoạn chat mới",
-      "older": "Cũ hơn"
+      "allChats": "Tất cả đoạn chat"
     },
     "mainContainer": {
       "quotedTitle": "\"{title}\""
@@ -293,8 +293,8 @@
       "total": "Tổng",
       "notMeasured": "Thời gian của mô hình ngôn ngữ không được đo cho câu trả lời này."
     },
-    "olderPage": {
-      "title": "Đoạn chat cũ hơn",
+    "allPage": {
+      "title": "Tất cả đoạn chat",
       "noResults": "Không tìm thấy đoạn chat nào"
     },
     "loadFailed": "Không thể tải danh sách đoạn chat: {error}"

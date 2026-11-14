@@ -1,5 +1,5 @@
 import 'package:app/gen/strings.g.dart';
-import 'package:app/pages/older_chats_page.dart';
+import 'package:app/pages/all_chats_page.dart';
 import 'package:app/pages/settings_page.dart';
 import 'package:app/service/chat_list_service.dart';
 import 'package:app/service/chat_service.dart';
@@ -10,11 +10,11 @@ import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-/// How many of the newest chats are listed, the others are behind "Older".
+/// How many of the newest chats are listed, "All chats" lists every one.
 const _chatCount = 10;
 
-/// The newest chats of the account; tapping one opens it with its messages. Below them "Older", if there are
-/// more, opens the others. At the bottom, the settings.
+/// The newest chats of the account; tapping one opens it with its messages. Below them "All chats" opens a
+/// list of all. At the bottom, the settings.
 ///
 /// The chats are loaded whenever it is built: when the drawer opens (its content is built only while it is open), or
 /// when the panel is shown.
@@ -60,7 +60,6 @@ class _AppDrawerState extends State<AppDrawer> with Refena {
     final t = context.t;
     final page = context.watch(chatListProvider);
     final chats = page?.items;
-    final olderCursor = page?.nextCursor;
     final (openId, _) = context.watch(
       chatProvider.select((state) => (state.chat?.id, state.sending)),
       // Sending a message creates its chat or moves it to the top, which the panel shows while the chat goes on beside
@@ -145,13 +144,16 @@ class _AppDrawerState extends State<AppDrawer> with Refena {
                       CustomPaint(
                         painter: _TimelinePainter(
                           first: false,
-                          last: olderCursor == null && chat == chats.last,
+                          last: false,
                           selected: chat.id == selectedId,
                           colors: Theme.of(context).colorScheme,
                           textDirection: Directionality.of(context),
                         ),
                         child: ListTile(
-                          contentPadding: const EdgeInsetsDirectional.only(start: _TimelinePainter.lineStart * 2, end: 16),
+                          contentPadding: const EdgeInsetsDirectional.only(
+                            start: _TimelinePainter.lineStart * 2,
+                            end: 16,
+                          ),
                           title: Text(chat.title, maxLines: 1, overflow: TextOverflow.ellipsis),
                           subtitle: Text(formatDayTime(chat.updatedAt)),
                           selected: chat.id == selectedId,
@@ -174,28 +176,29 @@ class _AppDrawerState extends State<AppDrawer> with Refena {
                           },
                         ),
                       ),
-                    // Only when there are chats it does not show.
-                    if (olderCursor != null)
-                      CustomPaint(
-                        painter: _TimelinePainter(
-                          first: false,
-                          last: true,
-                          selected: false,
-                          colors: Theme.of(context).colorScheme,
-                          textDirection: Directionality.of(context),
-                        ),
-                        child: ListTile(
-                          key: const ValueKey('chat.drawer.older'),
-                          contentPadding: const EdgeInsetsDirectional.only(start: _TimelinePainter.lineStart * 2, end: 16),
-                          title: Text(t.base.app.navigation.older),
-                          onTap: () async {
-                            // The drawer's context is gone once it is closed.
-                            final ref = context.ref;
-                            _close();
-                            await ref.global.dispatchAsync(NavigateAction.push(OlderChatsPage(cursor: olderCursor)));
-                          },
-                        ),
+                    CustomPaint(
+                      painter: _TimelinePainter(
+                        first: false,
+                        last: true,
+                        selected: false,
+                        colors: Theme.of(context).colorScheme,
+                        textDirection: Directionality.of(context),
                       ),
+                      child: ListTile(
+                        key: const ValueKey('chat.drawer.allChats'),
+                        contentPadding: const EdgeInsetsDirectional.only(
+                          start: _TimelinePainter.lineStart * 2,
+                          end: 16,
+                        ),
+                        title: Text(t.base.app.navigation.allChats),
+                        onTap: () async {
+                          // The drawer's context is gone once it is closed.
+                          final ref = context.ref;
+                          _close();
+                          await ref.global.dispatchAsync(NavigateAction.push(const AllChatsPage()));
+                        },
+                      ),
+                    ),
                     const SizedBox(height: 20),
                   ],
                 ],
@@ -241,7 +244,7 @@ class _Frame extends StatelessWidget {
 }
 
 /// Draws a "git log" next to a chat: a vertical line through the tile with a
-/// circle at its center. The line starts at "New chat" and ends at "Older", or the last chat without it.
+/// circle at its center. The line starts at "New chat" and ends at "All chats", or "New chat" without chats.
 class _TimelinePainter extends CustomPainter {
   /// The distance of the line from the start edge.
   static const lineStart = 24.0;
@@ -283,5 +286,9 @@ class _TimelinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_TimelinePainter old) =>
-      first != old.first || last != old.last || selected != old.selected || colors != old.colors || textDirection != old.textDirection;
+      first != old.first ||
+      last != old.last ||
+      selected != old.selected ||
+      colors != old.colors ||
+      textDirection != old.textDirection;
 }

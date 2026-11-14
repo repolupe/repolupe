@@ -14,23 +14,20 @@ import 'package:refena_flutter/refena_flutter.dart';
 /// How many chats are loaded at once, like the web's list.
 const _pageSize = 50;
 
-/// The chats older than those in the drawer, newest first; more are loaded when scrolled to the end.
-/// A search above them lists the matching chats of all instead. Tapping one opens it.
-class OlderChatsPage extends StatefulWidget {
-  /// The drawer's `nextCursor`, so the list starts after its last chat.
-  final String cursor;
-
-  const OlderChatsPage({required this.cursor});
+/// All chats, newest first; more are loaded when scrolled to the end. A search above them lists the matching chats
+/// instead. Tapping one opens it.
+class AllChatsPage extends StatefulWidget {
+  const AllChatsPage();
 
   @override
-  State<OlderChatsPage> createState() => _OlderChatsPageState();
+  State<AllChatsPage> createState() => _AllChatsPageState();
 }
 
-class _OlderChatsPageState extends State<OlderChatsPage> with Refena {
+class _AllChatsPageState extends State<AllChatsPage> with Refena {
   /// The text in the search field.
   String _input = '';
 
-  /// The submitted search, `null` lists the older chats.
+  /// The submitted search, `null` lists all chats.
   String? _search;
 
   /// Incremented by every search, so the pages still loading for the previous list are dropped.
@@ -38,8 +35,8 @@ class _OlderChatsPageState extends State<OlderChatsPage> with Refena {
 
   List<ChatDto> _chats = const [];
 
-  /// Where the next page starts, `null` for the first page of a search.
-  late String? _cursor = widget.cursor;
+  /// Where the next page starts, `null` for the first page.
+  String? _cursor;
 
   bool _more = true;
 
@@ -95,7 +92,7 @@ class _OlderChatsPageState extends State<OlderChatsPage> with Refena {
     }
   }
 
-  /// Lists the chats found for the search field, or the older chats again if it is empty.
+  /// Lists the chats found for the search field, or all chats again if it is empty.
   void _submit() {
     FocusManager.instance.primaryFocus?.unfocus();
     final query = _input.trim();
@@ -103,7 +100,7 @@ class _OlderChatsPageState extends State<OlderChatsPage> with Refena {
       _search = query.isEmpty ? null : query;
       _epoch++;
       _chats = const [];
-      _cursor = _search == null ? widget.cursor : null;
+      _cursor = null;
       _more = true;
       _loading = false;
       _failed = false;
@@ -125,9 +122,9 @@ class _OlderChatsPageState extends State<OlderChatsPage> with Refena {
   Widget build(BuildContext context) {
     final t = context.t;
     return Scaffold(
-      appBar: AppBar(title: Text(t.base.chat.olderPage.title)),
+      appBar: AppBar(title: Text(t.base.chat.allPage.title)),
       body: PageListView.builder(
-        key: const ValueKey('olderChats.list'),
+        key: const ValueKey('allChats.list'),
         padding: EdgeInsets.only(bottom: 8 + MediaQuery.paddingOf(context).bottom),
         // The search, the chats, then the last item loads the next page, offers to try again, or tells there are none.
         itemCount: 1 + _chats.length + (_more || _chats.isEmpty ? 1 : 0),
@@ -136,7 +133,7 @@ class _OlderChatsPageState extends State<OlderChatsPage> with Refena {
             return Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: TonedStringField(
-                key: const ValueKey('olderChats.search'),
+                key: const ValueKey('allChats.search'),
                 value: _input,
                 onChanged: (value) {
                   setState(() {
@@ -149,13 +146,13 @@ class _OlderChatsPageState extends State<OlderChatsPage> with Refena {
                 actions: [
                   if (_input.isNotEmpty)
                     IconButton(
-                      key: const ValueKey('olderChats.clear'),
+                      key: const ValueKey('allChats.clear'),
                       icon: const Icon(Icons.clear),
                       tooltip: MaterialLocalizations.of(context).clearButtonTooltip,
                       onPressed: _clear,
                     ),
                   IconButton(
-                    key: const ValueKey('olderChats.searchButton'),
+                    key: const ValueKey('allChats.searchButton'),
                     icon: const Icon(Icons.search),
                     tooltip: t.base.common.search,
                     onPressed: _submit,
@@ -183,7 +180,7 @@ class _OlderChatsPageState extends State<OlderChatsPage> with Refena {
           if (!_more) {
             return Padding(
               padding: const EdgeInsets.all(32),
-              child: Center(child: Text(_search == null ? t.base.chat.noChats : t.base.chat.olderPage.noResults)),
+              child: Center(child: Text(_search == null ? t.base.chat.noChats : t.base.chat.allPage.noResults)),
             );
           }
           if (_failed) {
@@ -191,7 +188,7 @@ class _OlderChatsPageState extends State<OlderChatsPage> with Refena {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: FilledButton.tonalIcon(
-                  key: const ValueKey('olderChats.retry'),
+                  key: const ValueKey('allChats.retry'),
                   onPressed: _loadMore,
                   icon: const Icon(Icons.refresh),
                   label: Text(t.base.common.retry),

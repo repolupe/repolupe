@@ -31,7 +31,6 @@ import {
     useChats,
     useInstanceName,
     useInstanceTitle,
-    useOlderChatsCursor,
     useUser,
 } from "~/composables/states";
 import {useI18n} from "#i18n";
@@ -40,7 +39,6 @@ const {t} = useI18n();
 
 const user = useUser();
 const chats = useChats();
-const olderChatsCursor = useOlderChatsCursor();
 const instanceName = useInstanceName();
 const instanceTitle = useInstanceTitle();
 
@@ -88,7 +86,6 @@ watch(user, async (next, prev) => {
   } else if (prev && !next) {
     // logout, or the session expired
     chats.value = [];
-    olderChatsCursor.value = undefined;
     navigateTo('/login');
   }
 }, {immediate: true});

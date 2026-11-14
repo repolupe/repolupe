@@ -1,5 +1,5 @@
 import 'package:app/gen/strings.g.dart';
-import 'package:app/pages/older_chats_page.dart';
+import 'package:app/pages/all_chats_page.dart';
 import 'package:app/service/api_service.dart';
 import 'package:app/service/chat_service.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/chat.dart';
@@ -33,7 +33,7 @@ void main() {
     await initRustLib();
   });
 
-  testWidgets('the older chats start after the cursor, load more at the end, and a tapped one is opened', (tester) async {
+  testWidgets('all chats start at the newest, load more at the end, and a tapped one is opened', (tester) async {
     // The pages listed, by their limit and cursor.
     final requests = <(int, String?)>[];
     final container = RefenaContainer(
@@ -42,17 +42,16 @@ void main() {
           mock.on<ApiListChatsAction>((state, action) {
             requests.add((action.limit, action.cursor));
             return switch (action.cursor) {
-              // The drawer showed chats 0 to 9.
-              'drawer' => (state, ChatPageDto(items: [for (var i = 10; i < 60; i++) _chat(i)], nextCursor: 'second')),
-              'second' => (state, ChatPageDto(items: [for (var i = 60; i < 62; i++) _chat(i)])),
+              null => (state, ChatPageDto(items: [for (var i = 0; i < 50; i++) _chat(i)], nextCursor: 'second')),
+              'second' => (state, ChatPageDto(items: [for (var i = 50; i < 52; i++) _chat(i)])),
               _ => throw apiError(ErrorCode.notFound, status: 404),
             };
           });
           mock.on<ApiGetChatAction>((state, action) {
-            if (action.chatId != _chatId(61)) {
+            if (action.chatId != _chatId(51)) {
               throw apiError(ErrorCode.notFound, status: 404);
             }
-            return (state, ChatDetailDto(chat: _chat(61), messages: const []));
+            return (state, ChatDetailDto(chat: _chat(51), messages: const []));
           });
         }),
       ],
@@ -72,33 +71,33 @@ void main() {
       ),
     );
     // ignore: unawaited_futures
-    container.global.dispatchAsync(NavigateAction.push(const OlderChatsPage(cursor: 'drawer')));
+    container.global.dispatchAsync(NavigateAction.push(const AllChatsPage()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Chat 10'), findsOneWidget);
-    expect(requests, [(50, 'drawer')]);
-    expect(find.text('Older Chats'), findsOneWidget);
+    expect(find.text('Chat 0'), findsOneWidget);
+    expect(requests, [(50, null)]);
+    expect(find.text('All Chats'), findsOneWidget);
 
     // The end of the list loads the rest, then there is nothing more to load.
     // The first is the list's, the search field has one too.
-    await tester.scrollUntilVisible(find.text('Chat 59'), 500, scrollable: find.byType(Scrollable).first);
-    await tester.drag(find.byKey(const ValueKey('olderChats.list')), const Offset(0, -500));
+    await tester.scrollUntilVisible(find.text('Chat 49'), 500, scrollable: find.byType(Scrollable).first);
+    await tester.drag(find.byKey(const ValueKey('allChats.list')), const Offset(0, -500));
     await tester.pumpAndSettle();
-    expect(find.text('Chat 61'), findsOneWidget);
-    expect(requests, [(50, 'drawer'), (50, 'second')]);
+    expect(find.text('Chat 51'), findsOneWidget);
+    expect(requests, [(50, null), (50, 'second')]);
     expect(find.byType(CircularProgressIndicator), findsNothing);
 
     // Tapping a chat goes back and opens it.
-    await tester.ensureVisible(find.text('Chat 61'));
+    await tester.ensureVisible(find.text('Chat 51'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Chat 61'));
+    await tester.tap(find.text('Chat 51'));
     await tester.pumpAndSettle();
     expect(find.text('Chat page'), findsOneWidget);
-    expect(container.read(chatProvider).chat?.title, 'Chat 61');
+    expect(container.read(chatProvider).chat?.title, 'Chat 51');
   });
 
-  testWidgets('a search lists the chats found in pages, and clearing it lists the older chats again', (tester) async {
-    // The pages listed, by their query (`null` for the older chats) and cursor.
+  testWidgets('a search lists the chats found in pages, and clearing it lists all chats again', (tester) async {
+    // The pages listed, by their query (`null` for all chats) and cursor.
     final requests = <(String?, String?)>[];
     final container = RefenaContainer(
       overrides: [
@@ -128,45 +127,45 @@ void main() {
           child: MaterialApp(
             navigatorKey: container.read(navigationProvider).key,
             scaffoldMessengerKey: container.read(snackBarProvider).key,
-            home: const OlderChatsPage(cursor: 'drawer'),
+            home: const AllChatsPage(),
           ),
         ),
       ),
     );
     await tester.pumpAndSettle();
     expect(find.text('Chat 70'), findsOneWidget);
-    expect(requests, [(null, 'drawer')]);
+    expect(requests, [(null, null)]);
 
     // The keyboard's search action searches all chats, from the newest.
-    await tester.enterText(find.byKey(const ValueKey('olderChats.search')), ' sync ');
+    await tester.enterText(find.byKey(const ValueKey('allChats.search')), ' sync ');
     await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
     expect(find.text('Chat 70'), findsNothing);
     expect(find.text('Chat 0'), findsOneWidget);
-    expect(requests, [(null, 'drawer'), ('sync', null)]);
+    expect(requests, [(null, null), ('sync', null)]);
 
     await tester.scrollUntilVisible(find.text('Chat 49'), 500, scrollable: find.byType(Scrollable).first);
-    await tester.drag(find.byKey(const ValueKey('olderChats.list')), const Offset(0, -500));
+    await tester.drag(find.byKey(const ValueKey('allChats.list')), const Offset(0, -500));
     await tester.pumpAndSettle();
     expect(find.text('Chat 50'), findsOneWidget);
-    expect(requests, [(null, 'drawer'), ('sync', null), ('sync', 'second')]);
+    expect(requests, [(null, null), ('sync', null), ('sync', 'second')]);
 
     // So does the button.
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('olderChats.search')), -500, scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('allChats.search')), -500, scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const ValueKey('olderChats.search')), 'nothing');
-    await tester.tap(find.byKey(const ValueKey('olderChats.searchButton')));
+    await tester.enterText(find.byKey(const ValueKey('allChats.search')), 'nothing');
+    await tester.tap(find.byKey(const ValueKey('allChats.searchButton')));
     await tester.pumpAndSettle();
     expect(find.text('No chats found'), findsOneWidget);
     expect(find.text('Chat 0'), findsNothing);
     expect(requests.last, ('nothing', null));
 
-    await tester.tap(find.byKey(const ValueKey('olderChats.clear')));
+    await tester.tap(find.byKey(const ValueKey('allChats.clear')));
     await tester.pumpAndSettle();
     expect(find.text('nothing'), findsNothing);
-    expect(find.byKey(const ValueKey('olderChats.clear')), findsNothing);
+    expect(find.byKey(const ValueKey('allChats.clear')), findsNothing);
     expect(find.text('Chat 70'), findsOneWidget);
     expect(find.text('No chats found'), findsNothing);
-    expect(requests.last, (null, 'drawer'));
+    expect(requests.last, (null, null));
   });
 }

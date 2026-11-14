@@ -47,9 +47,9 @@
         </v-list-item>
 
         <v-list-item v-if="chats.length === 0 && !railActive" class="text-grey-lighten-1" :title="$t('chat.noChats')"/>
-        <!-- only when there are chats it does not show -->
-        <v-list-item v-if="olderChatsCursor" prepend-icon="mdi-dots-horizontal" :title="$t('app.navigation.older')" to="/chat/older">
-          <v-tooltip activator="parent" location="end" :text="$t('app.navigation.older')" :disabled="!railActive"/>
+        <v-list-item v-if="chats.length > 0" prepend-icon="mdi-format-list-bulleted" :title="$t('app.navigation.allChats')"
+                     to="/chat/all">
+          <v-tooltip activator="parent" location="end" :text="$t('app.navigation.allChats')" :disabled="!railActive"/>
         </v-list-item>
       </v-list>
 
@@ -70,12 +70,11 @@
 import {computed, ref, watch} from "vue";
 import {useDisplay} from "vuetify";
 import {useRoute} from "#app";
-import {useChats, useFilePresented, useOlderChatsCursor, useUser} from "~/composables/states";
+import {useChats, useFilePresented, useUser} from "~/composables/states";
 import InstanceTitle from "~/components/InstanceTitle.vue";
 
 const user = useUser();
 const chats = useChats();
-const olderChatsCursor = useOlderChatsCursor();
 const filePresented = useFilePresented();
 const route = useRoute();
 

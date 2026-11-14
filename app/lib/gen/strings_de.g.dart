@@ -432,7 +432,7 @@ class _Translations$base$chat$de extends Translations$base$chat$en {
   @override
   late final _Translations$base$chat$durationDialog$de durationDialog = _Translations$base$chat$durationDialog$de._(_root);
   @override
-  late final _Translations$base$chat$olderPage$de olderPage = _Translations$base$chat$olderPage$de._(_root);
+  late final _Translations$base$chat$allPage$de allPage = _Translations$base$chat$allPage$de._(_root);
   @override
   String loadFailed({required Object error}) => 'Die Chats konnten nicht geladen werden: ${error}';
 }
@@ -790,7 +790,7 @@ class _Translations$base$app$navigation$de extends Translations$base$app$navigat
   @override
   String get newChat => 'Neuer Chat';
   @override
-  String get older => 'Älter';
+  String get allChats => 'Alle Chats';
 }
 
 // Path: base.app.mainContainer
@@ -1232,15 +1232,15 @@ class _Translations$base$chat$durationDialog$de extends Translations$base$chat$d
   String get notMeasured => 'Wie lange das Sprachmodell brauchte, wurde für diese Antwort nicht gemessen.';
 }
 
-// Path: base.chat.olderPage
-class _Translations$base$chat$olderPage$de extends Translations$base$chat$olderPage$en {
-  _Translations$base$chat$olderPage$de._(TranslationsDe root) : this._root = root, super.internal(root);
+// Path: base.chat.allPage
+class _Translations$base$chat$allPage$de extends Translations$base$chat$allPage$en {
+  _Translations$base$chat$allPage$de._(TranslationsDe root) : this._root = root, super.internal(root);
 
   final TranslationsDe _root; // ignore: unused_field
 
   // Translations
   @override
-  String get title => 'Ältere Chats';
+  String get title => 'Alle Chats';
   @override
   String get noResults => 'Keine Chats gefunden';
 }
