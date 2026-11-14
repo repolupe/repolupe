@@ -30,7 +30,7 @@ pub(super) const MAX_OUTPUT_CHARS: usize = 40_000;
 /// Larger files are not read.
 pub(super) const MAX_READ_BYTES: u64 = 10 * 1024 * 1024;
 /// Bytes checked for NUL to detect binary files, like git does.
-pub(super) const BINARY_CHECK_BYTES: usize = 8000;
+const BINARY_CHECK_BYTES: usize = 8000;
 const MAX_SUGGESTIONS: usize = 5;
 const MARKDOWN_EXTENSIONS: &[&str] = &["md", "markdown", "mdx", "mdown", "mkd", "mkdn"];
 
@@ -262,9 +262,14 @@ async fn read_blob(
     }
 }
 
+/// Whether `content` has a NUL in its first [`BINARY_CHECK_BYTES`], which git takes as binary.
+pub(super) fn looks_binary(content: &[u8]) -> bool {
+    content[..content.len().min(BINARY_CHECK_BYTES)].contains(&0)
+}
+
 /// `content` of the file `name` as text, an error for the model if it is binary.
 pub(super) fn decode_text(name: &str, content: &[u8]) -> Result<Text, ToolError> {
-    if content[..content.len().min(BINARY_CHECK_BYTES)].contains(&0) {
+    if looks_binary(content) {
         return Err(ToolError::Invalid(format!(
             "`{name}` is a binary file and can't be shown."
         )));
@@ -366,6 +371,7 @@ pub(super) fn parent_dirs(path: &str) -> impl Iterator<Item = &str> {
     path.match_indices('/').map(|(i, _)| &path[..i])
 }
 
+/// `count` `noun`s, e.g. `1 line` or `2 lines`.
 pub(super) fn plural(count: usize, noun: &str) -> String {
     if count == 1 {
         format!("1 {noun}")

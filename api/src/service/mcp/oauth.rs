@@ -355,13 +355,14 @@ pub(super) async fn start_sign_in(
         }
     };
 
+    let error = |e| sign_in_error(e, server.id);
     let mut manager = new_manager(client, &server.url, access, server.id, true)
         .await
-        .map_err(|e| sign_in_error(e, server.id))?;
+        .map_err(error)?;
     let resolution = manager
         .resolve_metadata_from_challenge(challenge.as_deref())
         .await
-        .map_err(|e| sign_in_error(e, server.id))?;
+        .map_err(error)?;
     if resolution.source == AuthorizationMetadataSource::LegacyEndpointFallback {
         return Err(AppError::Unprocessable(
             ErrorCode::AuthFailed,
@@ -373,7 +374,6 @@ pub(super) async fn start_sign_in(
     // Registers the client here rather than in `AuthorizationSession`, which would keep its
     // secret only in memory (see `StoredOAuth`). `register_client` takes the application type
     // from the client configured before, so this one is replaced right away.
-    let error = |e| sign_in_error(e, server.id);
     manager
         .configure_client(
             OAuthClientConfig::new("", redirect_uri).with_application_type(application_type),
@@ -401,7 +401,7 @@ pub(super) async fn start_sign_in(
     }
     let session = AuthorizationSession::new(manager, request)
         .await
-        .map_err(|(_, e)| sign_in_error(e, server.id))?;
+        .map_err(|(_, e)| error(e))?;
     let authorization_url = session.get_authorization_url().to_string();
     let parsed = Url::parse(&authorization_url)
         .map_err(|e| AppError::InternalServerError(format!("Invalid authorization URL: {e}")))?;

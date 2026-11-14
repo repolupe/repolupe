@@ -1,14 +1,13 @@
 //! The changes proposed with [`CHANGE_FILE`](crate::service::tools::CHANGE_FILE) and the other
 //! tools that propose commits as diffs and patches.
 
+use super::looks_binary;
 use crate::service::mirror::{BlobMode, CommitInfo};
 use similar::Algorithm;
 use std::fmt::Write;
 
 /// Lines of context around each change, like git.
 pub(crate) const CONTEXT_LINES: usize = 3;
-/// Bytes checked for NUL to detect binary files, like git does.
-const BINARY_CHECK_BYTES: usize = 8000;
 const NO_OID: &str = "0000000000000000000000000000000000000000";
 
 /// A file on one side of a change.
@@ -20,8 +19,7 @@ pub(crate) struct Side<'a> {
 
 /// Whether `content` has no text diff, like git decides it, or is not UTF-8.
 pub(crate) fn is_binary(content: &[u8]) -> bool {
-    content[..content.len().min(BINARY_CHECK_BYTES)].contains(&0)
-        || std::str::from_utf8(content).is_err()
+    looks_binary(content) || std::str::from_utf8(content).is_err()
 }
 
 /// The hunks of a unified diff from `old` to `new`, like `git diff` without its headers.

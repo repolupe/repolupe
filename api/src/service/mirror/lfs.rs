@@ -6,6 +6,7 @@
 //! (unless the repository has [`RemoteAccess::Unrestricted`]).
 
 use super::git::{self, TreeBlob};
+use super::{blocking, remote_unreachable};
 use crate::config::error::AppError;
 use crate::dto::error::ErrorCode;
 use crate::model::remote_access::RemoteAccess;
@@ -453,7 +454,7 @@ pub(super) async fn read_object(git_dir: &Path, oid: &str) -> Result<Option<Vec<
 pub(super) async fn store_object(git_dir: &Path, content: Vec<u8>) -> Result<Pointer, AppError> {
     let git_dir = git_dir.to_path_buf();
     // Hashed and written on a blocking thread, since it may be large.
-    tokio::task::spawn_blocking(move || {
+    blocking(move || {
         let pointer = Pointer::of(&content);
         let path = object_path(&git_dir, &pointer.oid);
         if path.exists() {
@@ -472,7 +473,6 @@ pub(super) async fn store_object(git_dir: &Path, content: Vec<u8>) -> Result<Poi
         Ok(pointer)
     })
     .await
-    .map_err(|e| AppError::InternalServerError(format!("Storing a Git LFS object failed: {e}")))?
 }
 
 /// Whether `pointer` points to `content`.
@@ -482,9 +482,7 @@ pub(super) async fn points_to(pointer: &Pointer, content: &[u8]) -> Result<bool,
     }
     // Copied, to be hashed on a blocking thread, since it may be large.
     let content = content.to_vec();
-    let oid = tokio::task::spawn_blocking(move || Pointer::of(&content).oid)
-        .await
-        .map_err(|e| AppError::InternalServerError(format!("Hashing failed: {e}")))?;
+    let oid = blocking(move || Ok(Pointer::of(&content).oid)).await?;
     Ok(oid == pointer.oid)
 }
 
@@ -754,10 +752,6 @@ fn invalid_response() -> AppError {
 
 fn not_public() -> AppError {
     AppError::BadRequest("Git LFS URLs must not point to a private or reserved address".to_string())
-}
-
-fn remote_unreachable(message: &str) -> AppError {
-    AppError::BadGateway(ErrorCode::RemoteUnreachable, message.to_string())
 }
 
 fn io_error(action: &str, path: &Path, error: std::io::Error) -> AppError {

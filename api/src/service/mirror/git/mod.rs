@@ -8,6 +8,7 @@ mod push;
 mod remote;
 mod repack;
 
+use super::blocking;
 use crate::config::error::AppError;
 use chrono::{DateTime, Utc};
 use gix::bstr::ByteSlice;
@@ -795,17 +796,6 @@ fn new_commit(
 fn parse_oid(oid: &str) -> Result<ObjectId, AppError> {
     ObjectId::from_hex(oid.as_bytes())
         .map_err(|e| AppError::InternalServerError(format!("Invalid object id {oid}: {e}")))
-}
-
-/// Runs `f`, which reads or writes a repository, on a thread where blocking is fine.
-async fn blocking<T, F>(f: F) -> Result<T, AppError>
-where
-    T: Send + 'static,
-    F: FnOnce() -> Result<T, AppError> + Send + 'static,
-{
-    tokio::task::spawn_blocking(f)
-        .await
-        .map_err(|e| AppError::InternalServerError(format!("Git task failed: {e}")))?
 }
 
 /// An error of a local git operation, named after the git command it replaces.

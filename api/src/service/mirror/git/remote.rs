@@ -6,6 +6,7 @@ use super::{GitResultExt, blocking, open, pack_file_commit, parse_oid, repack, w
 use crate::config::error::AppError;
 use crate::dto::error::ErrorCode;
 use crate::model::remote_access::RemoteAccess;
+use crate::service::mirror::remote_unreachable;
 use crate::util::http::remote_client_builder;
 use crate::util::ip::is_public_ip;
 use base64::Engine;
@@ -432,8 +433,4 @@ fn branch_not_found() -> AppError {
 
 fn not_public() -> AppError {
     AppError::BadRequest("Remote URL must not point to a private or reserved address".to_string())
-}
-
-fn remote_unreachable(message: &str) -> AppError {
-    AppError::BadGateway(ErrorCode::RemoteUnreachable, message.to_string())
 }

@@ -573,7 +573,6 @@ pub(crate) fn describe_attachment(attachment: &Attachment) -> String {
     )
 }
 
-/// A pool that never connects, for tests of tools that do not read documents.
 /// Leaves `repository` out of the arguments of a built-in tool.
 fn remove_repository_argument(definition: &mut ToolDefinition) {
     let schema = &mut definition.input_schema;
@@ -585,6 +584,7 @@ fn remove_repository_argument(definition: &mut ToolDefinition) {
     }
 }
 
+/// A pool that never connects, for tests of tools that do not read documents.
 #[cfg(test)]
 pub(crate) fn unused_db() -> DatabasePool {
     // Without them the pool spawns no maintenance tasks, which would need a runtime.

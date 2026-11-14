@@ -2,7 +2,7 @@
 //! repository. Documents are converted when they are uploaded (see
 //! [`crate::service::extraction`]), so this waits for a conversion that is still running.
 
-use super::read_file::{DEFAULT_READ_LINES, MAX_READ_LINES, format_lines};
+use super::read_file::{format_lines, limit_schema, offset_schema};
 use super::support::{
     MAX_READ_BYTES, Text, decode_text, document_text, format_size, image_output, not_a_pdf,
     page_output, page_schema, parse_args, parse_page, pdf_description,
@@ -44,19 +44,8 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
                     "description": "The number of the attachment, e.g. 1 for \
                         attachment 1.",
                 },
-                "offset": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "description": "Line to start at, 1 by default.",
-                },
-                "limit": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": MAX_READ_LINES,
-                    "description": format!(
-                        "Number of lines to read, {DEFAULT_READ_LINES} by default."
-                    ),
-                },
+                "offset": offset_schema(),
+                "limit": limit_schema(),
                 "page": page_schema(),
             },
             "required": ["attachment"],

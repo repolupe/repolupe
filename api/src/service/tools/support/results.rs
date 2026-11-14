@@ -4,8 +4,8 @@
 //! only what they are. They are kept for the answer, dropping the oldest beyond
 //! [`MAX_STORED_BYTES`].
 
-use super::format_size;
 use super::sandbox::MAX_INPUT_BYTES;
+use super::{format_size, plural};
 use crate::config::error::AppError;
 use crate::service::tools::{RUN_SCRIPT, ToolError};
 use serde_json::{Map, Value};
@@ -75,8 +75,8 @@ impl StoredResults {
                 } else {
                     About::Kind(format!(
                         "a string of {} in {}.",
-                        count(text.chars().count(), "character"),
-                        count(text.lines().count(), "line")
+                        plural(text.chars().count(), "character"),
+                        plural(text.lines().count(), "line")
                     ))
                 };
                 (StoredResult::Text(text), about)
@@ -93,7 +93,7 @@ impl StoredResults {
                 } else {
                     let length = match &value {
                         Value::Array(items) => {
-                            format!(", an array of {}", count(items.len(), "item"))
+                            format!(", an array of {}", plural(items.len(), "item"))
                         }
                         _ => String::new(),
                     };
@@ -173,14 +173,6 @@ impl Results {
             }
         }
         self.kept.len()
-    }
-}
-
-/// `n` `things`, e.g. `1 line` or `2 lines`.
-fn count(n: usize, thing: &str) -> String {
-    match n {
-        1 => format!("1 {thing}"),
-        _ => format!("{n} {thing}s"),
     }
 }
 
@@ -354,7 +346,7 @@ impl ObjectShape {
         if let Some(more) = self.fields.len().checked_sub(MAX_TYPE_KEYS)
             && more > 0
         {
-            out.push_str(&format!(", /* {} */", count(more, "more key")));
+            out.push_str(&format!(", /* {} */", plural(more, "more key")));
         }
         out.push_str(" }");
     }

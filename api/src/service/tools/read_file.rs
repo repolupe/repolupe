@@ -30,24 +30,32 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
             "properties": {
                 "repository": repository_schema(tools),
                 "path": file_path_schema(),
-                "offset": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "description": "Line to start at, 1 by default.",
-                },
-                "limit": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": MAX_READ_LINES,
-                    "description": format!(
-                        "Number of lines to read, {DEFAULT_READ_LINES} by default."
-                    ),
-                },
+                "offset": offset_schema(),
+                "limit": limit_schema(),
                 "page": page_schema(),
             },
             "required": ["repository", "path"],
         }),
     }
+}
+
+/// The first line to read, also of an attachment.
+pub(super) fn offset_schema() -> Value {
+    json!({
+        "type": "integer",
+        "minimum": 1,
+        "description": "Line to start at, 1 by default.",
+    })
+}
+
+/// How many lines to read, also of an attachment.
+pub(super) fn limit_schema() -> Value {
+    json!({
+        "type": "integer",
+        "minimum": 1,
+        "maximum": MAX_READ_LINES,
+        "description": format!("Number of lines to read, {DEFAULT_READ_LINES} by default."),
+    })
 }
 
 #[derive(Deserialize)]

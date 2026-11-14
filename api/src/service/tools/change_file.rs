@@ -5,8 +5,8 @@ use super::support::commit::{
     MAX_CHANGE_BYTES, check_creatable, parse_commit_message, parse_commit_path,
 };
 use super::support::{
-    BINARY_CHECK_BYTES, MAX_OUTPUT_CHARS, file_path_schema, format_size, missing_path, parse_args,
-    patch, window, writable_repository_schema,
+    MAX_OUTPUT_CHARS, file_path_schema, format_size, looks_binary, missing_path, parse_args, patch,
+    window, writable_repository_schema,
 };
 use super::{
     CHANGE_FILE, Call, Invocation, READ_FILE, RepositoryTools, ToolError, ToolOutput,
@@ -287,7 +287,7 @@ async fn read_changeable(
             )));
         }
     };
-    if content[..content.len().min(BINARY_CHECK_BYTES)].contains(&0) {
+    if looks_binary(&content) {
         return Err(ToolError::Invalid(format!(
             "`{path}` is a binary file, which can only be deleted."
         )));

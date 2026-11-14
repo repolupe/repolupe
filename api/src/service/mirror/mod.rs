@@ -555,3 +555,19 @@ async fn remove_dir(dir: &Path) -> Result<(), AppError> {
         ))),
     }
 }
+
+/// Runs `f`, which reads or writes a repository or an LFS object, on a thread where blocking is
+/// fine.
+async fn blocking<T, F>(f: F) -> Result<T, AppError>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, AppError> + Send + 'static,
+{
+    tokio::task::spawn_blocking(f)
+        .await
+        .map_err(|e| AppError::InternalServerError(format!("Blocking task failed: {e}")))?
+}
+
+fn remote_unreachable(message: &str) -> AppError {
+    AppError::BadGateway(ErrorCode::RemoteUnreachable, message.to_string())
+}

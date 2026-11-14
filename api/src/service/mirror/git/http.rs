@@ -293,13 +293,18 @@ impl Headers {
     }
 }
 
+/// [`Read::read`] of a reader that implements [`BufRead`].
+fn read_buffered(reader: &mut impl BufRead, buf: &mut [u8]) -> io::Result<usize> {
+    let available = reader.fill_buf()?;
+    let len = available.len().min(buf.len());
+    buf[..len].copy_from_slice(&available[..len]);
+    reader.consume(len);
+    Ok(len)
+}
+
 impl Read for Headers {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let available = self.fill_buf()?;
-        let len = available.len().min(buf.len());
-        buf[..len].copy_from_slice(&available[..len]);
-        self.consume(len);
-        Ok(len)
+        read_buffered(self, buf)
     }
 }
 
@@ -356,11 +361,7 @@ impl Body {
 
 impl Read for Body {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let available = self.fill_buf()?;
-        let len = available.len().min(buf.len());
-        buf[..len].copy_from_slice(&available[..len]);
-        self.consume(len);
-        Ok(len)
+        read_buffered(self, buf)
     }
 }
 
