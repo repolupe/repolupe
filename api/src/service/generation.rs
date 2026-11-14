@@ -14,7 +14,7 @@ use chrono::{DateTime, FixedOffset, Utc};
 use sqlx::types::Text;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Duration;
 use tokio::sync::broadcast;
 use tokio_util::sync::{CancellationToken, WaitForCancellationFuture};
@@ -171,10 +171,21 @@ struct GenerationState {
     /// The length of `content` when the last response was added to `raw`. The text after it
     /// is of a response that is still streamed.
     raw_content_end: usize,
-    /// Set by the first [`finish`], after which nothing is appended anymore.
-    finished: bool,
+    phase: Phase,
+}
+
+#[derive(Default)]
+enum Phase {
+    #[default]
+    Live,
+    /// Set by the first [`finish`], after which nothing is appended anymore. Stays so if the
+    /// message could not be stored, or was deleted together with its chat.
+    Finishing,
     /// The final message, once [`GenerationEvent::Done`] was sent.
-    done: Option<(Message, Vec<ToolCallSummary>)>,
+    Done {
+        message: Box<Message>,
+        tool_calls: Vec<ToolCallSummary>,
+    },
 }
 
 impl GenerationState {
@@ -257,9 +268,13 @@ impl Generation {
     pub(crate) fn subscribe(&self) -> Subscription {
         // Holding the lock while subscribing ensures no event is missed or sent twice.
         let state = self.state.lock().unwrap();
-        if let Some((message, tool_calls)) = &state.done {
+        if let Phase::Done {
+            message,
+            tool_calls,
+        } = &state.phase
+        {
             return Subscription::Done {
-                message: message.clone(),
+                message: Message::clone(message),
                 tool_calls: tool_calls.clone(),
             };
         }
@@ -294,6 +309,15 @@ impl Generation {
         }
     }
 
+    /// Locks the state, or returns [`GenerationError::Stopped`] once [`finish`] was called.
+    fn live(&self) -> Result<MutexGuard<'_, GenerationState>, GenerationError> {
+        let state = self.state.lock().unwrap();
+        match state.phase {
+            Phase::Live => Ok(state),
+            Phase::Finishing | Phase::Done { .. } => Err(GenerationError::Stopped),
+        }
+    }
+
     /// Resolves when the generation is cancelled or otherwise finished elsewhere.
     pub(crate) fn cancelled(&self) -> WaitForCancellationFuture<'_> {
         self.cancel.cancelled()
@@ -306,10 +330,7 @@ impl Generation {
         usage: &Usage,
         response_time: Duration,
     ) -> Result<(), GenerationError> {
-        let mut state = self.state.lock().unwrap();
-        if state.finished {
-            return Err(GenerationError::Stopped);
-        }
+        let mut state = self.live()?;
         state.response_time += response_time;
         let response_ms = millis(state.response_time);
         let total = state.usage.get_or_insert_default();
@@ -328,10 +349,7 @@ impl Generation {
     }
 
     pub(crate) fn append_content(&self, text: &str) -> Result<(), GenerationError> {
-        let mut state = self.state.lock().unwrap();
-        if state.finished {
-            return Err(GenerationError::Stopped);
-        }
+        let mut state = self.live()?;
         state.content.push_str(text);
         let _ = self
             .events
@@ -346,10 +364,7 @@ impl Generation {
     /// Marks the content so far as a preamble, e.g. the "Let me look" of a response that calls
     /// tools. It stays visible while generating and is dropped when the message is finished.
     pub(crate) fn mark_preamble(&self) -> Result<(), GenerationError> {
-        let mut state = self.state.lock().unwrap();
-        if state.finished {
-            return Err(GenerationError::Stopped);
-        }
+        let mut state = self.live()?;
         state.answer_start = state.content.len();
         Ok(())
     }
@@ -370,10 +385,7 @@ impl Generation {
                 .map(|message| raw_message(message.role, &message.content))
                 .collect(),
         };
-        let mut state = self.state.lock().unwrap();
-        if state.finished {
-            return Err(GenerationError::Stopped);
-        }
+        let mut state = self.live()?;
         state.raw = Some(raw);
         state.raw_content_end = state.content.len();
         Ok(())
@@ -386,10 +398,7 @@ impl Generation {
         content: &[ContentBlock],
     ) -> Result<(), GenerationError> {
         let message = raw_message(role, content);
-        let mut state = self.state.lock().unwrap();
-        if state.finished {
-            return Err(GenerationError::Stopped);
-        }
+        let mut state = self.live()?;
         state.raw_content_end = state.content.len();
         if let Some(raw) = &mut state.raw {
             raw.messages.push(message);
@@ -425,10 +434,7 @@ impl Generation {
             return Err(GenerationError::Stopped);
         }
 
-        let mut state = self.state.lock().unwrap();
-        if state.finished {
-            return Err(GenerationError::Stopped);
-        }
+        let mut state = self.live()?;
         let tool_call = ToolCallSummary {
             id,
             message_id: self.message_id,
@@ -465,10 +471,7 @@ impl Generation {
             return Err(GenerationError::Stopped);
         }
 
-        let mut state = self.state.lock().unwrap();
-        if state.finished {
-            return Err(GenerationError::Stopped);
-        }
+        let mut state = self.live()?;
         if let Some(tool_call) = state.tool_calls.iter_mut().find(|t| t.id == id) {
             tool_call.finished = true;
             tool_call.is_error = is_error;
@@ -521,11 +524,10 @@ pub(crate) async fn finish(
     error: Option<&str>,
 ) -> Result<(), AppError> {
     let (content, usage, response_time, raw) = {
-        let mut generation_state = generation.state.lock().unwrap();
-        if generation_state.finished {
+        let Ok(mut generation_state) = generation.live() else {
             return Ok(());
-        }
-        generation_state.finished = true;
+        };
+        generation_state.phase = Phase::Finishing;
         (
             generation_state.answer().to_string(),
             generation_state.usage.clone().unwrap_or_default(),
@@ -546,18 +548,24 @@ pub(crate) async fn finish(
         raw: raw.as_ref(),
         finished_at: Utc::now(),
     };
-    let result = store_final_message(state, generation.message_id, finished).await;
-    if let Ok(Some((message, tool_calls))) = &result {
-        let mut generation_state = generation.state.lock().unwrap();
-        let _ = generation.events.send(GenerationEvent::Done {
-            message: message.clone(),
-            tool_calls: tool_calls.clone(),
+    let result = store_final_message(state, generation.message_id, finished)
+        .await
+        .map(|done| {
+            if let Some((message, tool_calls)) = done {
+                let mut generation_state = generation.state.lock().unwrap();
+                let _ = generation.events.send(GenerationEvent::Done {
+                    message: message.clone(),
+                    tool_calls: tool_calls.clone(),
+                });
+                generation_state.phase = Phase::Done {
+                    message: Box::new(message),
+                    tool_calls,
+                };
+            }
         });
-        generation_state.done = Some((message.clone(), tool_calls.clone()));
-    }
     // Released even on errors, so a message stuck in `GENERATING` can still be cancelled.
     state.generations.release(generation.message_id);
-    result.map(|_| ())
+    result
 }
 
 /// Keeps the partial content. Does nothing if the message is no longer `GENERATING`.
