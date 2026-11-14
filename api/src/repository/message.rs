@@ -8,7 +8,7 @@ use crate::model::message::{Message, RawAnswer};
 use crate::model::tool_call::{
     ChangedPaths, FileMove, ProposedChange, ProposedCommit, ToolCall, ToolCallSummary,
 };
-use crate::repository::{begin_write, violates_unique};
+use crate::repository::{begin_write, map_unique};
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use sqlx::SqliteConnection;
@@ -126,15 +126,15 @@ pub(crate) async fn insert_message(
     .fetch_one(conn)
     .await
     .map_err(|e| {
-        // idx_messages_generating
-        if violates_unique(&e, "messages.chat_id") {
-            AppError::Conflict(
+        map_unique(
+            e,
+            // idx_messages_generating
+            &[(
+                "messages.chat_id",
                 ErrorCode::GenerationInProgress,
-                "An answer is already being generated in this chat".to_string(),
-            )
-        } else {
-            AppError::Database(e)
-        }
+                "An answer is already being generated in this chat",
+            )],
+        )
     })?;
     Ok(message)
 }

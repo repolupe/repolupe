@@ -23,26 +23,30 @@ use crate::dto::chat::{
     RawMessageDto, RawToolDto, TokenPricesDto, ToolCallDto, ToolCallStatus, ToolCallSummaryDto,
     UsageDto,
 };
+use crate::dto::error::ErrorCode;
 use crate::dto::extraction::{
     DocumentConversionDto, DocumentConversionStatus, DocumentExtractionDto, ExtractionTotalsDto,
     RepositoryDocumentDto, RepositoryDocumentsDto, RepositoryLabelDto,
 };
-use crate::dto::llm::{ApiKeyDto, LlmModelDto, LlmProviderDto, ModelDto, RemoteModelDto};
+use crate::dto::llm::{
+    ApiKeyChange, ApiKeyDto, LlmModelDto, LlmProviderDto, ModelDto, RemoteModelDto,
+};
 use crate::dto::mcp::{
     McpServerAuth, McpServerDto, McpServerShareDto, McpServerUserDto, McpToolDto,
 };
 use crate::dto::repository::{
-    RemoteSettingsDto, RepositoryDto, RepositoryTokenDto, RepositoryUserDto,
+    RemoteSettingsDto, RepositoryDto, RepositoryTokenDto, RepositoryUserDto, TokenChange,
 };
 use crate::dto::user::UserDto;
 use crate::middleware::auth::AuthenticatedUser;
 use crate::model;
 use crate::model::tool_call::ToolCallSummary;
+use crate::repository::StoredToken;
 use crate::repository::message::{Cost, TokenPrices, TokenUsage};
-use crate::repository::repository::StoredToken;
 use crate::service;
 use crate::service::extraction::{Conversion, ExtractionStatus};
 use crate::service::llm::RemoteModel;
+use crate::util::validation::ValidationError;
 use uuid::Uuid;
 
 /// Tokens shorter than this get no hint, since 4 characters would reveal too much of them.
@@ -62,6 +66,84 @@ pub(crate) fn encrypt_token(
     let hint = (token.len() >= MIN_TOKEN_LENGTH_FOR_HINT)
         .then(|| token[token.len() - TOKEN_HINT_LENGTH..].to_string());
     Ok(StoredToken { encrypted, hint })
+}
+
+/// Encrypts the new secret of a [`SecretChange::resolve`] result with [`encrypt_token`].
+pub(crate) fn encrypt_secret_change(
+    state: &AppState,
+    owner_id: Uuid,
+    secret: Option<Option<&str>>,
+) -> Result<Option<Option<StoredToken>>, AppError> {
+    secret
+        .map(|secret| {
+            secret
+                .map(|s| encrypt_token(state, owner_id, s))
+                .transpose()
+        })
+        .transpose()
+}
+
+/// Parses an optional secret with `parse`, where a blank one means none.
+pub(crate) fn parse_optional_secret(
+    secret: Option<&str>,
+    parse: fn(&str) -> Result<&str, ValidationError>,
+) -> Result<Option<&str>, ValidationError> {
+    match secret.map(str::trim) {
+        Some(secret) if !secret.is_empty() => parse(secret).map(Some),
+        _ => Ok(None),
+    }
+}
+
+/// A change to a stored secret, a repository token ([`TokenChange`]) or an LLM API key
+/// ([`ApiKeyChange`]).
+pub(crate) enum SecretChange<'a> {
+    Keep,
+    Remove,
+    Set(&'a str),
+}
+
+impl<'a> From<&'a TokenChange> for SecretChange<'a> {
+    fn from(change: &'a TokenChange) -> Self {
+        match change {
+            TokenChange::Keep => SecretChange::Keep,
+            TokenChange::Remove => SecretChange::Remove,
+            TokenChange::Set { value } => SecretChange::Set(value),
+        }
+    }
+}
+
+impl<'a> From<&'a ApiKeyChange> for SecretChange<'a> {
+    fn from(change: &'a ApiKeyChange) -> Self {
+        match change {
+            ApiKeyChange::Keep => SecretChange::Keep,
+            ApiKeyChange::Remove => SecretChange::Remove,
+            ApiKeyChange::Set { value } => SecretChange::Set(value),
+        }
+    }
+}
+
+impl<'a> SecretChange<'a> {
+    /// The new secret, parsed with `parse`: `None` keeps the stored one, `Some(None)` removes
+    /// it, `Some(Some(_))` replaces it. A secret is `stored` only after being checked against the
+    /// current host, so it is never sent to a new one: keeping it when `host_changed` fails with
+    /// `host_changed_message`.
+    pub(crate) fn resolve(
+        self,
+        stored: bool,
+        host_changed: bool,
+        host_changed_message: &str,
+        parse: fn(&str) -> Result<&str, ValidationError>,
+    ) -> Result<Option<Option<&'a str>>, AppError> {
+        match self {
+            SecretChange::Keep if host_changed && stored => Err(AppError::Unprocessable(
+                ErrorCode::TokenRequired,
+                host_changed_message.to_string(),
+            )),
+            SecretChange::Keep => Ok(None),
+            SecretChange::Remove => Ok(Some(None)),
+            SecretChange::Set(value) => Ok(Some(Some(parse(value)?))),
+        }
+    }
 }
 
 impl From<model::user::User> for UserDto {

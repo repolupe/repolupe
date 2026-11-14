@@ -6,8 +6,7 @@ use crate::dto::user::UserRole;
 use crate::model::mcp_server::{
     McpServer, McpServerShare, McpServerUser, McpTool, McpToolSummary, UsableMcpServer,
 };
-use crate::repository::repository::StoredToken;
-use crate::repository::{begin_write, violates_unique};
+use crate::repository::{StoredToken, begin_write, map_unique, split_token};
 use crate::util::validation::ValidationError;
 use chrono::{DateTime, Utc};
 use sqlx::SqliteConnection;
@@ -475,20 +474,13 @@ pub(crate) async fn clear_oauth_credentials(db: &DatabasePool, id: Uuid) -> Resu
     Ok(())
 }
 
-fn split_token(token: Option<StoredToken>) -> (Option<Vec<u8>>, Option<String>) {
-    match token {
-        Some(token) => (Some(token.encrypted), token.hint),
-        None => (None, None),
-    }
-}
-
 fn map_name_conflict(e: sqlx::Error) -> AppError {
-    if violates_unique(&e, "index 'idx_mcp_servers_user_name'") {
-        AppError::Conflict(
+    map_unique(
+        e,
+        &[(
+            "index 'idx_mcp_servers_user_name'",
             ErrorCode::NameTaken,
-            "You already have an MCP server with this name".to_string(),
-        )
-    } else {
-        AppError::Database(e)
-    }
+            "You already have an MCP server with this name",
+        )],
+    )
 }

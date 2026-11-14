@@ -11,8 +11,24 @@ pub(crate) mod repository;
 pub(crate) mod session;
 pub(crate) mod user;
 
+use crate::config::error::AppError;
 use crate::config::state::DatabasePool;
+use crate::dto::error::ErrorCode;
 use sqlx::{Sqlite, SqliteConnection, Transaction};
+
+/// An encrypted token or API key as stored in the `*_encrypted` and `*_hint` columns.
+pub(crate) struct StoredToken {
+    pub encrypted: Vec<u8>,
+    pub hint: Option<String>,
+}
+
+/// The values of the `*_encrypted` and `*_hint` columns for `token`.
+fn split_token(token: Option<StoredToken>) -> (Option<Vec<u8>>, Option<String>) {
+    match token {
+        Some(token) => (Some(token.encrypted), token.hint),
+        None => (None, None),
+    }
+}
 
 /// Starts a transaction that takes the write lock right away, so concurrent ones run one after
 /// the other. A deferred transaction that reads before it writes would fail with `SQLITE_BUSY`
@@ -39,12 +55,24 @@ pub(crate) async fn foreign_key_violations(
 
 /// Whether `e` violates the unique index `target`. SQLite names the index only for indexes on
 /// expressions, e.g. `index 'idx_users_email'`, otherwise the columns, e.g. `messages.chat_id`.
-pub(crate) fn violates_unique(e: &sqlx::Error, target: &str) -> bool {
+fn violates_unique(e: &sqlx::Error, target: &str) -> bool {
     match e {
         sqlx::Error::Database(db_err) => {
             db_err.is_unique_violation()
                 && db_err.message().strip_prefix("UNIQUE constraint failed: ") == Some(target)
         }
         _ => false,
+    }
+}
+
+/// Maps `e` to the `Conflict` of the first of `cases` whose unique index `target` it violates
+/// (see [`violates_unique`]), otherwise to a database error.
+fn map_unique(e: sqlx::Error, cases: &[(&str, ErrorCode, &str)]) -> AppError {
+    match cases
+        .iter()
+        .find(|(target, _, _)| violates_unique(&e, target))
+    {
+        Some(&(_, code, message)) => AppError::Conflict(code, message.to_string()),
+        None => AppError::Database(e),
     }
 }

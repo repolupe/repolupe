@@ -1,10 +1,12 @@
 use crate::config::error::AppError;
 use crate::config::state::AppState;
-use crate::controller::encrypt_token;
+use crate::controller::{
+    SecretChange, encrypt_secret_change, encrypt_token, parse_optional_secret,
+};
 use crate::dto::error::ErrorCode;
 use crate::dto::llm::LlmApiFormat;
 use crate::dto::llm::{
-    ApiKeyChange, CreateLlmProviderRequest, LlmModelDto, LlmModelRequest, LlmProviderDto,
+    CreateLlmProviderRequest, LlmModelDto, LlmModelRequest, LlmProviderDto,
     LlmProviderSuggestionDto, ModelDto, RemoteModelDto, SetDefaultModelRequest,
     UpdateLlmProviderRequest, llm_provider_suggestions,
 };
@@ -75,10 +77,7 @@ pub(crate) async fn create_provider(
     let name = parse_name(&payload.name)?;
     let base_url = parse_base_url(payload.api_format, payload.base_url.as_deref())?;
     let currency = parse_currency(payload.currency.as_deref())?;
-    let api_key = match payload.api_key.as_deref().map(str::trim) {
-        Some(key) if !key.is_empty() => Some(parse_api_key(key)?),
-        _ => None,
-    };
+    let api_key = parse_optional_secret(payload.api_key.as_deref(), parse_api_key)?;
     require_api_key(payload.api_format, &base_url, api_key.is_some())?;
 
     // The id is the key's associated data, so it is generated before encrypting.
@@ -116,27 +115,19 @@ pub(crate) async fn update_provider(
     let current = find_provider(&state, id).await?;
     let host_changed = origin(&base_url)? != origin(&current.base_url)?;
 
-    // `None` keeps the key, `Some(_)` replaces it.
-    let new_key: Option<Option<&str>> = match &payload.api_key {
-        ApiKeyChange::Keep if host_changed && current.api_key_encrypted.is_some() => {
-            return Err(AppError::Unprocessable(
-                ErrorCode::TokenRequired,
-                "The host changed, so the API key cannot be kept. Set a new key, or remove it if the new server needs none".to_string(),
-            ));
-        }
-        ApiKeyChange::Keep => None,
-        ApiKeyChange::Remove => Some(None),
-        ApiKeyChange::Set { value } => Some(Some(parse_api_key(value)?)),
-    };
+    let new_key = SecretChange::from(&payload.api_key).resolve(
+        current.api_key_encrypted.is_some(),
+        host_changed,
+        "The host changed, so the API key cannot be kept. Set a new key, or remove it if the new server needs none",
+        parse_api_key,
+    )?;
     let has_key = match new_key {
         Some(key) => key.is_some(),
         None => current.api_key_encrypted.is_some(),
     };
     require_api_key(payload.api_format, &base_url, has_key)?;
 
-    let api_key = new_key
-        .map(|key| key.map(|k| encrypt_token(&state, id, k)).transpose())
-        .transpose()?;
+    let api_key = encrypt_secret_change(&state, id, new_key)?;
 
     let updated = repository::llm::update_provider(
         &state.db,

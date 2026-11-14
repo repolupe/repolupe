@@ -4,8 +4,7 @@ use crate::dto::error::ErrorCode;
 use crate::dto::llm::LlmApiFormat;
 use crate::model::llm_model::{AvailableModel, LlmModel, ModelConnection, ModelPrices};
 use crate::model::llm_provider::LlmProvider;
-use crate::repository::repository::StoredToken;
-use crate::repository::{begin_write, violates_unique};
+use crate::repository::{StoredToken, begin_write, map_unique, split_token};
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use sqlx::types::Text;
@@ -73,7 +72,7 @@ pub(crate) async fn create_provider(
     db: &DatabasePool,
     new: NewLlmProvider<'_>,
 ) -> Result<LlmProvider, AppError> {
-    let (api_key_encrypted, api_key_hint) = split_key(new.api_key);
+    let (api_key_encrypted, api_key_hint) = split_token(new.api_key);
     let now = Utc::now();
     let provider = sqlx::query_as!(
         LlmProvider,
@@ -108,7 +107,7 @@ pub(crate) async fn update_provider(
     changes: LlmProviderChanges<'_>,
 ) -> Result<Option<LlmProvider>, AppError> {
     let replace_key = changes.api_key.is_some();
-    let (api_key_encrypted, api_key_hint) = split_key(changes.api_key.flatten());
+    let (api_key_encrypted, api_key_hint) = split_token(changes.api_key.flatten());
     let now = Utc::now();
     let provider = sqlx::query_as!(
         LlmProvider,
@@ -348,44 +347,38 @@ impl ModelPrices {
     }
 }
 
-fn split_key(key: Option<StoredToken>) -> (Option<Vec<u8>>, Option<String>) {
-    match key {
-        Some(key) => (Some(key.encrypted), key.hint),
-        None => (None, None),
-    }
-}
-
 fn map_provider_name_conflict(e: sqlx::Error) -> AppError {
-    if violates_unique(&e, "index 'idx_llm_providers_name'") {
-        AppError::Conflict(
+    map_unique(
+        e,
+        &[(
+            "index 'idx_llm_providers_name'",
             ErrorCode::NameTaken,
-            "A provider with this name already exists".to_string(),
-        )
-    } else {
-        AppError::Database(e)
-    }
+            "A provider with this name already exists",
+        )],
+    )
 }
 
 fn map_model_conflict(e: sqlx::Error) -> AppError {
-    // idx_llm_models_provider_api_name
-    if violates_unique(&e, "llm_models.provider_id, llm_models.api_name") {
-        AppError::Conflict(
-            ErrorCode::NameTaken,
-            "The provider already has a model with this API name".to_string(),
-        )
-    } else if violates_unique(&e, "index 'idx_llm_models_display_name'") {
-        AppError::Conflict(
-            ErrorCode::NameTaken,
-            "A model with this display name already exists, or with this API name if it has none"
-                .to_string(),
-        )
-    } else if violates_unique(&e, "llm_models.is_default") {
-        // idx_llm_models_default
-        AppError::Conflict(
-            ErrorCode::Conflict,
-            "The default model was changed by another request, please retry".to_string(),
-        )
-    } else {
-        AppError::Database(e)
-    }
+    map_unique(
+        e,
+        &[
+            // idx_llm_models_provider_api_name
+            (
+                "llm_models.provider_id, llm_models.api_name",
+                ErrorCode::NameTaken,
+                "The provider already has a model with this API name",
+            ),
+            (
+                "index 'idx_llm_models_display_name'",
+                ErrorCode::NameTaken,
+                "A model with this display name already exists, or with this API name if it has none",
+            ),
+            // idx_llm_models_default
+            (
+                "llm_models.is_default",
+                ErrorCode::Conflict,
+                "The default model was changed by another request, please retry",
+            ),
+        ],
+    )
 }

@@ -6,16 +6,10 @@ use crate::model::repository::{
     Repository, RepositoryLabel, RepositoryUser, ScopedRepository, SyncJob,
 };
 use crate::model::repository_document::RepositoryDocument;
-use crate::repository::begin_write;
+use crate::repository::{StoredToken, begin_write, split_token};
 use chrono::{DateTime, Utc};
 use sqlx::types::Json;
 use uuid::Uuid;
-
-/// The encrypted token as stored in the `token_*` columns.
-pub(crate) struct StoredToken {
-    pub encrypted: Vec<u8>,
-    pub hint: Option<String>,
-}
 
 pub(crate) struct NewRepository<'a> {
     pub id: Uuid,
@@ -558,11 +552,4 @@ pub(crate) async fn reset_interrupted_syncs(db: &DatabasePool) -> Result<u64, Ap
     .execute(db)
     .await?;
     Ok(result.rows_affected())
-}
-
-fn split_token(token: Option<StoredToken>) -> (Option<Vec<u8>>, Option<String>) {
-    match token {
-        Some(token) => (Some(token.encrypted), token.hint),
-        None => (None, None),
-    }
 }

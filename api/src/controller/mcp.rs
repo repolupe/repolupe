@@ -3,7 +3,7 @@
 
 use crate::config::error::AppError;
 use crate::config::state::AppState;
-use crate::controller::encrypt_token;
+use crate::controller::{encrypt_token, parse_optional_secret};
 use crate::dto::error::ErrorCode;
 use crate::dto::mcp::{
     AddMcpServerUserRequest, AuthorizationUrlDto, AuthorizeMcpServerRequest,
@@ -55,10 +55,7 @@ pub(crate) async fn create_mcp_server(
     let access = RemoteAccess::of(auth.role);
     let name = parse_name(&payload.name)?;
     let url = util::validation::parse_mcp_url(payload.url.trim(), access)?;
-    let token = match payload.token.as_deref().map(str::trim) {
-        Some(token) if !token.is_empty() => Some(parse_token(token)?),
-        _ => None,
-    };
+    let token = parse_optional_secret(payload.token.as_deref(), parse_token)?;
 
     // The id is the token's associated data, so it is generated before encrypting.
     let id = Uuid::now_v7();

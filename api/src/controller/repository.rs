@@ -1,11 +1,11 @@
 use crate::config::error::AppError;
 use crate::config::state::AppState;
-use crate::controller::encrypt_token;
+use crate::controller::{SecretChange, encrypt_secret_change, encrypt_token};
 use crate::dto::error::ErrorCode;
 use crate::dto::extraction::RepositoryDocumentsDto;
 use crate::dto::repository::{
     AddRepositoryUserRequest, CreateRepositoryRequest, RemoteSettingsChange, RepositoryDto,
-    RepositoryUserDto, TokenChange, UpdateRepositoryRequest, UpdateRepositoryUserRequest,
+    RepositoryUserDto, UpdateRepositoryRequest, UpdateRepositoryUserRequest,
 };
 use crate::dto::user::UserRole;
 use crate::middleware::auth::AuthenticatedUser;
@@ -206,19 +206,12 @@ async fn remote_changes<'a>(
     let host_changed = remote_url.origin() != current_remote.parsed_url()?.origin();
     let remote_changed = remote_url.as_str() != current_remote.url || branch != current.branch;
 
-    // The existing token was only ever checked against the current host, so it is never
-    // sent to a new one. `None` keeps it, `Some(_)` replaces it.
-    let new_token: Option<Option<&str>> = match &remote.token {
-        TokenChange::Keep if host_changed && current_remote.token_encrypted.is_some() => {
-            return Err(AppError::Unprocessable(
-                ErrorCode::TokenRequired,
-                "The host changed, so the token cannot be kept. Set a new token, or remove it if the new remote is public".to_string(),
-            ));
-        }
-        TokenChange::Keep => None,
-        TokenChange::Remove => Some(None),
-        TokenChange::Set { value } => Some(Some(parse_token(value)?)),
-    };
+    let new_token = SecretChange::from(&remote.token).resolve(
+        current_remote.token_encrypted.is_some(),
+        host_changed,
+        "The host changed, so the token cannot be kept. Set a new token, or remove it if the new remote is public",
+        parse_token,
+    )?;
     let token_set = matches!(new_token, Some(Some(_)));
 
     // Pushes are checked when commits are turned on, and when the remote or the token they
@@ -247,13 +240,7 @@ async fn remote_changes<'a>(
         }
     }
 
-    let token = new_token
-        .map(|token| {
-            token
-                .map(|t| encrypt_token(state, current.id, t))
-                .transpose()
-        })
-        .transpose()?;
+    let token = encrypt_secret_change(state, current.id, new_token)?;
     Ok(RepositoryChanges {
         remote_url: Some(remote_url.as_str()),
         branch,

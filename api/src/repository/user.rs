@@ -3,7 +3,7 @@ use crate::config::state::DatabasePool;
 use crate::dto::error::ErrorCode;
 use crate::dto::user::UserRole;
 use crate::model::user::{User, UserProfile};
-use crate::repository::{begin_write, violates_unique};
+use crate::repository::{begin_write, map_unique};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
@@ -46,19 +46,21 @@ pub(crate) async fn create_user(
 
 /// Maps a taken user name or email to its `Conflict`.
 fn unique_violation(e: sqlx::Error) -> AppError {
-    if violates_unique(&e, "index 'idx_users_user_name'") {
-        AppError::Conflict(
-            ErrorCode::UserNameTaken,
-            "User name already taken".to_string(),
-        )
-    } else if violates_unique(&e, "index 'idx_users_email'") {
-        AppError::Conflict(
-            ErrorCode::EmailTaken,
-            "Email already registered".to_string(),
-        )
-    } else {
-        AppError::Database(e)
-    }
+    map_unique(
+        e,
+        &[
+            (
+                "index 'idx_users_user_name'",
+                ErrorCode::UserNameTaken,
+                "User name already taken",
+            ),
+            (
+                "index 'idx_users_email'",
+                ErrorCode::EmailTaken,
+                "Email already registered",
+            ),
+        ],
+    )
 }
 
 pub(crate) async fn get_user(db: &DatabasePool, user_id: Uuid) -> Result<Option<User>, AppError> {
