@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:app/gen/strings.g.dart';
 import 'package:app/pages/chat_page.dart';
 import 'package:app/service/api_service.dart';
@@ -9,6 +11,7 @@ import 'package:app/src/rust/third_party/repolupe/dto/mcp.dart';
 import 'package:app/src/rust/third_party/repolupe/dto/repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:refena_flutter/addons.dart';
@@ -17,6 +20,7 @@ import 'package:uuid/uuid.dart';
 
 import 'support/api.dart';
 import 'support/fake_repository.dart';
+import 'support/image_compress.dart';
 import 'support/image_picker.dart';
 import 'support/rust.dart';
 
@@ -234,26 +238,53 @@ void main() {
     expect(find.byKey(const ValueKey('chat.options.mcpServers')), findsNothing);
   });
 
-  testWidgets('the camera attaches the photo it takes, named after the time', (tester) async {
+  testWidgets('the camera attaches the photo it takes as a WebP, named after the time', (tester) async {
     final uploaded = <ApiUploadAttachmentAction>[];
     final container = await _pumpChatPage(tester, repositories: const [], uploaded: uploaded);
-    final content = Uint8List.fromList([255, 216, 255]);
-    final camera = FakeImagePicker(photo: XFile.fromData(content, path: '/tmp/image_picker_0199a8d4.jpg'));
+    final webp = Uint8List.fromList([82, 73, 70, 70]);
+    final photo = (await tester.runAsync(() => _png(4096, 1024)))!;
+    final camera = FakeImagePicker(photo: XFile.fromData(photo, path: '/tmp/image_picker_0199a8d4.png'));
+    final compress = FakeImageCompress(result: webp);
     ImagePickerPlatform.instance = camera;
+    FlutterImageCompressPlatform.instance = compress;
+
+    await tester.tap(find.byKey(const ValueKey('chat.options')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('chat.options.camera')));
+    // Reading the photo's size takes the engine real time
+    await tester.runAsync(() async {
+      for (var i = 0; i < 100 && compress.paths.isEmpty; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+    });
+    await tester.pumpAndSettle();
+
+    // Not encoded by the picker, but scaled down by the compressor, which scales the shorter edge: 1024 * 2048 / 4096
+    expect(camera.options?.maxWidth, isNull);
+    expect(camera.options?.maxHeight, isNull);
+    expect(camera.options?.imageQuality, isNull);
+    expect(compress.paths, ['/tmp/image_picker_0199a8d4.png']);
+    expect(compress.options, (minWidth: 512, minHeight: 512, quality: 85, format: CompressFormat.webp));
+    expect(uploaded.single.fileName, matches(RegExp(r'^IMG_\d{8}_\d{6}\.webp$')));
+    expect(uploaded.single.content, webp);
+    expect(container.read(chatProvider).attachment?.uploaded, isNotNull);
+    expect(find.textContaining(uploaded.single.fileName, findRichText: true), findsOneWidget);
+  });
+
+  testWidgets('without a WebP, the camera attaches the photo as taken', (tester) async {
+    final uploaded = <ApiUploadAttachmentAction>[];
+    await _pumpChatPage(tester, repositories: const [], uploaded: uploaded);
+    final content = Uint8List.fromList([255, 216, 255]);
+    ImagePickerPlatform.instance = FakeImagePicker(photo: XFile.fromData(content, path: '/tmp/image_picker_0199a8d4.jpg'));
+    FlutterImageCompressPlatform.instance = FakeImageCompress(fails: true);
 
     await tester.tap(find.byKey(const ValueKey('chat.options')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('chat.options.camera')));
     await tester.pumpAndSettle();
 
-    // Scaled down by the picker, so the full resolution is never uploaded
-    expect(camera.options?.maxWidth, 2048);
-    expect(camera.options?.maxHeight, 2048);
-    expect(camera.options?.imageQuality, 85);
     expect(uploaded.single.fileName, matches(RegExp(r'^IMG_\d{8}_\d{6}\.jpg$')));
     expect(uploaded.single.content, content);
-    expect(container.read(chatProvider).attachment?.uploaded, isNotNull);
-    expect(find.textContaining(uploaded.single.fileName, findRichText: true), findsOneWidget);
   });
 
   testWidgets('a camera that may not be used says so, and a cancelled photo attaches nothing', (tester) async {
@@ -384,4 +415,16 @@ void main() {
     expect(container.read(chatProvider).modelId, _models[1].id);
     expect(find.descendant(of: button, matching: find.text('Opus')), findsOneWidget);
   });
+}
+
+/// A PNG of the given size, to have the size read from it.
+Future<Uint8List> _png(int width, int height) async {
+  final recorder = ui.PictureRecorder();
+  ui.Canvas(recorder);
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(width, height);
+  picture.dispose();
+  final data = await image.toByteData(format: ui.ImageByteFormat.png);
+  image.dispose();
+  return data!.buffer.asUint8List();
 }

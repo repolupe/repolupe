@@ -1,3 +1,6 @@
+import 'dart:math';
+import 'dart:ui' as ui;
+
 import 'package:app/gen/strings.g.dart';
 import 'package:app/service/chat_service.dart';
 import 'package:app/service/me_service.dart';
@@ -9,17 +12,21 @@ import 'package:app/widget/chat/repository_sheet.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:logging/logging.dart';
 import 'package:refena_flutter/addons.dart';
 import 'package:refena_flutter/refena_flutter.dart';
 
-/// Photos taken with the camera are scaled down to this edge before they are uploaded, since the model looks at
+/// Photos taken with the camera are scaled down to this longer edge before they are uploaded, since the model looks at
 /// them at 1568 px anyway. A little more keeps small writing legible if the photo is stored in a repository.
 const _maxPhotoEdge = 2048.0;
 
-/// Of the JPEG the scaled photo is encoded as.
+/// Of the WebP the scaled photo is encoded as.
 const _photoQuality = 85;
+
+final _logger = Logger('MessageInput');
 
 /// The text field and below it the actions, in one box: a plus button with the options (taking a photo, attaching a
 /// file, and what a new chat reads), the model, and the button that sends the message, or stops the answer being
@@ -69,17 +76,13 @@ class _MessageInputState extends State<MessageInput> with Refena {
     await ref.redux(chatProvider).dispatchAsync(AttachFileAction(fileName: file.name, size: size, read: file.readAsBytes));
   }
 
-  /// Attaches a photo taken with the camera, like a file, but scaled down: unlike a file the user picks, it has no
-  /// original to keep, and at full resolution it takes megabytes to upload and store.
+  /// Attaches a photo taken with the camera, like a file, but scaled down and as a WebP: unlike a file the user picks,
+  /// it has no original to keep, and at full resolution it takes megabytes to upload and store.
   Future<void> _takePhoto() async {
     final XFile? photo;
     try {
-      photo = await ImagePicker().pickImage(
-        source: ImageSource.camera,
-        maxWidth: _maxPhotoEdge,
-        maxHeight: _maxPhotoEdge,
-        imageQuality: _photoQuality,
-      );
+      // Not scaled by the picker, which would encode it as a JPEG once more, but only when it is encoded as a WebP.
+      photo = await ImagePicker().pickImage(source: ImageSource.camera);
     } on PlatformException catch (e) {
       final messages = t.flutter.chat.messageInput;
       ref.global.dispatch(ShowSnackBarAction(message: e.code == 'camera_access_denied' ? messages.cameraDenied : messages.cameraFailed));
@@ -88,12 +91,52 @@ class _MessageInputState extends State<MessageInput> with Refena {
     if (photo == null || !mounted) {
       return;
     }
-    // The picker names it with a random id, so it is named after the time instead, keeping the extension.
+    final webp = await _toWebp(photo);
+    if (!mounted) {
+      return;
+    }
+    // The picker names it with a random id, so it is named after the time instead.
+    final time = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+    if (webp != null) {
+      await ref.redux(chatProvider).dispatchAsync(AttachFileAction(fileName: 'IMG_$time.webp', size: webp.length, read: () async => webp));
+      return;
+    }
+    // Without the WebP, the photo as taken, keeping its extension.
     final dot = photo.name.lastIndexOf('.');
     final extension = dot < 0 ? '.jpg' : photo.name.substring(dot);
-    final fileName = 'IMG_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}$extension';
     final size = await photo.length();
-    await ref.redux(chatProvider).dispatchAsync(AttachFileAction(fileName: fileName, size: size, read: photo.readAsBytes));
+    await ref.redux(chatProvider).dispatchAsync(AttachFileAction(fileName: 'IMG_$time$extension', size: size, read: photo.readAsBytes));
+  }
+
+  /// The [photo] as a WebP, scaled down to [_maxPhotoEdge], or null if it can't be read or encoded.
+  static Future<Uint8List?> _toWebp(XFile photo) async {
+    try {
+      // The compressor scales the shorter edge down to its size, so that is the shorter edge the photo has once its
+      // longer one is at most the maximum. Being the same for both, it doesn't matter which edge is the width after
+      // the compressor turns the photo upright.
+      final (:width, :height) = await _size(photo);
+      final shortEdge = (min(width, height) * min(1.0, _maxPhotoEdge / max(width, height))).round();
+      return await FlutterImageCompress.compressWithFile(
+        photo.path,
+        minWidth: shortEdge,
+        minHeight: shortEdge,
+        quality: _photoQuality,
+        format: CompressFormat.webp,
+      );
+    } catch (e, st) {
+      _logger.warning('Encoding the photo as a WebP failed', e, st);
+      return null;
+    }
+  }
+
+  /// The width and height of the [photo] as stored (not turned upright), read from its header.
+  static Future<({int width, int height})> _size(XFile photo) async {
+    final buffer = await ui.ImmutableBuffer.fromUint8List(await photo.readAsBytes());
+    final descriptor = await ui.ImageDescriptor.encoded(buffer);
+    final size = (width: descriptor.width, height: descriptor.height);
+    descriptor.dispose();
+    buffer.dispose();
+    return size;
   }
 
   Future<void> _showOptions() async {
