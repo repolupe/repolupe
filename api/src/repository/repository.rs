@@ -441,46 +441,82 @@ pub(crate) async fn claim_due_repositories(
     Ok(jobs)
 }
 
-/// Records a successful sync. Returns `false` if the repository was deleted or reset
+/// How a sync ended, see [`finish_sync`].
+pub(crate) enum SyncOutcome<'a> {
+    Synced {
+        head_commit_sha: &'a str,
+        git_size: u64,
+        lfs_size: u64,
+        /// The documents in the commit, the ones without an extraction are queued for
+        /// conversion.
+        documents: &'a [RepositoryDocument],
+    },
+    /// The last synced commit is kept.
+    Failed { error: &'a str },
+}
+
+/// Records the end of a sync. Returns `false` if the repository was deleted or reset
 /// while syncing, in which case the result is outdated and nothing is written.
 ///
 /// A sync requested while this one ran is kept, otherwise the next one is scheduled
 /// after the poll interval, or not at all for a local repository.
-///
-/// `documents` are the documents in the commit, the ones without an extraction are queued for
-/// conversion.
 pub(crate) async fn finish_sync(
     db: &DatabasePool,
     id: Uuid,
-    head_commit_sha: &str,
-    git_size: u64,
-    lfs_size: u64,
-    documents: &[RepositoryDocument],
+    outcome: SyncOutcome<'_>,
 ) -> Result<bool, AppError> {
-    let mut tx = begin_write(db).await?;
-    let (git_size, lfs_size) = (git_size as i64, lfs_size as i64);
     let now = Utc::now();
+    // The columns of a successful sync are `None` for a failed one, which keeps them.
+    let (status, head_commit_sha, git_size, lfs_size, documents, error) = match outcome {
+        SyncOutcome::Synced {
+            head_commit_sha,
+            git_size,
+            lfs_size,
+            documents,
+        } => (
+            RepositorySyncStatus::Ready,
+            Some(head_commit_sha),
+            Some(git_size as i64),
+            Some(lfs_size as i64),
+            Some(documents),
+            None,
+        ),
+        SyncOutcome::Failed { error } => (
+            RepositorySyncStatus::Failed,
+            None,
+            None,
+            None,
+            None,
+            Some(error),
+        ),
+    };
+    let last_synced_at = head_commit_sha.map(|_| now);
+
+    let mut tx = begin_write(db).await?;
     let result = sqlx::query!(
         r#"UPDATE repositories
-           SET sync_status     = 'READY',
+           SET sync_status     = $2,
                sync_started_at = NULL,
-               head_commit_sha = $2,
-               last_synced_at  = $5,
-               git_size        = $3,
-               lfs_size        = $4,
-               last_error      = NULL,
+               head_commit_sha = COALESCE($3, head_commit_sha),
+               last_synced_at  = COALESCE($4, last_synced_at),
+               git_size        = COALESCE($5, git_size),
+               lfs_size        = COALESCE($6, lfs_size),
+               last_error      = $7,
                next_sync_at    = CASE
                                      WHEN next_sync_at > sync_started_at THEN next_sync_at
                                      -- a local repository is synced only when requested
                                      WHEN poll_interval_seconds IS NULL THEN NULL
-                                     ELSE strftime('%Y-%m-%dT%H:%M:%f+00:00', $5,
+                                     ELSE strftime('%Y-%m-%dT%H:%M:%f+00:00', $8,
                                                    poll_interval_seconds || ' seconds')
                                  END
            WHERE id = $1 AND sync_status = 'SYNCING'"#,
         id,
+        status,
         head_commit_sha,
+        last_synced_at,
         git_size,
         lfs_size,
+        error,
         now,
     )
     .execute(&mut *tx)
@@ -488,6 +524,10 @@ pub(crate) async fn finish_sync(
     if result.rows_affected() == 0 {
         return Ok(false);
     }
+    let Some(documents) = documents else {
+        tx.commit().await?;
+        return Ok(true);
+    };
 
     sqlx::query!(
         "DELETE FROM repository_documents WHERE repository_id = $1",
@@ -507,31 +547,6 @@ pub(crate) async fn finish_sync(
     }
     tx.commit().await?;
     Ok(true)
-}
-
-/// Like [`finish_sync`], for a failed sync. The last synced commit is kept.
-pub(crate) async fn fail_sync(db: &DatabasePool, id: Uuid, error: &str) -> Result<bool, AppError> {
-    let now = Utc::now();
-    let result = sqlx::query!(
-        r#"UPDATE repositories
-           SET sync_status     = 'FAILED',
-               sync_started_at = NULL,
-               last_error      = $2,
-               next_sync_at    = CASE
-                                     WHEN next_sync_at > sync_started_at THEN next_sync_at
-                                     -- a local repository is synced only when requested
-                                     WHEN poll_interval_seconds IS NULL THEN NULL
-                                     ELSE strftime('%Y-%m-%dT%H:%M:%f+00:00', $3,
-                                                   poll_interval_seconds || ' seconds')
-                                 END
-           WHERE id = $1 AND sync_status = 'SYNCING'"#,
-        id,
-        error,
-        now,
-    )
-    .execute(db)
-    .await?;
-    Ok(result.rows_affected() > 0)
 }
 
 /// Restores the status of syncs left `SYNCING` by a crash and schedules them again.

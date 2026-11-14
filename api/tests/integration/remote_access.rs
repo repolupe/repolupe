@@ -126,6 +126,48 @@ async fn failed_sync_is_retried_after_the_poll_interval(db: SqlitePool) {
 }
 
 #[sqlx::test]
+async fn failed_sync_keeps_the_last_synced_commit(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let remote = LocalRemote::start().await;
+    let (status, body) = create_repository(&app.admin(), &remote.url).await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    let id = body["id"].as_str().unwrap().to_string();
+    let pushed = remote.push_commit(&[("manual.pdf", "%PDF-1.4")]);
+    let tasks = app.start_background_tasks().await;
+    let admin = app.admin().on(&tasks);
+    wait_for_commit(&admin, &id, &pushed).await;
+    let (_, synced) = admin.get(&format!("/api/v1/repositories/{id}")).await;
+    let documents_path = format!("/api/v1/repositories/{id}/documents");
+    let (_, documents) = admin.get(&documents_path).await;
+    assert_eq!(
+        documents["documents"][0]["path"], "manual.pdf",
+        "{documents}"
+    );
+
+    drop(remote);
+    app.request_sync_now(&id).await;
+    let started = Instant::now();
+    let body = loop {
+        let (_, body) = admin.get(&format!("/api/v1/repositories/{id}")).await;
+        if body["sync_status"] == "FAILED" {
+            break body;
+        }
+        assert!(started.elapsed() < Duration::from_secs(30), "{body}");
+        tokio::time::sleep(Duration::from_millis(100)).await;
+    };
+    assert!(body["last_error"].is_string(), "{body}");
+    for key in ["head_commit_sha", "last_synced_at", "git_size", "lfs_size"] {
+        assert_eq!(body[key], synced[key], "{key}: {body}");
+    }
+    // Its extraction may have finished in between
+    let (_, documents) = admin.get(&documents_path).await;
+    assert_eq!(
+        documents["documents"][0]["path"], "manual.pdf",
+        "{documents}"
+    );
+}
+
+#[sqlx::test]
 async fn sync_fetches_new_and_rewritten_commits(db: SqlitePool) {
     let app = TestApp::new(db).await;
     let remote = LocalRemote::start().await;

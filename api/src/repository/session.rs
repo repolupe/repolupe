@@ -5,24 +5,29 @@ use crate::model::session::ActiveSession;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+pub(crate) struct NewSession<'a> {
+    pub user_id: Uuid,
+    pub token_hash: &'a str,
+    pub user_agent: Option<&'a str>,
+    /// Also the first use.
+    pub created_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
+}
+
 pub(crate) async fn create_session(
     db: &DatabasePool,
-    user_id: Uuid,
-    token_hash: &str,
-    user_agent: Option<&str>,
-    now: DateTime<Utc>,
-    expires_at: DateTime<Utc>,
+    new: NewSession<'_>,
 ) -> Result<Uuid, AppError> {
     let id = Uuid::now_v7();
     sqlx::query!(
         r#"INSERT INTO sessions (id, user_id, token_hash, user_agent, created_at, last_used_at, expires_at)
            VALUES ($1, $2, $3, $4, $5, $5, $6)"#,
         id,
-        user_id,
-        token_hash,
-        user_agent,
-        now,
-        expires_at,
+        new.user_id,
+        new.token_hash,
+        new.user_agent,
+        new.created_at,
+        new.expires_at,
     )
     .execute(db)
     .await?;

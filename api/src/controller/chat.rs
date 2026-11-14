@@ -49,7 +49,8 @@ pub(crate) async fn list_chats(
     let (limit, after) = parse_page(query.limit, query.cursor.as_deref())?;
     // One extra row tells whether there is a next page.
     let chats =
-        repository::chat::list_chats(&state.db, auth.user_id, after.as_ref(), limit + 1).await?;
+        repository::chat::list_chats(&state.db, auth.user_id, &[], after.as_ref(), limit + 1)
+            .await?;
     Ok(Json(chat_page(chats, limit)))
 }
 
@@ -62,7 +63,7 @@ pub(crate) async fn search_chats(
     let (limit, after) = parse_page(query.limit, query.cursor.as_deref())?;
     // One extra row tells whether there is a next page.
     let chats =
-        repository::chat::search_chats(&state.db, auth.user_id, &words, after.as_ref(), limit + 1)
+        repository::chat::list_chats(&state.db, auth.user_id, &words, after.as_ref(), limit + 1)
             .await?;
     Ok(Json(chat_page(chats, limit)))
 }

@@ -7,6 +7,33 @@ use crate::repository::{begin_write, map_unique};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
+/// Starts with every right and without auto commit.
+pub(crate) struct NewUser<'a> {
+    pub role: UserRole,
+    pub user_name: &'a str,
+    pub email: Option<&'a str>,
+    pub password_hash: &'a str,
+    pub must_change_password: bool,
+}
+
+/// What an admin sets for a user, see [`update_user`].
+pub(crate) struct UserChanges<'a> {
+    pub user_name: &'a str,
+    pub email: Option<&'a str>,
+    pub can_login: bool,
+    pub can_manage_repositories: bool,
+    pub can_manage_mcp_servers: bool,
+    pub can_change_identity: bool,
+    pub must_change_password: bool,
+}
+
+/// The profile the LLM is told about, `None` clears a field.
+pub(crate) struct ProfileChanges<'a> {
+    pub full_name: Option<&'a str>,
+    pub first_name: Option<&'a str>,
+    pub about: Option<&'a str>,
+}
+
 pub(crate) async fn count_users(db: &DatabasePool) -> Result<i64, AppError> {
     let count = sqlx::query_scalar!(r#"SELECT count(*) AS "count!" FROM users"#)
         .fetch_one(db)
@@ -14,14 +41,7 @@ pub(crate) async fn count_users(db: &DatabasePool) -> Result<i64, AppError> {
     Ok(count)
 }
 
-pub(crate) async fn create_user(
-    db: &DatabasePool,
-    role: UserRole,
-    user_name: &str,
-    email: Option<&str>,
-    password_hash: &str,
-    must_change_password: bool,
-) -> Result<User, AppError> {
+pub(crate) async fn create_user(db: &DatabasePool, new: NewUser<'_>) -> Result<User, AppError> {
     let id = Uuid::now_v7();
     let now = Utc::now();
     let user = sqlx::query_as!(
@@ -30,11 +50,11 @@ pub(crate) async fn create_user(
            VALUES ($1, $2, $3, $4, $5, true, true, true, true, $6, false, $7)
            RETURNING id AS "id: Uuid", role AS "role: UserRole", user_name, email, password_hash, can_login, can_manage_repositories, can_manage_mcp_servers, can_change_identity, must_change_password, default_model_id AS "default_model_id: Uuid", locale, auto_commit, full_name, first_name, about, created_at AS "created_at: DateTime<Utc>""#,
         id,
-        role,
-        user_name,
-        email,
-        password_hash,
-        must_change_password,
+        new.role,
+        new.user_name,
+        new.email,
+        new.password_hash,
+        new.must_change_password,
         now,
     )
     .fetch_one(db)
@@ -232,16 +252,14 @@ pub(crate) async fn get_user_profile(
 pub(crate) async fn update_profile(
     db: &DatabasePool,
     user_id: Uuid,
-    full_name: Option<&str>,
-    first_name: Option<&str>,
-    about: Option<&str>,
+    changes: ProfileChanges<'_>,
 ) -> Result<bool, AppError> {
     let result = sqlx::query!(
         "UPDATE users SET full_name = $2, first_name = $3, about = $4 WHERE id = $1",
         user_id,
-        full_name,
-        first_name,
-        about,
+        changes.full_name,
+        changes.first_name,
+        changes.about,
     )
     .execute(db)
     .await?;
@@ -274,17 +292,10 @@ pub(crate) async fn update_identity(
 /// Sets the user name, email, what the user may do and whether they must change their
 /// password, and ends their sessions if they can no longer log in. Returns `None` if there is
 /// no such user, or if it is an admin and would be restricted.
-#[allow(clippy::too_many_arguments)]
 pub(crate) async fn update_user(
     db: &DatabasePool,
     user_id: Uuid,
-    user_name: &str,
-    email: Option<&str>,
-    can_login: bool,
-    can_manage_repositories: bool,
-    can_manage_mcp_servers: bool,
-    can_change_identity: bool,
-    must_change_password: bool,
+    changes: UserChanges<'_>,
 ) -> Result<Option<User>, AppError> {
     let mut tx = begin_write(db).await?;
     let user = sqlx::query_as!(
@@ -294,18 +305,18 @@ pub(crate) async fn update_user(
            WHERE id = $1 AND (role != 'ADMIN' OR ($4 AND $5 AND $6 AND $7))
            RETURNING id AS "id: Uuid", role AS "role: UserRole", user_name, email, password_hash, can_login, can_manage_repositories, can_manage_mcp_servers, can_change_identity, must_change_password, default_model_id AS "default_model_id: Uuid", locale, auto_commit, full_name, first_name, about, created_at AS "created_at: DateTime<Utc>""#,
         user_id,
-        user_name,
-        email,
-        can_login,
-        can_manage_repositories,
-        can_manage_mcp_servers,
-        can_change_identity,
-        must_change_password,
+        changes.user_name,
+        changes.email,
+        changes.can_login,
+        changes.can_manage_repositories,
+        changes.can_manage_mcp_servers,
+        changes.can_change_identity,
+        changes.must_change_password,
     )
     .fetch_optional(&mut *tx)
     .await
     .map_err(unique_violation)?;
-    if user.is_some() && !can_login {
+    if user.is_some() && !changes.can_login {
         sqlx::query!("DELETE FROM sessions WHERE user_id = $1", user_id)
             .execute(&mut *tx)
             .await?;

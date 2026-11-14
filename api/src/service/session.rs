@@ -2,6 +2,7 @@ use crate::config::error::AppError;
 use crate::config::state::DatabasePool;
 use crate::model::session::ActiveSession;
 use crate::repository;
+use crate::repository::session::NewSession;
 use axum_extra::extract::cookie::{Cookie, SameSite};
 use chrono::{DateTime, NaiveDate, TimeDelta, Utc};
 use sha2::{Digest, Sha256};
@@ -37,11 +38,13 @@ pub async fn create_session(
 
     repository::session::create_session(
         db,
-        user_id,
-        &hash_token(&token),
-        user_agent,
-        now,
-        expires_at(now, idle_timeout),
+        NewSession {
+            user_id,
+            token_hash: &hash_token(&token),
+            user_agent,
+            created_at: now,
+            expires_at: expires_at(now, idle_timeout),
+        },
     )
     .await?;
 

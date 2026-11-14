@@ -3,6 +3,7 @@ use crate::config::state::{AppState, DatabasePool};
 use crate::model::remote_access::RemoteAccess;
 use crate::model::repository::SyncJob;
 use crate::repository;
+use crate::repository::repository::SyncOutcome;
 use crate::service::extraction;
 use crate::service::image::{self, MAX_IMAGE_BYTES};
 use crate::service::mirror::Update;
@@ -152,20 +153,20 @@ async fn sync_repository(state: &AppState, job: SyncJob) {
                 update.sha,
                 started.elapsed()
             );
-            repository::repository::finish_sync(
-                &state.db,
-                id,
-                &update.sha,
-                update.git_size,
-                update.lfs_size,
-                &extraction::list_documents(&update.files),
-            )
-            .await
+            let documents = extraction::list_documents(&update.files);
+            let outcome = SyncOutcome::Synced {
+                head_commit_sha: &update.sha,
+                git_size: update.git_size,
+                lfs_size: update.lfs_size,
+                documents: &documents,
+            };
+            repository::repository::finish_sync(&state.db, id, outcome).await
         }
         Err(e) => {
             let message = error_message(id, e);
             tracing::info!("Failed to sync repository {id}: {message}");
-            repository::repository::fail_sync(&state.db, id, &message).await
+            let outcome = SyncOutcome::Failed { error: &message };
+            repository::repository::finish_sync(&state.db, id, outcome).await
         }
     };
 

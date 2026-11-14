@@ -86,45 +86,10 @@ pub(crate) struct Resend<'a> {
     pub created_at: DateTime<Utc>,
 }
 
+/// The user's chats that are not temporary, newest first, in which each of `words` occurs in the
+/// title or in a message. SQLite's `LIKE` ignores the case of ASCII letters only. Without
+/// words, all of them.
 pub(crate) async fn list_chats(
-    db: &DatabasePool,
-    user_id: Uuid,
-    after: Option<&ChatCursor>,
-    limit: i64,
-) -> Result<Vec<Chat>, AppError> {
-    let after_updated_at = after.map(|c| c.updated_at);
-    let after_id = after.map(|c| c.id);
-    let chats = sqlx::query_as!(
-        Chat,
-        r#"SELECT c.id AS "id: Uuid", c.title, c.all_repositories,
-                  (SELECT json_group_array(lower(hex(cr.repository_id)) ORDER BY cr.repository_id)
-                   FROM chat_repositories cr
-                   WHERE cr.chat_id = c.id) AS "repository_ids!: Json<Vec<Uuid>>",
-                  c.all_mcp_servers,
-                  (SELECT json_group_array(lower(hex(cm.mcp_server_id)) ORDER BY cm.mcp_server_id)
-                   FROM chat_mcp_servers cm
-                   WHERE cm.chat_id = c.id) AS "mcp_server_ids!: Json<Vec<Uuid>>",
-                  c.model_id AS "model_id: Uuid", c.temporary, c.created_at AS "created_at: DateTime<Utc>",
-                  c.updated_at AS "updated_at: DateTime<Utc>"
-           FROM chats c
-           WHERE c.user_id = $1
-             AND NOT c.temporary
-             AND ($2 IS NULL OR (c.updated_at, c.id) < ($2, $3))
-           ORDER BY c.updated_at DESC, c.id DESC
-           LIMIT $4"#,
-        user_id,
-        after_updated_at,
-        after_id,
-        limit,
-    )
-    .fetch_all(db)
-    .await?;
-    Ok(chats)
-}
-
-/// Like [`list_chats`], but only the chats in which each of `words` occurs in the title or in a
-/// message. SQLite's `LIKE` ignores the case of ASCII letters only.
-pub(crate) async fn search_chats(
     db: &DatabasePool,
     user_id: Uuid,
     words: &[&str],
@@ -187,14 +152,6 @@ fn escape_like(text: &str) -> String {
     escaped
 }
 
-pub(crate) async fn get_chat(
-    db: &DatabasePool,
-    user_id: Uuid,
-    id: Uuid,
-) -> Result<Option<Chat>, AppError> {
-    fetch_chat(db, user_id, id).await
-}
-
 /// Inserts the chat together with its first exchange: the user's message
 /// and the `GENERATING` answer. Fails with `UNKNOWN_MODEL` if `model_id` does not exist.
 pub(crate) async fn create_chat(
@@ -242,7 +199,7 @@ pub(crate) async fn create_chat(
     )
     .await?;
 
-    let chat = fetch_chat(&mut *tx, new.user_id, new.id)
+    let chat = get_chat(&mut *tx, new.user_id, new.id)
         .await?
         .ok_or_else(|| AppError::InternalServerError(format!("Chat {} vanished", new.id)))?;
     tx.commit().await?;
@@ -270,7 +227,7 @@ pub(crate) async fn update_chat(
     if result.rows_affected() == 0 {
         return Ok(None);
     }
-    fetch_chat(db, user_id, id).await
+    get_chat(db, user_id, id).await
 }
 
 /// Returns `false` if the user has no chat with this id.
@@ -419,7 +376,7 @@ pub(crate) async fn resend_message(
     }))
 }
 
-async fn fetch_chat<'e>(
+pub(crate) async fn get_chat<'e>(
     executor: impl SqliteExecutor<'e>,
     user_id: Uuid,
     id: Uuid,

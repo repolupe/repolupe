@@ -10,6 +10,7 @@ use crate::dto::user::{
     UpdateProfileRequest, UpdateUserRequest, UserDto,
 };
 use crate::middleware::auth::AuthenticatedUser;
+use crate::repository::user::{NewUser, ProfileChanges, UserChanges};
 use crate::util::extract::{JsonBody, PathParam};
 use crate::{repository, util};
 use axum::Json;
@@ -134,9 +135,12 @@ pub(crate) async fn update_profile(
         util::validation::validate_about(about)?;
     }
 
-    if !repository::user::update_profile(&state.db, auth.user_id, full_name, first_name, about)
-        .await?
-    {
+    let changes = ProfileChanges {
+        full_name,
+        first_name,
+        about,
+    };
+    if !repository::user::update_profile(&state.db, auth.user_id, changes).await? {
         return Err(AppError::Unauthorized);
     }
     Ok(StatusCode::NO_CONTENT)
@@ -194,11 +198,13 @@ pub(crate) async fn register(
 
     let user = repository::user::create_user(
         &state.db,
-        UserRole::User,
-        user_name,
-        email,
-        &password_hash,
-        payload.must_change_password,
+        NewUser {
+            role: UserRole::User,
+            user_name,
+            email,
+            password_hash: &password_hash,
+            must_change_password: payload.must_change_password,
+        },
     )
     .await?;
 
@@ -219,18 +225,16 @@ pub(crate) async fn update_user(
         util::validation::validate_email(email)?;
     }
 
-    let updated = repository::user::update_user(
-        &state.db,
-        id,
+    let changes = UserChanges {
         user_name,
         email,
-        payload.can_login,
-        payload.can_manage_repositories,
-        payload.can_manage_mcp_servers,
-        payload.can_change_identity,
-        payload.must_change_password,
-    )
-    .await?;
+        can_login: payload.can_login,
+        can_manage_repositories: payload.can_manage_repositories,
+        can_manage_mcp_servers: payload.can_manage_mcp_servers,
+        can_change_identity: payload.can_change_identity,
+        must_change_password: payload.must_change_password,
+    };
+    let updated = repository::user::update_user(&state.db, id, changes).await?;
     if let Some(user) = updated {
         return Ok(Json(user.into()));
     }

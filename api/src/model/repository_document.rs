@@ -48,6 +48,25 @@ pub(crate) struct ExtractionSummary {
     pub(crate) extracted_at: DateTime<Utc>,
 }
 
+impl ExtractionSummary {
+    /// From the columns of a `LEFT JOIN` on `document_extractions`, `None` without a row.
+    pub(crate) fn from_columns(
+        status: Option<DocumentExtractionStatus>,
+        ocr: Option<bool>,
+        error: Option<String>,
+        extractor: Option<String>,
+        extracted_at: Option<DateTime<Utc>>,
+    ) -> Option<Self> {
+        Some(Self {
+            status: status?,
+            ocr,
+            error,
+            extractor: extractor?,
+            extracted_at: extracted_at?,
+        })
+    }
+}
+
 /// How far the conversion of all documents is, see `service/extraction.rs`. A blob counts
 /// once for each repository and path containing it.
 pub(crate) struct ExtractionTotals {

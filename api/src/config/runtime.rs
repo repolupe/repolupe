@@ -135,17 +135,7 @@ impl RuntimeConfig {
                 self.instance_name = value.to_string();
             }
             OCR_ENGINE => {
-                let engine = match value {
-                    "none" => None,
-                    "tesseract" => Some(OcrEngine::Tesseract),
-                    "paddle" => Some(OcrEngine::Paddle),
-                    "mistral" => Some(OcrEngine::Mistral),
-                    _ => {
-                        return Err(InvalidConfigValue(format!(
-                            "{OCR_ENGINE}: expected none, tesseract, paddle or mistral"
-                        )));
-                    }
-                };
+                let engine = OcrEngine::parse(value)?;
                 validate_ocr_engine_built(engine)?;
                 self.ocr_engine = engine;
             }
@@ -186,7 +176,7 @@ impl RuntimeConfig {
             (INSTANCE_NAME.to_string(), self.instance_name.clone()),
             (
                 OCR_ENGINE.to_string(),
-                ocr_engine_name(self.ocr_engine).to_string(),
+                OcrEngine::name(self.ocr_engine).to_string(),
             ),
             (OCR_LANGUAGES.to_string(), self.ocr_languages.join(",")),
             (
@@ -239,12 +229,27 @@ impl RuntimeConfig {
     }
 }
 
-fn ocr_engine_name(engine: Option<OcrEngine>) -> &'static str {
-    match engine {
-        None => "none",
-        Some(OcrEngine::Tesseract) => "tesseract",
-        Some(OcrEngine::Paddle) => "paddle",
-        Some(OcrEngine::Mistral) => "mistral",
+/// The text form of `OCR_ENGINE`, where `none` turns OCR off.
+impl OcrEngine {
+    fn name(engine: Option<Self>) -> &'static str {
+        match engine {
+            None => "none",
+            Some(Self::Tesseract) => "tesseract",
+            Some(Self::Paddle) => "paddle",
+            Some(Self::Mistral) => "mistral",
+        }
+    }
+
+    fn parse(value: &str) -> Result<Option<Self>, InvalidConfigValue> {
+        match value {
+            "none" => Ok(None),
+            "tesseract" => Ok(Some(Self::Tesseract)),
+            "paddle" => Ok(Some(Self::Paddle)),
+            "mistral" => Ok(Some(Self::Mistral)),
+            _ => Err(InvalidConfigValue(format!(
+                "{OCR_ENGINE}: expected none, tesseract, paddle or mistral"
+            ))),
+        }
     }
 }
 
@@ -256,7 +261,7 @@ pub(crate) fn validate_ocr_engine_built(
     if local && !cfg!(feature = "local-ocr") {
         return Err(InvalidConfigValue(format!(
             "{OCR_ENGINE}: {} is not available, Repolupe was built without the local-ocr feature",
-            ocr_engine_name(engine)
+            OcrEngine::name(engine)
         )));
     }
     Ok(())

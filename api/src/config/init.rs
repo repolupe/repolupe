@@ -4,6 +4,7 @@ use crate::config::runtime::{InvalidConfigValue, RuntimeConfig};
 use crate::config::state::{AppState, DatabasePool};
 use crate::dto::user::UserRole;
 use crate::repository;
+use crate::repository::user::NewUser;
 use crate::service;
 use crate::service::attachment::AttachmentStore;
 use crate::service::llm::LlmClient;
@@ -234,9 +235,13 @@ pub(crate) async fn init(config: Config, db: DatabasePool) -> Result<AppState, I
         .map_err(InitError::HttpClient)?;
     let llm = LlmClient::new().map_err(InitError::HttpClient)?;
     let mcp = McpHttp::new().map_err(InitError::HttpClient)?;
-    let repos_dir = prepare_repos_dir(config.repos_dir)?;
+    let repos_dir = prepare_dir(config.repos_dir, "repositories", |path, source| {
+        InitError::ReposDir { path, source }
+    })?;
     let mirrors = MirrorStore::new(&repos_dir).map_err(InitError::HttpClient)?;
-    let attachments_dir = prepare_attachments_dir(config.attachments_dir)?;
+    let attachments_dir = prepare_dir(config.attachments_dir, "attachments", |path, source| {
+        InitError::AttachmentsDir { path, source }
+    })?;
     if let Some(dir) = &config.frontend_dir {
         if !dir.join("index.html").is_file() {
             return Err(InitError::FrontendDir(dir.clone()));
@@ -323,11 +328,13 @@ async fn create_initial_admin_user(
     let password_hash = util::password::hash_password(&password).await?;
     let admin = repository::user::create_user(
         db,
-        UserRole::Admin,
-        INITIAL_ADMIN_USER_NAME,
-        None,
-        &password_hash,
-        must_change_password,
+        NewUser {
+            role: UserRole::Admin,
+            user_name: INITIAL_ADMIN_USER_NAME,
+            email: None,
+            password_hash: &password_hash,
+            must_change_password,
+        },
     )
     .await?;
 
@@ -343,26 +350,15 @@ async fn create_initial_admin_user(
     Ok(())
 }
 
-/// Creates the directory the repositories are cloned to and makes its path absolute.
-fn prepare_repos_dir(dir: PathBuf) -> Result<PathBuf, InitError> {
-    let error = |source| InitError::ReposDir {
-        path: dir.clone(),
-        source,
-    };
+/// Creates the directory `contents` are stored in and makes its path absolute.
+fn prepare_dir(
+    dir: PathBuf,
+    contents: &str,
+    error: impl Fn(PathBuf, std::io::Error) -> InitError,
+) -> Result<PathBuf, InitError> {
+    let error = |source| error(dir.clone(), source);
     std::fs::create_dir_all(&dir).map_err(error)?;
     let absolute = std::path::absolute(&dir).map_err(error)?;
-    tracing::info!("Storing repositories in {}", absolute.display());
-    Ok(absolute)
-}
-
-/// Creates the directory the attachments are stored in and makes its path absolute.
-fn prepare_attachments_dir(dir: PathBuf) -> Result<PathBuf, InitError> {
-    let error = |source| InitError::AttachmentsDir {
-        path: dir.clone(),
-        source,
-    };
-    std::fs::create_dir_all(&dir).map_err(error)?;
-    let absolute = std::path::absolute(&dir).map_err(error)?;
-    tracing::info!("Storing attachments in {}", absolute.display());
+    tracing::info!("Storing {contents} in {}", absolute.display());
     Ok(absolute)
 }

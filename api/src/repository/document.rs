@@ -107,16 +107,13 @@ pub(crate) async fn list_documents(
         .map(|row| ListedDocument {
             path: row.path,
             blob_oid: row.blob_oid,
-            extraction: match (row.status, row.extractor, row.extracted_at) {
-                (Some(status), Some(extractor), Some(extracted_at)) => Some(ExtractionSummary {
-                    status,
-                    ocr: row.ocr,
-                    error: row.error,
-                    extractor,
-                    extracted_at,
-                }),
-                _ => None,
-            },
+            extraction: ExtractionSummary::from_columns(
+                row.status,
+                row.ocr,
+                row.error,
+                row.extractor,
+                row.extracted_at,
+            ),
         })
         .collect())
 }
@@ -216,18 +213,13 @@ pub(crate) async fn list_all_documents(
             document: ListedDocument {
                 path: row.path,
                 blob_oid: row.blob_oid,
-                extraction: match (row.status, row.extractor, row.extracted_at) {
-                    (Some(status), Some(extractor), Some(extracted_at)) => {
-                        Some(ExtractionSummary {
-                            status,
-                            ocr: row.ocr,
-                            error: row.error,
-                            extractor,
-                            extracted_at,
-                        })
-                    }
-                    _ => None,
-                },
+                extraction: ExtractionSummary::from_columns(
+                    row.status,
+                    row.ocr,
+                    row.error,
+                    row.extractor,
+                    row.extracted_at,
+                ),
             },
         })
         .collect())
