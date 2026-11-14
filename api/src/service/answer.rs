@@ -13,7 +13,7 @@ use crate::service::commit;
 use crate::service::generation::{Generation, GenerationError, PARAGRAPH_BREAK};
 use crate::service::llm::{
     ChatMessage, ContentBlock, LlmConfig, LlmError, LlmEvent, LlmRequest, LlmResponse, Role,
-    StopReason, ToolUse,
+    StopReason, ToolDefinition, ToolUse,
 };
 use crate::service::mcp::McpTarget;
 use crate::service::tools::{
@@ -24,6 +24,7 @@ use chrono::{DateTime, FixedOffset, Offset, Utc};
 use futures_util::StreamExt;
 use futures_util::future::join_all;
 use std::fmt::Write;
+use std::ops::ControlFlow;
 use std::time::Instant;
 use uuid::Uuid;
 
@@ -60,10 +61,110 @@ async fn run(
     generation: &Generation,
     llm: &LlmConfig,
 ) -> Result<(), GenerationError> {
+    let Prepared {
+        mut messages,
+        system,
+        tools,
+        definitions,
+        auto_commit,
+        can_manage_repositories,
+    } = prepare(state, generation, llm).await?;
+    generation.start_raw(&system, &definitions, &messages)?;
+
+    // Whether the text of the next response starts a new paragraph.
+    let mut new_paragraph = false;
+    let mut proposals = Proposals::default();
+    for round in 1.. {
+        let request = LlmRequest {
+            system: &system,
+            messages: &messages,
+            tools: &definitions,
+        };
+        let started = Instant::now();
+        let response = stream_response(state, generation, llm, &request, new_paragraph).await?;
+        generation.add_usage(&response.usage, started.elapsed())?;
+        generation.append_raw(Role::Assistant, &response.content)?;
+
+        let tool_uses: Vec<ToolUse> = response.tool_uses().cloned().collect();
+        let flow = after_response(
+            &response.stop_reason,
+            !tool_uses.is_empty(),
+            generation.message_id,
+        )?;
+        if flow.is_break() {
+            break;
+        }
+        let calls: Vec<PendingCall> = tool_uses
+            .iter()
+            .map(|tool_use| PendingCall {
+                tool_use,
+                invocation: tools.parse(tool_use),
+            })
+            .collect();
+        // The text before tool calls that look things up is usually a preamble like "Let me
+        // look", so the answer is only the text after the last of them. The preambles stay
+        // visible while generating and are dropped when the message is finished, and the
+        // model still sees them in `messages`. The text with calls that look nothing up is
+        // kept, it may already be the answer.
+        if calls.iter().any(PendingCall::looks_up) {
+            generation.mark_preamble()?;
+        }
+        new_paragraph = true;
+        if round > MAX_TOOL_ROUNDS {
+            return Err(GenerationError::Failed(
+                "The answer needed too many tool calls".to_string(),
+            ));
+        }
+
+        let results = if round == MAX_TOOL_ROUNDS {
+            tool_uses
+                .iter()
+                .map(|tool_use| {
+                    tool_result(tool_use, ToolOutput::error(TOOL_LIMIT_REACHED.to_string()))
+                })
+                .collect()
+        } else {
+            run_tools(state, generation, &calls, &mut proposals).await?
+        };
+        generation.append_raw(Role::User, &results)?;
+        messages.push(ChatMessage {
+            role: Role::Assistant,
+            content: response.content,
+        });
+        messages.push(ChatMessage {
+            role: Role::User,
+            content: results,
+        });
+    }
+
+    if auto_commit {
+        commit_proposals(state, generation, can_manage_repositories, &proposals).await;
+    }
+    Ok(())
+}
+
+/// What an answer starts from: the history the tool loop appends to, and the system prompt and
+/// tools, which stay the same during it.
+struct Prepared {
+    messages: Vec<ChatMessage>,
+    system: String,
+    tools: RepositoryTools,
+    definitions: Vec<ToolDefinition>,
+    /// Whether to commit the proposed changes, see [`commit_proposals`].
+    auto_commit: bool,
+    can_manage_repositories: bool,
+}
+
+/// Loads the chat, the user and the repositories and MCP servers in scope.
+async fn prepare(
+    state: &AppState,
+    generation: &Generation,
+    llm: &LlmConfig,
+) -> Result<Prepared, GenerationError> {
     let history = repository::message::list_messages(&state.db, generation.chat_id).await?;
     let attachments =
         repository::attachment::list_chat_attachments(&state.db, generation.chat_id).await?;
-    let mut messages = history_messages(
+    let messages = history_messages(
         &history,
         &attachments,
         generation.message_id,
@@ -115,101 +216,41 @@ async fn run(
     .with_mcp_servers(state.mcp.clone(), mcp_servers);
     let system = system_prompt(&profile, generation.client.utc_offset, &scoped, &tools);
     let definitions = tools.definitions();
-    generation.start_raw(&system, &definitions, &messages)?;
+    Ok(Prepared {
+        messages,
+        system,
+        tools,
+        definitions,
+        auto_commit: profile.auto_commit,
+        can_manage_repositories: user.can_manage_repositories,
+    })
+}
 
-    // Whether the text of the next response starts a new paragraph.
-    let mut new_paragraph = false;
-    let mut proposals = Proposals::default();
-    for round in 1.. {
-        let request = LlmRequest {
-            system: &system,
-            messages: &messages,
-            tools: &definitions,
-        };
-        let started = Instant::now();
-        let response = stream_response(state, generation, llm, &request, new_paragraph).await?;
-        generation.add_usage(&response.usage, started.elapsed())?;
-        generation.append_raw(Role::Assistant, &response.content)?;
-
-        let tool_uses: Vec<ToolUse> = response.tool_uses().cloned().collect();
-        match response.stop_reason {
-            StopReason::ToolUse if !tool_uses.is_empty() => {}
-            StopReason::ToolUse => {
-                // The answer so far stands, but a call the model meant to make is lost.
-                tracing::warn!(
-                    "Message {} stopped for tool use without tool calls",
-                    generation.message_id
-                );
-                break;
-            }
-            StopReason::EndTurn => break,
-            StopReason::MaxTokens => {
-                return Err(GenerationError::Failed(
-                    "The answer was cut off because it reached the maximum length".to_string(),
-                ));
-            }
-            StopReason::Refusal => {
-                return Err(GenerationError::Failed(
-                    "The language model declined to answer".to_string(),
-                ));
-            }
-            StopReason::Other(reason) => {
-                tracing::warn!(
-                    "Message {} stopped with reason {reason}",
-                    generation.message_id
-                );
-                return Err(GenerationError::Failed(format!(
-                    "The language model stopped unexpectedly ({reason})"
-                )));
-            }
+/// Whether the tool loop continues after a response that stopped with `stop`: `Continue` to run
+/// its tool calls, `Break` when the answer is complete. The error is shown to the user.
+fn after_response(
+    stop: &StopReason,
+    has_tool_uses: bool,
+    message_id: Uuid,
+) -> Result<ControlFlow<()>, GenerationError> {
+    let message = match stop {
+        StopReason::ToolUse if has_tool_uses => return Ok(ControlFlow::Continue(())),
+        StopReason::ToolUse => {
+            // The answer so far stands, but a call the model meant to make is lost.
+            tracing::warn!("Message {message_id} stopped for tool use without tool calls");
+            return Ok(ControlFlow::Break(()));
         }
-        let calls: Vec<PendingCall> = tool_uses
-            .iter()
-            .map(|tool_use| PendingCall {
-                tool_use,
-                invocation: tools.parse(tool_use),
-            })
-            .collect();
-        // The text before tool calls that look things up is usually a preamble like "Let me
-        // look", so the answer is only the text after the last of them. The preambles stay
-        // visible while generating and are dropped when the message is finished, and the
-        // model still sees them in `messages`. The text with calls that look nothing up is
-        // kept, it may already be the answer.
-        if calls.iter().any(PendingCall::looks_up) {
-            generation.mark_preamble()?;
+        StopReason::EndTurn => return Ok(ControlFlow::Break(())),
+        StopReason::MaxTokens => {
+            "The answer was cut off because it reached the maximum length".to_string()
         }
-        new_paragraph = true;
-        if round > MAX_TOOL_ROUNDS {
-            return Err(GenerationError::Failed(
-                "The answer needed too many tool calls".to_string(),
-            ));
+        StopReason::Refusal => "The language model declined to answer".to_string(),
+        StopReason::Other(reason) => {
+            tracing::warn!("Message {message_id} stopped with reason {reason}");
+            format!("The language model stopped unexpectedly ({reason})")
         }
-
-        let results = if round == MAX_TOOL_ROUNDS {
-            tool_uses
-                .iter()
-                .map(|tool_use| {
-                    tool_result(tool_use, ToolOutput::error(TOOL_LIMIT_REACHED.to_string()))
-                })
-                .collect()
-        } else {
-            run_tools(state, generation, &calls, &mut proposals).await?
-        };
-        generation.append_raw(Role::User, &results)?;
-        messages.push(ChatMessage {
-            role: Role::Assistant,
-            content: response.content,
-        });
-        messages.push(ChatMessage {
-            role: Role::User,
-            content: results,
-        });
-    }
-
-    if profile.auto_commit {
-        commit_proposals(state, generation, user.can_manage_repositories, &proposals).await;
-    }
-    Ok(())
+    };
+    Err(GenerationError::Failed(message))
 }
 
 /// The changes proposed in an answer, in the order the user sees them. Like in the frontend, a

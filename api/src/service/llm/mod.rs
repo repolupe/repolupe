@@ -14,10 +14,11 @@ use chrono::{DateTime, Utc};
 use futures_util::{Stream, StreamExt, stream};
 use reqwest::StatusCode;
 use rig_core::error::{ErrorKind, ProviderError};
+use rig_core::model::ModelList;
 use rig_core::operation::Completion;
-use rig_core::providers::anthropic::AnthropicConfig;
-use rig_core::providers::openai::OpenAIConfig;
+use rig_core::providers::anthropic::{Anthropic, AnthropicConfig};
 use rig_core::providers::openai::wire::Auth;
+use rig_core::providers::openai::{OpenAI, OpenAIConfig};
 use rig_core::streaming::{CompletionStream, Item, StreamEvent};
 use rig_core::{DynModel, completion::CompletionRequest};
 use rig_reqwest::ReqwestClient;
@@ -339,24 +340,34 @@ impl LlmClient {
     }
 
     fn model(&self, config: &LlmConfig) -> DynModel<Completion> {
-        let api_key = config.api_key.clone().unwrap_or_default();
-        match config.api_format {
-            LlmApiFormat::Anthropic => {
-                let mut model = AnthropicConfig::new(api_key)
-                    .with_base_url(&config.base_url)
-                    .connect(self.http.clone())
-                    .completion(&config.model);
-                // Caches the system prompt and tools, and the conversation for the next
-                // request of the tool loop and the next question.
-                model.wire = model.wire.with_prompt_caching();
-                model.erase()
-            }
-            LlmApiFormat::OpenAi => OpenAIConfig::new(api_key)
-                .with_base_url(&config.base_url)
-                .with_auth(Auth::OptionalBearer)
-                .connect(self.http.clone())
-                .chat(&config.model)
-                .erase(),
+        self.connect(
+            config.api_format,
+            &config.base_url,
+            config.api_key.as_deref(),
+        )
+        .completion(&config.model)
+    }
+
+    /// The server at `base_url`, on the shared connection pool.
+    fn connect(
+        &self,
+        api_format: LlmApiFormat,
+        base_url: &str,
+        api_key: Option<&str>,
+    ) -> Connection {
+        let api_key = api_key.unwrap_or_default().to_string();
+        match api_format {
+            LlmApiFormat::Anthropic => Connection::Anthropic(
+                AnthropicConfig::new(api_key)
+                    .with_base_url(base_url)
+                    .connect(self.http.clone()),
+            ),
+            LlmApiFormat::OpenAi => Connection::OpenAi(
+                OpenAIConfig::new(api_key)
+                    .with_base_url(base_url)
+                    .with_auth(Auth::OptionalBearer)
+                    .connect(self.http.clone()),
+            ),
         }
     }
 
@@ -369,27 +380,8 @@ impl LlmClient {
         base_url: &str,
         api_key: Option<&str>,
     ) -> Result<Vec<RemoteModel>, LlmError> {
-        let api_key = api_key.unwrap_or_default();
-        let models = async {
-            match api_format {
-                LlmApiFormat::Anthropic => {
-                    AnthropicConfig::new(api_key)
-                        .with_base_url(base_url)
-                        .connect(self.http.clone())
-                        .list_models()
-                        .await
-                }
-                LlmApiFormat::OpenAi => {
-                    OpenAIConfig::new(api_key)
-                        .with_base_url(base_url)
-                        .with_auth(Auth::OptionalBearer)
-                        .connect(self.http.clone())
-                        .list_models()
-                        .await
-                }
-            }
-        };
-        let models = tokio::time::timeout(MODELS_TIMEOUT, models)
+        let connection = self.connect(api_format, base_url, api_key);
+        let models = tokio::time::timeout(MODELS_TIMEOUT, connection.list_models())
             .await
             .map_err(|_| LlmError::Http("The model list timed out".to_string()))??;
         let models = models
@@ -404,6 +396,37 @@ impl LlmClient {
             })
             .collect();
         Ok(sort_models(models))
+    }
+}
+
+/// A server in one of the [`LlmApiFormat`]s, see [`LlmClient::connect`].
+// Only lives for building a model or listing the models, so its size doesn't matter.
+#[allow(clippy::large_enum_variant)]
+enum Connection {
+    Anthropic(Anthropic),
+    OpenAi(OpenAI),
+}
+
+impl Connection {
+    fn completion(&self, model: &str) -> DynModel<Completion> {
+        match self {
+            Self::Anthropic(client) => {
+                let mut model = client.completion(model);
+                // Caches the system prompt and tools, and the conversation for the next
+                // request of the tool loop and the next question.
+                model.wire = model.wire.with_prompt_caching();
+                model.erase()
+            }
+            Self::OpenAi(client) => client.chat(model).erase(),
+        }
+    }
+
+    async fn list_models(&self) -> Result<ModelList, LlmError> {
+        let models = match self {
+            Self::Anthropic(client) => client.list_models().await,
+            Self::OpenAi(client) => client.list_models().await,
+        };
+        Ok(models?)
     }
 }
 
