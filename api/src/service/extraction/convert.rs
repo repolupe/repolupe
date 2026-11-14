@@ -1,8 +1,8 @@
 //! Converts one document to Markdown with xberg, and with Mistral if it is the OCR engine and
 //! xberg finds scanned pages.
 
-use super::DocumentExtractor;
 use super::settings::{Converter, Settings};
+use super::{DocumentExtractor, join_pages, page_marker};
 use crate::config::init::OcrEngine;
 use crate::model::repository_document::RepositoryDocument;
 use crate::service::mistral_ocr::MistralError;
@@ -42,6 +42,7 @@ pub(super) struct Converted {
 
 /// What xberg made of a document.
 struct Native {
+    /// Empty if no page has text.
     markdown: String,
     /// Whether xberg recognized pages with OCR.
     ocr: bool,
@@ -164,8 +165,8 @@ impl DocumentExtractor {
                 "OCR_ENGINE is mistral, but OCR_API_KEY_MISTRAL is not set".to_string(),
             ));
         };
-        match mistral.recognize(content).await {
-            Ok(markdown) if markdown.trim().is_empty() => Ok(Err(NO_TEXT.to_string())),
+        match mistral.recognize(content).await.map(join_pages) {
+            Ok(markdown) if markdown.is_empty() => Ok(Err(NO_TEXT.to_string())),
             Ok(markdown) => Ok(Ok(Converted {
                 markdown,
                 ocr: true,
@@ -234,7 +235,10 @@ async fn convert_natively(
                 made_up_text: pdf
                     .and_then(|pdf| pdf.fabricated_text_pages.as_ref())
                     .is_some_and(|pages| !pages.is_empty()),
-                markdown: document.content,
+                markdown: match split_pages(&document.content) {
+                    Some(pages) => join_pages((1..).zip(pages)),
+                    None => document.content,
+                },
             })
         }
         None => {
@@ -242,6 +246,25 @@ async fn convert_natively(
             Err(FAILED.to_string())
         }
     }
+}
+
+/// The pages of `markdown` as xberg returns it: each after its [`page_marker`] (see
+/// `extraction_config`), which xberg puts right in front of the first line of the page.
+/// `None` if `markdown` does not start with the marker of page 1, so it is kept as it is.
+fn split_pages(markdown: &str) -> Option<Vec<&str>> {
+    let mut rest = markdown.trim_start().strip_prefix(&page_marker(1))?;
+    let mut pages = Vec::new();
+    for next in 2.. {
+        match rest.split_once(&page_marker(next)) {
+            Some((page, after)) => {
+                pages.push(page);
+                rest = after;
+            }
+            None => break,
+        }
+    }
+    pages.push(rest);
+    Some(pages)
 }
 
 #[cfg(test)]
@@ -256,6 +279,7 @@ mod tests {
 
     const PDF: &str = "application/pdf";
     const TEXT_PDF: &[u8] = include_bytes!("../../../tests/fixtures/text.pdf");
+    const PAGES_PDF: &[u8] = include_bytes!("../../../tests/fixtures/pages.pdf");
 
     /// The extracted document, only used for logging.
     fn document() -> RepositoryDocument {
@@ -300,9 +324,38 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     async fn extracts_text() {
         let Converted { markdown, ocr } = extract(None, TEXT_PDF).await.unwrap();
-        assert!(markdown.contains("Repolupe PDF test"), "{markdown}");
-        assert!(markdown.contains("42 requests"), "{markdown}");
+        assert_eq!(
+            markdown,
+            "<!-- page 1 -->\n\nRepolupe PDF test The rate limit is 42 requests."
+        );
         assert!(!ocr);
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn marks_pages() {
+        let Converted { markdown, .. } = extract(None, PAGES_PDF).await.unwrap();
+        assert_eq!(
+            markdown,
+            "<!-- page 1 -->\n\nRepolupe manual Chapter 1: Setup\n\n\
+            <!-- page 2 -->\n\nChapter 2: Limits The rate limit is 42 requests.\n\n\
+            <!-- page 3 -->\n\nChapter 3: Support"
+        );
+    }
+
+    #[test]
+    fn splits_pages() {
+        assert_eq!(
+            split_pages("<!-- page 1 --># Title\n\n<!-- page 2 -->\n\n<!-- page 3 -->Text\n"),
+            Some(vec!["# Title\n\n", "\n\n", "Text\n"])
+        );
+        assert_eq!(split_pages("<!-- page 1 -->"), Some(vec![""]));
+        // Not a marker of xberg, which numbers the pages in order
+        assert_eq!(
+            split_pages("<!-- page 1 -->See <!-- page 7 -->"),
+            Some(vec!["See <!-- page 7 -->"])
+        );
+        assert_eq!(split_pages("Text\n\n<!-- page 1 -->More"), None);
+        assert_eq!(split_pages(""), None);
     }
 
     #[cfg(feature = "local-ocr")]
@@ -320,6 +373,7 @@ mod tests {
         let pdf = SAMPLE_SCAN;
         let ocr = ocr(OcrEngine::Tesseract, &["eng"]);
         let Converted { markdown, ocr } = extract(Some(&ocr), pdf).await.unwrap();
+        assert!(markdown.starts_with("<!-- page 1 -->\n\n"), "{markdown}");
         assert!(markdown.contains("invoice 7731"), "{markdown}");
         assert!(markdown.contains("125 USD"), "{markdown}");
         assert!(ocr);
@@ -332,7 +386,10 @@ mod tests {
         let extracted = result.unwrap();
         assert_eq!(extracted.converter, Converter::Mistral);
         let Converted { markdown, ocr } = extracted.result.unwrap();
-        assert_eq!(markdown, "# Invoice 7731\n\n125 USD");
+        assert_eq!(
+            markdown,
+            "<!-- page 1 -->\n\n# Invoice 7731\n\n<!-- page 2 -->\n\n125 USD"
+        );
         assert!(ocr);
         assert_eq!(calls, 1);
     }

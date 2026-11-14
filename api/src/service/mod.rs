@@ -10,6 +10,7 @@ pub(crate) mod llm_config;
 pub(crate) mod mcp;
 pub(crate) mod mirror;
 pub(crate) mod mistral_ocr;
+pub(crate) mod pdf;
 pub(crate) mod pricing;
 pub(crate) mod runtime_config;
 pub(crate) mod session;

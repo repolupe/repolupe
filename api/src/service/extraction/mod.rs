@@ -3,6 +3,7 @@
 //! the scanner stored its own (often poor) OCR text in them: Tesseract and PaddleOCR recognize
 //! them within xberg, while with Mistral, xberg only finds them and documents with any are converted by
 //! Mistral as a whole (see [`crate::service::mistral_ocr`]). Only PDFs are supported for now, see [`FORMATS`].
+//! Each page of the Markdown starts with a [`page_marker`], whichever converted it.
 //!
 //! Extractions are stored by git blob in `document_extractions`, so a document is extracted
 //! once no matter how many commits and repositories contain it. For LFS files the blob is the
@@ -38,6 +39,7 @@ use crate::service::mistral_ocr::MistralOcr;
 use chrono::Utc;
 use queue::QueueState;
 use settings::Settings;
+use std::fmt::Display;
 use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 use tokio::sync::{Notify, Semaphore};
@@ -46,7 +48,7 @@ use tokio::sync::{Notify, Semaphore};
 const FORMATS: &[(&str, &str)] = &[("pdf", "application/pdf")];
 
 /// Larger documents are not extracted.
-const MAX_DOCUMENT_SIZE: u64 = 100 * 1024 * 1024;
+pub(crate) const MAX_DOCUMENT_SIZE: u64 = 100 * 1024 * 1024;
 
 /// Unused extractions are kept this long after they were made, so a document that is added
 /// back soon, e.g. by a reverted commit, is not converted again.
@@ -56,6 +58,33 @@ const UNUSED_GRACE_PERIOD: Duration = Duration::from_hours(1);
 const SAMPLE_SCAN: &[u8] = include_bytes!("sample_scan.pdf");
 /// Text in [`SAMPLE_SCAN`], the invoice number.
 const SAMPLE_SCAN_TEXT: &str = "7731";
+
+/// The line that starts page `page` (from 1) in the Markdown of a document, so the model can
+/// tell which page to look at (see [`crate::service::pdf`]). Extractions made before the
+/// markers have none.
+pub(crate) fn page_marker(page: impl Display) -> String {
+    format!("<!-- page {page} -->")
+}
+
+/// The Markdown of a document from that of its pages, numbered from 1 and in order: each
+/// starts with its [`page_marker`], also the ones without text. Empty if no page has text.
+fn join_pages<T: AsRef<str>>(pages: impl IntoIterator<Item = (usize, T)>) -> String {
+    let mut markdown = String::new();
+    let mut has_text = false;
+    for (number, page) in pages {
+        let page = page.as_ref().trim();
+        if !markdown.is_empty() {
+            markdown.push_str("\n\n");
+        }
+        markdown.push_str(&page_marker(number));
+        if !page.is_empty() {
+            has_text = true;
+            markdown.push_str("\n\n");
+            markdown.push_str(page);
+        }
+    }
+    if has_text { markdown } else { String::new() }
+}
 
 /// Whether the file at `path` is a document that is converted to Markdown.
 pub(crate) fn is_document(path: &str) -> bool {
@@ -205,6 +234,16 @@ mod tests {
             languages: languages.iter().map(|l| l.to_string()).collect(),
             scan_confidence: 0.5,
         }
+    }
+
+    #[test]
+    fn joins_pages() {
+        assert_eq!(
+            join_pages([(1, "# Title\n"), (2, " "), (3, "\nText")]),
+            "<!-- page 1 -->\n\n# Title\n\n<!-- page 2 -->\n\n<!-- page 3 -->\n\nText"
+        );
+        assert_eq!(join_pages([(1, ""), (2, "\n")]), "");
+        assert_eq!(join_pages::<&str>([]), "");
     }
 
     #[test]

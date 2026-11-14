@@ -1,6 +1,7 @@
 //! Which settings the extractions are made with, and how they are identified when stored.
 
 use super::convert::EXTRACTION_TIMEOUT;
+use super::page_marker;
 use crate::config::init::{OcrConfig, OcrEngine};
 use crate::service::mistral_ocr;
 use std::sync::Arc;
@@ -117,6 +118,13 @@ fn extraction_config(ocr: Option<&OcrConfig>) -> xberg::ExtractionConfig {
             ..Default::default()
         }),
         ocr_strategy,
+        // Like xberg's default format, between blank lines. They are not kept though, see
+        // `split_pages`.
+        pages: Some(xberg::PageConfig {
+            insert_page_markers: true,
+            marker_format: format!("\n\n{}\n\n", page_marker("{page_num}")),
+            ..Default::default()
+        }),
         extraction_timeout_secs: Some(EXTRACTION_TIMEOUT.as_secs()),
         ..Default::default()
     }

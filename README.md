@@ -117,9 +117,10 @@ stored tokens unreadable, so they have to be entered again.
 ## How It Works
 
 Repolupe mirrors each registered repository as a bare git repository and syncs it in the background. Documents such as
-PDFs are converted to Markdown, with OCR for scanned pages. When you ask a question, the model reads a pinned commit of
-the repository through tools (listing, searching and reading files) and streams its answer. In write mode, its changes
-become proposed commits, which are pushed to the repository once you apply them.
+PDFs are converted to Markdown, with OCR for scanned pages, and the model can look at a page as an image when the text
+is not enough. When you ask a question, the model reads a pinned commit of the repository through tools (listing,
+searching and reading files) and streams its answer. In write mode, its changes become proposed commits, which are
+pushed to the repository once you apply them.
 
 The project consists of three parts:
 

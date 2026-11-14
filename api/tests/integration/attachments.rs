@@ -213,11 +213,21 @@ async fn reads_attachments(db: SqlitePool) {
     let app = TestApp::new(db).await;
     let llm = MockLlm::start(vec![
         tool_use_response("toolu_1", "read_attachment", json!({"attachment": 1})),
+        tool_use_response(
+            "toolu_1_page",
+            "read_attachment",
+            json!({"attachment": 1, "page": 1}),
+        ),
         text_response("The limit is 42."),
         tool_use_response(
             "toolu_2",
             "read_attachment",
             json!({"attachment": 2, "offset": 2}),
+        ),
+        tool_use_response(
+            "toolu_2_page",
+            "read_attachment",
+            json!({"attachment": 2, "page": 1}),
         ),
         text_response("Noted."),
         tool_use_response("toolu_3", "read_attachment", json!({"attachment": 3})),
@@ -275,23 +285,37 @@ async fn reads_attachments(db: SqlitePool) {
     assert_eq!(tool_names(&requests[0]), ["read_attachment", "run_script"]);
     let manual = tool_result(&requests[1]);
     assert_eq!(manual["is_error"], false, "{manual}");
-    let markdown = manual["content"].as_str().unwrap();
-    assert!(markdown.contains("42 requests"), "{markdown}");
-    let notes = tool_result(&requests[3]);
+    assert_eq!(
+        manual["content"],
+        "1\t<!-- page 1 -->\n2\t\n3\tRepolupe PDF test The rate limit is 42 requests."
+    );
+    // A page of a PDF is an image for the model to look at
+    let page = tool_result(&requests[2]);
+    assert_eq!(page["is_error"], false, "{page}");
+    assert_eq!(page["content"], "`manual.pdf`: page 1 of 1.");
+    let image = tool_result_image(&requests[2]);
+    assert_eq!(image["source"]["media_type"], "image/png", "{image}");
+    let notes = tool_result(&requests[4]);
     assert_eq!(notes["is_error"], false, "{notes}");
     assert_eq!(notes["content"], "2\t\n3\tSecond line");
+    let page = tool_result(&requests[5]);
+    assert_eq!(page["is_error"], true, "{page}");
+    assert_eq!(
+        page["content"],
+        "`notes.md` is not a PDF, so it has no pages to show. Read it without `page`."
+    );
     // The model gets the image itself
-    let logo = tool_result(&requests[5]);
+    let logo = tool_result(&requests[7]);
     assert_eq!(logo["is_error"], false, "{logo}");
     assert_eq!(logo["content"], "`logo.png`: PNG image, 2 × 1 px.");
     assert_eq!(
-        tool_result_image(&requests[5]),
+        tool_result_image(&requests[7]),
         json!({
             "type": "image",
             "source": {"type": "base64", "media_type": "image/png", "data": BASE64.encode(&png)},
         })
     );
-    let font = tool_result(&requests[7]);
+    let font = tool_result(&requests[9]);
     assert_eq!(font["is_error"], true, "{font}");
     assert_eq!(
         font["content"],

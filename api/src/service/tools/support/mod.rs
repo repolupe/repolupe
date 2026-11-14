@@ -15,9 +15,10 @@ use crate::config::error::AppError;
 use crate::config::state::DatabasePool;
 use crate::model::document_extraction::DocumentExtraction;
 use crate::repository;
-use crate::service::extraction;
+use crate::service::extraction::{self, MAX_DOCUMENT_SIZE, page_marker};
 use crate::service::image::{self, MAX_IMAGE_BYTES};
 use crate::service::mirror::{Content, PathEntry};
+use crate::service::pdf;
 use crate::util::path::has_extension;
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
@@ -71,6 +72,36 @@ pub(super) fn file_path_schema() -> Value {
         "type": "string",
         "description": "Path of the file, relative to the repository root.",
     })
+}
+
+/// The `page` argument of the tools that read, which shows a page of a PDF instead of its
+/// text.
+pub(super) fn page_schema() -> Value {
+    json!({
+        "type": "integer",
+        "minimum": 1,
+        "description": "Only for PDFs: the number of a page to return as an image for you to \
+            look at, instead of the text. One page per call.",
+    })
+}
+
+/// For the descriptions of the tools that read: what they return for PDFs.
+pub(super) fn pdf_description() -> String {
+    format!(
+        "PDFs are returned as Markdown converted from them, with the text of scanned pages \
+        recognized by OCR and a `{}` line where each page starts. When the text is not \
+        enough, e.g. for a figure, a form or a table it garbles, or to check recognized text, \
+        pass `page` to look at that page instead.",
+        page_marker("N")
+    )
+}
+
+/// The `page` argument as the number of a page.
+pub(super) fn parse_page(page: Option<usize>) -> Result<Option<usize>, String> {
+    match page {
+        Some(0) => Err("`page` starts at 1.".to_string()),
+        page => Ok(page),
+    }
 }
 
 pub(super) fn parse_args<T: DeserializeOwned>(tool: &str, input: &Value) -> Result<T, String> {
@@ -149,6 +180,45 @@ pub(super) async fn image_output(name: &str, content: Vec<u8>) -> Result<ToolOut
         }),
         Err(e) => Err(ToolError::Invalid(format!("`{name}` can't be shown. {e}."))),
     }
+}
+
+/// Renders page `page` of the PDF at `path` for the model to look at. Missing paths and files
+/// that are no PDFs are errors for the model.
+pub(super) async fn read_page(
+    repository: &ToolRepository,
+    path: &str,
+    page: usize,
+) -> Result<ToolOutput, ToolError> {
+    let oid = file_oid(repository, path).await?;
+    if extraction::mime_type(path) != Some(pdf::MIME_TYPE) {
+        return Err(not_a_pdf(path));
+    }
+    let content = read_blob(repository, path, &oid, MAX_DOCUMENT_SIZE).await?;
+    page_output(path, content, page).await
+}
+
+/// Page `page` of `content`, the PDF file `name`, for the model to look at.
+pub(super) async fn page_output(
+    name: &str,
+    content: Vec<u8>,
+    page: usize,
+) -> Result<ToolOutput, ToolError> {
+    match pdf::render_page(content, page).await {
+        Ok(rendered) => Ok(ToolOutput {
+            image: Some(rendered.image),
+            ..ToolOutput::text(format!("`{name}`: page {page} of {}.", rendered.pages))
+        }),
+        Err(e) => Err(ToolError::Invalid(format!(
+            "Page {page} of `{name}` can't be shown. {e}."
+        ))),
+    }
+}
+
+/// The error for a `page` of the file `name`, which is not a PDF.
+pub(super) fn not_a_pdf(name: &str) -> ToolError {
+    ToolError::Invalid(format!(
+        "`{name}` is not a PDF, so it has no pages to show. Read it without `page`."
+    ))
 }
 
 /// The blob of the file at `path`. Directories and missing paths are errors for the model.

@@ -161,8 +161,9 @@ enum Call {
 #[derive(Debug)]
 pub(crate) struct ToolOutput {
     pub(crate) content: String,
-    /// The image a successful [`READ_FILE`] or [`READ_ATTACHMENT`] call read, for the model to
-    /// look at. Not stored with the call, unlike `content`, which says what it is.
+    /// The image a successful [`READ_FILE`] or [`READ_ATTACHMENT`] call read, or the page of a
+    /// PDF it rendered, for the model to look at. Not stored with the call, unlike `content`,
+    /// which says what it is.
     pub(crate) image: Option<Image>,
     pub(crate) is_error: bool,
     /// The commit a successful [`CHANGE_FILE`], [`MOVE_FILES`] or [`SAVE_ATTACHMENT`] call

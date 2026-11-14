@@ -49,7 +49,8 @@ struct OcrResponse {
 
 #[derive(Deserialize)]
 struct Page {
-    index: u32,
+    /// From 0.
+    index: usize,
     markdown: String,
 }
 
@@ -75,8 +76,8 @@ impl MistralOcr {
         })
     }
 
-    /// Converts `pdf` to Markdown, with the pages separated by blank lines.
-    pub(crate) async fn recognize(&self, pdf: &[u8]) -> Result<String, MistralError> {
+    /// Converts `pdf` to Markdown: its pages in order, with their numbers from 1.
+    pub(crate) async fn recognize(&self, pdf: &[u8]) -> Result<Vec<(usize, String)>, MistralError> {
         let request = self
             .http
             .post(&self.url)
@@ -99,9 +100,8 @@ impl MistralOcr {
         Ok(response
             .pages
             .iter()
-            .map(|page| without_images(&page.markdown))
-            .collect::<Vec<_>>()
-            .join("\n\n"))
+            .map(|page| (page.index + 1, without_images(&page.markdown)))
+            .collect())
     }
 
     /// Sends the request, retrying errors that may be temporary.
@@ -251,8 +251,14 @@ mod tests {
         response["pages"].as_array_mut().unwrap().reverse();
         let (client, requests) = mock::serve(StatusCode::OK, response).await;
 
-        let markdown = client.recognize(b"%PDF-1.7").await.unwrap();
-        assert_eq!(markdown, "# Page 1\n\nText\n\nPage 2");
+        let pages = client.recognize(b"%PDF-1.7").await.unwrap();
+        assert_eq!(
+            pages,
+            [
+                (1, "# Page 1\n\nText".to_string()),
+                (2, "Page 2".to_string())
+            ]
+        );
 
         let requests = requests.lock().unwrap();
         let [(authorization, request)] = &requests[..] else {

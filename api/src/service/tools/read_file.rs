@@ -2,8 +2,8 @@
 //! image for the model to look at.
 
 use super::support::{
-    Output, Text, file_path_schema, normalize_path, parse_args, read_image, read_text,
-    repository_schema,
+    Output, Text, file_path_schema, normalize_path, page_schema, parse_args, parse_page,
+    pdf_description, read_image, read_page, read_text, repository_schema,
 };
 use super::{Call, Invocation, OUTLINE, READ_FILE, RepositoryTools, ToolError, ToolOutput};
 use crate::service::image::is_image;
@@ -20,10 +20,10 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
     ToolDefinition {
         name: READ_FILE.to_string(),
         description: format!(
-            "Read a text file, with line numbers. PDFs are returned as Markdown converted \
-            from them, with the text of scanned pages recognized by OCR. Images (PNG, JPEG, \
-            GIF, WebP) are returned as the image itself, for you to look at. For long Markdown \
-            files, call {OUTLINE} first and read only the sections you need."
+            "Read a text file, with line numbers. {} Images (PNG, JPEG, GIF, WebP) are \
+            returned as the image itself, for you to look at. For long Markdown files, call \
+            {OUTLINE} first and read only the sections you need.",
+            pdf_description()
         ),
         input_schema: json!({
             "type": "object",
@@ -43,6 +43,7 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
                         "Number of lines to read, {DEFAULT_READ_LINES} by default."
                     ),
                 },
+                "page": page_schema(),
             },
             "required": ["repository", "path"],
         }),
@@ -55,12 +56,15 @@ struct Input {
     path: String,
     offset: Option<usize>,
     limit: Option<usize>,
+    page: Option<usize>,
 }
 
 pub(super) struct Args {
     path: String,
     offset: Option<usize>,
     limit: Option<usize>,
+    /// Of a PDF, to show instead of its text.
+    page: Option<usize>,
 }
 
 pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
@@ -69,6 +73,7 @@ pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
         path: normalize_path(&input.path)?,
         offset: input.offset,
         limit: input.limit,
+        page: parse_page(input.page)?,
     };
     Ok((input.repository, Call::ReadFile(args)))
 }
@@ -76,6 +81,9 @@ pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
 pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<ToolOutput, ToolError> {
     let path = args.path.as_str();
     let repository = invocation.target()?;
+    if let Some(page) = args.page {
+        return read_page(repository, path, page).await;
+    }
     if is_image(path) {
         return read_image(repository, path).await;
     }
@@ -199,6 +207,51 @@ mod tests {
             "`font.woff2` is a binary file and can't be shown."
         );
         assert!(font.image.is_none());
+    }
+
+    #[tokio::test]
+    async fn shows_pages_of_pdfs() {
+        let pdf = include_bytes!("../../../tests/fixtures/pages.pdf");
+        let fixture = Fixture::new(&[
+            ("docs/manual.pdf", pdf),
+            ("broken.pdf", b"%PDF-1.7 broken"),
+            ("README.md", b"# Project\n"),
+        ]);
+        let output = fixture
+            .run(READ_FILE, json!({"path": "docs/manual.pdf", "page": 2}))
+            .await;
+        assert!(!output.is_error, "{}", output.content);
+        assert_eq!(output.content, "`docs/manual.pdf`: page 2 of 3.");
+        let image = output.image.unwrap();
+        assert_eq!(image.format, ImageFormat::Png);
+        assert!(BASE64.decode(&image.data).unwrap().starts_with(b"\x89PNG"));
+
+        let error = async |path: &'static str, page: u32| {
+            let output = fixture
+                .run(READ_FILE, json!({"path": path, "page": page}))
+                .await;
+            assert!(output.is_error, "{}", output.content);
+            assert!(output.image.is_none());
+            output.content
+        };
+        assert_eq!(
+            error("docs/manual.pdf", 4).await,
+            "Page 4 of `docs/manual.pdf` can't be shown. The file has only 3 pages."
+        );
+        assert_eq!(error("docs/manual.pdf", 0).await, "`page` starts at 1.");
+        assert_eq!(
+            error("broken.pdf", 1).await,
+            "Page 1 of `broken.pdf` can't be shown. The file could not be opened, it may be \
+            damaged or encrypted."
+        );
+        assert_eq!(
+            error("README.md", 1).await,
+            "`README.md` is not a PDF, so it has no pages to show. Read it without `page`."
+        );
+        assert_eq!(
+            error("docs/guide.pdf", 1).await,
+            "File or directory not found: `docs/guide.pdf`. Use list_files to see the files."
+        );
     }
 
     #[tokio::test]

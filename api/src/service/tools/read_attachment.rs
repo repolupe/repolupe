@@ -4,7 +4,8 @@
 
 use super::read_file::{DEFAULT_READ_LINES, MAX_READ_LINES, format_lines};
 use super::support::{
-    MAX_READ_BYTES, Text, decode_text, document_text, format_size, image_output, parse_args,
+    MAX_READ_BYTES, Text, decode_text, document_text, format_size, image_output, not_a_pdf,
+    page_output, page_schema, parse_args, parse_page, pdf_description,
 };
 use super::{
     Call, ChatAttachments, Invocation, READ_ATTACHMENT, READ_FILE, RepositoryTools, ToolError,
@@ -14,9 +15,10 @@ use crate::config::error::AppError;
 use crate::config::state::DatabasePool;
 use crate::model::attachment::Attachment;
 use crate::model::document_extraction::DocumentExtraction;
-use crate::service::extraction;
+use crate::service::extraction::{self, MAX_DOCUMENT_SIZE};
 use crate::service::image::{MAX_IMAGE_BYTES, is_image};
 use crate::service::llm::ToolDefinition;
+use crate::service::pdf;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::time::Duration;
@@ -29,9 +31,9 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
         name: READ_ATTACHMENT.to_string(),
         description: format!(
             "Read a file the user attached to the chat, with line numbers, like {READ_FILE} \
-            reads one in a repository. PDFs are returned as Markdown converted from them, with the text of scanned pages \
-            recognized by OCR. Images (PNG, JPEG, GIF, WebP) are returned as the image itself, \
-            for you to look at. Other binary files can't be read."
+            reads one in a repository. {} Images (PNG, JPEG, GIF, WebP) are returned as the \
+            image itself, for you to look at. Other binary files can't be read.",
+            pdf_description()
         ),
         input_schema: json!({
             "type": "object",
@@ -55,6 +57,7 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
                         "Number of lines to read, {DEFAULT_READ_LINES} by default."
                     ),
                 },
+                "page": page_schema(),
             },
             "required": ["attachment"],
         }),
@@ -66,12 +69,15 @@ struct Input {
     attachment: i32,
     offset: Option<usize>,
     limit: Option<usize>,
+    page: Option<usize>,
 }
 
 pub(super) struct Args {
     number: i32,
     offset: Option<usize>,
     limit: Option<usize>,
+    /// Of a PDF, to show instead of its text.
+    page: Option<usize>,
 }
 
 pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
@@ -80,6 +86,7 @@ pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
         number: input.attachment,
         offset: input.offset,
         limit: input.limit,
+        page: parse_page(input.page)?,
     };
     Ok((None, Call::ReadAttachment(args)))
 }
@@ -88,6 +95,13 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Tool
     let attachments = invocation.attachments;
     let attachment = attachments.find(args.number)?;
     let name = &attachment.file_name;
+    if let Some(page) = args.page {
+        if attachment.content_type != pdf::MIME_TYPE {
+            return Err(not_a_pdf(name));
+        }
+        let content = read_content(attachments, attachment, MAX_DOCUMENT_SIZE).await?;
+        return page_output(name, content, page).await;
+    }
     if is_image(name) {
         let content = read_content(attachments, attachment, MAX_IMAGE_BYTES).await?;
         return image_output(name, content).await;
