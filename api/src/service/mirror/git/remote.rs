@@ -2,7 +2,7 @@
 
 use super::http::{self, Failure, GitHttp};
 use super::push::{self, PushResult};
-use super::{blocking, failed, open, pack_file_commit, parse_oid, repack};
+use super::{GitResultExt, blocking, open, pack_file_commit, parse_oid, repack, with_repo};
 use crate::config::error::AppError;
 use crate::dto::error::ErrorCode;
 use crate::model::remote_access::RemoteAccess;
@@ -124,20 +124,18 @@ impl GitClient {
         } = self
             .connect(url, token, access, FETCH_TIMEOUT, Protocol::V2)
             .await?;
-        let git_dir = git_dir.to_path_buf();
         let url = url.clone();
         let branch_ref = format!("refs/heads/{branch}");
         let should_interrupt = interrupt.flag.clone();
-        blocking(move || {
-            let repo = open(&git_dir)?;
+        with_repo(git_dir, move |repo| {
             // Forced, since the remote branch may have been rewritten.
             let refspec = format!("+{branch_ref}:{branch_ref}");
             let remote = repo
                 .remote_at_without_url_rewrite(url.as_str())
-                .map_err(|e| failed("fetch", e))?
+                .git("fetch")?
                 .with_fetch_tags(gix::remote::fetch::Tags::None)
                 .with_refspecs([refspec.as_str()], gix::remote::Direction::Fetch)
-                .map_err(|e| failed("fetch", e))?;
+                .git("fetch")?;
             let prepare = remote
                 .to_connection_with_transport(transport)
                 .with_credentials(no_credentials)
@@ -159,26 +157,21 @@ impl GitClient {
                 change: Change::Update {
                     log: LogChange::default(),
                     expected: PreviousValue::Any,
-                    new: Target::Symbolic(
-                        branch_ref
-                            .as_str()
-                            .try_into()
-                            .map_err(|e| failed("fetch", e))?,
-                    ),
+                    new: Target::Symbolic(branch_ref.as_str().try_into().git("fetch")?),
                 },
-                name: "HEAD".try_into().map_err(|e| failed("fetch", e))?,
+                name: "HEAD".try_into().git("fetch")?,
                 deref: false,
             })
-            .map_err(|e| failed("symbolic-ref", e))?;
+            .git("symbolic-ref")?;
             let commit = repo
                 .find_reference(branch_ref.as_str())
-                .map_err(|e| failed("rev-parse", e))?
+                .git("rev-parse")?
                 .peel_to_commit()
-                .map_err(|e| failed("rev-parse", e))?
+                .git("rev-parse")?
                 .id;
 
             // gitoxide writes a pack per fetch and never repacks on its own.
-            repack::consolidate_packs(&git_dir, repack::MAX_PACKS, &should_interrupt)?;
+            repack::consolidate_packs(repo.git_dir(), repack::MAX_PACKS, &should_interrupt)?;
             Ok(commit.to_string())
         })
         .await

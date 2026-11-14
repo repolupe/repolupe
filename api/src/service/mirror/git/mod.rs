@@ -11,6 +11,7 @@ mod repack;
 use crate::config::error::AppError;
 use chrono::{DateTime, Utc};
 use gix::bstr::ByteSlice;
+use gix::date::parse::TimeBuf;
 use gix::objs::tree::EntryKind;
 use gix::refs::Target;
 use gix::refs::transaction::{Change, LogChange, PreviousValue, RefEdit};
@@ -27,7 +28,7 @@ pub(crate) use remote::{GitClient, TOKEN_USERNAME};
 pub(crate) async fn init_bare(git_dir: &Path) -> Result<(), AppError> {
     let git_dir = git_dir.to_path_buf();
     blocking(move || {
-        gix::init_bare(&git_dir).map_err(|e| failed("init", e))?;
+        gix::init_bare(&git_dir).git("init")?;
         Ok(())
     })
     .await
@@ -37,7 +38,7 @@ pub(crate) async fn init_bare(git_dir: &Path) -> Result<(), AppError> {
 pub(crate) fn blob_oid(content: &[u8]) -> Result<String, AppError> {
     gix::objs::compute_hash(gix::hash::Kind::Sha1, gix::objs::Kind::Blob, content)
         .map(|oid| oid.to_string())
-        .map_err(|e| failed("hash", e))
+        .git("hash")
 }
 
 /// The bytes the git objects take on disk, like Forgejo's repository size. Only the fetched
@@ -80,25 +81,19 @@ pub(crate) struct TreeBlob {
 /// Lists the blobs in the tree of `commit`, including subdirectories, sorted by path like
 /// `git ls-tree -r`.
 pub(crate) async fn list_blobs(git_dir: &Path, commit: &str) -> Result<Vec<TreeBlob>, AppError> {
-    let git_dir = git_dir.to_path_buf();
     let commit = commit.to_string();
-    blocking(move || {
-        let repo = open(&git_dir)?;
-        let tree = commit_tree(&repo, &commit)?
+    with_repo(git_dir, move |repo| {
+        let tree = commit_tree(repo, &commit)?
             .ok_or_else(|| AppError::InternalServerError(format!("Commit {commit} is missing")))?;
         let mut recorder = gix::traverse::tree::Recorder::default();
-        tree.traverse()
-            .depthfirst(&mut recorder)
-            .map_err(|e| failed("ls-tree", e))?;
+        tree.traverse().depthfirst(&mut recorder).git("ls-tree")?;
         recorder
             .records
             .into_iter()
             // Like git, symlinks are blobs too. Submodules are commits.
             .filter(|entry| entry.mode.is_blob() || entry.mode.is_link())
             .map(|entry| {
-                let header = repo
-                    .find_header(entry.oid)
-                    .map_err(|e| failed("ls-tree", e))?;
+                let header = repo.find_header(entry.oid).git("ls-tree")?;
                 Ok(TreeBlob {
                     oid: entry.oid.to_string(),
                     size: header.size(),
@@ -116,17 +111,12 @@ pub(crate) async fn read_blobs(
     git_dir: &Path,
     oids: &[String],
 ) -> Result<HashMap<String, Vec<u8>>, AppError> {
-    let git_dir = git_dir.to_path_buf();
     let oids = oids.to_vec();
-    blocking(move || {
-        let repo = open(&git_dir)?;
+    with_repo(git_dir, move |repo| {
         let mut blobs = HashMap::with_capacity(oids.len());
         for oid in oids {
             let id = parse_oid(&oid)?;
-            if let Some(object) = repo
-                .try_find_object(id)
-                .map_err(|e| failed("cat-file", e))?
-            {
+            if let Some(object) = repo.try_find_object(id).git("cat-file")? {
                 blobs.insert(oid, object.detach().data);
             }
         }
@@ -148,21 +138,16 @@ pub(crate) async fn read_blob(
     oid: &str,
     max_size: u64,
 ) -> Result<Option<Blob>, AppError> {
-    let git_dir = git_dir.to_path_buf();
     let oid = oid.to_string();
-    blocking(move || {
-        let repo = open(&git_dir)?;
+    with_repo(git_dir, move |repo| {
         let id = parse_oid(&oid)?;
-        let Some(header) = repo
-            .try_find_header(id)
-            .map_err(|e| failed("cat-file", e))?
-        else {
+        let Some(header) = repo.try_find_header(id).git("cat-file")? else {
             return Ok(None);
         };
         if header.size() > max_size {
             return Ok(Some(Blob::TooLarge(header.size())));
         }
-        let object = repo.find_object(id).map_err(|e| failed("cat-file", e))?;
+        let object = repo.find_object(id).git("cat-file")?;
         Ok(Some(Blob::Content(object.detach().data)))
     })
     .await
@@ -186,21 +171,16 @@ pub(crate) async fn path_entry(
     commit: &str,
     path: &str,
 ) -> Result<PathEntry, AppError> {
-    let git_dir = git_dir.to_path_buf();
     let commit = commit.to_string();
     let path = path.to_string();
-    blocking(move || {
-        let repo = open(&git_dir)?;
-        let Some(tree) = commit_tree(&repo, &commit)? else {
+    with_repo(git_dir, move |repo| {
+        let Some(tree) = commit_tree(repo, &commit)? else {
             return Ok(PathEntry::Missing);
         };
         if path.is_empty() {
             return Ok(PathEntry::Tree);
         }
-        let Some(entry) = tree
-            .lookup_entry(path.split('/'))
-            .map_err(|e| failed("cat-file", e))?
-        else {
+        let Some(entry) = entry_at(&tree, &path).git("cat-file")? else {
             return Ok(PathEntry::Missing);
         };
         let oid = entry.object_id().to_string();
@@ -236,26 +216,22 @@ pub(crate) async fn attributes(
     use gix::attrs::StateRef;
     use gix::worktree::stack::state::attributes::Source;
 
-    let git_dir = git_dir.to_path_buf();
     let commit = commit.to_string();
-    blocking(move || {
-        let repo = open(&git_dir)?;
-        let tree = commit_tree(&repo, &commit)?
+    with_repo(git_dir, move |repo| {
+        let tree = commit_tree(repo, &commit)?
             .ok_or_else(|| AppError::InternalServerError(format!("Commit {commit} is missing")))?;
         // The attributes are read from the blobs the index lists, since there is no worktree.
-        let index = repo
-            .index_from_tree(&tree.id)
-            .map_err(|e| failed("check-attr", e))?;
+        let index = repo.index_from_tree(&tree.id).git("check-attr")?;
         let mut stack = repo
             .attributes_only(&index, Source::IdMapping)
-            .map_err(|e| failed("check-attr", e))?;
+            .git("check-attr")?;
         paths
             .iter()
             .map(|path| {
                 let mut outcome = stack.selected_attribute_matches([name]);
                 stack
                     .at_entry(path.as_str(), Some(gix::index::entry::Mode::FILE))
-                    .map_err(|e| failed("check-attr", e))?
+                    .git("check-attr")?
                     .matching_attributes(&mut outcome);
                 Ok(outcome
                     .iter_selected()
@@ -322,28 +298,13 @@ pub(crate) async fn create_branch(
     message: &str,
     signature: &Signature,
 ) -> Result<String, AppError> {
-    let git_dir = git_dir.to_path_buf();
     let branch_ref = format!("refs/heads/{branch}");
     let message = format!("{}\n", message.trim_end());
     let signature = signature.to_gix();
-    blocking(move || {
-        let repo = open(&git_dir)?;
-        let tree = repo
-            .write_object(gix::objs::Tree::empty())
-            .map_err(|e| failed("commit", e))?;
-        let mut author_time = gix::date::parse::TimeBuf::default();
-        let mut committer_time = gix::date::parse::TimeBuf::default();
-        let commit = repo
-            .new_commit_as(
-                signature.to_ref(&mut committer_time),
-                signature.to_ref(&mut author_time),
-                message,
-                tree,
-                Vec::<ObjectId>::new(),
-            )
-            .map_err(|e| failed("commit", e))?
-            .id;
-        let name = |name: &str| name.try_into().map_err(|e| failed("update-ref", e));
+    with_repo(git_dir, move |repo| {
+        let tree = repo.write_object(gix::objs::Tree::empty()).git("commit")?;
+        let commit = new_commit(repo, &signature, &signature, &message, tree, []).git("commit")?;
+        let name = |name: &str| name.try_into().git("update-ref");
         repo.edit_references([
             RefEdit {
                 change: Change::Update {
@@ -364,7 +325,7 @@ pub(crate) async fn create_branch(
                 deref: false,
             },
         ])
-        .map_err(|e| failed("update-ref", e))?;
+        .git("update-ref")?;
         Ok(commit.to_string())
     })
     .await
@@ -373,19 +334,15 @@ pub(crate) async fn create_branch(
 /// The commit `branch` points to in the repository at `git_dir`, `None` if there is no such
 /// branch.
 pub(crate) async fn branch_head(git_dir: &Path, branch: &str) -> Result<Option<String>, AppError> {
-    let git_dir = git_dir.to_path_buf();
     let branch_ref = format!("refs/heads/{branch}");
-    blocking(move || {
-        let repo = open(&git_dir)?;
+    with_repo(git_dir, move |repo| {
         let Some(mut reference) = repo
             .try_find_reference(branch_ref.as_str())
-            .map_err(|e| failed("rev-parse", e))?
+            .git("rev-parse")?
         else {
             return Ok(None);
         };
-        let commit = reference
-            .peel_to_commit()
-            .map_err(|e| failed("rev-parse", e))?;
+        let commit = reference.peel_to_commit().git("rev-parse")?;
         Ok(Some(commit.id.to_string()))
     })
     .await
@@ -399,25 +356,20 @@ pub(crate) async fn update_branch(
     expected: &str,
     commit: &str,
 ) -> Result<(), AppError> {
-    let git_dir = git_dir.to_path_buf();
     let branch_ref = format!("refs/heads/{branch}");
     let expected = parse_oid(expected)?;
     let commit = parse_oid(commit)?;
-    blocking(move || {
-        let repo = open(&git_dir)?;
+    with_repo(git_dir, move |repo| {
         repo.edit_reference(RefEdit {
             change: Change::Update {
                 log: LogChange::default(),
                 expected: PreviousValue::MustExistAndMatch(Target::Object(expected)),
                 new: Target::Object(commit),
             },
-            name: branch_ref
-                .as_str()
-                .try_into()
-                .map_err(|e| failed("update-ref", e))?,
+            name: branch_ref.as_str().try_into().git("update-ref")?,
             deref: false,
         })
-        .map_err(|e| failed("update-ref", e))?;
+        .git("update-ref")?;
         Ok(())
     })
     .await
@@ -445,12 +397,12 @@ pub(crate) async fn commit_file(
         move |repo, _, editor| {
             match content {
                 Some((content, mode)) => {
-                    let blob = repo.write_blob(&content).map_err(|e| failed("commit", e))?;
+                    let blob = repo.write_blob(&content).git("commit")?;
                     editor.upsert(&path, mode.kind(), blob)
                 }
                 None => editor.remove(&path),
             }
-            .map_err(|e| failed("commit", e))?;
+            .git("commit")?;
             Ok(())
         },
     )
@@ -478,14 +430,13 @@ pub(crate) async fn commit_moves(
         committer,
         move |_, tree, editor| {
             for (from, to) in &moves {
-                let entry = tree
-                    .lookup_entry(from.split('/'))
-                    .map_err(|e| failed("mv", e))?
+                let entry = entry_at(tree, from)
+                    .git("mv")?
                     .ok_or_else(|| failed("mv", format!("`{from}` is missing")))?;
                 editor
                     .remove(from)
                     .and_then(|editor| editor.upsert(to, entry.mode().kind(), entry.object_id()))
-                    .map_err(|e| failed("mv", e))?;
+                    .git("mv")?;
             }
             Ok(())
         },
@@ -512,32 +463,18 @@ where
         + Send
         + 'static,
 {
-    let git_dir = git_dir.to_path_buf();
     let parent = parse_oid(parent)?;
     let message = format!("{}\n", message.trim_end());
     let author = author.to_gix();
     let committer = committer.to_gix();
-    blocking(move || {
-        let repo = open(&git_dir)?;
-        let tree = repo
-            .find_commit(parent)
-            .and_then(|commit| commit.tree())
-            .map_err(|e| failed("commit", e))?;
-        let mut editor = repo.edit_tree(tree.id).map_err(|e| failed("commit", e))?;
-        edit(&repo, &tree, &mut editor)?;
-        let tree = editor.write().map_err(|e| failed("commit", e))?;
-        let mut author_time = gix::date::parse::TimeBuf::default();
-        let mut committer_time = gix::date::parse::TimeBuf::default();
-        let commit = repo
-            .new_commit_as(
-                committer.to_ref(&mut committer_time),
-                author.to_ref(&mut author_time),
-                message,
-                tree,
-                [parent],
-            )
-            .map_err(|e| failed("commit", e))?;
-        Ok(commit.id.to_string())
+    with_repo(git_dir, move |repo| {
+        let tree = tree_of(repo, parent).git("commit")?;
+        let mut editor = repo.edit_tree(tree.id).git("commit")?;
+        edit(repo, &tree, &mut editor)?;
+        let tree = editor.write().git("commit")?;
+        let commit =
+            new_commit(repo, &author, &committer, &message, tree, [parent]).git("commit")?;
+        Ok(commit.to_string())
     })
     .await
 }
@@ -554,13 +491,11 @@ pub(crate) async fn rebuild_file_commit(
     onto: &str,
     time: DateTime<Utc>,
 ) -> Result<Option<String>, AppError> {
-    let git_dir = git_dir.to_path_buf();
     let id = parse_oid(commit)?;
     let onto = parse_oid(onto)?;
     let paths = paths.to_vec();
-    blocking(move || {
-        let repo = open(&git_dir)?;
-        let proposed = repo.find_commit(id).map_err(|e| failed("rebase", e))?;
+    with_repo(git_dir, move |repo| {
+        let proposed = repo.find_commit(id).git("rebase")?;
         let parent = proposed
             .parent_ids()
             .next()
@@ -569,57 +504,86 @@ pub(crate) async fn rebuild_file_commit(
         if parent == onto {
             return Ok(Some(id.to_string()));
         }
-        let tree_of = |commit: ObjectId| {
-            repo.find_commit(commit)
-                .and_then(|commit| commit.tree())
-                .map_err(|e| failed("rebase", e))
-        };
-        let entry = |tree: &gix::Tree<'_>, path: &str| {
-            tree.lookup_entry(path.split('/'))
-                .map(|entry| entry.map(|entry| (entry.object_id(), entry.mode())))
-                .map_err(|e| failed("rebase", e))
-        };
-        let onto_tree = tree_of(onto)?;
-        let parent_tree = tree_of(parent)?;
-        for path in &paths {
-            if entry(&parent_tree, path)? != entry(&onto_tree, path)? {
-                return Ok(None);
-            }
-            for (end, _) in path.match_indices('/') {
-                if entry(&onto_tree, &path[..end])?.is_some_and(|(_, mode)| !mode.is_tree()) {
-                    return Ok(None);
-                }
-            }
+        let onto_tree = tree_of(repo, onto).git("rebase")?;
+        let parent_tree = tree_of(repo, parent).git("rebase")?;
+        if !paths_unchanged(&parent_tree, &onto_tree, &paths)? {
+            return Ok(None);
         }
-
-        let mut editor = repo
-            .edit_tree(onto_tree.id)
-            .map_err(|e| failed("rebase", e))?;
-        let proposed_tree = tree_of(id)?;
-        for path in &paths {
-            match entry(&proposed_tree, path)? {
-                Some((oid, mode)) => editor.upsert(path, mode.kind(), oid),
-                None => editor.remove(path),
-            }
-            .map_err(|e| failed("rebase", e))?;
-        }
-        let tree = editor.write().map_err(|e| failed("rebase", e))?;
-        let decoded = proposed.decode().map_err(|e| failed("rebase", e))?;
-        let author = decoded.author().map_err(|e| failed("rebase", e))?;
-        let committer = decoded.committer().map_err(|e| failed("rebase", e))?;
-        let committer = gix::actor::Signature {
-            name: committer.name.into(),
-            email: committer.email.into(),
-            time: gix::date::Time::new(time.timestamp(), 0),
-        };
-        let mut time = gix::date::parse::TimeBuf::default();
-        let message = decoded.message.to_str_lossy();
-        let rebuilt = repo
-            .new_commit_as(committer.to_ref(&mut time), author, message, tree, [onto])
-            .map_err(|e| failed("rebase", e))?;
-        Ok(Some(rebuilt.id.to_string()))
+        let tree = apply_paths(repo, &proposed, &onto_tree, &paths)?;
+        let rebuilt = recommit(repo, &proposed, tree, onto, time)?;
+        Ok(Some(rebuilt.to_string()))
     })
     .await
+}
+
+/// Whether `onto` has the same entries at `paths` as `parent`, and no file where one of them
+/// needs a directory, for [`rebuild_file_commit`].
+fn paths_unchanged(
+    parent: &gix::Tree<'_>,
+    onto: &gix::Tree<'_>,
+    paths: &[String],
+) -> Result<bool, AppError> {
+    let entry = |tree: &gix::Tree<'_>, path: &str| {
+        entry_at(tree, path)
+            .map(|entry| entry.map(|entry| (entry.object_id(), entry.mode())))
+            .git("rebase")
+    };
+    for path in paths {
+        if entry(parent, path)? != entry(onto, path)? {
+            return Ok(false);
+        }
+        for (end, _) in path.match_indices('/') {
+            if entry(onto, &path[..end])?.is_some_and(|(_, mode)| !mode.is_tree()) {
+                return Ok(false);
+            }
+        }
+    }
+    Ok(true)
+}
+
+/// Writes the tree `onto` with the entries at `paths` replaced by those of `commit`, or removed
+/// where it has none. Returns the tree.
+fn apply_paths(
+    repo: &Repository,
+    commit: &gix::Commit<'_>,
+    onto: &gix::Tree<'_>,
+    paths: &[String],
+) -> Result<ObjectId, AppError> {
+    let mut editor = repo.edit_tree(onto.id).git("rebase")?;
+    let tree = commit.tree().git("rebase")?;
+    for path in paths {
+        match entry_at(&tree, path).git("rebase")? {
+            Some(entry) => editor.upsert(path, entry.mode().kind(), entry.object_id()),
+            None => editor.remove(path),
+        }
+        .git("rebase")?;
+    }
+    Ok(editor.write().git("rebase")?.detach())
+}
+
+/// Writes `commit` again with `tree` on top of `parent`, committed at `time`.
+fn recommit(
+    repo: &Repository,
+    commit: &gix::Commit<'_>,
+    tree: ObjectId,
+    parent: ObjectId,
+    time: DateTime<Utc>,
+) -> Result<ObjectId, AppError> {
+    let decoded = commit.decode().git("rebase")?;
+    // Kept as written, without parsing its time.
+    let author = decoded.author().git("rebase")?;
+    let committer = decoded.committer().git("rebase")?;
+    let committer = gix::actor::Signature {
+        name: committer.name.into(),
+        email: committer.email.into(),
+        time: gix::date::Time::new(time.timestamp(), 0),
+    };
+    let mut time = TimeBuf::default();
+    let message = decoded.message.to_str_lossy();
+    let rebuilt = repo
+        .new_commit_as(committer.to_ref(&mut time), author, message, tree, [parent])
+        .git("rebase")?;
+    Ok(rebuilt.id)
 }
 
 /// The blobs at `paths` in `commit` that its parent has at none of them: the files it adds or
@@ -629,19 +593,15 @@ pub(crate) async fn added_blobs(
     commit: &str,
     paths: &[String],
 ) -> Result<Vec<String>, AppError> {
-    let git_dir = git_dir.to_path_buf();
     let id = parse_oid(commit)?;
     let paths = paths.to_vec();
-    blocking(move || {
-        let repo = open(&git_dir)?;
-        let commit = repo.find_commit(id).map_err(|e| failed("cat-file", e))?;
-        let tree = commit.tree().map_err(|e| failed("cat-file", e))?;
-        let existing = parent_entries(&repo, &commit, &paths)?;
+    with_repo(git_dir, move |repo| {
+        let commit = repo.find_commit(id).git("cat-file")?;
+        let tree = commit.tree().git("cat-file")?;
+        let existing = parent_entries(repo, &commit, &paths)?;
         let mut blobs = Vec::new();
         for path in &paths {
-            if let Some(entry) = tree
-                .lookup_entry(path.split('/'))
-                .map_err(|e| failed("cat-file", e))?
+            if let Some(entry) = entry_at(&tree, path).git("cat-file")?
                 && entry.mode().is_blob()
                 && !existing.contains(&entry.object_id())
             {
@@ -663,15 +623,9 @@ fn parent_entries(
     let Some(parent) = commit.parent_ids().next() else {
         return Ok(entries);
     };
-    let tree = repo
-        .find_commit(parent)
-        .and_then(|parent| parent.tree())
-        .map_err(|e| failed("pack-objects", e))?;
+    let tree = tree_of(repo, parent).git("pack-objects")?;
     for path in paths {
-        if let Some(entry) = tree
-            .lookup_entry(path.split('/'))
-            .map_err(|e| failed("pack-objects", e))?
-        {
+        if let Some(entry) = entry_at(&tree, path).git("pack-objects")? {
             entries.insert(entry.object_id());
         }
     }
@@ -688,10 +642,8 @@ fn pack_file_commit(
 ) -> Result<Vec<u8>, AppError> {
     use gix::odb::pack::data::output;
 
-    let found = repo
-        .find_commit(commit)
-        .map_err(|e| failed("pack-objects", e))?;
-    let tree = found.tree().map_err(|e| failed("pack-objects", e))?;
+    let found = repo.find_commit(commit).git("pack-objects")?;
+    let tree = found.tree().git("pack-objects")?;
     let existing = parent_entries(repo, &found, paths)?;
     let mut ids = vec![commit, tree.id];
     for path in paths {
@@ -700,7 +652,7 @@ fn pack_file_commit(
             // Missing if deleted, also directories left empty.
             match tree
                 .lookup_entry(names[..end].iter().copied())
-                .map_err(|e| failed("pack-objects", e))?
+                .git("pack-objects")?
             {
                 Some(entry) if end == names.len() && existing.contains(&entry.object_id()) => {}
                 Some(entry) => ids.push(entry.object_id()),
@@ -715,16 +667,14 @@ fn pack_file_commit(
     let entries = ids
         .iter()
         .map(|id| {
-            let object = repo
-                .find_object(*id)
-                .map_err(|e| failed("pack-objects", e))?;
+            let object = repo.find_object(*id).git("pack-objects")?;
             let data = gix::objs::Data::new(&object.data, object.kind, gix::hash::Kind::Sha1);
             output::Entry::from_data(
                 &output::Count::from_data(*id, None),
                 &data,
                 gix::zlib::Compression::DEFAULT,
             )
-            .map_err(|e| failed("pack-objects", e))
+            .git("pack-objects")
         })
         .collect::<Result<Vec<_>, AppError>>()?;
     let mut writer = output::bytes::FromEntriesIter::new(
@@ -735,7 +685,7 @@ fn pack_file_commit(
         gix::hash::Kind::Sha1,
     );
     for written in &mut writer {
-        written.map_err(|e| failed("pack-objects", e))?;
+        written.git("pack-objects")?;
     }
     Ok(writer.into_write())
 }
@@ -751,22 +701,15 @@ pub(crate) async fn read_commit(
     git_dir: &Path,
     commit: &str,
 ) -> Result<Option<CommitInfo>, AppError> {
-    let git_dir = git_dir.to_path_buf();
     let id = parse_oid(commit)?;
-    blocking(move || {
-        let repo = open(&git_dir)?;
-        let Some(object) = repo
-            .try_find_object(id)
-            .map_err(|e| failed("cat-file", e))?
-        else {
+    with_repo(git_dir, move |repo| {
+        let Some(object) = repo.try_find_object(id).git("cat-file")? else {
             return Ok(None);
         };
-        let commit = object
-            .try_into_commit()
-            .map_err(|e| failed("cat-file", e))?;
-        let decoded = commit.decode().map_err(|e| failed("cat-file", e))?;
-        let author = decoded.author().map_err(|e| failed("cat-file", e))?;
-        let time = author.time().map_err(|e| failed("cat-file", e))?;
+        let commit = object.try_into_commit().git("cat-file")?;
+        let decoded = commit.decode().git("cat-file")?;
+        let author = decoded.author().git("cat-file")?;
+        let time = author.time().git("cat-file")?;
         Ok(Some(CommitInfo {
             author: Signature {
                 name: author.name.to_str_lossy().into_owned(),
@@ -777,6 +720,16 @@ pub(crate) async fn read_commit(
         }))
     })
     .await
+}
+
+/// Runs `f` with the repository at `git_dir`, on a thread where blocking is fine.
+async fn with_repo<T, F>(git_dir: &Path, f: F) -> Result<T, AppError>
+where
+    T: Send + 'static,
+    F: FnOnce(&Repository) -> Result<T, AppError> + Send + 'static,
+{
+    let git_dir = git_dir.to_path_buf();
+    blocking(move || f(&open(&git_dir)?)).await
 }
 
 /// Opens the repository at `git_dir`, ignoring the system and user config and the environment.
@@ -794,18 +747,49 @@ fn commit_tree<'repo>(
     repo: &'repo Repository,
     commit: &str,
 ) -> Result<Option<gix::Tree<'repo>>, AppError> {
-    let Some(object) = repo
-        .try_find_object(parse_oid(commit)?)
-        .map_err(|e| failed("rev-parse", e))?
-    else {
+    let Some(object) = repo.try_find_object(parse_oid(commit)?).git("rev-parse")? else {
         return Ok(None);
     };
     let tree = object
         .try_into_commit()
-        .map_err(|e| failed("rev-parse", e))?
+        .git("rev-parse")?
         .tree()
-        .map_err(|e| failed("rev-parse", e))?;
+        .git("rev-parse")?;
     Ok(Some(tree))
+}
+
+/// The tree of the commit `commit`.
+fn tree_of(repo: &Repository, commit: impl Into<ObjectId>) -> gix::Result<gix::Tree<'_>> {
+    repo.find_commit(commit)?.tree()
+}
+
+/// The entry at `path` in `tree`, `None` if there is none.
+fn entry_at<'repo>(
+    tree: &gix::Tree<'repo>,
+    path: &str,
+) -> gix::Result<Option<gix::object::tree::Entry<'repo>>> {
+    tree.lookup_entry(path.split('/'))
+}
+
+/// Writes a commit of `tree` by `author` and `committer`, which no ref points to.
+fn new_commit(
+    repo: &Repository,
+    author: &gix::actor::Signature,
+    committer: &gix::actor::Signature,
+    message: &str,
+    tree: impl Into<ObjectId>,
+    parents: impl IntoIterator<Item = ObjectId>,
+) -> gix::Result<ObjectId> {
+    let mut author_time = TimeBuf::default();
+    let mut committer_time = TimeBuf::default();
+    let commit = repo.new_commit_as(
+        committer.to_ref(&mut committer_time),
+        author.to_ref(&mut author_time),
+        message,
+        tree,
+        parents,
+    )?;
+    Ok(commit.id)
 }
 
 fn parse_oid(oid: &str) -> Result<ObjectId, AppError> {
@@ -827,6 +811,17 @@ where
 /// An error of a local git operation, named after the git command it replaces.
 fn failed(operation: &str, error: impl Display) -> AppError {
     AppError::InternalServerError(format!("git {operation} failed: {error}"))
+}
+
+/// Turns the error of a local git operation into the one [`failed`] makes.
+trait GitResultExt<T> {
+    fn git(self, operation: &str) -> Result<T, AppError>;
+}
+
+impl<T, E: Display> GitResultExt<T> for Result<T, E> {
+    fn git(self, operation: &str) -> Result<T, AppError> {
+        self.map_err(|e| failed(operation, e))
+    }
 }
 
 /// The directory of the packs in the repository at `git_dir`.

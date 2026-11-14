@@ -1,6 +1,6 @@
 //! Searching blobs line by line, like `git grep -P -I`.
 
-use super::{TreeBlob, blocking, failed, parse_oid};
+use super::{GitResultExt, TreeBlob, blocking, parse_oid};
 use crate::config::error::AppError;
 use fancy_regex::{Regex, RegexBuilder};
 use gix::ThreadSafeRepository;
@@ -89,7 +89,7 @@ pub(crate) async fn grep(
     let git_dir = git_dir.to_path_buf();
     blocking(move || {
         let repo = ThreadSafeRepository::open_opts(&git_dir, gix::open::Options::isolated())
-            .map_err(|e| failed("grep", e))?;
+            .git("grep")?;
         let deadline = Instant::now() + TIMEOUT;
         let next = AtomicUsize::new(0);
         let output = AtomicUsize::new(0);
@@ -215,7 +215,8 @@ fn search(
     let id = parse_oid(&blob.oid).map_err(GrepError::Internal)?;
     let object = repo
         .find_object(id)
-        .map_err(|e| GrepError::Internal(failed("grep", e)))?;
+        .git("grep")
+        .map_err(GrepError::Internal)?;
     let Some(data) = resolve(git_dir, &object.data) else {
         return Ok(Vec::new());
     };

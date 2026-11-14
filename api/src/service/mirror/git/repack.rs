@@ -1,7 +1,7 @@
 //! Combines the packs of a repository into one. gitoxide writes a pack per fetch and, unlike
 //! git, never repacks, so they would pile up and slow down every object lookup.
 
-use super::{failed, pack_dir};
+use super::{GitResultExt, failed, pack_dir};
 use crate::config::error::AppError;
 use gix::hash::Kind;
 use gix::odb::pack::data::output::{self, count, entry};
@@ -27,18 +27,18 @@ pub(super) fn consolidate_packs(
     should_interrupt: &AtomicBool,
 ) -> Result<(), AppError> {
     let pack_dir = pack_dir(git_dir);
-    let packs = list_packs(&pack_dir).map_err(|e| failed("repack", e))?;
+    let packs = list_packs(&pack_dir).git("repack")?;
     if packs.len() <= max_packs {
         return Ok(());
     }
 
     let objects_dir = git_dir.join("objects");
     // Listed first, so objects written meanwhile, e.g. by `commit_file`, stay loose.
-    let loose = list_loose_objects(&objects_dir).map_err(|e| failed("repack", e))?;
-    let mut db = gix::odb::at(&objects_dir, Kind::Sha1).map_err(|e| failed("repack", e))?;
+    let loose = list_loose_objects(&objects_dir).git("repack")?;
+    let mut db = gix::odb::at(&objects_dir, Kind::Sha1).git("repack")?;
     // Entries are copied from the packs by their location, which must stay valid.
     db.prevent_pack_unload();
-    let ids = db.iter().map_err(|e| failed("repack", e))?;
+    let ids = db.iter().git("repack")?;
     let (counts, _) = count::objects(
         db.clone(),
         Box::new(ids.map(|id| id.map_err(gix::Error::from_error))),
@@ -49,8 +49,8 @@ pub(super) fn consolidate_packs(
             ..Default::default()
         },
     )
-    .map_err(|e| failed("repack", e))?;
-    let num_entries = u32::try_from(counts.len()).map_err(|e| failed("repack", e))?;
+    .git("repack")?;
+    let num_entries = u32::try_from(counts.len()).git("repack")?;
     // Copies the entries of the existing packs, deltas included, so nothing is recompressed.
     let entries = entry::iter_from_counts(
         counts,
@@ -58,7 +58,7 @@ pub(super) fn consolidate_packs(
         Box::new(Discard),
         entry::iter_from_counts::Options::default(),
     )
-    .map_err(|e| failed("repack", e))?;
+    .git("repack")?;
 
     let temp = pack_dir.join(format!("tmp_repack_{}", Uuid::now_v7()));
     let result = write_and_index(&temp, &pack_dir, entries, num_entries, should_interrupt);
@@ -88,7 +88,7 @@ fn write_and_index(
     num_entries: u32,
     should_interrupt: &AtomicBool,
 ) -> Result<PathBuf, AppError> {
-    let file = File::create(temp).map_err(|e| failed("repack", e))?;
+    let file = File::create(temp).git("repack")?;
     let mut writer = output::bytes::FromEntriesIter::new(
         InOrderIter::from(entries),
         BufWriter::new(file),
@@ -97,16 +97,17 @@ fn write_and_index(
         Kind::Sha1,
     );
     for written in &mut writer {
-        written.map_err(|e| failed("repack", e))?;
+        written.git("repack")?;
     }
     writer
         .into_write()
         .into_inner()
-        .map_err(|e| failed("repack", e.into_error()))?
+        .map_err(|e| e.into_error())
+        .git("repack")?
         .sync_all()
-        .map_err(|e| failed("repack", e))?;
+        .git("repack")?;
 
-    let mut pack = BufReader::new(File::open(temp).map_err(|e| failed("repack", e))?);
+    let mut pack = BufReader::new(File::open(temp).git("repack")?);
     let outcome = gix::odb::pack::Bundle::write_to_directory(
         &mut pack,
         Some(pack_dir),
@@ -116,7 +117,7 @@ fn write_and_index(
         Kind::Sha1,
         Default::default(),
     )
-    .map_err(|e| failed("repack", e))?;
+    .git("repack")?;
     if let Some(keep) = &outcome.keep_path {
         remove_if_exists(keep)?;
     }
