@@ -22,11 +22,11 @@ use crate::service::mirror::Snapshot;
 use crate::util::extract::{JsonBody, PathParam, QueryParams};
 use crate::util::validation::ValidationError;
 use crate::{repository, service, util};
+use axum::Json;
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::{IntoResponse, Response};
-use axum::{Extension, Json};
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use chrono::{DateTime, SecondsFormat, Utc};
@@ -43,7 +43,7 @@ const FALLBACK_TITLE: &str = "New chat";
 
 pub(crate) async fn list_chats(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     QueryParams(query): QueryParams<ListChatsQuery>,
 ) -> Result<Json<ChatPageDto>, AppError> {
     let (limit, after) = parse_page(query.limit, query.cursor.as_deref())?;
@@ -55,7 +55,7 @@ pub(crate) async fn list_chats(
 
 pub(crate) async fn search_chats(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     QueryParams(query): QueryParams<SearchChatsQuery>,
 ) -> Result<Json<ChatPageDto>, AppError> {
     let words = util::validation::parse_chat_search(&query.query)?;
@@ -96,7 +96,7 @@ fn chat_page(mut chats: Vec<Chat>, limit: i64) -> ChatPageDto {
 
 pub(crate) async fn get_chat(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
 ) -> Result<Json<ChatDetailDto>, AppError> {
     let chat = repository::chat::get_chat(&state.db, auth.user_id, id)
@@ -139,7 +139,7 @@ pub(crate) async fn get_chat(
 /// Creates the chat with its first message and starts generating the answer.
 pub(crate) async fn create_chat(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     headers: HeaderMap,
     JsonBody(payload): JsonBody<CreateChatRequest>,
 ) -> Result<(StatusCode, Json<ChatDetailDto>), AppError> {
@@ -210,7 +210,7 @@ pub(crate) async fn create_chat(
 
 pub(crate) async fn update_chat(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
     JsonBody(payload): JsonBody<UpdateChatRequest>,
 ) -> Result<Json<ChatDto>, AppError> {
@@ -233,7 +233,7 @@ pub(crate) async fn update_chat(
 /// Deleting a missing chat also succeeds, so the request is safe to retry.
 pub(crate) async fn delete_chat(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
 ) -> Result<StatusCode, AppError> {
     // Generations are looked up by chat id alone, so only the owner may stop them.
@@ -246,7 +246,7 @@ pub(crate) async fn delete_chat(
 /// Returns the user's message and the `GENERATING` answer.
 pub(crate) async fn send_message(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(chat_id): PathParam<Uuid>,
     headers: HeaderMap,
     JsonBody(payload): JsonBody<SendMessageRequest>,
@@ -294,7 +294,7 @@ pub(crate) async fn send_message(
 /// message gets `snapshot` and `done` right away.
 pub(crate) async fn stream_message(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam((chat_id, message_id)): PathParam<(Uuid, Uuid)>,
 ) -> Result<Sse<impl Stream<Item = Result<Event, axum::Error>>>, AppError> {
     let message = repository::message::get_message(&state.db, auth.user_id, chat_id, message_id)
@@ -374,7 +374,7 @@ pub(crate) async fn stream_message(
 /// Keeps the partial content. Cancelling a finished message does nothing.
 pub(crate) async fn cancel_message(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam((chat_id, message_id)): PathParam<(Uuid, Uuid)>,
 ) -> Result<StatusCode, AppError> {
     let message = repository::message::get_message(&state.db, auth.user_id, chat_id, message_id)
@@ -392,7 +392,7 @@ pub(crate) async fn cancel_message(
 /// found for answers, `GENERATION_IN_PROGRESS` while one is generated.
 pub(crate) async fn resend_message(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam((chat_id, message_id)): PathParam<(Uuid, Uuid)>,
     headers: HeaderMap,
     JsonBody(payload): JsonBody<ResendMessageRequest>,
@@ -445,7 +445,7 @@ pub(crate) async fn resend_message(
 /// answers that are generating or were interrupted by a restart.
 pub(crate) async fn get_raw_answer(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam((chat_id, message_id)): PathParam<(Uuid, Uuid)>,
 ) -> Result<Json<RawAnswerDto>, AppError> {
     let raw = repository::message::get_raw_answer(&state.db, auth.user_id, chat_id, message_id)
@@ -468,7 +468,7 @@ fn client_context(
 
 pub(crate) async fn get_tool_call(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam((chat_id, tool_call_id)): PathParam<(Uuid, Uuid)>,
 ) -> Result<Json<ToolCallDto>, AppError> {
     let tool_call =
@@ -483,7 +483,7 @@ pub(crate) async fn get_tool_call(
 /// only available while the user can still read the repository.
 pub(crate) async fn get_presented_file(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam((chat_id, tool_call_id)): PathParam<(Uuid, Uuid)>,
 ) -> Result<Response, AppError> {
     let tool_call =
@@ -521,7 +521,7 @@ pub(crate) async fn get_presented_file(
 /// `NOT_FOUND` for the moves of `move_files`.
 pub(crate) async fn get_proposed_commit_file(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam((chat_id, tool_call_id)): PathParam<(Uuid, Uuid)>,
 ) -> Result<Response, AppError> {
     let tool_call =
@@ -565,7 +565,7 @@ fn file_response(file: service::tools::PresentedFile) -> Response {
 /// the chat itself, it is only available while the user can still read the repository.
 pub(crate) async fn get_proposed_commit_patch(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam((chat_id, tool_call_id)): PathParam<(Uuid, Uuid)>,
 ) -> Result<Response, AppError> {
     let (repository, proposed, change) =
@@ -584,7 +584,7 @@ pub(crate) async fn get_proposed_commit_patch(
 /// the patch, it is only available while the user can still read the repository.
 pub(crate) async fn get_proposed_commit_diff(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam((chat_id, tool_call_id)): PathParam<(Uuid, Uuid)>,
 ) -> Result<Json<FileDiffDto>, AppError> {
     let (repository, proposed, change) =
@@ -632,7 +632,7 @@ async fn proposed_change(
 /// the repository.
 pub(crate) async fn get_proposed_commit(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam((chat_id, tool_call_id)): PathParam<(Uuid, Uuid)>,
 ) -> Result<Json<ProposedCommitDto>, AppError> {
     let tool_call =
@@ -656,7 +656,7 @@ pub(crate) async fn get_proposed_commit(
 /// committed change stays committed.
 pub(crate) async fn commit_proposed_commit(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam((chat_id, tool_call_id)): PathParam<(Uuid, Uuid)>,
 ) -> Result<Json<ProposedCommitDto>, AppError> {
     let change = service::commit::commit(

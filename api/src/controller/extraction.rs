@@ -11,9 +11,9 @@ use crate::repository;
 use crate::service;
 use crate::util::extract::{JsonBody, QueryParams};
 use crate::util::validation::ValidationError;
+use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::{Extension, Json};
 
 const DEFAULT_PAGE_SIZE: i64 = 25;
 const MAX_PAGE_SIZE: i64 = 100;
@@ -21,7 +21,7 @@ const MAX_PAGE_SIZE: i64 = 100;
 /// What the document conversion is doing, and how far it is.
 pub(crate) async fn get_extraction_overview(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
 ) -> Result<Json<ExtractionOverviewDto>, AppError> {
     // Before the extractions, so a document converted in between is not counted as waiting.
     let status = state.extractor.status();
@@ -71,7 +71,7 @@ pub(crate) async fn get_extraction_overview(
 /// The documents of all repositories, by repository name and path.
 pub(crate) async fn list_extraction_documents(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     QueryParams(query): QueryParams<ListExtractionDocumentsQuery>,
 ) -> Result<Json<ExtractionDocumentPageDto>, AppError> {
     let filter = query.filter.unwrap_or(DocumentFilter::All);

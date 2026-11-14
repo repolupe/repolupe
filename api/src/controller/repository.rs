@@ -15,9 +15,9 @@ use crate::repository::repository::{NewRepository, RepositoryChanges};
 use crate::util::extract::{JsonBody, PathParam};
 use crate::util::validation::{ValidationError, parse_name, parse_token};
 use crate::{repository, util};
+use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::{Extension, Json};
 use url::Url;
 use uuid::Uuid;
 
@@ -26,7 +26,7 @@ const LOCAL_BRANCH: &str = "main";
 
 pub(crate) async fn list_repositories(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
 ) -> Result<Json<Vec<RepositoryDto>>, AppError> {
     let repositories = repository::repository::list_repositories(&state.db, auth.user_id).await?;
     Ok(Json(
@@ -39,7 +39,7 @@ pub(crate) async fn list_repositories(
 
 pub(crate) async fn get_repository(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
 ) -> Result<Json<RepositoryDto>, AppError> {
     let repository = find_repository(&state, auth.user_id, id).await?;
@@ -49,7 +49,7 @@ pub(crate) async fn get_repository(
 /// The documents in the synced commit, and how far their conversion to Markdown is.
 pub(crate) async fn list_repository_documents(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
 ) -> Result<Json<RepositoryDocumentsDto>, AppError> {
     find_repository(&state, auth.user_id, id).await?;
@@ -61,7 +61,7 @@ pub(crate) async fn list_repository_documents(
 
 pub(crate) async fn create_repository(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     JsonBody(payload): JsonBody<CreateRepositoryRequest>,
 ) -> Result<(StatusCode, Json<RepositoryDto>), AppError> {
     require_repository_management(&auth)?;
@@ -124,7 +124,7 @@ pub(crate) async fn create_repository(
 
 pub(crate) async fn update_repository(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
     JsonBody(payload): JsonBody<UpdateRepositoryRequest>,
 ) -> Result<Json<RepositoryDto>, AppError> {
@@ -256,7 +256,7 @@ async fn remote_changes<'a>(
 /// Deleting a missing repository also succeeds, so the request is safe to retry.
 pub(crate) async fn delete_repository(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
 ) -> Result<StatusCode, AppError> {
     require_repository_management(&auth)?;
@@ -273,7 +273,7 @@ pub(crate) async fn delete_repository(
 /// Only makes the repository due; the sync itself runs in the background.
 pub(crate) async fn request_sync(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
 ) -> Result<StatusCode, AppError> {
     require_repository_management(&auth)?;
@@ -300,7 +300,7 @@ pub(crate) async fn request_sync(
 /// The users the repository is shared with. Only for its owner and admins.
 pub(crate) async fn list_repository_users(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
 ) -> Result<Json<Vec<RepositoryUserDto>>, AppError> {
     find_managed_repository_owner(&state, &auth, id).await?;
@@ -312,7 +312,7 @@ pub(crate) async fn list_repository_users(
 /// chats. Sharing it again does nothing. Only for its owner and admins.
 pub(crate) async fn add_repository_user(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
     JsonBody(payload): JsonBody<AddRepositoryUserRequest>,
 ) -> Result<StatusCode, AppError> {
@@ -338,7 +338,7 @@ pub(crate) async fn add_repository_user(
 /// like the owner, if the repository allows commits. Only for its owner and admins.
 pub(crate) async fn update_repository_user(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam((id, user_id)): PathParam<(Uuid, Uuid)>,
     JsonBody(payload): JsonBody<UpdateRepositoryUserRequest>,
 ) -> Result<StatusCode, AppError> {
@@ -361,7 +361,7 @@ pub(crate) async fn update_repository_user(
 /// user it is not shared with also succeeds, so the request is safe to retry.
 pub(crate) async fn remove_repository_user(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam((id, user_id)): PathParam<(Uuid, Uuid)>,
 ) -> Result<StatusCode, AppError> {
     if user_id != auth.user_id {

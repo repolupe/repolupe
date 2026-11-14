@@ -19,15 +19,15 @@ use crate::service::mcp::{ConnectError, Credentials, McpTarget, connect_app_erro
 use crate::util::extract::{JsonBody, PathParam};
 use crate::util::validation::{parse_name, parse_token};
 use crate::{repository, util};
+use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::{Extension, Json};
 use chrono::Utc;
 use uuid::Uuid;
 
 pub(crate) async fn list_mcp_servers(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
 ) -> Result<Json<Vec<McpServerDto>>, AppError> {
     let servers = repository::mcp::list_mcp_servers(&state.db, auth.user_id).await?;
     Ok(Json(
@@ -40,7 +40,7 @@ pub(crate) async fn list_mcp_servers(
 
 /// Common servers, offered when adding one.
 pub(crate) async fn list_mcp_server_suggestions(
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
 ) -> Result<Json<Vec<McpServerSuggestionDto>>, AppError> {
     require_mcp_server_management(&auth)?;
     Ok(Json(mcp_server_suggestions()))
@@ -48,7 +48,7 @@ pub(crate) async fn list_mcp_server_suggestions(
 
 pub(crate) async fn create_mcp_server(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     JsonBody(payload): JsonBody<CreateMcpServerRequest>,
 ) -> Result<(StatusCode, Json<McpServerDto>), AppError> {
     require_mcp_server_management(&auth)?;
@@ -93,7 +93,7 @@ pub(crate) async fn create_mcp_server(
 
 pub(crate) async fn update_mcp_server(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
     JsonBody(payload): JsonBody<UpdateMcpServerRequest>,
 ) -> Result<Json<McpServerDto>, AppError> {
@@ -122,7 +122,7 @@ pub(crate) async fn update_mcp_server(
 /// Deleting a missing server also succeeds, so the request is safe to retry.
 pub(crate) async fn delete_mcp_server(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
 ) -> Result<StatusCode, AppError> {
     require_mcp_server_management(&auth)?;
@@ -140,7 +140,7 @@ pub(crate) async fn delete_mcp_server(
 /// Connects again and lists the tools. Failures are stored with the server, not returned.
 pub(crate) async fn refresh_mcp_server(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
 ) -> Result<Json<McpServerDto>, AppError> {
     require_mcp_server_management(&auth)?;
@@ -154,7 +154,7 @@ pub(crate) async fn refresh_mcp_server(
 
 pub(crate) async fn authorize_mcp_server(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
     JsonBody(payload): JsonBody<AuthorizeMcpServerRequest>,
 ) -> Result<Json<AuthorizationUrlDto>, AppError> {
@@ -176,7 +176,7 @@ pub(crate) async fn authorize_mcp_server(
 /// Stores the credentials, then connects again.
 pub(crate) async fn complete_mcp_authorization(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     JsonBody(payload): JsonBody<McpAuthorizationCallbackRequest>,
 ) -> Result<Json<McpServerDto>, AppError> {
     require_mcp_server_management(&auth)?;
@@ -200,7 +200,7 @@ pub(crate) async fn complete_mcp_authorization(
 /// The users the server is shared with. Only for its owner.
 pub(crate) async fn list_mcp_server_users(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
 ) -> Result<Json<Vec<McpServerUserDto>>, AppError> {
     require_mcp_server_management(&auth)?;
@@ -219,7 +219,7 @@ pub(crate) async fn list_mcp_server_users(
 /// server acts with the owner's credentials.
 pub(crate) async fn add_mcp_server_user(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
     JsonBody(payload): JsonBody<AddMcpServerUserRequest>,
 ) -> Result<StatusCode, AppError> {
@@ -253,7 +253,7 @@ pub(crate) async fn add_mcp_server_user(
 /// without the permission to manage MCP servers, like leaving it.
 pub(crate) async fn update_mcp_server_user(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam((id, user_id)): PathParam<(Uuid, Uuid)>,
     JsonBody(payload): JsonBody<UpdateMcpServerUserRequest>,
 ) -> Result<StatusCode, AppError> {
@@ -279,7 +279,7 @@ pub(crate) async fn update_mcp_server_user(
 /// also succeeds, so the request is safe to retry.
 pub(crate) async fn remove_mcp_server_user(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam((id, user_id)): PathParam<(Uuid, Uuid)>,
 ) -> Result<StatusCode, AppError> {
     let leaving = user_id == auth.user_id;

@@ -6,11 +6,11 @@ use crate::repository;
 use crate::service::attachment::MAX_ATTACHMENT_BYTES;
 use crate::service::extraction;
 use crate::util::extract::{PathParam, QueryParams};
+use axum::Json;
 use axum::body::Body;
 use axum::extract::State;
 use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
-use axum::{Extension, Json};
 use std::fmt::Write;
 use uuid::Uuid;
 
@@ -18,7 +18,7 @@ use uuid::Uuid;
 /// the next message (`attachment_id`). Attachments not sent within a day are removed.
 pub(crate) async fn upload_attachment(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     QueryParams(query): QueryParams<UploadAttachmentQuery>,
     headers: HeaderMap,
     body: Body,
@@ -59,7 +59,7 @@ pub(crate) async fn upload_attachment(
 /// The file of an attachment of the user, as a download.
 pub(crate) async fn download_attachment(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
 ) -> Result<Response, AppError> {
     let attachment = repository::attachment::get_attachment(&state.db, auth.user_id, id)

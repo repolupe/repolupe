@@ -12,14 +12,14 @@ use crate::dto::user::{
 use crate::middleware::auth::AuthenticatedUser;
 use crate::util::extract::{JsonBody, PathParam};
 use crate::{repository, util};
+use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::{Extension, Json};
 use uuid::Uuid;
 
 pub(crate) async fn me(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
 ) -> Result<Json<UserDto>, AppError> {
     let user = repository::user::get_user(&state.db, auth.user_id)
         .await?
@@ -32,7 +32,7 @@ pub(crate) async fn me(
 /// admin required, so the new password must differ from the current one.
 pub(crate) async fn change_password(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     JsonBody(payload): JsonBody<ChangePasswordRequest>,
 ) -> Result<StatusCode, AppError> {
     util::validation::validate_password(&payload.new_password)?;
@@ -68,7 +68,7 @@ pub(crate) async fn change_password(
 /// Sets the model that answers the user's questions, `null` uses the default model.
 pub(crate) async fn set_default_model(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     JsonBody(payload): JsonBody<SetMyDefaultModelRequest>,
 ) -> Result<StatusCode, AppError> {
     let updated = repository::user::set_default_model(&state.db, auth.user_id, payload.model_id)
@@ -89,7 +89,7 @@ pub(crate) async fn set_default_model(
 
 pub(crate) async fn set_locale(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     JsonBody(payload): JsonBody<SetLocaleRequest>,
 ) -> Result<StatusCode, AppError> {
     let locale = payload.locale.as_deref().map(str::trim);
@@ -105,7 +105,7 @@ pub(crate) async fn set_locale(
 /// Sets whether the changes the model proposes are committed once its answer is complete.
 pub(crate) async fn set_auto_commit(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     JsonBody(payload): JsonBody<SetAutoCommitRequest>,
 ) -> Result<StatusCode, AppError> {
     if !repository::user::set_auto_commit(&state.db, auth.user_id, payload.auto_commit).await? {
@@ -118,7 +118,7 @@ pub(crate) async fn set_auto_commit(
 /// empty string clears a field.
 pub(crate) async fn update_profile(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     JsonBody(payload): JsonBody<UpdateProfileRequest>,
 ) -> Result<StatusCode, AppError> {
     let full_name = non_empty(payload.full_name.as_deref());
@@ -146,7 +146,7 @@ pub(crate) async fn update_profile(
 /// sessions stay valid.
 pub(crate) async fn update_identity(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     JsonBody(payload): JsonBody<UpdateIdentityRequest>,
 ) -> Result<Json<UserDto>, AppError> {
     let user_name = payload.user_name.trim();
@@ -247,7 +247,7 @@ pub(crate) async fn update_user(
 /// everywhere. Admins change their own with the current password, like everyone else.
 pub(crate) async fn reset_password(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     PathParam(id): PathParam<Uuid>,
     JsonBody(payload): JsonBody<ResetPasswordRequest>,
 ) -> Result<Json<UserDto>, AppError> {
@@ -267,7 +267,7 @@ pub(crate) async fn reset_password(
 
 pub(crate) async fn delete_user(
     State(state): State<AppState>,
-    Extension(auth): Extension<AuthenticatedUser>,
+    auth: AuthenticatedUser,
     JsonBody(payload): JsonBody<DeleteUserRequest>,
 ) -> Result<(), AppError> {
     if payload.user_id == auth.user_id {

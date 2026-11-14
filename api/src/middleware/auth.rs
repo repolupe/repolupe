@@ -11,7 +11,6 @@ use axum_extra::headers::authorization::Bearer;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub(crate) struct AuthenticatedUser {
     pub session_id: Uuid,
     pub user_id: Uuid,
@@ -68,14 +67,12 @@ pub async fn session_auth(
     State(state): State<AppState>,
     authorization: Option<TypedHeader<Authorization<Bearer>>>,
     cookies: CookieJar,
-    mut request: Request,
+    request: Request,
     next: Next,
 ) -> Result<Response, AppError> {
     let user = authenticate(&state, authorization, &cookies, PasswordChange::Required).await?;
 
-    request.extensions_mut().insert(user);
-
-    Ok(next.run(request).await)
+    Ok(admit(user, request, next).await)
 }
 
 /// Like [`session_auth`], but also lets users in who must change their password, for the
@@ -84,21 +81,19 @@ pub async fn session_auth_allow_password_change(
     State(state): State<AppState>,
     authorization: Option<TypedHeader<Authorization<Bearer>>>,
     cookies: CookieJar,
-    mut request: Request,
+    request: Request,
     next: Next,
 ) -> Result<Response, AppError> {
     let user = authenticate(&state, authorization, &cookies, PasswordChange::Allowed).await?;
 
-    request.extensions_mut().insert(user);
-
-    Ok(next.run(request).await)
+    Ok(admit(user, request, next).await)
 }
 
 pub async fn session_auth_admin(
     State(state): State<AppState>,
     authorization: Option<TypedHeader<Authorization<Bearer>>>,
     cookies: CookieJar,
-    mut request: Request,
+    request: Request,
     next: Next,
 ) -> Result<Response, AppError> {
     let user = authenticate(&state, authorization, &cookies, PasswordChange::Required).await?;
@@ -107,7 +102,11 @@ pub async fn session_auth_admin(
         return Err(AppError::Forbidden("Admin access required".to_string()));
     }
 
-    request.extensions_mut().insert(user);
+    Ok(admit(user, request, next).await)
+}
 
-    Ok(next.run(request).await)
+/// Hands the user to the handler (the [`AuthenticatedUser`] extractor) and runs it.
+async fn admit(user: AuthenticatedUser, mut request: Request, next: Next) -> Response {
+    request.extensions_mut().insert(user);
+    next.run(request).await
 }
