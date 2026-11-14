@@ -26,7 +26,7 @@ mod support;
 use crate::config::error::AppError;
 use crate::config::state::DatabasePool;
 use crate::model::attachment::Attachment;
-use crate::model::tool_call::ProposedChange;
+use crate::model::tool_call::{ChangedPaths, ProposedChange};
 use crate::service::attachment::AttachmentStore;
 use crate::service::extraction::DocumentExtractor;
 use crate::service::llm::{Image, ToolDefinition, ToolUse};
@@ -227,10 +227,13 @@ impl ToolOutput {
         }
     }
 
-    /// Of a successful call that proposed `change`.
-    fn proposal(content: String, change: ProposedChange) -> Self {
+    /// Of a successful call that proposed `proposed_commit`, which changes `changed`.
+    fn proposal(content: String, changed: ChangedPaths, proposed_commit: String) -> Self {
         Self {
-            change: Some(change),
+            change: Some(ProposedChange {
+                changed,
+                proposed_commit,
+            }),
             ..Self::text(content)
         }
     }

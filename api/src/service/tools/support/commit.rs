@@ -1,13 +1,14 @@
 //! What the tools that propose commits share: who writes the commits, their paths and message,
 //! and the patch and diff the user reviews.
 
-use super::{diff, normalize_path, patch};
+use super::{diff, normalize_path, parent_dirs, patch};
 use crate::config::error::AppError;
 use crate::dto::chat::{DiffFileKind, DiffMoveDto, FileDiffDto};
 use crate::dto::error::ErrorCode;
 use crate::model::tool_call::{ChangedPaths, FileMove};
-use crate::service::mirror::{BlobMode, Content, PathEntry, Snapshot, TreeBlob};
-use crate::service::tools::ToolRepository;
+use crate::service::mirror::{BlobMode, Content, PathEntry, Signature, Snapshot, TreeBlob};
+use crate::service::tools::{ToolError, ToolRepository};
+use chrono::{DateTime, Utc};
 
 /// Larger files are not changed.
 pub(crate) const MAX_CHANGE_BYTES: u64 = 1024 * 1024;
@@ -17,17 +18,27 @@ const MAX_COMMIT_MESSAGE_CHARS: usize = 5_000;
 const NOREPLY_EMAIL: &str = "noreply@repolupe.com";
 
 /// A name and email of [`CommitIdentities`].
-pub(crate) struct Identity {
-    pub(crate) name: String,
-    pub(crate) email: String,
+struct Identity {
+    name: String,
+    email: String,
+}
+
+impl Identity {
+    fn signature(&self, time: DateTime<Utc>) -> Signature {
+        Signature {
+            name: self.name.clone(),
+            email: self.email.clone(),
+            time,
+        }
+    }
 }
 
 /// Who the proposed commits are written by.
 pub(crate) struct CommitIdentities {
     /// The model writing the answer.
-    pub(crate) author: Identity,
+    author: Identity,
     /// The user asking, who reviews the commits and pushes them.
-    pub(crate) committer: Identity,
+    committer: Identity,
 }
 
 impl CommitIdentities {
@@ -45,6 +56,24 @@ impl CommitIdentities {
             },
         }
     }
+
+    /// The author and committer of a commit written now.
+    pub(crate) fn signatures(&self) -> (Signature, Signature) {
+        let now = Utc::now();
+        (self.author.signature(now), self.committer.signature(now))
+    }
+}
+
+/// Fails if a parent directory of `path`, which does not exist yet, is a file in `snapshot`.
+pub(crate) async fn check_creatable(snapshot: &Snapshot, path: &str) -> Result<(), ToolError> {
+    for dir in parent_dirs(path) {
+        if let PathEntry::Blob { .. } | PathEntry::Other = snapshot.entry(dir).await? {
+            return Err(ToolError::Invalid(format!(
+                "`{dir}` is a file, so `{path}` can't be created."
+            )));
+        }
+    }
+    Ok(())
 }
 
 /// The path of a file to commit, outside of `.git`.

@@ -1,17 +1,18 @@
 //! [`MOVE_FILES`]: proposes a commit that moves or renames files and directories, which the
 //! user reviews and pushes like the changes of [`CHANGE_FILE`].
 
-use super::support::commit::{Identity, check_outside_git, moved_files, parse_commit_message};
+use super::support::commit::{
+    check_creatable, check_outside_git, moved_files, parse_commit_message,
+};
 use super::support::{
-    missing_path, normalize_path, parent_dirs, parse_args, plural, writable_repository_schema,
+    missing_path, normalize_path, parse_args, plural, writable_repository_schema,
 };
 use super::{
     CHANGE_FILE, Call, Invocation, LIST_FILES, MOVE_FILES, RepositoryTools, ToolError, ToolOutput,
 };
-use crate::model::tool_call::{ChangedPaths, FileMove, ProposedChange};
+use crate::model::tool_call::{ChangedPaths, FileMove};
 use crate::service::llm::ToolDefinition;
-use crate::service::mirror::{PathEntry, Signature};
-use chrono::Utc;
+use crate::service::mirror::PathEntry;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::fmt::Write;
@@ -163,7 +164,6 @@ fn check_overlaps(moves: &[FileMove]) -> Result<(), String> {
 /// outside of it or the other way around. Returns the output for the model.
 pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<ToolOutput, ToolError> {
     let repository = invocation.target()?;
-    let identities = invocation.identities;
     let snapshot = &repository.snapshot;
     let mut folders = Vec::new();
     for FileMove { from, to } in &args.moves {
@@ -186,34 +186,18 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Tool
                 )));
             }
         }
-        for dir in parent_dirs(to) {
-            if let PathEntry::Blob { .. } | PathEntry::Other = snapshot.entry(dir).await? {
-                return Err(ToolError::Invalid(format!(
-                    "`{dir}` is a file, so `{to}` can't be created."
-                )));
-            }
-        }
+        check_creatable(snapshot, to).await?;
         folders.push(matches!(entry, PathEntry::Tree));
     }
 
-    let now = Utc::now();
-    let signature = |identity: &Identity| Signature {
-        name: identity.name.clone(),
-        email: identity.email.clone(),
-        time: now,
-    };
+    let (author, committer) = invocation.identities.signatures();
     let pairs: Vec<(String, String)> = args
         .moves
         .iter()
         .map(|m| (m.from.clone(), m.to.clone()))
         .collect();
     let commit = snapshot
-        .commit_moves(
-            &pairs,
-            &args.message,
-            &signature(&identities.author),
-            &signature(&identities.committer),
-        )
+        .commit_moves(&pairs, &args.message, &author, &committer)
         .await?;
 
     // Pointers are moved as they are, so they must stay where `.gitattributes` assigns files
@@ -258,16 +242,15 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Tool
     );
     Ok(ToolOutput::proposal(
         output,
-        ProposedChange {
-            changed: ChangedPaths::Moves(args.moves.clone()),
-            proposed_commit: commit,
-        },
+        ChangedPaths::Moves(args.moves.clone()),
+        commit,
     ))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::tool_call::ProposedChange;
     use crate::service::mirror::Snapshot;
     use crate::service::tools::read_proposed_commit_patch;
     use crate::service::tools::support::fixture::{Fixture, LFS_POINTER, docs};

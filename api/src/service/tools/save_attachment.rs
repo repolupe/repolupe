@@ -1,16 +1,15 @@
 //! [`SAVE_ATTACHMENT`]: proposes a commit that stores a file attached to the chat in a
 //! repository, like [`CHANGE_FILE`](super::CHANGE_FILE).
 
-use super::support::commit::{Identity, parse_commit_message, parse_commit_path};
-use super::support::{parent_dirs, parse_args, writable_repository_schema};
+use super::support::commit::{check_creatable, parse_commit_message, parse_commit_path};
+use super::support::{parse_args, writable_repository_schema};
 use super::{
     Call, Invocation, LIST_FILES, READ_ATTACHMENT, RepositoryTools, SAVE_ATTACHMENT, ToolError,
     ToolOutput,
 };
-use crate::model::tool_call::{ChangedPaths, ProposedChange};
+use crate::model::tool_call::ChangedPaths;
 use crate::service::llm::ToolDefinition;
-use crate::service::mirror::{BlobMode, PathEntry, Signature};
-use chrono::Utc;
+use crate::service::mirror::{BlobMode, PathEntry};
 use serde::Deserialize;
 use serde_json::{Value, json};
 
@@ -94,7 +93,6 @@ pub(super) fn parse(input: &Value) -> Result<Call, String> {
 /// Proposes a commit that stores attachment `number` at `path`, which must not exist unless
 /// `replace` is set.
 pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<ToolOutput, ToolError> {
-    let identities = invocation.identities;
     let attachments = invocation.attachments;
     let number = args.number;
     let path = args.path.as_str();
@@ -103,13 +101,7 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Tool
     let snapshot = &invocation.target()?.snapshot;
     let replaced = match snapshot.entry(path).await? {
         PathEntry::Missing => {
-            for dir in parent_dirs(path) {
-                if let PathEntry::Blob { .. } = snapshot.entry(dir).await? {
-                    return Err(ToolError::Invalid(format!(
-                        "`{dir}` is a file, so `{path}` can't be created."
-                    )));
-                }
-            }
+            check_creatable(snapshot, path).await?;
             None
         }
         PathEntry::Blob {
@@ -148,19 +140,14 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Tool
         }
     };
 
-    let now = Utc::now();
-    let signature = |identity: &Identity| Signature {
-        name: identity.name.clone(),
-        email: identity.email.clone(),
-        time: now,
-    };
+    let (author, committer) = invocation.identities.signatures();
     let commit = snapshot
         .commit_file(
             path,
             Some((content, replaced.unwrap_or(BlobMode::Regular))),
             &args.message,
-            &signature(&identities.author),
-            &signature(&identities.committer),
+            &author,
+            &committer,
         )
         .await?;
 
@@ -177,9 +164,7 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Tool
     );
     Ok(ToolOutput::proposal(
         output,
-        ProposedChange {
-            changed: ChangedPaths::File(path.to_string()),
-            proposed_commit: commit,
-        },
+        ChangedPaths::File(path.to_string()),
+        commit,
     ))
 }
