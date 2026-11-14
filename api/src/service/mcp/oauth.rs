@@ -5,7 +5,10 @@
 //! The tokens are stored encrypted with the server ([`DbCredentialStore`]). A sign-in in
 //! progress is kept in memory, so it is lost when the server restarts.
 
-use super::{ConnectError, Credentials, McpClient, McpTarget, builder, check_url};
+use super::error::auth_error;
+use super::{
+    ConnectError, Credentials, McpClient, McpTarget, builder, check_url, connect_app_error,
+};
 use crate::config::error::AppError;
 use crate::config::state::DatabasePool;
 use crate::dto::error::ErrorCode;
@@ -237,7 +240,7 @@ pub(super) async fn signed_in_manager(
     target: &McpTarget,
 ) -> Result<AuthorizationManager, ConnectError> {
     debug_assert!(matches!(target.credentials, Credentials::OAuth));
-    let error = |e: AuthError| super::auth_error(&e, target.id);
+    let error = |e: AuthError| auth_error(&e, target.id);
     let mut manager = new_manager(client, &target.url, target.access, target.id, false)
         .await
         .map_err(error)?;
@@ -325,7 +328,7 @@ pub(super) async fn start_sign_in(
     access: RemoteAccess,
     redirect_url: &Url,
 ) -> Result<String, AppError> {
-    check_url(&server.url, access).map_err(super::connect_app_error)?;
+    check_url(&server.url, access).map_err(connect_app_error)?;
     let redirect_uri = redirect_url.as_str();
     let application_type = application_type(redirect_url);
     // The server's challenge may name its metadata, which spares guessing where it is.

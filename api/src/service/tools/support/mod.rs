@@ -9,6 +9,7 @@ pub(super) mod glob;
 pub(super) mod markdown;
 pub(super) mod patch;
 pub(super) mod results;
+pub(super) mod sandbox;
 
 use super::{LIST_FILES, RepositoryTools, ToolError, ToolOutput, ToolRepository};
 use crate::config::error::AppError;

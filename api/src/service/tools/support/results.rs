@@ -5,8 +5,8 @@
 //! [`MAX_STORED_BYTES`].
 
 use super::format_size;
+use super::sandbox::MAX_INPUT_BYTES;
 use crate::config::error::AppError;
-use crate::service::tools::run_script::MAX_INPUT_BYTES;
 use crate::service::tools::{RUN_SCRIPT, ToolError};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
