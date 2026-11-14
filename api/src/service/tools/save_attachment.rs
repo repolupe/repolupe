@@ -5,6 +5,7 @@ use super::support::commit::{Identity, parse_commit_message, parse_commit_path};
 use super::support::{parent_dirs, parse_args, writable_repository_schema};
 use super::{
     Call, Invocation, LIST_FILES, READ_ATTACHMENT, RepositoryTools, SAVE_ATTACHMENT, ToolError,
+    ToolOutput,
 };
 use crate::model::tool_call::{ChangedPaths, ProposedChange};
 use crate::service::llm::ToolDefinition;
@@ -65,7 +66,6 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
 
 #[derive(Deserialize)]
 struct Input {
-    repository: Option<String>,
     attachment: i32,
     path: String,
     message: String,
@@ -73,14 +73,14 @@ struct Input {
 }
 
 pub(super) struct Args {
-    number: i32,
+    pub(super) number: i32,
     path: String,
     message: String,
     /// Whether an existing file may be replaced.
     replace: bool,
 }
 
-pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
+pub(super) fn parse(input: &Value) -> Result<Call, String> {
     let input: Input = parse_args(SAVE_ATTACHMENT, input)?;
     let args = Args {
         number: input.attachment,
@@ -88,15 +88,12 @@ pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
         message: parse_commit_message(&input.message)?,
         replace: input.replace.unwrap_or(false),
     };
-    Ok((input.repository, Call::SaveAttachment(args)))
+    Ok(Call::SaveAttachment(args))
 }
 
 /// Proposes a commit that stores attachment `number` at `path`, which must not exist unless
 /// `replace` is set.
-pub(super) async fn run(
-    invocation: &Invocation<'_>,
-    args: &Args,
-) -> Result<(String, ProposedChange), ToolError> {
+pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<ToolOutput, ToolError> {
     let identities = invocation.identities;
     let attachments = invocation.attachments;
     let number = args.number;
@@ -178,7 +175,7 @@ pub(super) async fn run(
         attachment.file_name,
         invocation.proposal_outcome()
     );
-    Ok((
+    Ok(ToolOutput::proposal(
         output,
         ProposedChange {
             changed: ChangedPaths::File(path.to_string()),

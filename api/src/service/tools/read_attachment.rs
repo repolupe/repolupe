@@ -80,7 +80,7 @@ pub(super) struct Args {
     page: Option<usize>,
 }
 
-pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
+pub(super) fn parse(input: &Value) -> Result<Call, String> {
     let input: Input = parse_args(READ_ATTACHMENT, input)?;
     let args = Args {
         number: input.attachment,
@@ -88,7 +88,7 @@ pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
         limit: input.limit,
         page: parse_page(input.page)?,
     };
-    Ok((None, Call::ReadAttachment(args)))
+    Ok(Call::ReadAttachment(args))
 }
 
 pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<ToolOutput, ToolError> {

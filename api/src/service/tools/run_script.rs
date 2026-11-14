@@ -14,7 +14,8 @@ use super::support::{
     repository_schema,
 };
 use super::{
-    Call, Invocation, READ_ATTACHMENT, RUN_SCRIPT, RepositoryTools, ToolError, read_attachment,
+    Call, Invocation, READ_ATTACHMENT, RUN_SCRIPT, RepositoryTools, ToolError, ToolOutput,
+    read_attachment,
 };
 use crate::config::error::AppError;
 use crate::service::llm::ToolDefinition;
@@ -195,7 +196,6 @@ struct Input {
     code: String,
     files: Option<Vec<String>>,
     attachments: Option<Vec<i32>>,
-    repository: Option<String>,
 }
 
 pub(super) struct Args {
@@ -212,7 +212,7 @@ impl Args {
     }
 }
 
-pub(super) fn parse(input: &Json) -> Result<(Option<String>, Call), String> {
+pub(super) fn parse(input: &Json) -> Result<Call, String> {
     let input: Input = parse_args(RUN_SCRIPT, input)?;
     if input.code.trim().is_empty() {
         return Err("`code` must not be empty.".to_string());
@@ -253,10 +253,10 @@ pub(super) fn parse(input: &Json) -> Result<(Option<String>, Call), String> {
         files,
         attachments,
     };
-    Ok((input.repository, Call::RunScript(args)))
+    Ok(Call::RunScript(args))
 }
 
-pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<String, ToolError> {
+pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<ToolOutput, ToolError> {
     let attachments = invocation.attachments;
     // Before a slot is taken, so a call waiting for a document doesn't keep others from running.
     for &number in &args.attachments {
@@ -295,7 +295,7 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Stri
     .await
     .map_err(|e| AppError::InternalServerError(format!("The script panicked: {e}")))??;
     notes.push(output);
-    Ok(notes.join("\n\n"))
+    Ok(ToolOutput::text(notes.join("\n\n")))
 }
 
 /// What a script gets besides its code, see [`execute`].

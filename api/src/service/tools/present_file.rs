@@ -4,7 +4,9 @@
 use super::support::{
     file_path_schema, is_markdown, normalize_path, parse_args, read_text, repository_schema,
 };
-use super::{Call, Invocation, PRESENT_FILE, RepositoryTools, ToolError, ToolRepository};
+use super::{
+    Call, Invocation, PRESENT_FILE, RepositoryTools, ToolError, ToolOutput, ToolRepository,
+};
 use crate::config::error::AppError;
 use crate::config::state::DatabasePool;
 use crate::dto::error::ErrorCode;
@@ -40,7 +42,6 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
 
 #[derive(Deserialize)]
 struct Input {
-    repository: Option<String>,
     path: String,
 }
 
@@ -48,21 +49,21 @@ pub(super) struct Args {
     path: String,
 }
 
-pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
+pub(super) fn parse(input: &Value) -> Result<Call, String> {
     let input: Input = parse_args(PRESENT_FILE, input)?;
     let args = Args {
         path: normalize_path(&input.path)?,
     };
-    Ok((input.repository, Call::PresentFile(args)))
+    Ok(Call::PresentFile(args))
 }
 
 /// Checks that the file can be shown, the user reads it with [`read_presented_file`].
-pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<String, ToolError> {
+pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<ToolOutput, ToolError> {
     let path = args.path.as_str();
     load_presented_file(invocation.target()?, invocation.db, path).await?;
-    Ok(format!(
+    Ok(ToolOutput::text(format!(
         "`{path}` is shown to the user as a button below your answer that opens the file."
-    ))
+    )))
 }
 
 /// A file the model showed to the user with [`PRESENT_FILE`], or the file a change proposes, as

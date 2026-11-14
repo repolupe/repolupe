@@ -5,7 +5,7 @@ use super::support::{
     Output, glob, glob_schema, non_empty, normalize_path, not_found, parent_dirs, parse_args,
     plural, repository_schema,
 };
-use super::{Call, Invocation, LIST_FILES, RepositoryTools, ToolError};
+use super::{Call, Invocation, LIST_FILES, RepositoryTools, ToolError, ToolOutput};
 use crate::service::llm::ToolDefinition;
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -38,7 +38,6 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
 
 #[derive(Deserialize)]
 struct Input {
-    repository: Option<String>,
     path: Option<String>,
     glob: Option<String>,
 }
@@ -48,16 +47,16 @@ pub(super) struct Args {
     glob: Option<String>,
 }
 
-pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
+pub(super) fn parse(input: &Value) -> Result<Call, String> {
     let input: Input = parse_args(LIST_FILES, input)?;
     let args = Args {
         path: normalize_path(input.path.as_deref().unwrap_or(""))?,
         glob: non_empty(input.glob),
     };
-    Ok((input.repository, Call::ListFiles(args)))
+    Ok(Call::ListFiles(args))
 }
 
-pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<String, ToolError> {
+pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<ToolOutput, ToolError> {
     let path = args.path.as_str();
     let glob = args.glob.as_deref();
     let blobs = invocation.target()?.snapshot.files().await?;
@@ -72,7 +71,7 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Stri
         .collect();
     if in_dir.is_empty() {
         if let Some(blob) = blobs.iter().find(|blob| blob.path == path) {
-            return Ok(blob.path.clone());
+            return Ok(ToolOutput::text(blob.path.clone()));
         }
         let dirs = blobs
             .iter()
@@ -96,10 +95,10 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Stri
         format!("`{path}`")
     };
     if files.is_empty() {
-        return Ok(format!(
+        return Ok(ToolOutput::text(format!(
             "No files in {location} match `{}`.",
             glob.unwrap_or_default()
-        ));
+        )));
     }
 
     let mut output = Output::default();
@@ -115,7 +114,7 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Stri
                 files.len()
             ));
         }
-        return Ok(output.text);
+        return Ok(ToolOutput::text(output.text));
     }
 
     // Too many to list, so summarize the first level instead.
@@ -143,7 +142,7 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Stri
             break;
         }
     }
-    Ok(output.text)
+    Ok(ToolOutput::text(output.text))
 }
 
 #[cfg(test)]

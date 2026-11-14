@@ -52,7 +52,6 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
 
 #[derive(Deserialize)]
 struct Input {
-    repository: Option<String>,
     path: String,
     offset: Option<usize>,
     limit: Option<usize>,
@@ -67,7 +66,7 @@ pub(super) struct Args {
     page: Option<usize>,
 }
 
-pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
+pub(super) fn parse(input: &Value) -> Result<Call, String> {
     let input: Input = parse_args(READ_FILE, input)?;
     let args = Args {
         path: normalize_path(&input.path)?,
@@ -75,7 +74,7 @@ pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
         limit: input.limit,
         page: parse_page(input.page)?,
     };
-    Ok((input.repository, Call::ReadFile(args)))
+    Ok(Call::ReadFile(args))
 }
 
 pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<ToolOutput, ToolError> {

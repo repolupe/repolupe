@@ -16,7 +16,7 @@
 
 use super::support::MAX_OUTPUT_CHARS;
 use super::support::results::{ResultValue, StoredResults};
-use super::{Call, ToolError};
+use super::{Call, ToolError, ToolOutput};
 use crate::model::mcp_server::McpTool;
 use crate::service::llm::ToolDefinition;
 use crate::service::mcp::{
@@ -189,7 +189,7 @@ impl McpTools {
         &self,
         args: &Args,
         results: &StoredResults,
-    ) -> Result<String, ToolError> {
+    ) -> Result<ToolOutput, ToolError> {
         let server = &self.servers[args.server];
         let (_, tool) = &server.tools[args.tool];
         let session = self.session(server).await?;
@@ -224,10 +224,11 @@ impl McpTools {
         if result.is_error == Some(true) {
             return Err(ToolError::Invalid(error_text(result)));
         }
-        match result_value(result) {
-            Some(value) => results.store(value),
-            None => Ok("The tool returned nothing.".to_string()),
-        }
+        let content = match result_value(result) {
+            Some(value) => results.store(value)?,
+            None => "The tool returned nothing.".to_string(),
+        };
+        Ok(ToolOutput::text(content))
     }
 
     /// The session with the server, connecting on the first call. Calls running at the same

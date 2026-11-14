@@ -6,7 +6,9 @@ use super::support::{
     MAX_OUTPUT_CHARS, Output, glob, glob_schema, missing_path, non_empty, normalize_path,
     parse_args, plural, repository_schema, window,
 };
-use super::{Call, GREP, Invocation, READ_FILE, RepositoryTools, ToolError, ToolRepository};
+use super::{
+    Call, GREP, Invocation, READ_FILE, RepositoryTools, ToolError, ToolOutput, ToolRepository,
+};
 use crate::repository;
 use crate::service::extraction;
 use crate::service::llm::ToolDefinition;
@@ -84,7 +86,6 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
 
 #[derive(Deserialize)]
 struct Input {
-    repository: Option<String>,
     pattern: String,
     path: Option<String>,
     glob: Option<String>,
@@ -116,7 +117,7 @@ impl Args {
     }
 }
 
-pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
+pub(super) fn parse(input: &Value) -> Result<Call, String> {
     let input: Input = parse_args(GREP, input)?;
     if input.pattern.is_empty() {
         return Err("`pattern` must not be empty.".to_string());
@@ -128,12 +129,12 @@ pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
         ignore_case: input.ignore_case.unwrap_or(false),
         context: input.context.unwrap_or(0).min(MAX_GREP_CONTEXT),
     };
-    Ok((input.repository, Call::Grep(args)))
+    Ok(Call::Grep(args))
 }
 
-pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<String, ToolError> {
+pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<ToolOutput, ToolError> {
     let Some(repository) = invocation.repository else {
-        return run_all(invocation, args).await;
+        return run_all(invocation, args).await.map(ToolOutput::text);
     };
     let matches = search(invocation, repository, args).await?;
     let path = args.path.as_str();
@@ -144,9 +145,11 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Stri
         return Err(missing_path(repository, path).await?);
     }
     let hint = "Narrow down with a more specific `pattern`, `path` or `glob`.";
-    Ok(matches
-        .render(None, MAX_GREP_MATCHES, MAX_OUTPUT_CHARS, hint)
-        .text)
+    Ok(ToolOutput::text(
+        matches
+            .render(None, MAX_GREP_MATCHES, MAX_OUTPUT_CHARS, hint)
+            .text,
+    ))
 }
 
 /// Searches all repositories, one section each. They share the limits: each gets an equal part,

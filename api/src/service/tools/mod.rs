@@ -7,9 +7,8 @@
 //!
 //! Each tool is a module with a `definition`, a `parse` into a [`Call`], and a `run`; shared
 //! code is in [`support`]. A new tool also needs a name below, a variant of [`Call`], and an
-//! arm in [`RepositoryTools::definitions`], [`RepositoryTools::parse`] and [`Invocation::run`].
-//! Tools that don't look things up must be listed in `answer.rs`, which drops the text before
-//! the other calls.
+//! arm in [`RepositoryTools::definitions`], [`RepositoryTools::parse`], [`Invocation::run`],
+//! [`Call::scope`] and, unless it looks things up, [`Call::looks_up`].
 
 mod change_file;
 mod grep;
@@ -33,11 +32,12 @@ use crate::service::extraction::DocumentExtractor;
 use crate::service::llm::{Image, ToolDefinition, ToolUse};
 use crate::service::mcp::McpClient;
 use crate::service::mirror::Snapshot;
+use serde::Deserialize;
 use serde_json::Value;
 use std::collections::BTreeSet;
 use std::sync::Arc;
-use support::format_size;
 use support::results::StoredResults;
+use support::{format_size, parse_args};
 use uuid::Uuid;
 
 pub(crate) use mcp::{
@@ -157,6 +157,51 @@ enum Call {
     Mcp(mcp::Args),
 }
 
+/// Which repository a call needs, see [`Call::scope`].
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Scope {
+    /// None, so a `repository` argument is ignored.
+    Unbound,
+    Read,
+    /// One the model may propose commits to.
+    Write,
+}
+
+impl Call {
+    fn scope(&self) -> Scope {
+        match self {
+            Call::ReadAttachment(_) | Call::Mcp(_) => Scope::Unbound,
+            Call::RunScript(args) if !args.reads_files() => Scope::Unbound,
+            Call::ChangeFile(_) | Call::MoveFiles(_) | Call::SaveAttachment(_) => Scope::Write,
+            Call::ListFiles(_)
+            | Call::ReadFile(_)
+            | Call::Grep(_)
+            | Call::Outline(_)
+            | Call::PresentFile(_)
+            | Call::RunScript(_) => Scope::Read,
+        }
+    }
+
+    /// Whether the call looks things up, so the text before it is usually a preamble like "Let
+    /// me look". Presenting files and proposing changes looks nothing up, and the text with them
+    /// may already be the answer. The tools of MCP servers count as lookups.
+    fn looks_up(&self) -> bool {
+        !matches!(
+            self,
+            Call::PresentFile(_)
+                | Call::ChangeFile(_)
+                | Call::MoveFiles(_)
+                | Call::SaveAttachment(_)
+        )
+    }
+}
+
+/// The `repository` argument of the tools bound to one, see [`RepositoryTools::repository`].
+#[derive(Deserialize)]
+struct RepositoryArg {
+    repository: Option<String>,
+}
+
 /// The result to send back to the model.
 #[derive(Debug)]
 pub(crate) struct ToolOutput {
@@ -179,6 +224,14 @@ impl ToolOutput {
             image: None,
             is_error: false,
             change: None,
+        }
+    }
+
+    /// Of a successful call that proposed `change`.
+    fn proposal(content: String, change: ProposedChange) -> Self {
+        Self {
+            change: Some(change),
+            ..Self::text(content)
         }
     }
 
@@ -343,7 +396,7 @@ impl RepositoryTools {
             return Err(format!("The arguments are not valid JSON: {raw}"));
         }
         let input = &tool_use.input;
-        let (repository, call) = match tool_use.name.as_str() {
+        let call = match tool_use.name.as_str() {
             LIST_FILES => list_files::parse(input)?,
             READ_FILE => read_file::parse(input)?,
             GREP => grep::parse(input)?,
@@ -355,25 +408,26 @@ impl RepositoryTools {
             READ_ATTACHMENT if self.can_read_attachments() => read_attachment::parse(input)?,
             RUN_SCRIPT => run_script::parse(input)?,
             name => match self.mcp.parse(name, input) {
-                Some(call) => (None, call?),
+                Some(call) => call?,
                 None => return Err(format!("There is no tool named `{name}`.")),
             },
         };
-        let repository = match call {
-            Call::ReadAttachment(_) | Call::Mcp(_) => None,
-            Call::RunScript(ref args) if !args.reads_files() => None,
-            // Searches all of them, see `grep::run`.
-            Call::Grep(ref args) if repository.is_none() && self.repositories.len() > 1 => {
-                args.check_all()?;
-                None
+        let scope = call.scope();
+        let repository = if scope == Scope::Unbound {
+            None
+        } else {
+            let RepositoryArg { repository } = parse_args(&tool_use.name, input)?;
+            match call {
+                // Searches all of them, see `grep::run`.
+                Call::Grep(ref args) if repository.is_none() && self.repositories.len() > 1 => {
+                    args.check_all()?;
+                    None
+                }
+                _ => Some(self.repository(repository.as_deref())?),
             }
-            _ => Some(self.repository(repository.as_deref())?),
         };
         if let Some(repository) = repository
-            && matches!(
-                call,
-                Call::ChangeFile(_) | Call::MoveFiles(_) | Call::SaveAttachment(_)
-            )
+            && scope == Scope::Write
             && !repository.can_commit
         {
             return Err(format!(
@@ -443,32 +497,38 @@ impl Invocation<'_> {
         })
     }
 
-    pub(crate) async fn run(&self) -> ToolOutput {
-        let result = match &self.call {
-            Call::ListFiles(args) => list_files::run(self, args).await,
-            Call::ReadFile(args) => return self.file(read_file::run(self, args).await),
-            Call::Grep(args) => grep::run(self, args).await,
-            Call::Outline(args) => outline::run(self, args).await,
-            Call::PresentFile(args) => present_file::run(self, args).await,
-            Call::ChangeFile(args) => return self.proposal(change_file::run(self, args).await),
-            Call::MoveFiles(args) => return self.proposal(move_files::run(self, args).await),
-            Call::SaveAttachment(args) => {
-                return self.proposal(save_attachment::run(self, args).await);
-            }
-            Call::ReadAttachment(args) => {
-                return self.file(read_attachment::run(self, args).await);
-            }
-            Call::RunScript(args) => run_script::run(self, args).await,
-            Call::Mcp(args) => self.mcp.run(args, self.results).await,
-        };
-        match result {
-            Ok(content) => ToolOutput::text(content),
-            Err(e) => self.error_output(e),
+    /// Whether the call looks things up, see [`Call::looks_up`].
+    pub(crate) fn looks_up(&self) -> bool {
+        self.call.looks_up()
+    }
+
+    /// Of a call that proposes a commit: what it changes, the same for a later call that
+    /// replaces the proposal. That is a call for the same file, the same attachment, or moves in
+    /// the same repository.
+    pub(crate) fn proposal_key(&self) -> Option<String> {
+        let repository = self.repository.map(|r| r.id);
+        match &self.call {
+            Call::ChangeFile(args) => Some(format!("{}:{}", repository?, args.path)),
+            Call::MoveFiles(_) => Some(format!("{}:moves", repository?)),
+            Call::SaveAttachment(args) => Some(format!("attachment:{}", args.number)),
+            _ => None,
         }
     }
 
-    /// The output of a call that reads a file, which may be an image.
-    fn file(&self, result: Result<ToolOutput, ToolError>) -> ToolOutput {
+    pub(crate) async fn run(&self) -> ToolOutput {
+        let result = match &self.call {
+            Call::ListFiles(args) => list_files::run(self, args).await,
+            Call::ReadFile(args) => read_file::run(self, args).await,
+            Call::Grep(args) => grep::run(self, args).await,
+            Call::Outline(args) => outline::run(self, args).await,
+            Call::PresentFile(args) => present_file::run(self, args).await,
+            Call::ChangeFile(args) => change_file::run(self, args).await,
+            Call::MoveFiles(args) => move_files::run(self, args).await,
+            Call::SaveAttachment(args) => save_attachment::run(self, args).await,
+            Call::ReadAttachment(args) => read_attachment::run(self, args).await,
+            Call::RunScript(args) => run_script::run(self, args).await,
+            Call::Mcp(args) => self.mcp.run(args, self.results).await,
+        };
         result.unwrap_or_else(|e| self.error_output(e))
     }
 
@@ -480,17 +540,6 @@ impl Invocation<'_> {
         } else {
             "It is not committed yet: the user sees it below your answer and decides whether to \
             commit it."
-        }
-    }
-
-    /// The output of a call that proposes a commit, which is stored with the call.
-    fn proposal(&self, result: Result<(String, ProposedChange), ToolError>) -> ToolOutput {
-        match result {
-            Ok((content, change)) => ToolOutput {
-                change: Some(change),
-                ..ToolOutput::text(content)
-            },
-            Err(e) => self.error_output(e),
         }
     }
 

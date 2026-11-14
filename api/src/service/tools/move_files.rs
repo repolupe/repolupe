@@ -5,7 +5,9 @@ use super::support::commit::{Identity, check_outside_git, moved_files, parse_com
 use super::support::{
     missing_path, normalize_path, parent_dirs, parse_args, plural, writable_repository_schema,
 };
-use super::{CHANGE_FILE, Call, Invocation, LIST_FILES, MOVE_FILES, RepositoryTools, ToolError};
+use super::{
+    CHANGE_FILE, Call, Invocation, LIST_FILES, MOVE_FILES, RepositoryTools, ToolError, ToolOutput,
+};
 use crate::model::tool_call::{ChangedPaths, FileMove, ProposedChange};
 use crate::service::llm::ToolDefinition;
 use crate::service::mirror::{PathEntry, Signature};
@@ -70,7 +72,6 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
 
 #[derive(Deserialize)]
 struct Input {
-    repository: Option<String>,
     moves: Vec<MoveInput>,
     message: String,
 }
@@ -87,7 +88,7 @@ pub(super) struct Args {
     message: String,
 }
 
-pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
+pub(super) fn parse(input: &Value) -> Result<Call, String> {
     let input: Input = parse_args(MOVE_FILES, input)?;
     if input.moves.is_empty() {
         return Err("`moves` must not be empty.".to_string());
@@ -115,7 +116,7 @@ pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
         moves,
         message: parse_commit_message(&input.message)?,
     };
-    Ok((input.repository, Call::MoveFiles(args)))
+    Ok(Call::MoveFiles(args))
 }
 
 fn parse_move_path(field: &str, path: &str) -> Result<String, String> {
@@ -160,10 +161,7 @@ fn check_overlaps(moves: &[FileMove]) -> Result<(), String> {
 
 /// Proposes a commit that makes the moves, which must not leave files stored with Git LFS
 /// outside of it or the other way around. Returns the output for the model.
-pub(super) async fn run(
-    invocation: &Invocation<'_>,
-    args: &Args,
-) -> Result<(String, ProposedChange), ToolError> {
+pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<ToolOutput, ToolError> {
     let repository = invocation.target()?;
     let identities = invocation.identities;
     let snapshot = &repository.snapshot;
@@ -258,7 +256,7 @@ pub(super) async fn run(
         invocation.proposal_outcome(),
         repository.name
     );
-    Ok((
+    Ok(ToolOutput::proposal(
         output,
         ProposedChange {
             changed: ChangedPaths::Moves(args.moves.clone()),

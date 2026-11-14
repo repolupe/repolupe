@@ -6,7 +6,10 @@ use super::support::{
     BINARY_CHECK_BYTES, MAX_OUTPUT_CHARS, file_path_schema, format_size, missing_path, parent_dirs,
     parse_args, patch, window, writable_repository_schema,
 };
-use super::{CHANGE_FILE, Call, Invocation, READ_FILE, RepositoryTools, ToolError, ToolRepository};
+use super::{
+    CHANGE_FILE, Call, Invocation, READ_FILE, RepositoryTools, ToolError, ToolOutput,
+    ToolRepository,
+};
 use crate::model::tool_call::{ChangedPaths, ProposedChange};
 use crate::service::extraction;
 use crate::service::llm::ToolDefinition;
@@ -85,7 +88,6 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
 
 #[derive(Deserialize)]
 struct Input {
-    repository: Option<String>,
     path: String,
     message: String,
     edits: Option<Vec<Edit>>,
@@ -102,7 +104,7 @@ struct Edit {
 }
 
 pub(super) struct Args {
-    path: String,
+    pub(super) path: String,
     message: String,
     change: Change,
 }
@@ -116,7 +118,7 @@ enum Change {
     Delete,
 }
 
-pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
+pub(super) fn parse(input: &Value) -> Result<Call, String> {
     let input: Input = parse_args(CHANGE_FILE, input)?;
     let path = parse_commit_path(&input.path)?;
     let message = parse_commit_message(&input.message)?;
@@ -157,16 +159,13 @@ pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
         message,
         change,
     };
-    Ok((input.repository, Call::ChangeFile(args)))
+    Ok(Call::ChangeFile(args))
 }
 
 /// Writes the commit the model proposes, which the user reads with
 /// [`read_proposed_commit_patch`](super::read_proposed_commit_patch). Returns the output for the model
 /// with the diff.
-pub(super) async fn run(
-    invocation: &Invocation<'_>,
-    args: &Args,
-) -> Result<(String, ProposedChange), ToolError> {
+pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<ToolOutput, ToolError> {
     let repository = invocation.target()?;
     let identities = invocation.identities;
     let path = args.path.as_str();
@@ -278,7 +277,7 @@ pub(super) async fn run(
         let diff = window(&diff, 0, MAX_OUTPUT_CHARS);
         let _ = std::fmt::Write::write_fmt(&mut output, format_args!("\n\n```diff\n{diff}```"));
     }
-    Ok((
+    Ok(ToolOutput::proposal(
         output,
         ProposedChange {
             changed: ChangedPaths::File(path.to_string()),

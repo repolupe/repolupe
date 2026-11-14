@@ -4,7 +4,7 @@ use super::support::{
     Output, file_path_schema, is_markdown, markdown, normalize_path, parse_args, read_text,
     repository_schema, window,
 };
-use super::{Call, GREP, Invocation, OUTLINE, READ_FILE, RepositoryTools, ToolError};
+use super::{Call, GREP, Invocation, OUTLINE, READ_FILE, RepositoryTools, ToolError, ToolOutput};
 use crate::service::extraction;
 use crate::service::llm::ToolDefinition;
 use serde::Deserialize;
@@ -31,7 +31,6 @@ pub(super) fn definition(tools: &RepositoryTools) -> ToolDefinition {
 
 #[derive(Deserialize)]
 struct Input {
-    repository: Option<String>,
     path: String,
 }
 
@@ -39,15 +38,15 @@ pub(super) struct Args {
     path: String,
 }
 
-pub(super) fn parse(input: &Value) -> Result<(Option<String>, Call), String> {
+pub(super) fn parse(input: &Value) -> Result<Call, String> {
     let input: Input = parse_args(OUTLINE, input)?;
     let args = Args {
         path: normalize_path(&input.path)?,
     };
-    Ok((input.repository, Call::Outline(args)))
+    Ok(Call::Outline(args))
 }
 
-pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<String, ToolError> {
+pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<ToolOutput, ToolError> {
     let path = args.path.as_str();
     // Headings in Markdown converted from PDFs are mostly noise, e.g. numbers of a form.
     if extraction::is_document(path) {
@@ -67,9 +66,9 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Stri
     let total = content.lines().count();
     let headings = markdown::headings(&content);
     if headings.is_empty() {
-        return Ok(format!(
+        return Ok(ToolOutput::text(format!(
             "`{path}` has no headings ({total} lines). Use {READ_FILE} to read it."
-        ));
+        )));
     }
 
     let width = total.to_string().len();
@@ -96,7 +95,7 @@ pub(super) async fn run(invocation: &Invocation<'_>, args: &Args) -> Result<Stri
             break;
         }
     }
-    Ok(output.text)
+    Ok(ToolOutput::text(output.text))
 }
 
 #[cfg(test)]

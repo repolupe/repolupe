@@ -7,7 +7,6 @@ use crate::dto::chat::MessageStatus;
 use crate::model::attachment::Attachment;
 use crate::model::message::Message;
 use crate::model::repository::ScopedRepository;
-use crate::model::tool_call::{ChangedPaths, ProposedChange};
 use crate::model::user::UserProfile;
 use crate::repository;
 use crate::service::commit;
@@ -18,8 +17,8 @@ use crate::service::llm::{
 };
 use crate::service::mcp::McpTarget;
 use crate::service::tools::{
-    CHANGE_FILE, CommitIdentities, MCP_PREFIX, MOVE_FILES, McpServerTools, PRESENT_FILE,
-    RepositoryTools, SAVE_ATTACHMENT, ToolOutput, ToolRepository, describe_attachment,
+    CommitIdentities, Invocation, MCP_PREFIX, McpServerTools, RepositoryTools, ToolOutput,
+    ToolRepository, describe_attachment,
 };
 use chrono::{DateTime, FixedOffset, Offset, Utc};
 use futures_util::StreamExt;
@@ -164,15 +163,19 @@ async fn run(
                 )));
             }
         }
+        let calls: Vec<PendingCall> = tool_uses
+            .iter()
+            .map(|tool_use| PendingCall {
+                tool_use,
+                invocation: tools.parse(tool_use),
+            })
+            .collect();
         // The text before tool calls that look things up is usually a preamble like "Let me
         // look", so the answer is only the text after the last of them. The preambles stay
         // visible while generating and are dropped when the message is finished, and the
-        // model still sees them in `messages`. Presenting files and proposing changes looks
-        // nothing up, so the text with them is kept, it may already be the answer.
-        if tool_uses.iter().any(|tool_use| {
-            ![PRESENT_FILE, CHANGE_FILE, MOVE_FILES, SAVE_ATTACHMENT]
-                .contains(&tool_use.name.as_str())
-        }) {
+        // model still sees them in `messages`. The text with calls that look nothing up is
+        // kept, it may already be the answer.
+        if calls.iter().any(PendingCall::looks_up) {
             generation.mark_preamble()?;
         }
         new_paragraph = true;
@@ -190,7 +193,7 @@ async fn run(
                 })
                 .collect()
         } else {
-            run_tools(state, generation, &tools, &tool_uses, &mut proposals).await?
+            run_tools(state, generation, &calls, &mut proposals).await?
         };
         generation.append_raw(Role::User, &results)?;
         messages.push(ChatMessage {
@@ -216,16 +219,25 @@ async fn run(
 struct Proposals(Vec<(String, Uuid)>);
 
 impl Proposals {
-    fn add(&mut self, tool_use: &ToolUse, repository_id: Uuid, change: &ProposedChange, id: Uuid) {
-        let key = match &change.changed {
-            _ if tool_use.name == SAVE_ATTACHMENT => {
-                format!("attachment:{}", tool_use.input["attachment"])
-            }
-            ChangedPaths::Moves(_) => format!("{repository_id}:moves"),
-            ChangedPaths::File(path) => format!("{repository_id}:{path}"),
-        };
+    /// The change proposed by tool call `id`, see [`Invocation::proposal_key`].
+    fn add(&mut self, key: String, id: Uuid) {
         self.0.retain(|(k, _)| *k != key);
         self.0.push((key, id));
+    }
+}
+
+/// A tool call of the model, validated by [`RepositoryTools::parse`].
+struct PendingCall<'a> {
+    tool_use: &'a ToolUse,
+    /// The error to send back if it is invalid.
+    invocation: Result<Invocation<'a>, String>,
+}
+
+impl PendingCall<'_> {
+    /// Whether the call looks things up, see [`Invocation::looks_up`]. An invalid call counts,
+    /// since the model usually corrects it in its next response.
+    fn looks_up(&self) -> bool {
+        self.invocation.as_ref().map_or(true, Invocation::looks_up)
     }
 }
 
@@ -317,31 +329,32 @@ async fn mcp_servers(
 async fn run_tools(
     state: &AppState,
     generation: &Generation,
-    tools: &RepositoryTools,
-    tool_uses: &[ToolUse],
+    calls: &[PendingCall<'_>],
     proposals: &mut Proposals,
 ) -> Result<Vec<ContentBlock>, GenerationError> {
-    let mut calls = Vec::with_capacity(tool_uses.len());
-    for tool_use in tool_uses {
-        let invocation = tools.parse(tool_use);
-        let repository = invocation.as_ref().ok().and_then(|i| i.repository());
-        let repository_id = repository.map(|r| r.id);
+    let mut ids = Vec::with_capacity(calls.len());
+    for PendingCall {
+        tool_use,
+        invocation,
+    } in calls
+    {
+        let repository = invocation.as_ref().ok().and_then(Invocation::repository);
         let id = generation
             .start_tool_call(
                 &state.db,
                 &tool_use.name,
                 tool_use.input.clone(),
-                repository_id,
+                repository.map(|r| r.id),
                 repository.map(|r| r.snapshot.commit()),
             )
             .await?;
-        calls.push((id, tool_use, repository_id, invocation));
+        ids.push(id);
     }
 
     // Each call is timed on its own, since they all finish when the slowest one does.
-    let outputs = join_all(calls.iter().map(|(_, _, _, invocation)| async move {
+    let outputs = join_all(calls.iter().map(|call| async move {
         let started = Instant::now();
-        let output = match invocation {
+        let output = match &call.invocation {
             Ok(invocation) => invocation.run().await,
             Err(message) => ToolOutput::error(message.clone()),
         };
@@ -350,21 +363,24 @@ async fn run_tools(
     .await;
 
     let mut results = Vec::with_capacity(calls.len());
-    for ((id, tool_use, repository_id, _), (output, duration)) in calls.iter().zip(outputs) {
+    for ((call, id), (output, duration)) in calls.iter().zip(ids).zip(outputs) {
         generation
             .finish_tool_call(
                 &state.db,
-                *id,
+                id,
                 &output.content,
                 output.is_error,
                 duration,
                 output.change.as_ref(),
             )
             .await?;
-        if let (Some(change), Some(repository_id)) = (&output.change, repository_id) {
-            proposals.add(tool_use, *repository_id, change, *id);
+        if output.change.is_some()
+            && let Ok(invocation) = &call.invocation
+            && let Some(key) = invocation.proposal_key()
+        {
+            proposals.add(key, id);
         }
-        results.push(tool_result(tool_use, output));
+        results.push(tool_result(call.tool_use, output));
     }
     Ok(results)
 }
