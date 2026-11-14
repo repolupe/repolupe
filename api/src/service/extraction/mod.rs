@@ -32,6 +32,7 @@ pub(crate) use queue::{Conversion, ExtractionStatus, spawn_extraction_task};
 use crate::config::error::AppError;
 use crate::config::init::OcrConfig;
 use crate::config::state::{AppState, DatabasePool};
+use crate::model::document_extraction::DocumentExtraction;
 use crate::model::repository_document::RepositoryDocument;
 use crate::repository;
 use crate::service::mirror::TreeBlob;
@@ -110,24 +111,23 @@ pub(crate) fn document_type(content_type: &str) -> Option<&'static str> {
 /// Recognizes [`SAMPLE_SCAN`] with `ocr`, which makes the engine download what it is missing
 /// (see [`crate::prepare_ocr`]), and checks that its text was found.
 pub(crate) async fn check_ocr(ocr: &OcrConfig) -> Result<(), String> {
-    let document = RepositoryDocument {
-        path: "sample_scan.pdf".to_string(),
-        blob_oid: "0".repeat(40),
-    };
     let extractor = DocumentExtractor::new(Some(ocr), None);
-    let converted = extractor
+    let extracted = extractor
         .extract(
             &extractor.settings(),
-            &document,
+            "sample_scan.pdf",
             SAMPLE_SCAN.to_vec(),
             "application/pdf",
         )
         .await
-        .map_err(|e| e.to_string())?
-        .result
+        .map_err(|e| e.to_string())?;
+    let markdown = match extracted.extraction {
+        DocumentExtraction::Completed { markdown, .. } => markdown,
         // xberg only logs why OCR failed, e.g. a failed model download, and returns no text.
-        .map_err(|e| format!("recognizing a sample scan failed: {e}"))?;
-    let markdown = converted.markdown;
+        DocumentExtraction::Failed { error } => {
+            return Err(format!("recognizing a sample scan failed: {error}"));
+        }
+    };
     if !markdown.contains(SAMPLE_SCAN_TEXT) {
         return Err(format!(
             "a sample scan was recognized as {markdown:?}, which lacks {SAMPLE_SCAN_TEXT:?}"

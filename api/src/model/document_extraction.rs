@@ -1,4 +1,5 @@
 /// The Markdown converted from a document, or why that failed.
+#[derive(Debug, PartialEq)]
 pub(crate) enum DocumentExtraction {
     Completed {
         markdown: String,

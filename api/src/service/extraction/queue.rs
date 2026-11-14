@@ -1,17 +1,18 @@
 //! The background task working through the queued documents, and what it reports to the API.
 
-use super::convert::{Converted, Extracted, OcrUnavailable};
+use super::convert::{Extracted, OcrUnavailable};
 use super::settings::{Converter, Settings};
 use super::{DocumentExtractor, FORMATS, MAX_DOCUMENT_SIZE, document_type, mime_type};
 use crate::config::error::AppError;
 use crate::config::state::{AppState, DatabasePool};
 use crate::dto::extraction::DocumentSkipReason;
 use crate::model::document_extraction::DocumentExtraction;
-use crate::model::repository_document::{DocumentSource, QueuedDocument, RepositoryDocument};
+use crate::model::repository_document::{DocumentSource, QueuedDocument};
 use crate::repository;
 use crate::service::mirror::{self, Content};
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::time::{Duration, Instant};
 use tokio::task::JoinHandle;
 use tokio_util::sync::CancellationToken;
@@ -184,121 +185,142 @@ impl Queue {
     }
 }
 
+/// A queued document, read to be converted.
+struct Loaded {
+    content: Content,
+    mime_type: &'static str,
+    /// Names the document in the logs.
+    label: String,
+}
+
+/// Logs why a queued document cannot be converted now, and skips it, see [`SKIP_DURATION`].
+fn skip(message: impl Display) -> Deferred {
+    tracing::warn!("{message}");
+    Deferred::Skip(DocumentSkipReason::Error)
+}
+
 /// Converts `document` with `settings` and stores the result.
 async fn convert_queued(
     state: &AppState,
     settings: &Settings,
     document: &QueuedDocument,
 ) -> Result<(), Deferred> {
-    let (content, mime_type, name) = match &document.source {
+    let Loaded {
+        content,
+        mime_type,
+        label,
+    } = read_queued(state, document).await?;
+    let content = match content {
+        Content::Bytes(content) => content,
+        Content::TooLarge(_) => {
+            let limit = MAX_DOCUMENT_SIZE / 1024 / 1024;
+            tracing::warn!("Did not convert {label}, it is larger than {limit} MB");
+            let extraction = DocumentExtraction::Failed {
+                error: format!("The file is larger than {limit} MB, the limit for converting it"),
+            };
+            return save_extraction(state, settings, document, &extraction, Converter::Xberg).await;
+        }
+        Content::Unavailable => {
+            tracing::debug!("Did not convert {label}, its content was not downloaded");
+            return Err(Deferred::Skip(DocumentSkipReason::LfsObjectMissing));
+        }
+    };
+    // An attachment's blob is the one of its content, so only a repository's may be a pointer.
+    let content = match &document.source {
+        DocumentSource::Repository { .. } => {
+            match reuse_content_extraction(state, settings, document, &label, content).await? {
+                Some(content) => content,
+                None => return Ok(()),
+            }
+        }
+        DocumentSource::Attachment { .. } => content,
+    };
+    let Extracted {
+        extraction,
+        converter,
+    } = state
+        .extractor
+        .extract(settings, &label, content, mime_type)
+        .await
+        .map_err(|OcrUnavailable(reason)| {
+            tracing::warn!("Pausing document conversion for {OCR_UNAVAILABLE_PAUSE:?}");
+            Deferred::OcrUnavailable(reason)
+        })?;
+    save_extraction(state, settings, document, &extraction, converter).await
+}
+
+/// Reads the content of `document`.
+async fn read_queued(state: &AppState, document: &QueuedDocument) -> Result<Loaded, Deferred> {
+    let blob_oid = &document.blob_oid;
+    match &document.source {
         DocumentSource::Repository {
             repository_id,
             path,
         } => {
+            let label = format!("{path} ({blob_oid})");
             // Only documents are recorded, unless the supported formats changed since.
-            let mime_type = mime_type(path).ok_or(Deferred::Skip(DocumentSkipReason::Error))?;
+            let mime_type =
+                mime_type(path).ok_or_else(|| skip(format_args!("{label} is no document")))?;
             // Every repository containing the blob has its content, so any of them will do.
             let content = state
                 .mirrors
-                .read(*repository_id, &document.blob_oid, MAX_DOCUMENT_SIZE)
+                .read(*repository_id, blob_oid, MAX_DOCUMENT_SIZE)
                 .await
                 .map_err(|e| {
-                    tracing::warn!(
-                        "Failed to read {path} ({}) of repository {repository_id}: {e}",
-                        document.blob_oid,
-                    );
-                    Deferred::Skip(DocumentSkipReason::Error)
+                    skip(format_args!(
+                        "Failed to read {label} of repository {repository_id}: {e}"
+                    ))
                 })?;
-            (content, mime_type, path.clone())
+            Ok(Loaded {
+                content,
+                mime_type,
+                label,
+            })
         }
         DocumentSource::Attachment {
             attachment_id,
             file_name,
             content_type,
         } => {
+            let label = format!("attachment {file_name} ({blob_oid})");
             // Only documents are queued, unless the supported formats changed since.
-            let mime_type =
-                document_type(content_type).ok_or(Deferred::Skip(DocumentSkipReason::Error))?;
+            let mime_type = document_type(content_type)
+                .ok_or_else(|| skip(format_args!("{label} is no document")))?;
             // Smaller than `MAX_DOCUMENT_SIZE`, see `MAX_ATTACHMENT_BYTES`.
-            let content = state.attachments.read(*attachment_id).await.map_err(|e| {
-                tracing::warn!("Failed to read attachment {attachment_id}: {e}");
-                Deferred::Skip(DocumentSkipReason::Error)
-            })?;
-            (
-                Content::Bytes(content),
-                mime_type,
-                format!("attachment {file_name}"),
-            )
-        }
-    };
-    let file = RepositoryDocument {
-        path: name,
-        blob_oid: document.blob_oid.clone(),
-    };
-
-    let (extraction, converter) = match content {
-        Content::Bytes(content) => {
-            let Some(content) = reuse_content_extraction(state, settings, &file, content).await?
-            else {
-                return Ok(());
-            };
-            match state
-                .extractor
-                .extract(settings, &file, content, mime_type)
+            let content = state
+                .attachments
+                .read(*attachment_id)
                 .await
-            {
-                Ok(Extracted { result, converter }) => {
-                    let extraction = match result {
-                        Ok(Converted { markdown, ocr }) => {
-                            DocumentExtraction::Completed { markdown, ocr }
-                        }
-                        Err(error) => DocumentExtraction::Failed { error },
-                    };
-                    (extraction, converter)
-                }
-                Err(OcrUnavailable(reason)) => {
-                    tracing::warn!(
-                        "Pausing document conversion for {:?}",
-                        OCR_UNAVAILABLE_PAUSE
-                    );
-                    return Err(Deferred::OcrUnavailable(reason));
-                }
-            }
+                .map_err(|e| skip(format_args!("Failed to read {label}: {e}")))?;
+            Ok(Loaded {
+                content: Content::Bytes(content),
+                mime_type,
+                label,
+            })
         }
-        Content::TooLarge(_) => {
-            tracing::warn!(
-                "Did not convert {} ({}), it is larger than {} MB",
-                file.path,
-                file.blob_oid,
-                MAX_DOCUMENT_SIZE / 1024 / 1024
-            );
-            let extraction = DocumentExtraction::Failed {
-                error: format!(
-                    "The file is larger than {} MB, the limit for converting it",
-                    MAX_DOCUMENT_SIZE / 1024 / 1024
-                ),
-            };
-            (extraction, Converter::Xberg)
-        }
-        Content::Unavailable => {
-            tracing::debug!(
-                "Did not convert {} ({}), its content was not downloaded",
-                file.path,
-                file.blob_oid
-            );
-            return Err(Deferred::Skip(DocumentSkipReason::LfsObjectMissing));
-        }
-    };
+    }
+}
+
+/// Stores `extraction`, which `converter` made of `document` with `settings`.
+async fn save_extraction(
+    state: &AppState,
+    settings: &Settings,
+    document: &QueuedDocument,
+    extraction: &DocumentExtraction,
+    converter: Converter,
+) -> Result<(), Deferred> {
+    let blob_oid = &document.blob_oid;
     repository::document::save_extraction(
         &state.db,
-        &file.blob_oid,
-        &extraction,
+        blob_oid,
+        extraction,
         settings.extractor_of(converter),
     )
     .await
     .map_err(|e| {
-        tracing::error!("Failed to store the extraction of {}: {e}", file.blob_oid);
-        Deferred::Skip(DocumentSkipReason::Error)
+        skip(format_args!(
+            "Failed to store the extraction of {blob_oid}: {e}"
+        ))
     })
 }
 
@@ -308,33 +330,15 @@ async fn convert_queued(
 async fn reuse_content_extraction(
     state: &AppState,
     settings: &Settings,
-    document: &RepositoryDocument,
+    document: &QueuedDocument,
+    label: &str,
     content: Vec<u8>,
 ) -> Result<Option<Vec<u8>>, Deferred> {
-    let hashed = tokio::task::spawn_blocking(move || {
-        let oid = mirror::blob_oid(&content);
-        (content, oid)
-    })
-    .await;
-    let (content, content_oid) = match hashed {
-        Ok((content, Ok(content_oid))) => (content, content_oid),
-        Ok((_, Err(e))) => {
-            tracing::error!(
-                "Failed to hash {} ({}): {e}",
-                document.path,
-                document.blob_oid
-            );
-            return Err(Deferred::Skip(DocumentSkipReason::Error));
-        }
-        Err(e) => {
-            tracing::error!(
-                "Hashing {} ({}) failed: {e}",
-                document.path,
-                document.blob_oid
-            );
-            return Err(Deferred::Skip(DocumentSkipReason::Error));
-        }
-    };
+    let (content, content_oid) =
+        tokio::task::spawn_blocking(move || mirror::blob_oid(&content).map(|oid| (content, oid)))
+            .await
+            .map_err(|e| skip(format_args!("Hashing {label} failed: {e}")))?
+            .map_err(|e| skip(format_args!("Failed to hash {label}: {e}")))?;
     if content_oid == document.blob_oid {
         return Ok(Some(content));
     }
@@ -346,17 +350,14 @@ async fn reuse_content_extraction(
     )
     .await
     .map_err(|e| {
-        tracing::error!("Failed to copy the extraction of {content_oid}: {e}");
-        Deferred::Skip(DocumentSkipReason::Error)
+        skip(format_args!(
+            "Failed to copy the extraction of {content_oid}: {e}"
+        ))
     })?;
     if !copied {
         return Ok(Some(content));
     }
-    tracing::info!(
-        "Reused the extraction of {content_oid} for {} ({})",
-        document.path,
-        document.blob_oid
-    );
+    tracing::info!("Reused the extraction of {content_oid} for {label}");
     Ok(None)
 }
 

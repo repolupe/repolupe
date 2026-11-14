@@ -4,7 +4,7 @@
 use super::settings::{Converter, Settings};
 use super::{DocumentExtractor, join_pages, page_marker};
 use crate::config::init::OcrEngine;
-use crate::model::repository_document::RepositoryDocument;
+use crate::model::document_extraction::DocumentExtraction;
 use crate::service::mistral_ocr::MistralError;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -24,20 +24,12 @@ const NO_TEXT_WITHOUT_OCR: &str =
 #[error("Mistral OCR is unavailable: {0}")]
 pub(super) struct OcrUnavailable(pub(super) String);
 
-/// The outcome of [`DocumentExtractor::extract`]. The error is stored and shown to the model,
-/// details are only logged.
+/// The outcome of [`DocumentExtractor::extract`]. The error of a failed extraction is stored
+/// and shown to the model, details are only logged.
 #[derive(Debug)]
 pub(super) struct Extracted {
-    pub(super) result: Result<Converted, String>,
+    pub(super) extraction: DocumentExtraction,
     pub(super) converter: Converter,
-}
-
-/// A document converted to Markdown.
-#[derive(Debug)]
-pub(super) struct Converted {
-    pub(super) markdown: String,
-    /// Whether pages were recognized with OCR.
-    pub(super) ocr: bool,
 }
 
 /// What xberg made of a document.
@@ -76,12 +68,12 @@ impl DocumentExtractor {
             .expect("the semaphore is never closed")
     }
 
-    /// Converts `content`, the content of `document`, to Markdown and logs the outcome. The
+    /// Converts `content` to Markdown and logs the outcome, naming the document `label`. The
     /// error means the document could not be converted now.
     pub(super) async fn extract(
         &self,
         settings: &Settings,
-        document: &RepositoryDocument,
+        label: &str,
         content: Vec<u8>,
         mime_type: &str,
     ) -> Result<Extracted, OcrUnavailable> {
@@ -89,24 +81,15 @@ impl DocumentExtractor {
         // After waiting for the permit, so only the conversion is timed.
         let started = Instant::now();
         let result = self.convert(settings, permit, content, mime_type).await;
-        match result.as_ref().map(|extracted| &extracted.result) {
-            Ok(Ok(_)) => tracing::info!(
-                "Converted {} ({}) in {:?}",
-                document.path,
-                document.blob_oid,
+        match result.as_ref().map(|extracted| &extracted.extraction) {
+            Ok(DocumentExtraction::Completed { .. }) => {
+                tracing::info!("Converted {label} in {:?}", started.elapsed())
+            }
+            Ok(DocumentExtraction::Failed { error }) => tracing::info!(
+                "Could not convert {label} in {:?}: {error}",
                 started.elapsed()
             ),
-            Ok(Err(error)) => tracing::info!(
-                "Could not convert {} ({}) in {:?}: {error}",
-                document.path,
-                document.blob_oid,
-                started.elapsed()
-            ),
-            Err(error) => tracing::warn!(
-                "Did not convert {} ({}), trying again later: {error}",
-                document.path,
-                document.blob_oid,
-            ),
+            Err(error) => tracing::warn!("Did not convert {label}, trying again later: {error}"),
         }
         result
     }
@@ -125,20 +108,19 @@ impl DocumentExtractor {
             .filter(|ocr| ocr.engine == OcrEngine::Mistral);
         // Only needed again if xberg finds scanned pages.
         let original = mistral.map(|_| content.clone());
-        let by_xberg = |result| Extracted {
-            result,
+        let by_xberg = |extraction| Extracted {
+            extraction,
             converter: Converter::Xberg,
         };
         let native = match convert_natively(&settings.config, permit, content, mime_type).await {
             Ok(native) => native,
-            Err(error) => return Ok(by_xberg(Err(error))),
+            Err(error) => return Ok(by_xberg(DocumentExtraction::Failed { error })),
         };
         if let (Some(ocr), Some(original)) = (mistral, original)
             && native.has_scanned_pages(ocr.scan_confidence)
         {
-            let result = self.recognize_with_mistral(&original).await?;
             return Ok(Extracted {
-                result,
+                extraction: self.recognize_with_mistral(&original).await?,
                 converter: Converter::Mistral,
             });
         }
@@ -147,18 +129,18 @@ impl DocumentExtractor {
                 None => NO_TEXT_WITHOUT_OCR,
                 Some(_) => NO_TEXT,
             };
-            return Ok(by_xberg(Err(error.to_string())));
+            return Ok(by_xberg(failed(error)));
         }
-        Ok(by_xberg(Ok(Converted {
+        Ok(by_xberg(DocumentExtraction::Completed {
             markdown: native.markdown,
             ocr: native.ocr,
-        })))
+        }))
     }
 
     async fn recognize_with_mistral(
         &self,
         content: &[u8],
-    ) -> Result<Result<Converted, String>, OcrUnavailable> {
+    ) -> Result<DocumentExtraction, OcrUnavailable> {
         let Some(mistral) = &self.mistral else {
             // Prevented by `RuntimeConfig::validate_ocr_engine`.
             return Err(OcrUnavailable(
@@ -166,17 +148,23 @@ impl DocumentExtractor {
             ));
         };
         match mistral.recognize(content).await.map(join_pages) {
-            Ok(markdown) if markdown.is_empty() => Ok(Err(NO_TEXT.to_string())),
-            Ok(markdown) => Ok(Ok(Converted {
+            Ok(markdown) if markdown.is_empty() => Ok(failed(NO_TEXT)),
+            Ok(markdown) => Ok(DocumentExtraction::Completed {
                 markdown,
                 ocr: true,
-            })),
+            }),
             Err(MistralError::Rejected(error)) => {
                 tracing::warn!("Mistral could not convert a document: {error}");
-                Ok(Err(FAILED.to_string()))
+                Ok(failed(FAILED))
             }
             Err(MistralError::Unavailable(error)) => Err(OcrUnavailable(error)),
         }
+    }
+}
+
+fn failed(error: &str) -> DocumentExtraction {
+    DocumentExtraction::Failed {
+        error: error.to_string(),
     }
 }
 
@@ -281,29 +269,29 @@ mod tests {
     const TEXT_PDF: &[u8] = include_bytes!("../../../tests/fixtures/text.pdf");
     const PAGES_PDF: &[u8] = include_bytes!("../../../tests/fixtures/pages.pdf");
 
-    /// The extracted document, only used for logging.
-    fn document() -> RepositoryDocument {
-        RepositoryDocument {
-            path: "test.pdf".to_string(),
-            blob_oid: "0".repeat(40),
-        }
-    }
-
     async fn extract_with(
         extractor: &DocumentExtractor,
         pdf: &[u8],
     ) -> Result<Extracted, OcrUnavailable> {
         extractor
-            .extract(&extractor.settings(), &document(), pdf.to_vec(), PDF)
+            .extract(&extractor.settings(), "test.pdf", pdf.to_vec(), PDF)
             .await
     }
 
-    async fn extract(ocr: Option<&OcrConfig>, pdf: &[u8]) -> Result<Converted, String> {
+    async fn extract(ocr: Option<&OcrConfig>, pdf: &[u8]) -> DocumentExtraction {
         let extracted = extract_with(&DocumentExtractor::new(ocr, None), pdf)
             .await
             .unwrap();
         assert_eq!(extracted.converter, Converter::Xberg);
-        extracted.result
+        extracted.extraction
+    }
+
+    /// The Markdown of `extraction` and whether OCR was used.
+    fn completed(extraction: DocumentExtraction) -> (String, bool) {
+        match extraction {
+            DocumentExtraction::Completed { markdown, ocr } => (markdown, ocr),
+            DocumentExtraction::Failed { error } => panic!("expected Markdown, got {error:?}"),
+        }
     }
 
     /// Extracts with [`OcrEngine::Mistral`], which responds with `status` and `body`, and
@@ -323,7 +311,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn extracts_text() {
-        let Converted { markdown, ocr } = extract(None, TEXT_PDF).await.unwrap();
+        let (markdown, ocr) = completed(extract(None, TEXT_PDF).await);
         assert_eq!(
             markdown,
             "<!-- page 1 -->\n\nRepolupe PDF test The rate limit is 42 requests."
@@ -333,7 +321,7 @@ mod tests {
 
     #[tokio::test(flavor = "multi_thread")]
     async fn marks_pages() {
-        let Converted { markdown, .. } = extract(None, PAGES_PDF).await.unwrap();
+        let (markdown, _) = completed(extract(None, PAGES_PDF).await);
         assert_eq!(
             markdown,
             "<!-- page 1 -->\n\nRepolupe manual Chapter 1: Setup\n\n\
@@ -362,7 +350,7 @@ mod tests {
     #[tokio::test(flavor = "multi_thread")]
     async fn extracts_text_without_ocr_when_enabled() {
         let ocr = ocr(OcrEngine::Tesseract, &["eng"]);
-        let Converted { markdown, ocr } = extract(Some(&ocr), TEXT_PDF).await.unwrap();
+        let (markdown, ocr) = completed(extract(Some(&ocr), TEXT_PDF).await);
         assert!(markdown.contains("42 requests"), "{markdown}");
         assert!(!ocr);
     }
@@ -372,7 +360,7 @@ mod tests {
     async fn recognizes_scans() {
         let pdf = SAMPLE_SCAN;
         let ocr = ocr(OcrEngine::Tesseract, &["eng"]);
-        let Converted { markdown, ocr } = extract(Some(&ocr), pdf).await.unwrap();
+        let (markdown, ocr) = completed(extract(Some(&ocr), pdf).await);
         assert!(markdown.starts_with("<!-- page 1 -->\n\n"), "{markdown}");
         assert!(markdown.contains("invoice 7731"), "{markdown}");
         assert!(markdown.contains("125 USD"), "{markdown}");
@@ -385,7 +373,7 @@ mod tests {
         let (result, calls) = extract_with_mistral(StatusCode::OK, response, SAMPLE_SCAN).await;
         let extracted = result.unwrap();
         assert_eq!(extracted.converter, Converter::Mistral);
-        let Converted { markdown, ocr } = extracted.result.unwrap();
+        let (markdown, ocr) = completed(extracted.extraction);
         assert_eq!(
             markdown,
             "<!-- page 1 -->\n\n# Invoice 7731\n\n<!-- page 2 -->\n\n125 USD"
@@ -400,7 +388,7 @@ mod tests {
         let (result, calls) = extract_with_mistral(StatusCode::OK, response, TEXT_PDF).await;
         let extracted = result.unwrap();
         assert_eq!(extracted.converter, Converter::Xberg);
-        let Converted { markdown, ocr } = extracted.result.unwrap();
+        let (markdown, ocr) = completed(extracted.extraction);
         assert!(markdown.contains("42 requests"), "{markdown}");
         assert!(!ocr);
         assert_eq!(calls, 0);
@@ -414,15 +402,15 @@ mod tests {
         let extracted = result.unwrap();
         assert_eq!(extracted.converter, Converter::Mistral);
         assert_eq!(
-            extracted.result.unwrap_err(),
-            "The file could not be converted, it may be damaged or encrypted"
+            extracted.extraction,
+            failed("The file could not be converted, it may be damaged or encrypted")
         );
 
         let (result, _) =
             extract_with_mistral(StatusCode::OK, mock::pages(&[" "]), SAMPLE_SCAN).await;
         let extracted = result.unwrap();
         assert_eq!(extracted.converter, Converter::Mistral);
-        assert_eq!(extracted.result.unwrap_err(), "The file contains no text");
+        assert_eq!(extracted.extraction, failed("The file contains no text"));
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -442,7 +430,7 @@ mod tests {
     async fn recognizes_scans_with_paddle() {
         let pdf = SAMPLE_SCAN;
         let ocr = ocr(OcrEngine::Paddle, &["eng"]);
-        let Converted { markdown, ocr } = extract(Some(&ocr), pdf).await.unwrap();
+        let (markdown, ocr) = completed(extract(Some(&ocr), pdf).await);
         assert!(markdown.contains("invoice 7731"), "{markdown}");
         assert!(markdown.contains("125 USD"), "{markdown}");
         assert!(ocr);
@@ -452,17 +440,18 @@ mod tests {
     async fn skips_scans_without_ocr() {
         let pdf = SAMPLE_SCAN;
         assert_eq!(
-            extract(None, pdf).await.unwrap_err(),
-            "The file contains no text. It may be a scan, and text recognition (OCR) is turned off"
+            extract(None, pdf).await,
+            failed(
+                "The file contains no text. It may be a scan, and text recognition (OCR) is turned off"
+            )
         );
     }
 
     #[tokio::test(flavor = "multi_thread")]
     async fn rejects_damaged_files() {
-        let result = extract(None, b"%PDF-1.4\nnot really").await;
         assert_eq!(
-            result.unwrap_err(),
-            "The file could not be converted, it may be damaged or encrypted"
+            extract(None, b"%PDF-1.4\nnot really").await,
+            failed("The file could not be converted, it may be damaged or encrypted")
         );
     }
 }
