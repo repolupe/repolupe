@@ -300,6 +300,8 @@
       "selectAll": "Chọn tất cả",
       "deselectAll": "Bỏ chọn tất cả",
       "selected": "Đã chọn {count}",
+      "total": "{count} đoạn chat",
+      "found": "Tìm thấy {count} đoạn chat",
       "attachments": "1 tệp đính kèm ({size}) | {count} tệp đính kèm ({size})",
       "deleteTitle": "Xóa các đoạn chat",
       "deleteConfirm": "Bạn có chắc muốn xóa 1 đoạn chat cùng tất cả tin nhắn trong đó? | Bạn có chắc muốn xóa {count} đoạn chat cùng tất cả tin nhắn trong đó?",

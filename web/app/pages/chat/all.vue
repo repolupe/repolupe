@@ -12,7 +12,7 @@
     </form>
 
     <!-- keeps its height while empty, so selecting the first chat doesn't move the list -->
-    <div class="d-flex align-center flex-wrap mb-2" style="min-height: 44px; gap: 4px">
+    <div class="d-flex align-center flex-wrap" style="min-height: 44px; gap: 4px">
       <template v-if="selected.size > 0">
         <v-btn icon="mdi-close" variant="text" density="comfortable"
                :aria-label="$t('common.cancel')" :title="$t('common.cancel')" @click="clearSelection"/>
@@ -25,6 +25,9 @@
         <v-btn variant="text" color="error" prepend-icon="mdi-delete"
                :text="$t('common.delete')" @click="dialogDelete = true"/>
       </template>
+      <span v-else-if="total !== null && total > 0" class="text-medium-emphasis">
+        {{ search === null ? $t('chat.allPage.total', total) : $t('chat.allPage.found', total) }}
+      </span>
     </div>
 
     <!-- remounted for every search, so it loads from the start -->
@@ -103,6 +106,9 @@ const chats = ref<ChatDto[]>([]);
 /** `null` for the first page, then where the next one starts. */
 let nextCursor: string | null = null;
 
+/** How many chats there are in all, or were found, `null` until the first page is loaded. */
+const total = ref<number | null>(null);
+
 /** The ids of the selected chats, all of them listed. */
 const selected = ref(new Set<string>());
 
@@ -115,6 +121,7 @@ const submit = () => {
   search.value = input.value?.trim() || null;
   chats.value = [];
   nextCursor = null;
+  total.value = null;
   selected.value = new Set();
   listKey.value++;
 }
@@ -149,7 +156,11 @@ const doDelete = async () => {
   try {
     await deleteChats(ids);
     const deleted = new Set(ids);
-    chats.value = chats.value.filter(c => !deleted.has(c.id));
+    const remaining = chats.value.filter(c => !deleted.has(c.id));
+    if (total.value !== null) {
+      total.value = Math.max(0, total.value - (chats.value.length - remaining.length));
+    }
+    chats.value = remaining;
     dialogDelete.value = false;
     clearSelection();
     showSnackbar(t('chat.allPage.deleted', ids.length));
@@ -173,6 +184,9 @@ const load = async ({done}: { done: (status: LoadStatus) => void }) => {
       return;
     }
     chats.value.push(...page.items);
+    if (page.total !== null) {
+      total.value = page.total;
+    }
     nextCursor = page.next_cursor;
     done(nextCursor === null ? 'empty' : 'ok');
   } catch (e) {

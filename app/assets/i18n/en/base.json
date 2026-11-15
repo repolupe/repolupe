@@ -317,6 +317,14 @@
       "selectAll": "Select all",
       "deselectAll": "Deselect all",
       "selected": "{count} selected",
+      "total": {
+        "one": "1 chat",
+        "other": "{count} chats"
+      },
+      "found": {
+        "one": "1 chat found",
+        "other": "{count} chats found"
+      },
       "attachments": {
         "one": "1 attachment ({size})",
         "other": "{count} attachments ({size})"

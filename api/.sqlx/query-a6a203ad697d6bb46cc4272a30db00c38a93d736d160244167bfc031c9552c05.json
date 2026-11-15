@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT count(*) AS \"count!: i64\"\n           FROM chats c\n           WHERE c.user_id = $1\n             AND NOT c.temporary\n             AND NOT EXISTS (SELECT 1\n                             FROM json_each($2) w\n                             WHERE c.title NOT LIKE w.value ESCAPE '\\'\n                               AND NOT EXISTS (SELECT 1\n                                               FROM messages m\n                                               WHERE m.chat_id = c.id\n                                                 AND m.content LIKE w.value ESCAPE '\\'))",
+  "describe": {
+    "columns": [
+      {
+        "name": "count!: i64",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a6a203ad697d6bb46cc4272a30db00c38a93d736d160244167bfc031c9552c05"
+}

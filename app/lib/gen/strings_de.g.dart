@@ -1252,6 +1252,18 @@ class _Translations$base$chat$allPage$de extends Translations$base$chat$allPage$
   @override
   String selected({required Object count}) => '${count} ausgewählt';
   @override
+  String total({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
+    count,
+    one: '1 Chat',
+    other: '${count} Chats',
+  );
+  @override
+  String found({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
+    count,
+    one: '1 Chat gefunden',
+    other: '${count} Chats gefunden',
+  );
+  @override
   String attachments({required num count, required Object size}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
     count,
     one: '1 Anhang (${size})',

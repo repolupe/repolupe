@@ -158,10 +158,14 @@ async fn searches_chats(db: SqlitePool) {
     assert_eq!(search("query=100%25").await, vec![tokens.clone()]);
     assert!(search("query=1_00").await.is_empty());
 
-    // Newest first, one page at a time
+    // Newest first, one page at a time, with the total on the first
+    let (status, page) = alice.get("/api/v1/chats/search?query=SYNC").await;
+    assert_eq!(status, StatusCode::OK, "{page}");
+    assert_eq!(page["total"], 1, "{page}");
     let (status, page) = alice.get("/api/v1/chats/search?query=re&limit=1").await;
     assert_eq!(status, StatusCode::OK, "{page}");
     assert_eq!(page["items"][0]["id"], tokens.as_str());
+    assert_eq!(page["total"], 2, "{page}");
     let cursor = page["next_cursor"].as_str().unwrap();
     let (status, page) = alice
         .get(&format!(
@@ -171,6 +175,12 @@ async fn searches_chats(db: SqlitePool) {
     assert_eq!(status, StatusCode::OK, "{page}");
     assert_eq!(page["items"][0]["id"], sync.as_str());
     assert!(page["next_cursor"].is_null(), "{page}");
+    assert!(page["total"].is_null(), "{page}");
+
+    // Listing without a search counts all chats that are listed
+    let (status, page) = alice.get("/api/v1/chats?limit=1").await;
+    assert_eq!(status, StatusCode::OK, "{page}");
+    assert_eq!(page["total"], 2, "{page}");
 
     for query in ["query=+", "query=", ""] {
         let (status, body) = alice.get(&format!("/api/v1/chats/search?{query}")).await;

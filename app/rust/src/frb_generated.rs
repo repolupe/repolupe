@@ -5239,6 +5239,7 @@ const _: fn() = || {
         let ChatPageDto = None::<repolupe::dto::chat::ChatPageDto>.unwrap();
         let _: Vec<repolupe::dto::chat::ChatDto> = ChatPageDto.items;
         let _: Option<String> = ChatPageDto.next_cursor;
+        let _: Option<i64> = ChatPageDto.total;
     }
     {
         let ConfigEntryDto = None::<repolupe::dto::config::ConfigEntryDto>.unwrap();
@@ -6126,9 +6127,11 @@ impl SseDecode for repolupe::dto::chat::ChatPageDto {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_items = <Vec<repolupe::dto::chat::ChatDto>>::sse_decode(deserializer);
         let mut var_nextCursor = <Option<String>>::sse_decode(deserializer);
+        let mut var_total = <Option<i64>>::sse_decode(deserializer);
         return repolupe::dto::chat::ChatPageDto {
             items: var_items,
             next_cursor: var_nextCursor,
+            total: var_total,
         };
     }
 }
@@ -9230,6 +9233,7 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::ChatPageD
         [
             self.0.items.into_into_dart().into_dart(),
             self.0.next_cursor.into_into_dart().into_dart(),
+            self.0.total.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -11880,6 +11884,7 @@ impl SseEncode for repolupe::dto::chat::ChatPageDto {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Vec<repolupe::dto::chat::ChatDto>>::sse_encode(self.items, serializer);
         <Option<String>>::sse_encode(self.next_cursor, serializer);
+        <Option<i64>>::sse_encode(self.total, serializer);
     }
 }
 

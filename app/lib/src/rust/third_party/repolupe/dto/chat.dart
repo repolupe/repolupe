@@ -114,17 +114,23 @@ class ChatPageDto {
   /// Pass as `cursor` to get the next page, `null` on the last page.
   final String? nextCursor;
 
+  /// How many chats there are in all (found, for a search), only on the first page, `null` on
+  /// the others.
+  final PlatformInt64? total;
+
   const ChatPageDto({
     required this.items,
     this.nextCursor,
+    this.total,
   });
 
   @override
-  int get hashCode => items.hashCode ^ nextCursor.hashCode;
+  int get hashCode => items.hashCode ^ nextCursor.hashCode ^ total.hashCode;
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) || other is ChatPageDto && runtimeType == other.runtimeType && items == other.items && nextCursor == other.nextCursor;
+      identical(this, other) ||
+      other is ChatPageDto && runtimeType == other.runtimeType && items == other.items && nextCursor == other.nextCursor && total == other.total;
 }
 
 /// The `content_delta` event of `GET .../messages/{id}/stream`.

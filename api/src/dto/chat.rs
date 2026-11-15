@@ -73,6 +73,10 @@ pub struct ChatPageDto {
     pub items: Vec<ChatDto>,
     /// Pass as `cursor` to get the next page, `null` on the last page.
     pub next_cursor: Option<String>,
+    /// How many chats there are in all (found, for a search), only on the first page, `null` on
+    /// the others.
+    #[serde(default)]
+    pub total: Option<i64>,
 }
 
 #[derive(Serialize, Deserialize)]

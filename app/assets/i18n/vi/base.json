@@ -317,6 +317,8 @@
       "selectAll": "Chọn tất cả",
       "deselectAll": "Bỏ chọn tất cả",
       "selected": "Đã chọn {count}",
+      "total": "{count} đoạn chat",
+      "found": "Tìm thấy {count} đoạn chat",
       "attachments": {
         "one": "1 tệp đính kèm ({size})",
         "other": "{count} tệp đính kèm ({size})"

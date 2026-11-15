@@ -481,6 +481,7 @@ function getChats(params: Record<string, unknown>, filter: (chat: ChatDetailDto)
     return {
         items: sorted.slice(offset, next).map(chatSummary),
         next_cursor: next < sorted.length ? String(next) : null,
+        total: params.cursor == null ? sorted.length : null,
     };
 }
 

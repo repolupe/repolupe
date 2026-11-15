@@ -300,6 +300,8 @@
       "selectAll": "Select all",
       "deselectAll": "Deselect all",
       "selected": "{count} selected",
+      "total": "1 chat | {count} chats",
+      "found": "1 chat found | {count} chats found",
       "attachments": "1 attachment ({size}) | {count} attachments ({size})",
       "deleteTitle": "Delete Chats",
       "deleteConfirm": "Are you sure you want to delete 1 chat with all its messages? | Are you sure you want to delete {count} chats with all their messages?",

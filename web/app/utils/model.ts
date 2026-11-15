@@ -500,6 +500,8 @@ export interface ChatPageDto {
     items: ChatDto[];
     /** Pass as `cursor` to get the next page, `null` on the last page. */
     next_cursor: string | null;
+    /** How many chats there are in all (found, for a search), only on the first page, `null` on the others. */
+    total: number | null;
 }
 
 export interface ChatDetailDto extends ChatDto {

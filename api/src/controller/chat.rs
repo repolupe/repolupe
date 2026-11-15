@@ -49,12 +49,15 @@ pub(crate) async fn list_chats(
     auth: AuthenticatedUser,
     QueryParams(query): QueryParams<ListChatsQuery>,
 ) -> Result<Json<ChatPageDto>, AppError> {
-    let (limit, after) = parse_page(query.limit, query.cursor.as_deref())?;
-    // One extra row tells whether there is a next page.
-    let chats =
-        repository::chat::list_chats(&state.db, auth.user_id, &[], after.as_ref(), limit + 1)
-            .await?;
-    Ok(Json(chat_page(chats, limit)))
+    chat_page(
+        &state,
+        auth.user_id,
+        &[],
+        query.limit,
+        query.cursor.as_deref(),
+    )
+    .await
+    .map(Json)
 }
 
 pub(crate) async fn search_chats(
@@ -63,12 +66,46 @@ pub(crate) async fn search_chats(
     QueryParams(query): QueryParams<SearchChatsQuery>,
 ) -> Result<Json<ChatPageDto>, AppError> {
     let words = util::validation::parse_chat_search(&query.query)?;
-    let (limit, after) = parse_page(query.limit, query.cursor.as_deref())?;
+    chat_page(
+        &state,
+        auth.user_id,
+        &words,
+        query.limit,
+        query.cursor.as_deref(),
+    )
+    .await
+    .map(Json)
+}
+
+/// A page of the chats [`repository::chat::list_chats`] lists, with their total on the first.
+async fn chat_page(
+    state: &AppState,
+    user_id: Uuid,
+    words: &[&str],
+    limit: Option<i64>,
+    cursor: Option<&str>,
+) -> Result<ChatPageDto, AppError> {
+    let (limit, after) = parse_page(limit, cursor)?;
     // One extra row tells whether there is a next page.
-    let chats =
-        repository::chat::list_chats(&state.db, auth.user_id, &words, after.as_ref(), limit + 1)
-            .await?;
-    Ok(Json(chat_page(chats, limit)))
+    let mut chats =
+        repository::chat::list_chats(&state.db, user_id, words, after.as_ref(), limit + 1).await?;
+    let next_cursor = if chats.len() as i64 > limit {
+        chats.truncate(limit as usize);
+        chats.last().map(encode_cursor)
+    } else {
+        None
+    };
+    let total = match (&after, &next_cursor) {
+        (Some(_), _) => None,
+        // A single page holds them all.
+        (None, None) => Some(chats.len() as i64),
+        (None, Some(_)) => Some(repository::chat::count_chats(&state.db, user_id, words).await?),
+    };
+    Ok(ChatPageDto {
+        items: chats.into_iter().map(Into::into).collect(),
+        next_cursor,
+        total,
+    })
 }
 
 fn parse_page(
@@ -82,20 +119,6 @@ fn parse_page(
         )));
     }
     Ok((limit, cursor.map(decode_cursor).transpose()?))
-}
-
-/// The first `limit` of `chats`, which holds one more if there is a next page.
-fn chat_page(mut chats: Vec<Chat>, limit: i64) -> ChatPageDto {
-    let next_cursor = if chats.len() as i64 > limit {
-        chats.truncate(limit as usize);
-        chats.last().map(encode_cursor)
-    } else {
-        None
-    };
-    ChatPageDto {
-        items: chats.into_iter().map(Into::into).collect(),
-        next_cursor,
-    }
 }
 
 pub(crate) async fn get_chat(

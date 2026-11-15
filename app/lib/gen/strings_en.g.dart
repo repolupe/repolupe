@@ -1456,6 +1456,20 @@ class Translations$base$chat$allPage$en {
   /// en: '{count} selected'
   String selected({required Object count}) => '${count} selected';
 
+  /// en: '(one) {1 chat} (other) {{count} chats}'
+  String total({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
+    count,
+    one: '1 chat',
+    other: '${count} chats',
+  );
+
+  /// en: '(one) {1 chat found} (other) {{count} chats found}'
+  String found({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
+    count,
+    one: '1 chat found',
+    other: '${count} chats found',
+  );
+
   /// en: '(one) {1 attachment ({size})} (other) {{count} attachments ({size})}'
   String attachments({required num count, required Object size}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
     count,

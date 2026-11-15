@@ -3332,10 +3332,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ChatPageDto dco_decode_chat_page_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 2) throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 3) throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return ChatPageDto(
       items: dco_decode_list_chat_dto(arr[0]),
       nextCursor: dco_decode_opt_String(arr[1]),
+      total: dco_decode_opt_box_autoadd_i_64(arr[2]),
     );
   }
 
@@ -5565,7 +5566,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_items = sse_decode_list_chat_dto(deserializer);
     var var_nextCursor = sse_decode_opt_String(deserializer);
-    return ChatPageDto(items: var_items, nextCursor: var_nextCursor);
+    var var_total = sse_decode_opt_box_autoadd_i_64(deserializer);
+    return ChatPageDto(items: var_items, nextCursor: var_nextCursor, total: var_total);
   }
 
   @protected
@@ -7983,6 +7985,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_chat_dto(self.items, serializer);
     sse_encode_opt_String(self.nextCursor, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.total, serializer);
   }
 
   @protected

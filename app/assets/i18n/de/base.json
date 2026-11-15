@@ -317,6 +317,14 @@
       "selectAll": "Alle auswählen",
       "deselectAll": "Auswahl aufheben",
       "selected": "{count} ausgewählt",
+      "total": {
+        "one": "1 Chat",
+        "other": "{count} Chats"
+      },
+      "found": {
+        "one": "1 Chat gefunden",
+        "other": "{count} Chats gefunden"
+      },
       "attachments": {
         "one": "1 Anhang ({size})",
         "other": "{count} Anhänge ({size})"

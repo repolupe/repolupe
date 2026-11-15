@@ -96,12 +96,7 @@ pub(crate) async fn list_chats(
     after: Option<&ChatCursor>,
     limit: i64,
 ) -> Result<Vec<Chat>, AppError> {
-    let patterns = Json(
-        words
-            .iter()
-            .map(|word| format!("%{}%", escape_like(word)))
-            .collect::<Vec<_>>(),
-    );
+    let patterns = like_patterns(words);
     let after_updated_at = after.map(|c| c.updated_at);
     let after_id = after.map(|c| c.id);
     let chats = sqlx::query_as!(
@@ -141,6 +136,43 @@ pub(crate) async fn list_chats(
     .fetch_all(db)
     .await?;
     Ok(chats)
+}
+
+/// How many chats [`list_chats`] lists in all.
+pub(crate) async fn count_chats(
+    db: &DatabasePool,
+    user_id: Uuid,
+    words: &[&str],
+) -> Result<i64, AppError> {
+    let patterns = like_patterns(words);
+    let count = sqlx::query_scalar!(
+        r#"SELECT count(*) AS "count!: i64"
+           FROM chats c
+           WHERE c.user_id = $1
+             AND NOT c.temporary
+             AND NOT EXISTS (SELECT 1
+                             FROM json_each($2) w
+                             WHERE c.title NOT LIKE w.value ESCAPE '\'
+                               AND NOT EXISTS (SELECT 1
+                                               FROM messages m
+                                               WHERE m.chat_id = c.id
+                                                 AND m.content LIKE w.value ESCAPE '\'))"#,
+        user_id,
+        patterns,
+    )
+    .fetch_one(db)
+    .await?;
+    Ok(count)
+}
+
+/// `LIKE` patterns that match text containing a word, one per word.
+fn like_patterns(words: &[&str]) -> Json<Vec<String>> {
+    Json(
+        words
+            .iter()
+            .map(|word| format!("%{}%", escape_like(word)))
+            .collect(),
+    )
 }
 
 /// Escapes the wildcards of `LIKE ... ESCAPE '\'`.
