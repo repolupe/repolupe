@@ -1,3 +1,14 @@
+## 1.4.0 (2026-11-15)
+
+- feat: an all chats page replaces the older chats page
+- feat: select multiple chats and delete them at once
+- feat: the model can look at individual pages of PDFs as images
+- feat: hide usage and cost from non-admins with `USAGE_VISIBILITY` and `COST_VISIBILITY`
+- feat(web): attachments open in the panel next to the chat
+- feat(app): camera photos are scaled down and uploaded as WebP
+- fix: the type of uploaded images is detected from their content
+- fix: file sizes switch units at exactly 1000 and when rounding reaches it
+
 ## 1.3.0 (2026-11-13)
 
 - feat: the model can look at images in repositories and attachments (PNG, JPEG, GIF, WebP)
