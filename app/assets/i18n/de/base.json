@@ -312,7 +312,21 @@
     },
     "allPage": {
       "title": "Alle Chats",
-      "noResults": "Keine Chats gefunden"
+      "noResults": "Keine Chats gefunden",
+      "select": "Auswählen",
+      "selectAll": "Alle auswählen",
+      "deselectAll": "Auswahl aufheben",
+      "selected": "{count} ausgewählt",
+      "deleteTitle": "Chats löschen",
+      "deleteConfirm": {
+        "one": "Möchtest du 1 Chat mit allen Nachrichten wirklich löschen?",
+        "other": "Möchtest du {count} Chats mit allen Nachrichten wirklich löschen?"
+      },
+      "deleted": {
+        "one": "1 Chat gelöscht.",
+        "other": "{count} Chats gelöscht."
+      },
+      "deleteFailed": "Die Chats konnten nicht gelöscht werden: {error}"
     },
     "loadFailed": "Die Chats konnten nicht geladen werden: {error}"
   },

@@ -175,6 +175,26 @@ class ApiDeleteChatAction extends AsyncReduxAction<ApiService, AccountClient?> {
   String toString() => 'ApiDeleteChatAction(chatId: $chatId)';
 }
 
+/// Deletes the chats [chatIds] (at most 1000) with their messages, ignoring missing ones.
+class ApiDeleteChatsAction extends AsyncReduxAction<ApiService, AccountClient?> {
+  final List<UuidValue> chatIds;
+
+  ApiDeleteChatsAction({required this.chatIds});
+
+  @override
+  Future<AccountClient?> reduce() async {
+    await dispatchAsyncTakeResult(
+      _ApiCallAction<void>(
+        call: (client) => client.deleteChats(ids: chatIds),
+      ),
+    );
+    return state;
+  }
+
+  @override
+  String toString() => 'ApiDeleteChatsAction(${chatIds.length} chats)';
+}
+
 /// Sends [content] (may be blank with [attachmentId]) in the chat and returns the user message and the answer being
 /// generated.
 class ApiSendMessageAction extends AsyncReduxActionWithResult<ApiService, AccountClient?, List<MessageDto>> {

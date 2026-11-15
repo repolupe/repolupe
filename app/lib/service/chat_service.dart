@@ -759,6 +759,39 @@ class DeleteChatAction extends AsyncReduxActionWithResult<ChatService, ChatState
   }
 }
 
+/// Deletes the chats [chatIds] with their messages and shows a snack bar; if the open chat is one of them, starts a new
+/// chat. Returns why it failed, `null` if they were deleted.
+class DeleteChatsAction extends AsyncReduxActionWithResult<ChatService, ChatState, String?> with GlobalActions {
+  final List<UuidValue> chatIds;
+
+  DeleteChatsAction(this.chatIds);
+
+  @override
+  Future<(ChatState, String?)> reduce() async {
+    if (notifier._api.state == null) {
+      return (state, null);
+    }
+
+    try {
+      await external(notifier._api).dispatchAsync(ApiDeleteChatsAction(chatIds: chatIds));
+    } on ClientError catch (e) {
+      return (state, t.base.chat.allPage.deleteFailed(error: e.userMessage));
+    }
+    for (final id in chatIds) {
+      external(notifier._chatList).dispatch(RemoveListedChatAction(id));
+    }
+    global.dispatch(ShowSnackBarAction(message: t.base.chat.allPage.deleted(count: chatIds.length)));
+    if (chatIds.contains(state.chat?.id)) {
+      // Leaves the chat right away (stopping its answer), while the new one loads its choices.
+      unawaited(dispatchAsync(NewChatAction()));
+    }
+    return (state, null);
+  }
+
+  @override
+  String toString() => 'DeleteChatsAction(${chatIds.length} chats)';
+}
+
 /// Stops the answer being generated. Its stream then ends with the cancelled message, which is put into the chat.
 class CancelAnswerAction extends AsyncReduxAction<ChatService, ChatState> with GlobalActions {
   @override

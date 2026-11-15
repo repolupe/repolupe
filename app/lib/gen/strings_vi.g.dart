@@ -1242,6 +1242,30 @@ class _Translations$base$chat$allPage$vi extends Translations$base$chat$allPage$
   String get title => 'Tất cả đoạn chat';
   @override
   String get noResults => 'Không tìm thấy đoạn chat nào';
+  @override
+  String get select => 'Chọn';
+  @override
+  String get selectAll => 'Chọn tất cả';
+  @override
+  String get deselectAll => 'Bỏ chọn tất cả';
+  @override
+  String selected({required Object count}) => 'Đã chọn ${count}';
+  @override
+  String get deleteTitle => 'Xóa các đoạn chat';
+  @override
+  String deleteConfirm({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('vi'))(
+    count,
+    one: 'Bạn có chắc muốn xóa 1 đoạn chat cùng tất cả tin nhắn trong đó?',
+    other: 'Bạn có chắc muốn xóa ${count} đoạn chat cùng tất cả tin nhắn trong đó?',
+  );
+  @override
+  String deleted({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('vi'))(
+    count,
+    one: 'Đã xóa 1 đoạn chat.',
+    other: 'Đã xóa ${count} đoạn chat.',
+  );
+  @override
+  String deleteFailed({required Object error}) => 'Không thể xóa các đoạn chat: ${error}';
 }
 
 // Path: base.settings.themeMode

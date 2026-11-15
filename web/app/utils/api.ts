@@ -467,6 +467,11 @@ export async function deleteChat(id: string): Promise<void> {
     await makeRequest({route: `chats/${id}/delete`, method: 'POST'});
 }
 
+/** Deletes the user's chats among `ids` (at most 1000), ignoring missing ones. */
+export async function deleteChats(ids: string[]): Promise<void> {
+    await makeRequest({route: 'chats/delete', method: 'POST', body: {ids}});
+}
+
 /**
  * Returns the user's message and the `GENERATING` answer. Fails with `GENERATION_IN_PROGRESS`,
  * `RATE_LIMITED` (too many generations of this user) or `NO_MODEL_CONFIGURED`.

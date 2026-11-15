@@ -19,9 +19,9 @@ use flutter_rust_bridge::frb;
 use repolupe::dto::attachment::{AttachmentDto, UploadAttachmentQuery};
 use repolupe::dto::auth::{LoginRequest, LoginResponse};
 use repolupe::dto::chat::{
-    ChatDetailDto, ChatDto, ChatPageDto, CreateChatRequest, FileDiffDto, ListChatsQuery,
-    MessageDto, ProposedCommitDto, RawAnswerDto, ResendMessageRequest, SearchChatsQuery,
-    SendMessageRequest, ToolCallDto, UpdateChatRequest,
+    ChatDetailDto, ChatDto, ChatPageDto, CreateChatRequest, DeleteChatsRequest, FileDiffDto,
+    ListChatsQuery, MessageDto, ProposedCommitDto, RawAnswerDto, ResendMessageRequest,
+    SearchChatsQuery, SendMessageRequest, ToolCallDto, UpdateChatRequest,
 };
 use repolupe::dto::config::ConfigEntryDto;
 use repolupe::dto::extraction::{
@@ -264,6 +264,13 @@ impl Client {
     /// `POST /api/v1/chats/{id}/delete`.
     pub async fn delete_chat(&self, id: Uuid) -> Result<(), ClientError> {
         self.post_empty(format!("/api/v1/chats/{id}/delete")).await
+    }
+
+    /// `POST /api/v1/chats/delete`: the user's chats among `ids` (at most 1000), ignoring
+    /// missing ones.
+    pub async fn delete_chats(&self, ids: Vec<Uuid>) -> Result<(), ClientError> {
+        self.post_unit("/api/v1/chats/delete".into(), &DeleteChatsRequest { ids })
+            .await
     }
 
     /// `POST /api/v1/chats/{id}/messages`: the user message and the answer being generated.

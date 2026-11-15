@@ -295,7 +295,15 @@
     },
     "allPage": {
       "title": "Tất cả đoạn chat",
-      "noResults": "Không tìm thấy đoạn chat nào"
+      "noResults": "Không tìm thấy đoạn chat nào",
+      "select": "Chọn",
+      "selectAll": "Chọn tất cả",
+      "deselectAll": "Bỏ chọn tất cả",
+      "selected": "Đã chọn {count}",
+      "deleteTitle": "Xóa các đoạn chat",
+      "deleteConfirm": "Bạn có chắc muốn xóa 1 đoạn chat cùng tất cả tin nhắn trong đó? | Bạn có chắc muốn xóa {count} đoạn chat cùng tất cả tin nhắn trong đó?",
+      "deleted": "Đã xóa 1 đoạn chat. | Đã xóa {count} đoạn chat.",
+      "deleteFailed": "Không thể xóa các đoạn chat: {error}"
     },
     "loadFailed": "Không thể tải danh sách đoạn chat: {error}"
   },

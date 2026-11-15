@@ -1443,6 +1443,38 @@ class Translations$base$chat$allPage$en {
 
   /// en: 'No chats found'
   String get noResults => 'No chats found';
+
+  /// en: 'Select'
+  String get select => 'Select';
+
+  /// en: 'Select all'
+  String get selectAll => 'Select all';
+
+  /// en: 'Deselect all'
+  String get deselectAll => 'Deselect all';
+
+  /// en: '{count} selected'
+  String selected({required Object count}) => '${count} selected';
+
+  /// en: 'Delete Chats'
+  String get deleteTitle => 'Delete Chats';
+
+  /// en: '(one) {Are you sure you want to delete 1 chat with all its messages?} (other) {Are you sure you want to delete {count} chats with all their messages?}'
+  String deleteConfirm({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
+    count,
+    one: 'Are you sure you want to delete 1 chat with all its messages?',
+    other: 'Are you sure you want to delete ${count} chats with all their messages?',
+  );
+
+  /// en: '(one) {1 chat deleted.} (other) {{count} chats deleted.}'
+  String deleted({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
+    count,
+    one: '1 chat deleted.',
+    other: '${count} chats deleted.',
+  );
+
+  /// en: 'Could not delete the chats: {error}'
+  String deleteFailed({required Object error}) => 'Could not delete the chats: ${error}';
 }
 
 // Path: base.settings.themeMode

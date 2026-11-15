@@ -69,6 +69,10 @@ abstract class Client implements RustOpaqueInterface {
   /// `POST /api/v1/chats/{id}/delete`.
   Future<void> deleteChat({required UuidValue id});
 
+  /// `POST /api/v1/chats/delete`: the user's chats among `ids` (at most 1000), ignoring
+  /// missing ones.
+  Future<void> deleteChats({required List<UuidValue> ids});
+
   /// `POST /api/v1/models/{id}/delete`.
   Future<void> deleteLlmModel({required UuidValue id});
 

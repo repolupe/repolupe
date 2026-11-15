@@ -168,4 +168,141 @@ void main() {
     expect(find.text('No chats found'), findsNothing);
     expect(requests.last, (null, null));
   });
+
+  testWidgets('selected chats are deleted together, and so is the open one, which starts a new chat', (tester) async {
+    // The chats deleted, by request.
+    final deletes = <List<UuidValue>>[];
+    final container = RefenaContainer(
+      overrides: [
+        apiProvider.overrideWithActions((mock) {
+          mock.on<ApiListChatsAction>((state, action) {
+            return (state, ChatPageDto(items: [for (var i = 0; i < 4; i++) _chat(i)]));
+          });
+          mock.on<ApiGetChatAction>((state, action) {
+            return (state, ChatDetailDto(chat: _chat(1), messages: const []));
+          });
+          mock.on<ApiDeleteChatsAction>((state, action) {
+            deletes.add(action.chatIds);
+            return state;
+          });
+          // A new chat loads its choices, which don't matter here.
+          mock.on<ApiListModelsAction>((state, action) => throw apiError(ErrorCode.internalError, status: 500));
+          mock.on<ApiListRepositoriesAction>((state, action) => throw apiError(ErrorCode.internalError, status: 500));
+          mock.on<ApiListMcpServersAction>((state, action) => throw apiError(ErrorCode.internalError, status: 500));
+        }),
+      ],
+    );
+    container.redux(apiProvider).dispatch(ApiSetAccountAction(fakeAccount(userId: '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12')));
+    await container.redux(chatProvider).dispatchAsync(OpenChatAction(_chatId(1)));
+    expect(container.read(chatProvider).chat?.title, 'Chat 1');
+
+    await tester.pumpWidget(
+      RefenaScope.withContainer(
+        container: container,
+        child: TranslationProvider(
+          child: MaterialApp(
+            navigatorKey: container.read(navigationProvider).key,
+            scaffoldMessengerKey: container.read(snackBarProvider).key,
+            home: const Scaffold(body: Text('Chat page')),
+          ),
+        ),
+      ),
+    );
+    // ignore: unawaited_futures
+    container.global.dispatchAsync(NavigateAction.push(const AllChatsPage()));
+    await tester.pumpAndSettle();
+
+    // A long press selects the chat, then a tap selects another instead of opening it.
+    await tester.longPress(find.text('Chat 1'));
+    await tester.pumpAndSettle();
+    expect(find.text('1 selected'), findsOneWidget);
+    await tester.tap(find.text('Chat 2'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 selected'), findsOneWidget);
+    expect(find.text('Chat page'), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('allChats.delete')));
+    await tester.pumpAndSettle();
+    expect(find.text('Are you sure you want to delete 2 chats with all their messages?'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('allChats.delete.confirm')));
+    await tester.pumpAndSettle();
+
+    expect(deletes, [
+      [_chatId(1), _chatId(2)],
+    ]);
+    expect(find.text('2 chats deleted.'), findsOneWidget);
+    expect(find.text('Chat 1'), findsNothing);
+    expect(find.text('Chat 2'), findsNothing);
+    expect(find.text('Chat 0'), findsOneWidget);
+    expect(find.text('All Chats'), findsOneWidget);
+    expect(container.read(chatProvider).chat, isNull);
+  });
+
+  testWidgets('select all selects every listed chat, and going back ends the selection', (tester) async {
+    final deletes = <List<UuidValue>>[];
+    final container = RefenaContainer(
+      overrides: [
+        apiProvider.overrideWithActions((mock) {
+          mock.on<ApiListChatsAction>((state, action) {
+            return (state, ChatPageDto(items: [for (var i = 0; i < 3; i++) _chat(i)]));
+          });
+          mock.on<ApiDeleteChatsAction>((state, action) {
+            deletes.add(action.chatIds);
+            throw apiError(ErrorCode.internalError, status: 500);
+          });
+        }),
+      ],
+    );
+    container.redux(apiProvider).dispatch(ApiSetAccountAction(fakeAccount(userId: '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12')));
+
+    await tester.pumpWidget(
+      RefenaScope.withContainer(
+        container: container,
+        child: TranslationProvider(
+          child: MaterialApp(
+            navigatorKey: container.read(navigationProvider).key,
+            scaffoldMessengerKey: container.read(snackBarProvider).key,
+            home: const Scaffold(body: Text('Chat page')),
+          ),
+        ),
+      ),
+    );
+    // ignore: unawaited_futures
+    container.global.dispatchAsync(NavigateAction.push(const AllChatsPage()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('allChats.select')));
+    await tester.pumpAndSettle();
+    expect(find.text('0 selected'), findsOneWidget);
+    expect(tester.widget<IconButton>(find.byKey(const ValueKey('allChats.delete'))).onPressed, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('allChats.selectAll')));
+    await tester.pumpAndSettle();
+    expect(find.text('3 selected'), findsOneWidget);
+
+    // A failed delete stays in the dialog, with the chats still selected.
+    await tester.tap(find.byKey(const ValueKey('allChats.delete')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('allChats.delete.confirm')));
+    await tester.pumpAndSettle();
+    expect(deletes.single.toSet(), {_chatId(0), _chatId(1), _chatId(2)});
+    expect(find.byKey(const ValueKey('allChats.delete.confirm.error')), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('3 selected'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('allChats.selectAll')));
+    await tester.pumpAndSettle();
+    expect(find.text('0 selected'), findsOneWidget);
+
+    // The system's back ends the selection, then leaves the page.
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('All Chats'), findsOneWidget);
+    expect(find.text('Chat 0'), findsOneWidget);
+    expect(find.byKey(const ValueKey('allChats.select')), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text('Chat page'), findsOneWidget);
+  });
 }

@@ -2,10 +2,10 @@ use crate::config::error::AppError;
 use crate::config::runtime::UsageAccess;
 use crate::config::state::AppState;
 use crate::dto::chat::{
-    ChatDetailDto, ChatDto, ChatPageDto, ContentDeltaDto, CreateChatRequest, FileDiffDto,
-    ListChatsQuery, MessageDto, MessageRole, MessageStatus, ProposedCommitDto, RawAnswerDto,
-    ResendMessageRequest, SearchChatsQuery, SendMessageRequest, ToolCallDto, ToolCallFinishedDto,
-    ToolCallStatus, ToolCallSummaryDto, UpdateChatRequest, UsageUpdateDto,
+    ChatDetailDto, ChatDto, ChatPageDto, ContentDeltaDto, CreateChatRequest, DeleteChatsRequest,
+    FileDiffDto, ListChatsQuery, MessageDto, MessageRole, MessageStatus, ProposedCommitDto,
+    RawAnswerDto, ResendMessageRequest, SearchChatsQuery, SendMessageRequest, ToolCallDto,
+    ToolCallFinishedDto, ToolCallStatus, ToolCallSummaryDto, UpdateChatRequest, UsageUpdateDto,
 };
 use crate::dto::error::ErrorCode;
 use crate::middleware::auth::AuthenticatedUser;
@@ -36,6 +36,9 @@ use uuid::Uuid;
 
 const DEFAULT_PAGE_SIZE: i64 = 50;
 const MAX_PAGE_SIZE: i64 = 100;
+
+/// How many chats `POST /api/v1/chats/delete` deletes at most.
+const MAX_DELETED_CHATS: usize = 1000;
 
 /// Titles derived from the first message are cut to this many characters.
 const DERIVED_TITLE_LENGTH: usize = 80;
@@ -239,6 +242,25 @@ pub(crate) async fn delete_chat(
 ) -> Result<StatusCode, AppError> {
     // Generations are looked up by chat id alone, so only the owner may stop them.
     if repository::chat::delete_chat(&state.db, auth.user_id, id).await? {
+        service::generation::stop_chat(&state, id).await;
+    }
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub(crate) async fn delete_chats(
+    State(state): State<AppState>,
+    auth: AuthenticatedUser,
+    JsonBody(payload): JsonBody<DeleteChatsRequest>,
+) -> Result<StatusCode, AppError> {
+    if payload.ids.len() > MAX_DELETED_CHATS {
+        return Err(ValidationError(format!(
+            "At most {MAX_DELETED_CHATS} chats can be deleted at once"
+        ))
+        .into());
+    }
+    let deleted = repository::chat::delete_chats(&state.db, auth.user_id, &payload.ids).await?;
+    // Only the deleted ones, see `delete_chat`.
+    for id in deleted {
         service::generation::stop_chat(&state, id).await;
     }
     Ok(StatusCode::NO_CONTENT)

@@ -397,6 +397,14 @@ pub struct UpdateChatRequest {
     pub model_id: Option<Uuid>,
 }
 
+/// `POST /api/v1/chats/delete`: deletes the user's chats among `ids`. Ids of missing chats are
+/// ignored, so the request is safe to retry.
+#[derive(Serialize, Deserialize)]
+pub struct DeleteChatsRequest {
+    /// At most 1000.
+    pub ids: Vec<Uuid>,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct SendMessageRequest {
     /// May be blank with an attachment.

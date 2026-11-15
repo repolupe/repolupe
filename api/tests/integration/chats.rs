@@ -402,3 +402,79 @@ async fn resent_message_keeps_its_attachment(db: SqlitePool) {
     assert_eq!(sent[0]["attachment"]["number"], 2);
     alice.wait_for_answer(id).await;
 }
+
+#[sqlx::test]
+async fn deletes_several_chats(db: SqlitePool) {
+    let app = TestApp::new(db).await;
+    let alice = app.user("alice@example.com").await;
+    let bob = app.user("bob@example.com").await;
+    let llm = MockLlm::start(vec![
+        text_response("One."),
+        text_response("Two."),
+        text_response("Three."),
+        stalled_response(),
+    ])
+    .await;
+    app.configure_llm(&llm).await;
+
+    let mut ids = Vec::new();
+    for (user, content) in [(&alice, "One?"), (&alice, "Two?"), (&alice, "Three?")] {
+        let (status, chat) = user
+            .post(
+                "/api/v1/chats",
+                json!({"content": content, "all_repositories": true}),
+            )
+            .await;
+        assert_eq!(status, StatusCode::CREATED, "{chat}");
+        let id = chat["id"].as_str().unwrap().to_string();
+        user.wait_for_answer(&id).await;
+        ids.push(id);
+    }
+    // Still answering, which the delete stops
+    let (status, chat) = bob
+        .post(
+            "/api/v1/chats",
+            json!({"content": "Bob?", "all_repositories": true}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::CREATED, "{chat}");
+    let bob_id = chat["id"].as_str().unwrap().to_string();
+    llm.wait_for_stalled(1).await;
+
+    // Bob's chat is ignored, like a missing one
+    let (status, body) = alice
+        .post(
+            "/api/v1/chats/delete",
+            json!({"ids": [ids[0], ids[2], bob_id, "0199a8d4-6d5e-7c3a-9b1f-000000000000"]}),
+        )
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+    let (status, page) = alice.get("/api/v1/chats").await;
+    assert_eq!(status, StatusCode::OK, "{page}");
+    let listed: Vec<_> = page["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|chat| chat["id"].as_str().unwrap())
+        .collect();
+    assert_eq!(listed, [ids[1].as_str()]);
+    let (status, _) = bob.get(&format!("/api/v1/chats/{bob_id}")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(llm.stalled(), 1);
+
+    let (status, body) = bob
+        .post("/api/v1/chats/delete", json!({"ids": [bob_id]}))
+        .await;
+    assert_eq!(status, StatusCode::NO_CONTENT, "{body}");
+    llm.wait_for_stalled(0).await;
+    let (status, _) = bob.get(&format!("/api/v1/chats/{bob_id}")).await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+
+    let too_many: Vec<_> = (0..1001)
+        .map(|i| format!("0199a8d4-6d5e-7c3a-9b1f-{i:012}"))
+        .collect();
+    let (status, body) = alice
+        .post("/api/v1/chats/delete", json!({"ids": too_many}))
+        .await;
+    assert_eq!(status, StatusCode::BAD_REQUEST, "{body}");
+}

@@ -246,6 +246,26 @@ pub(crate) async fn delete_chat(
     Ok(result.rows_affected() > 0)
 }
 
+/// Deletes the user's chats among `ids`, ignoring the others. Returns the ids of the deleted ones.
+pub(crate) async fn delete_chats(
+    db: &DatabasePool,
+    user_id: Uuid,
+    ids: &[Uuid],
+) -> Result<Vec<Uuid>, AppError> {
+    let ids_json = Json(ids);
+    let deleted = sqlx::query_scalar!(
+        r#"DELETE FROM chats
+           WHERE id IN (SELECT unhex(value, '-') FROM json_each($1))
+             AND user_id = $2
+           RETURNING id AS "id: Uuid""#,
+        ids_json,
+        user_id,
+    )
+    .fetch_all(db)
+    .await?;
+    Ok(deleted)
+}
+
 /// Deletes the temporary chats without a new message since `before`, except those still
 /// generating an answer. Returns how many were deleted.
 pub(crate) async fn delete_expired_temporary_chats(

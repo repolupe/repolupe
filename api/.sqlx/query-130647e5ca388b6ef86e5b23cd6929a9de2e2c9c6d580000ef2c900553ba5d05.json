@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM chats\n           WHERE id IN (SELECT unhex(value, '-') FROM json_each($1))\n             AND user_id = $2\n           RETURNING id AS \"id: Uuid\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "130647e5ca388b6ef86e5b23cd6929a9de2e2c9c6d580000ef2c900553ba5d05"
+}

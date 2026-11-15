@@ -1243,6 +1243,30 @@ class _Translations$base$chat$allPage$de extends Translations$base$chat$allPage$
   String get title => 'Alle Chats';
   @override
   String get noResults => 'Keine Chats gefunden';
+  @override
+  String get select => 'Auswählen';
+  @override
+  String get selectAll => 'Alle auswählen';
+  @override
+  String get deselectAll => 'Auswahl aufheben';
+  @override
+  String selected({required Object count}) => '${count} ausgewählt';
+  @override
+  String get deleteTitle => 'Chats löschen';
+  @override
+  String deleteConfirm({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
+    count,
+    one: 'Möchtest du 1 Chat mit allen Nachrichten wirklich löschen?',
+    other: 'Möchtest du ${count} Chats mit allen Nachrichten wirklich löschen?',
+  );
+  @override
+  String deleted({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
+    count,
+    one: '1 Chat gelöscht.',
+    other: '${count} Chats gelöscht.',
+  );
+  @override
+  String deleteFailed({required Object error}) => 'Die Chats konnten nicht gelöscht werden: ${error}';
 }
 
 // Path: base.settings.themeMode
