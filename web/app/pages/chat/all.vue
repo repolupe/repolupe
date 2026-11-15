@@ -43,6 +43,13 @@
           </template>
           <template v-slot:subtitle>
             <span :title="formatDateTime(c.updated_at)">{{ formatRelative(c.updated_at) }}</span>
+            <template v-if="c.attachment_count > 0">
+              •
+              {{
+                $t('chat.allPage.attachments', {count: c.attachment_count, size: formatBytes(c.attachment_size)},
+                    c.attachment_count)
+              }}
+            </template>
           </template>
         </v-list-item>
       </v-list>
@@ -69,7 +76,7 @@
 import {computed, ref} from "vue";
 import type {ChatDto} from "~/utils/model";
 import {deleteChats, errorMessage, getChats, searchChats} from "~/utils/api";
-import {formatDateTime, formatRelative, showSnackbar} from "~/utils/utils";
+import {formatBytes, formatDateTime, formatRelative, showSnackbar} from "~/utils/utils";
 import {refreshChats} from "~/composables/states";
 import MainContainer from "~/components/MainContainer.vue";
 import GenericDeleteDialog from "~/components/dialogs/GenericDeleteDialog.vue";

@@ -184,6 +184,13 @@ function chatSummary({messages: _, ...chat}: ChatDetailDto) {
     return copy(chat);
 }
 
+/** Like the API, which counts the attachments of the chat's messages. */
+function countAttachments(chat: ChatDetailDto) {
+    const attachments = chat.messages.flatMap(m => m.attachment ? [m.attachment] : []);
+    chat.attachment_count = attachments.length;
+    chat.attachment_size = attachments.reduce((sum, a) => sum + a.size, 0);
+}
+
 function userMessage(chat: ChatDetailDto, content: string, attachmentId: string | null): MessageDto {
     let attachment: AttachmentDto | null = null;
     if (attachmentId) {
@@ -416,6 +423,8 @@ function createChat(body: Record<string, any>): ChatDetailDto {
         mcp_server_ids: allMcpServers ? [] : body.mcp_server_ids ?? [],
         model_id: body.model_id ?? null,
         temporary: !!body.temporary,
+        attachment_count: 0,
+        attachment_size: 0,
         created_at: now,
         updated_at: now,
         messages: [],
@@ -425,6 +434,7 @@ function createChat(body: Record<string, any>): ChatDetailDto {
     chat.title = body.title?.trim() || (firstLine.length > 60 ? firstLine.slice(0, 60) + '…' : firstLine)
         || message.attachment?.file_name || 'New chat';
     chat.messages.push(message);
+    countAttachments(chat);
     state.chats.push(chat);
     startAnswer(chat);
     return copy(chat);
@@ -437,6 +447,7 @@ function sendMessage(chatId: string, body: Record<string, any>): [MessageDto, Me
     }
     const message = userMessage(chat, body.content ?? '', body.attachment_id ?? null);
     chat.messages.push(message);
+    countAttachments(chat);
     return [copy(message), copy(startAnswer(chat))];
 }
 
@@ -452,6 +463,7 @@ function resendMessage(chatId: string, messageId: string, body: Record<string, a
     }
     const message = chat.messages[index]!;
     chat.messages.splice(index + 1);
+    countAttachments(chat);
     if (typeof body.content === 'string') {
         message.content = body.content.trim();
     }

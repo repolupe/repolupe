@@ -1251,6 +1251,12 @@ class _Translations$base$chat$allPage$vi extends Translations$base$chat$allPage$
   @override
   String selected({required Object count}) => 'Đã chọn ${count}';
   @override
+  String attachments({required num count, required Object size}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('vi'))(
+    count,
+    one: '1 tệp đính kèm (${size})',
+    other: '${count} tệp đính kèm (${size})',
+  );
+  @override
   String get deleteTitle => 'Xóa các đoạn chat';
   @override
   String deleteConfirm({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('vi'))(

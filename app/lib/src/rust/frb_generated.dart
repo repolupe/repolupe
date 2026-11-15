@@ -3311,7 +3311,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ChatDto dco_decode_chat_dto(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 10) throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    if (arr.length != 12) throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
     return ChatDto(
       id: dco_decode_Uuid(arr[0]),
       title: dco_decode_String(arr[1]),
@@ -3321,8 +3321,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       mcpServerIds: dco_decode_list_Uuid(arr[5]),
       modelId: dco_decode_opt_Uuid(arr[6]),
       temporary: dco_decode_bool(arr[7]),
-      createdAt: dco_decode_Chrono_Utc(arr[8]),
-      updatedAt: dco_decode_Chrono_Utc(arr[9]),
+      attachmentCount: dco_decode_i_64(arr[8]),
+      attachmentSize: dco_decode_i_64(arr[9]),
+      createdAt: dco_decode_Chrono_Utc(arr[10]),
+      updatedAt: dco_decode_Chrono_Utc(arr[11]),
     );
   }
 
@@ -5538,6 +5540,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_mcpServerIds = sse_decode_list_Uuid(deserializer);
     var var_modelId = sse_decode_opt_Uuid(deserializer);
     var var_temporary = sse_decode_bool(deserializer);
+    var var_attachmentCount = sse_decode_i_64(deserializer);
+    var var_attachmentSize = sse_decode_i_64(deserializer);
     var var_createdAt = sse_decode_Chrono_Utc(deserializer);
     var var_updatedAt = sse_decode_Chrono_Utc(deserializer);
     return ChatDto(
@@ -5549,6 +5553,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       mcpServerIds: var_mcpServerIds,
       modelId: var_modelId,
       temporary: var_temporary,
+      attachmentCount: var_attachmentCount,
+      attachmentSize: var_attachmentSize,
       createdAt: var_createdAt,
       updatedAt: var_updatedAt,
     );
@@ -7966,6 +7972,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_list_Uuid(self.mcpServerIds, serializer);
     sse_encode_opt_Uuid(self.modelId, serializer);
     sse_encode_bool(self.temporary, serializer);
+    sse_encode_i_64(self.attachmentCount, serializer);
+    sse_encode_i_64(self.attachmentSize, serializer);
     sse_encode_Chrono_Utc(self.createdAt, serializer);
     sse_encode_Chrono_Utc(self.updatedAt, serializer);
   }

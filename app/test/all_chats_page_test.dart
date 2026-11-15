@@ -16,7 +16,7 @@ import 'support/rust.dart';
 /// The id of the chat [index], from the newest.
 UuidValue _chatId(int index) => UuidValue.fromString('0199a8d4-6d5e-7c3a-9b1f-${index.toString().padLeft(12, '0')}');
 
-ChatDto _chat(int index) => ChatDto(
+ChatDto _chat(int index, {int attachmentCount = 0, int attachmentSize = 0}) => ChatDto(
   id: _chatId(index),
   title: 'Chat $index',
   allRepositories: true,
@@ -24,6 +24,8 @@ ChatDto _chat(int index) => ChatDto(
   allMcpServers: true,
   mcpServerIds: const [],
   temporary: false,
+  attachmentCount: attachmentCount,
+  attachmentSize: attachmentSize,
   createdAt: DateTime.utc(2026, 10, 21, 12),
   updatedAt: DateTime.utc(2026, 10, 21, 12),
 );
@@ -31,6 +33,40 @@ ChatDto _chat(int index) => ChatDto(
 void main() {
   setUpAll(() async {
     await initRustLib();
+  });
+
+  testWidgets('chats with attachments show how many and their size', (tester) async {
+    final container = RefenaContainer(
+      overrides: [
+        apiProvider.overrideWithActions((mock) {
+          mock.on<ApiListChatsAction>((state, action) {
+            return (
+              state,
+              ChatPageDto(items: [_chat(0, attachmentCount: 2, attachmentSize: 3500000), _chat(1)]),
+            );
+          });
+        }),
+      ],
+    );
+    container.redux(apiProvider).dispatch(ApiSetAccountAction(fakeAccount(userId: '0199a8d4-6d5e-7c3a-9b1f-2a4c6e8d0f12')));
+
+    await tester.pumpWidget(
+      RefenaScope.withContainer(
+        container: container,
+        child: TranslationProvider(
+          child: MaterialApp(
+            navigatorKey: container.read(navigationProvider).key,
+            home: const Scaffold(body: Text('Chat page')),
+          ),
+        ),
+      ),
+    );
+    // ignore: unawaited_futures
+    container.global.dispatchAsync(NavigateAction.push(const AllChatsPage()));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining(' • 2 attachments (3.5 MB)'), findsOneWidget);
+    expect(find.textContaining('attachment'), findsOneWidget);
   });
 
   testWidgets('all chats start at the newest, load more at the end, and a tapped one is opened', (tester) async {

@@ -60,6 +60,10 @@ pub struct ChatDto {
     pub model_id: Option<Uuid>,
     /// Not listed in `GET /api/v1/chats`, and deleted a day after its last message.
     pub temporary: bool,
+    /// How many attachments were sent in the chat.
+    pub attachment_count: i64,
+    /// Of all attachments sent in the chat together, in bytes.
+    pub attachment_size: i64,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

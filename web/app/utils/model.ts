@@ -474,6 +474,10 @@ export interface ChatDto {
     model_id: string | null;
     /** Not listed in `GET /api/v1/chats`, and deleted a day after its last message. */
     temporary: boolean;
+    /** How many attachments were sent in the chat. */
+    attachment_count: number;
+    /** Of all attachments sent in the chat together, in bytes. */
+    attachment_size: number;
     created_at: string;
     updated_at: string;
 }

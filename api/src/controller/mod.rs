@@ -444,6 +444,8 @@ impl From<model::chat::Chat> for ChatDto {
             mcp_server_ids: chat.mcp_server_ids.0,
             model_id: chat.model_id,
             temporary: chat.temporary,
+            attachment_count: chat.attachment_count,
+            attachment_size: chat.attachment_size,
             created_at: chat.created_at,
             updated_at: chat.updated_at,
         }

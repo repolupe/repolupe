@@ -252,7 +252,7 @@ class _AllChatsPageState extends State<AllChatsPage> with Refena {
                   key: ValueKey('allChats.chat.${chat.id}'),
                   leading: Checkbox(value: selected, onChanged: (_) => _toggle(chat.id)),
                   title: Text(chat.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(formatDayTime(chat.updatedAt)),
+                  subtitle: Text(_subtitle(chat)),
                   selected: selected,
                   onTap: () => _toggle(chat.id),
                 );
@@ -260,7 +260,7 @@ class _AllChatsPageState extends State<AllChatsPage> with Refena {
               return ListTile(
                 key: ValueKey('allChats.chat.${chat.id}'),
                 title: Text(chat.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                subtitle: Text(formatDayTime(chat.updatedAt)),
+                subtitle: Text(_subtitle(chat)),
                 onLongPress: () => _startSelecting(chat.id),
                 onTap: () async {
                   if (!await LeaveTemporaryDialog.confirm(context) || !context.mounted) {
@@ -312,6 +312,19 @@ class _AllChatsPageState extends State<AllChatsPage> with Refena {
       ),
     );
   }
+}
+
+/// When the chat was last written in, and its attachments if it has any.
+String _subtitle(ChatDto chat) {
+  final updated = formatDayTime(chat.updatedAt);
+  if (chat.attachmentCount == 0) {
+    return updated;
+  }
+  final attachments = t.base.chat.allPage.attachments(
+    count: chat.attachmentCount,
+    size: formatBytes(chat.attachmentSize),
+  );
+  return '$updated • $attachments';
 }
 
 /// Replaces the app bar while chats are selected.

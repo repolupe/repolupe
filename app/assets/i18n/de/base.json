@@ -317,6 +317,10 @@
       "selectAll": "Alle auswählen",
       "deselectAll": "Auswahl aufheben",
       "selected": "{count} ausgewählt",
+      "attachments": {
+        "one": "1 Anhang ({size})",
+        "other": "{count} Anhänge ({size})"
+      },
       "deleteTitle": "Chats löschen",
       "deleteConfirm": {
         "one": "Möchtest du 1 Chat mit allen Nachrichten wirklich löschen?",

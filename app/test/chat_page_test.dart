@@ -35,6 +35,8 @@ ChatDto _chat(UuidValue id, String title, {bool temporary = false}) => ChatDto(
   allMcpServers: true,
   mcpServerIds: const [],
   temporary: temporary,
+  attachmentCount: 0,
+  attachmentSize: 0,
   createdAt: DateTime.utc(2026, 10, 21, 12),
   updatedAt: DateTime.utc(2026, 10, 21, 12),
 );

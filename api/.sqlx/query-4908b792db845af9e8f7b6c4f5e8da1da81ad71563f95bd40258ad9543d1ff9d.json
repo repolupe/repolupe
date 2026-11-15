@@ -1,0 +1,86 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT c.id AS \"id: Uuid\", c.title, c.all_repositories,\n                  (SELECT json_group_array(lower(hex(cr.repository_id)) ORDER BY cr.repository_id)\n                   FROM chat_repositories cr\n                   WHERE cr.chat_id = c.id) AS \"repository_ids!: Json<Vec<Uuid>>\",\n                  c.all_mcp_servers,\n                  (SELECT json_group_array(lower(hex(cm.mcp_server_id)) ORDER BY cm.mcp_server_id)\n                   FROM chat_mcp_servers cm\n                   WHERE cm.chat_id = c.id) AS \"mcp_server_ids!: Json<Vec<Uuid>>\",\n                  c.model_id AS \"model_id: Uuid\", c.temporary,\n                  (SELECT count(*) FROM attachments a WHERE a.chat_id = c.id) AS \"attachment_count!: i64\",\n                  (SELECT coalesce(sum(a.size), 0) FROM attachments a WHERE a.chat_id = c.id)\n                      AS \"attachment_size!: i64\",\n                  c.created_at AS \"created_at: DateTime<Utc>\", c.updated_at AS \"updated_at: DateTime<Utc>\"\n           FROM chats c\n           WHERE c.user_id = $1\n             AND NOT c.temporary\n             AND ($2 IS NULL OR (c.updated_at, c.id) < ($2, $3))\n             AND NOT EXISTS (SELECT 1\n                             FROM json_each($4) w\n                             WHERE c.title NOT LIKE w.value ESCAPE '\\'\n                               AND NOT EXISTS (SELECT 1\n                                               FROM messages m\n                                               WHERE m.chat_id = c.id\n                                                 AND m.content LIKE w.value ESCAPE '\\'))\n           ORDER BY c.updated_at DESC, c.id DESC\n           LIMIT $5",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "title",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "all_repositories",
+        "ordinal": 2,
+        "type_info": "Bool"
+      },
+      {
+        "name": "repository_ids!: Json<Vec<Uuid>>",
+        "ordinal": 3,
+        "type_info": "Null"
+      },
+      {
+        "name": "all_mcp_servers",
+        "ordinal": 4,
+        "type_info": "Bool"
+      },
+      {
+        "name": "mcp_server_ids!: Json<Vec<Uuid>>",
+        "ordinal": 5,
+        "type_info": "Null"
+      },
+      {
+        "name": "model_id: Uuid",
+        "ordinal": 6,
+        "type_info": "Blob"
+      },
+      {
+        "name": "temporary",
+        "ordinal": 7,
+        "type_info": "Bool"
+      },
+      {
+        "name": "attachment_count!: i64",
+        "ordinal": 8,
+        "type_info": "Null"
+      },
+      {
+        "name": "attachment_size!: i64",
+        "ordinal": 9,
+        "type_info": "Null"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 10,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "updated_at: DateTime<Utc>",
+        "ordinal": 11,
+        "type_info": "Datetime"
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      null,
+      false,
+      null,
+      true,
+      false,
+      null,
+      null,
+      false,
+      false
+    ]
+  },
+  "hash": "4908b792db845af9e8f7b6c4f5e8da1da81ad71563f95bd40258ad9543d1ff9d"
+}

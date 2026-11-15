@@ -114,8 +114,11 @@ pub(crate) async fn list_chats(
                   (SELECT json_group_array(lower(hex(cm.mcp_server_id)) ORDER BY cm.mcp_server_id)
                    FROM chat_mcp_servers cm
                    WHERE cm.chat_id = c.id) AS "mcp_server_ids!: Json<Vec<Uuid>>",
-                  c.model_id AS "model_id: Uuid", c.temporary, c.created_at AS "created_at: DateTime<Utc>",
-                  c.updated_at AS "updated_at: DateTime<Utc>"
+                  c.model_id AS "model_id: Uuid", c.temporary,
+                  (SELECT count(*) FROM attachments a WHERE a.chat_id = c.id) AS "attachment_count!: i64",
+                  (SELECT coalesce(sum(a.size), 0) FROM attachments a WHERE a.chat_id = c.id)
+                      AS "attachment_size!: i64",
+                  c.created_at AS "created_at: DateTime<Utc>", c.updated_at AS "updated_at: DateTime<Utc>"
            FROM chats c
            WHERE c.user_id = $1
              AND NOT c.temporary
@@ -411,8 +414,11 @@ pub(crate) async fn get_chat<'e>(
                   (SELECT json_group_array(lower(hex(cm.mcp_server_id)) ORDER BY cm.mcp_server_id)
                    FROM chat_mcp_servers cm
                    WHERE cm.chat_id = c.id) AS "mcp_server_ids!: Json<Vec<Uuid>>",
-                  c.model_id AS "model_id: Uuid", c.temporary, c.created_at AS "created_at: DateTime<Utc>",
-                  c.updated_at AS "updated_at: DateTime<Utc>"
+                  c.model_id AS "model_id: Uuid", c.temporary,
+                  (SELECT count(*) FROM attachments a WHERE a.chat_id = c.id) AS "attachment_count!: i64",
+                  (SELECT coalesce(sum(a.size), 0) FROM attachments a WHERE a.chat_id = c.id)
+                      AS "attachment_size!: i64",
+                  c.created_at AS "created_at: DateTime<Utc>", c.updated_at AS "updated_at: DateTime<Utc>"
            FROM chats c
            WHERE c.id = $1 AND c.user_id = $2"#,
         id,

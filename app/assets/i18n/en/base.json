@@ -317,6 +317,10 @@
       "selectAll": "Select all",
       "deselectAll": "Deselect all",
       "selected": "{count} selected",
+      "attachments": {
+        "one": "1 attachment ({size})",
+        "other": "{count} attachments ({size})"
+      },
       "deleteTitle": "Delete Chats",
       "deleteConfirm": {
         "one": "Are you sure you want to delete 1 chat with all its messages?",

@@ -16,6 +16,10 @@ pub struct Chat {
     pub model_id: Option<Uuid>,
     /// Not listed, and deleted a while after its last message.
     pub temporary: bool,
+    /// Sent with its messages.
+    pub attachment_count: i64,
+    /// Of all attachments together, in bytes.
+    pub attachment_size: i64,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

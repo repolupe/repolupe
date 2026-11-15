@@ -5230,6 +5230,8 @@ const _: fn() = || {
         let _: Vec<uuid::Uuid> = ChatDto.mcp_server_ids;
         let _: Option<uuid::Uuid> = ChatDto.model_id;
         let _: bool = ChatDto.temporary;
+        let _: i64 = ChatDto.attachment_count;
+        let _: i64 = ChatDto.attachment_size;
         let _: chrono::DateTime<chrono::Utc> = ChatDto.created_at;
         let _: chrono::DateTime<chrono::Utc> = ChatDto.updated_at;
     }
@@ -6098,6 +6100,8 @@ impl SseDecode for repolupe::dto::chat::ChatDto {
         let mut var_mcpServerIds = <Vec<uuid::Uuid>>::sse_decode(deserializer);
         let mut var_modelId = <Option<uuid::Uuid>>::sse_decode(deserializer);
         let mut var_temporary = <bool>::sse_decode(deserializer);
+        let mut var_attachmentCount = <i64>::sse_decode(deserializer);
+        let mut var_attachmentSize = <i64>::sse_decode(deserializer);
         let mut var_createdAt = <chrono::DateTime<chrono::Utc>>::sse_decode(deserializer);
         let mut var_updatedAt = <chrono::DateTime<chrono::Utc>>::sse_decode(deserializer);
         return repolupe::dto::chat::ChatDto {
@@ -6109,6 +6113,8 @@ impl SseDecode for repolupe::dto::chat::ChatDto {
             mcp_server_ids: var_mcpServerIds,
             model_id: var_modelId,
             temporary: var_temporary,
+            attachment_count: var_attachmentCount,
+            attachment_size: var_attachmentSize,
             created_at: var_createdAt,
             updated_at: var_updatedAt,
         };
@@ -9199,6 +9205,8 @@ impl flutter_rust_bridge::IntoDart for FrbWrapper<repolupe::dto::chat::ChatDto> 
             self.0.mcp_server_ids.into_into_dart().into_dart(),
             self.0.model_id.into_into_dart().into_dart(),
             self.0.temporary.into_into_dart().into_dart(),
+            self.0.attachment_count.into_into_dart().into_dart(),
+            self.0.attachment_size.into_into_dart().into_dart(),
             self.0.created_at.into_into_dart().into_dart(),
             self.0.updated_at.into_into_dart().into_dart(),
         ]
@@ -11860,6 +11868,8 @@ impl SseEncode for repolupe::dto::chat::ChatDto {
         <Vec<uuid::Uuid>>::sse_encode(self.mcp_server_ids, serializer);
         <Option<uuid::Uuid>>::sse_encode(self.model_id, serializer);
         <bool>::sse_encode(self.temporary, serializer);
+        <i64>::sse_encode(self.attachment_count, serializer);
+        <i64>::sse_encode(self.attachment_size, serializer);
         <chrono::DateTime<chrono::Utc>>::sse_encode(self.created_at, serializer);
         <chrono::DateTime<chrono::Utc>>::sse_encode(self.updated_at, serializer);
     }

@@ -50,6 +50,12 @@ class ChatDto {
 
   /// Not listed in `GET /api/v1/chats`, and deleted a day after its last message.
   final bool temporary;
+
+  /// How many attachments were sent in the chat.
+  final PlatformInt64 attachmentCount;
+
+  /// Of all attachments sent in the chat together, in bytes.
+  final PlatformInt64 attachmentSize;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -62,6 +68,8 @@ class ChatDto {
     required this.mcpServerIds,
     this.modelId,
     required this.temporary,
+    required this.attachmentCount,
+    required this.attachmentSize,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -76,6 +84,8 @@ class ChatDto {
       mcpServerIds.hashCode ^
       modelId.hashCode ^
       temporary.hashCode ^
+      attachmentCount.hashCode ^
+      attachmentSize.hashCode ^
       createdAt.hashCode ^
       updatedAt.hashCode;
 
@@ -92,6 +102,8 @@ class ChatDto {
           mcpServerIds == other.mcpServerIds &&
           modelId == other.modelId &&
           temporary == other.temporary &&
+          attachmentCount == other.attachmentCount &&
+          attachmentSize == other.attachmentSize &&
           createdAt == other.createdAt &&
           updatedAt == other.updatedAt;
 }

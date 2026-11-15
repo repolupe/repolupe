@@ -1456,6 +1456,13 @@ class Translations$base$chat$allPage$en {
   /// en: '{count} selected'
   String selected({required Object count}) => '${count} selected';
 
+  /// en: '(one) {1 attachment ({size})} (other) {{count} attachments ({size})}'
+  String attachments({required num count, required Object size}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('en'))(
+    count,
+    one: '1 attachment (${size})',
+    other: '${count} attachments (${size})',
+  );
+
   /// en: 'Delete Chats'
   String get deleteTitle => 'Delete Chats';
 

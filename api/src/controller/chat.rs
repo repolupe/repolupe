@@ -928,6 +928,8 @@ mod tests {
             mcp_server_ids: Json(vec![]),
             model_id: None,
             temporary: false,
+            attachment_count: 0,
+            attachment_size: 0,
             created_at: Utc::now(),
             updated_at: DateTime::from_timestamp_nanos(1_760_000_000_123_456_789),
         };

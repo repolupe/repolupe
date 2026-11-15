@@ -1252,6 +1252,12 @@ class _Translations$base$chat$allPage$de extends Translations$base$chat$allPage$
   @override
   String selected({required Object count}) => '${count} ausgewählt';
   @override
+  String attachments({required num count, required Object size}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(
+    count,
+    one: '1 Anhang (${size})',
+    other: '${count} Anhänge (${size})',
+  );
+  @override
   String get deleteTitle => 'Chats löschen';
   @override
   String deleteConfirm({required num count}) => (_root.$meta.cardinalResolver ?? PluralResolvers.cardinal('de'))(

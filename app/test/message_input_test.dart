@@ -99,6 +99,8 @@ Future<RefenaContainer> _pumpChatPage(
             allMcpServers: action.allMcpServers,
             mcpServerIds: action.mcpServerIds,
             temporary: false,
+            attachmentCount: 0,
+            attachmentSize: 0,
             createdAt: DateTime.utc(2026, 10, 21, 12),
             updatedAt: DateTime.utc(2026, 10, 21, 12),
           );

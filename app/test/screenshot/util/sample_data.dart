@@ -136,6 +136,8 @@ ChatDto chat(String id, String title, String repositoryId) => ChatDto(
   mcpServerIds: const [],
   modelId: UuidValue.fromString(sampleModelId),
   temporary: false,
+  attachmentCount: 0,
+  attachmentSize: 0,
   createdAt: DateTime.utc(2026, 10, 21, 9, 12),
   updatedAt: DateTime.utc(2026, 10, 21, 9, 13),
 );

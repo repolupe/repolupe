@@ -355,10 +355,12 @@ async fn resent_message_keeps_its_attachment(db: SqlitePool) {
         )
         .await;
     assert_eq!(status, StatusCode::CREATED, "{chat}");
+    assert_eq!(chat["attachment_count"], 1);
+    assert_eq!(chat["attachment_size"], 1);
     let id = chat["id"].as_str().unwrap();
     let message_id = chat["messages"][0]["id"].as_str().unwrap();
     alice.wait_for_answer(id).await;
-    let (_, second) = alice.upload("second.txt", b"2").await;
+    let (_, second) = alice.upload("second.txt", b"22").await;
     let (status, sent) = alice
         .post(
             &format!("/api/v1/chats/{id}/messages"),
@@ -368,6 +370,9 @@ async fn resent_message_keeps_its_attachment(db: SqlitePool) {
     assert_eq!(status, StatusCode::CREATED, "{sent}");
     assert_eq!(sent[0]["attachment"]["number"], 2);
     alice.wait_for_answer(id).await;
+    let (_, page) = alice.get("/api/v1/chats").await;
+    assert_eq!(page["items"][0]["attachment_count"], 2);
+    assert_eq!(page["items"][0]["attachment_size"], 3);
 
     // The text may be removed, since the attachment stays
     let (status, resent) = alice
@@ -391,7 +396,11 @@ async fn resent_message_keeps_its_attachment(db: SqlitePool) {
         .get_raw(&format!("/api/v1/attachments/{second_id}"))
         .await;
     assert_eq!(status, StatusCode::NOT_FOUND);
-    let (_, third) = alice.upload("third.txt", b"3").await;
+    let (_, third) = alice.upload("third.txt", b"333").await;
+    // An unsent attachment is not counted
+    let (_, chat) = alice.get(&format!("/api/v1/chats/{id}")).await;
+    assert_eq!(chat["attachment_count"], 1);
+    assert_eq!(chat["attachment_size"], 1);
     let (status, sent) = alice
         .post(
             &format!("/api/v1/chats/{id}/messages"),

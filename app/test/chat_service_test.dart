@@ -152,6 +152,8 @@ void main() {
               'mcp_server_ids': <Object>[],
               'model_id': null,
               'temporary': true,
+              'attachment_count': 0,
+              'attachment_size': 0,
               'created_at': '2026-10-21T12:00:00+00:00',
               'updated_at': '2026-10-21T12:00:00+00:00',
               'messages': [
@@ -253,6 +255,8 @@ void main() {
       'mcp_server_ids': <Object>[],
       'model_id': null,
       'temporary': false,
+      'attachment_count': 0,
+      'attachment_size': 0,
       'created_at': '2026-10-21T12:00:00+00:00',
       'updated_at': '2026-10-21T12:00:00+00:00',
     };
@@ -438,6 +442,8 @@ void main() {
               'mcp_server_ids': <Object>[],
               'model_id': null,
               'temporary': false,
+              'attachment_count': 1,
+              'attachment_size': 3,
               'created_at': '2026-10-21T12:00:00+00:00',
               'updated_at': '2026-10-21T12:00:00+00:00',
               'messages': [

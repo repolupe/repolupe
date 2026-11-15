@@ -317,6 +317,10 @@
       "selectAll": "Chọn tất cả",
       "deselectAll": "Bỏ chọn tất cả",
       "selected": "Đã chọn {count}",
+      "attachments": {
+        "one": "1 tệp đính kèm ({size})",
+        "other": "{count} tệp đính kèm ({size})"
+      },
       "deleteTitle": "Xóa các đoạn chat",
       "deleteConfirm": {
         "one": "Bạn có chắc muốn xóa 1 đoạn chat cùng tất cả tin nhắn trong đó?",
