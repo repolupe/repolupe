@@ -57,4 +57,23 @@ void main() {
       '2,5B T.',
     ]);
   });
+
+  test('formatBytes switches to the next unit at exactly 1000, or once the value would round to it', () {
+    addTearDown(() => Intl.defaultLocale = null);
+    Intl.defaultLocale = 'en';
+    const bytes = [0, 999, 1000, 1500, 999949, 999950, 1000000, 3500000, 1000000000, 2000000000000000];
+    expect(bytes.map(formatBytes), [
+      '0 B',
+      '999 B',
+      '1 kB',
+      '1.5 kB',
+      '999.9 kB',
+      '1 MB',
+      '1 MB',
+      '3.5 MB',
+      '1 GB',
+      '2,000 TB',
+    ]);
+    expect(formatBytes(null), '-');
+  });
 }

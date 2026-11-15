@@ -1,5 +1,5 @@
 import {afterEach, describe, expect, it} from 'vitest';
-import {attachmentPreviewKind, formatTokens, parseMcpToolName, parseSavedScope, tokenCost} from '~/utils/utils';
+import {attachmentPreviewKind, formatBytes, formatTokens, parseMcpToolName, parseSavedScope, tokenCost} from '~/utils/utils';
 import type {AttachmentDto} from '~/utils/model';
 import {setFormatLocale} from '~/utils/i18n';
 
@@ -71,6 +71,19 @@ describe('formatTokens', () => {
             '0 T.', '850 T.', '999 T.', '1k T.', '3,6k T.', '12,3k T.', '123,5k T.', '999,9k T.', '1M T.', '1,2M T.',
             '2,5B T.',
         ]);
+    });
+});
+
+describe('formatBytes', () => {
+    afterEach(() => setFormatLocale('en'));
+
+    it('switches to the next unit at exactly 1000, or once the value would round to it', () => {
+        setFormatLocale('en');
+        const bytes = [0, 999, 1000, 1500, 999_949, 999_950, 1_000_000, 3_500_000, 1_000_000_000, 2_000_000_000_000_000];
+        expect(bytes.map(formatBytes)).toEqual([
+            '0 byte', '999 byte', '1 kB', '1.5 kB', '999.9 kB', '1 MB', '1 MB', '3.5 MB', '1 GB', '2,000 TB',
+        ]);
+        expect(formatBytes(null)).toBe('-');
     });
 });
 

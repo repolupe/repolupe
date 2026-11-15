@@ -224,7 +224,10 @@ export function formatBytes(bytes: number | null): string {
         return '-';
     }
     const units = ['byte', 'kilobyte', 'megabyte', 'gigabyte', 'terabyte'];
-    const exponent = Math.min(Math.floor(Math.log10(Math.max(bytes, 1)) / 3), units.length - 1);
+    let exponent = 0;
+    while (exponent < units.length - 1 && bytes / 1000 ** exponent >= 999.95) {
+        exponent++;
+    }
     return new Intl.NumberFormat(formatLocale(), {
         style: 'unit',
         unit: units[exponent],

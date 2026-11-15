@@ -109,7 +109,10 @@ String formatBytes(int? bytes) {
     return '-';
   }
   const units = ['B', 'kB', 'MB', 'GB', 'TB'];
-  final exponent = min((log(max(bytes, 1)) / ln10 / 3).floor(), units.length - 1);
+  var exponent = 0;
+  while (exponent < units.length - 1 && bytes / pow(1000, exponent) >= 999.95) {
+    exponent++;
+  }
   final value = bytes / pow(1000, exponent);
   return '${NumberFormat(exponent == 0 ? '#,##0' : '#,##0.#').format(value)} ${units[exponent]}';
 }
